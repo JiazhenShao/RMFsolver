@@ -11,7 +11,7 @@ from RMFsolver.Solver import RMFsolve_mu, RMFpressureSYM, RMFpressurePNM, pressu
 
 
 # Public functions
-__all__ = ["P_f", "n_B", "PQM", "vNtoQ_Pc", "vNtoQ_B", "vNtoB_nc"]
+__all__ = ["P_f", "n_B", "PQM", "PQM_em", "vNtoQ_Pc", "vNtoQ_B", "vNtoQ_nc"]
 
 
 # pressure for a single free fermion
@@ -137,7 +137,7 @@ def PQM_em(muB, muK, B_one_forth, T, ms, muQ_init=300, upB=5000):
 
 
 # extract coordinates of a contour
-def extract_contour_coords_num(X, Y, Z, level):
+def _extract_contour_coords_num(X, Y, Z, level):
     '''
     extract the coordinates of a contour plot at certain level
 
@@ -167,7 +167,7 @@ def extract_contour_coords_num(X, Y, Z, level):
 
     return X_coor, Y_coor 
 
-def extract_contour_coords_ana(func, x_range, y_list, level, bracket=None, method='brentq'):
+def _extract_contour_coords_ana(func, x_range, y_list, level, bracket=None, method='brentq'):
     '''
     Extract coordinates (x, y) satisfying func(x, y) = level using root finding.
 
@@ -204,7 +204,7 @@ def extract_contour_coords_ana(func, x_range, y_list, level, bracket=None, metho
 
 
 # find Q star
-def find_muB_muK_star(PQM, P_target, C, B_one_forth, T, ms, upB=5000, initial_guess=(1020.0, 700.0)):
+def _find_muB_muK_star(PQM, P_target, C, B_one_forth, T, ms, upB=5000, initial_guess=(1020.0, 700.0)):
     '''
     Solves:
       1. PQM(muB, muK) = P_target
@@ -383,7 +383,7 @@ def vNtoQ_Pc(T, P_crit, DelP, m_s, param, NM_type, method):
     # calculating aQstar
     if method == "numerical":
         epsilon = np.sqrt(np.finfo(float).eps)
-        muB_star, muK_star = find_muB_muK_star(PQM, P_crit + DelP, muB_N, B_SQM, T, m_s)
+        muB_star, muK_star = _find_muB_muK_star(PQM, P_crit + DelP, muB_N, B_SQM, T, m_s)
         PQM_wrap = lambda Mu: PQM(Mu[0], Mu[1], B_SQM, T, m_s)
         grad_Qstar = approx_fprime(np.array([muB_star, muK_star]), PQM_wrap, epsilon)
         nB_Qstar = grad_Qstar[0]
@@ -507,7 +507,7 @@ def vNtoQ_B(T, B_SQM, DelP, m_s, param, NM_type, method):
     # calculating aQstar
     if method == "numerical":
         epsilon = np.sqrt(np.finfo(float).eps)
-        muB_star, muK_star = find_muB_muK_star(PQM, P_crit + DelP, muB_N, B_SQM, T, m_s)
+        muB_star, muK_star = _find_muB_muK_star(PQM, P_crit + DelP, muB_N, B_SQM, T, m_s)
         PQM_wrap = lambda Mu: PQM(Mu[0], Mu[1], B_SQM, T, m_s)
         grad_Qstar = approx_fprime(np.array([muB_star, muK_star]), PQM_wrap, epsilon)
         nB_Qstar = grad_Qstar[0]
@@ -678,7 +678,7 @@ def vNtoQ_nc(T, n_crit, Deln, m_s, param, NM_type, method):
     # calculating aQstar
     if method == "numerical":
         epsilon = np.sqrt(np.finfo(float).eps)
-        muB_star, muK_star = find_muB_muK_star(PQM, P_crit + DelP, muB_N, B_SQM, T, m_s)
+        muB_star, muK_star = _find_muB_muK_star(PQM, P_crit + DelP, muB_N, B_SQM, T, m_s)
         PQM_wrap = lambda Mu: PQM(Mu[0], Mu[1], B_SQM, T, m_s)
         grad_Qstar = approx_fprime(np.array([muB_star, muK_star]), PQM_wrap, epsilon)
         nB_Qstar = grad_Qstar[0]
@@ -716,6 +716,10 @@ def vNtoQ_nc(T, n_crit, Deln, m_s, param, NM_type, method):
     vel = _vNtoQ_formula(T, aQstar, aN, muB_star/3)
 
     return vel, B_SQM
+
+
+
+#
 
 
 
