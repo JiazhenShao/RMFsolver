@@ -11,7 +11,7 @@ from RMFsolver.Solver import RMFsolve_mu, RMFpressureSYM, RMFpressurePNM, pressu
 
 
 # Public functions
-__all__ = ["P_f", "n_B", "PQM", "vNtoQ_Pc", "vNtoQ_B"]
+__all__ = ["P_f", "n_B", "PQM", "vNtoQ_Pc", "vNtoQ_B", "vNtoB_nc"]
 
 
 # pressure for a single free fermion
@@ -716,40 +716,6 @@ def vNtoQ_nc(T, n_crit, Deln, m_s, param, NM_type, method):
     vel = _vNtoQ_formula(T, aQstar, aN, muB_star/3)
 
     return vel, B_SQM
-
-
-
-'''
-
-#muB_list = np.linspace(940, 1100, 100)
-muK_list = np.linspace(-90, 90, 100)
-#muB_grid, muK_grid = np.meshgrid(muB_list, muK_list)
-#P_QM = np.array([[PQM(i, j, B_SQM, T, m_s) for i in muB_list] for j in muK_list])
-muB_contour_coor, muK_contour_coor = extract_contour_coords_ana(
-    func = lambda mubb, mukk: PQM(mubb, mukk, B_SQM, T, m_s),
-    x_range = (940, 1100),
-    y_list = muK_list,
-    level = P_crit + DelP
-    )
-
-mu_average = []
-epsilon = np.sqrt(np.finfo(float).eps)
-for i in range(len(muB_contour_coor)):
-    muB_Qstar = muB_contour_coor[i]
-    muK_Qstar = muK_contour_coor[i]
-    Qstar = np.array([muB_Qstar, muK_Qstar])
-    grad = approx_fprime(Qstar, PQM_wrap, epsilon) # calculate n=∂P/∂mu
-    nB_Qstar = grad[0]
-    nK_Qstar = grad[1]
-    mu_average.append( muB_Qstar + nK_Qstar * muK_Qstar / nB_Qstar)
-difference = np.abs(np.array(mu_average) - muB_N)
-minima_ind = argrelextrema(difference, np.less)[0]
-muB_Qstar_down = muB_contour_coor[minima_ind[0]]
-muK_Qstar_down = muK_contour_coor[minima_ind[0]]
-muB_Qstar_up = muB_contour_coor[minima_ind[1]]
-muK_Qstar_up = muK_contour_coor[minima_ind[1]]
-
-'''
 
 
 
