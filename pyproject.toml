@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rmfsolver-pub"
+version = "0.1.0"
+description = "Public-facing cleanup of the RMFsolver scientific Python package."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy",
+    "scipy",
+    "matplotlib",
+    "numdifftools",
+]
+
+[tool.setuptools]
+packages = ["RMFsolver"]
+
+[tool.setuptools.package-data]
+RMFsolver = ["TM1ecrust+BPS.table"]
