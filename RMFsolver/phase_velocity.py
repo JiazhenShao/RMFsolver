@@ -1,18 +1,25 @@
-"""Phase-transition and combustion-front helpers built on top of the RMF solvers."""
-
 import numpy as np
+import math
+import time
+import matplotlib.pyplot as plt
+from fractions import Fraction
 from scipy.interpolate import interp1d
 from scipy.integrate import quad, solve_bvp, solve_ivp
 from scipy.optimize import fsolve, approx_fprime, root_scalar, root, least_squares, minimize_scalar
-from numdifftools import Derivative
-
-from . import RMFparameter as para
+from numdifftools import Gradient, Derivative
 from . import constants as const
-from .Solver import RMFbaryon_densityPNM, RMFedensPNM, RMFpressurePNM, RMFpressureSYM, RMFsolve, RMFsolve_mu, pressure_RMF
+from . import RMFparameter as para
+from .Solver import RMFsolve, RMFsolve_mu, RMFpressureSYM, RMFpressurePNM, pressure_RMF
+from .Solver import _set_couplings, RMFsolvePNM, RMFsolvePNM_mu, RMFedensPNM, RMFbaryon_densityPNM
+
+try:
+    from tqdm.auto import tqdm
+except Exception:
+    tqdm = None
 
 
 # Public functions
-__all__ = ["P_f", "E_f", "n_B", "nB_QM", "nQM_em", "PQM", "PQM_em", "edensQM", "uQ_uN", "vNtoQ_Pc", "vNtoQ_B", "vNtoQ_nc", "Get_Delta_n_max",
+__all__ = ["P_f", "E_f", "n_B", "nB_QM", "nK_QM", "nQM_em", "PQM", "PQM_em", "edensQM", "uN", "solve_steady_front_2d", "solve_steady_front_2d_simple", "solve_steady_front_1d_aQstar", "solve_steady_front_1d_aQstar_rescaled", "solve_steady_front_1d_aQstar_rescale_bvp", "extract_jB_curve_vs_aQstar", "vNtoQ_Pc", "vNtoQ_B", "vNtoQ_nc", "Get_Delta_n_max",
            "Get_Delta_P_max", "extract_contour_coords_num", "extract_contour_coords_ana",
            "Get_Two_as_pres", "Get_Two_as_dens", "z_time_evolution", "z_time_evolution1",
            "vNtoQ_fixB", "vNtoQ_Pc_fixB", "z_time_evolution2", "Get_aQstar_etaQ", "Get_aQstar_etaQ0",
@@ -39,6 +46,20 @@ def _smoothstep01(x):
     # C^1 smooth blend on [0,1]
     x = 0.0 if x < 0.0 else (1.0 if x > 1.0 else x)
     return x*x*(3.0 - 2.0*x)
+
+def _massless_fermion_pressure(mu, Tem):
+    """
+    Exact finite-T pressure for one massless fermion species with spin
+    degeneracy included and color excluded.
+    """
+    return float(mu**4 / (12.0 * np.pi**2) + mu * mu * Tem * Tem / 6.0 + 7.0 * np.pi**2 * Tem**4 / 180.0)
+
+def _massless_fermion_density(mu, Tem):
+    """
+    Exact finite-T net density dP/dmu for one massless fermion species with spin
+    degeneracy included and color excluded.
+    """
+    return float(mu**3 / (3.0 * np.pi**2) + mu * Tem * Tem / 3.0)
 
 def PNM(mu_B, Temp, param = para.paraQMCRMF3, NM_type = "PNM"):
     """
@@ -77,56 +98,24 @@ def PNM_n(nB, Temp, param = para.paraQMCRMF3, NM_type = "PNM"):
     raise ValueError("Nuclear matter type not defined.")
 
 def edensNM(mu_B, Temp, param = para.paraQMCRMF3, ):
-    """Return nuclear-matter energy density as a function of ``mu_B``.
-
-    Inputs:
-    - mu_B: baryon chemical potential in MeV
-    - Temp: temperature in MeV
-    - param: RMF parameter set
-
-    Output:
-    - energy density in MeV^4
-    """
     edens = RMFedensPNM(input_num = mu_B, input_type = "muB", Trmf = Temp, para = param, 
         sigma_init = 30, w0_init = 20, r03_init = -3, mub_init = 990, verb = False
         )
     return float(edens.item())
 
 def edensNM_n(nB, Temp, param = para.paraQMCRMF3, ):
-    """Return nuclear-matter energy density as a function of baryon density.
-
-    Inputs:
-    - nB: baryon density in MeV^3
-    - Temp: temperature in MeV
-    - param: RMF parameter set
-
-    Output:
-    - energy density in MeV^4
-    """
     edens = RMFedensPNM(input_num = nB, input_type = "nB", Trmf = Temp, para = param, 
         sigma_init = 30, w0_init = 20, r03_init = -3, mub_init = 990, verb = False
         )
     return float(edens.item())
 
 def hNM(mu_B, Temp):
-    """Return nuclear-matter enthalpy density ``epsilon + P`` in MeV^4."""
     return PNM(mu_B, Temp) + edensNM(mu_B, Temp)
 
 def hNM_n(nB, Temp):
-    """Return nuclear-matter enthalpy density from baryon density input."""
     return PNM_n(nB, Temp) + edensNM_n(nB, Temp)
 
 def nB_NM(mu_B, Temp, param = para.paraQMCRMF3, ):
-    """Return nuclear-matter baryon density as a function of ``mu_B``.
-
-    Inputs:
-    - mu_B: baryon chemical potential in MeV
-    - Temp: temperature in MeV
-    - param: RMF parameter set
-
-    Output:
-    - baryon density in MeV^3
-    """
     nB = RMFbaryon_densityPNM(
         input_num=mu_B,
         input_type="muB",
@@ -141,16 +130,6 @@ def nB_NM(mu_B, Temp, param = para.paraQMCRMF3, ):
     return float(np.asarray(nB).item())
 
 def Pi_NM(mu_B, Temp, j_B):
-    """Return the nuclear-matter momentum flux ``Pi`` for a baryon current.
-
-    Inputs:
-    - mu_B: baryon chemical potential in MeV
-    - Temp: temperature in MeV
-    - j_B: baryon current in MeV^3
-
-    Output:
-    - momentum-flux invariant in MeV^4
-    """
     nB = nB_NM(mu_B, Temp)
     if nB <= 0:
         return np.nan
@@ -190,7 +169,8 @@ def Tswitch_free_pressure(mu, m, rtol = 1e-6, band = 1.25):
 # free-fermion pressure
 def P_f(mu, m, Tem, upB=np.inf, rtol=1e-6, Sommerfeld=False):
     """
-    Pressure of a single free fermion (particles + antiparticles).
+    Pressure of a single free fermion flavor (particles + antiparticles).
+    The normalization already includes spin degeneracy g=2, but not quark color.
 
     - If Sommerfeld=True: use Sommerfeld O(T^2) approximation:
         P(T) = P0(mu,m) + (pi^2/6) T^2 f(mu,m)
@@ -209,12 +189,13 @@ def P_f(mu, m, Tem, upB=np.inf, rtol=1e-6, Sommerfeld=False):
 
     """
     mu = float(mu); m = float(m); Tem = float(Tem)
+    if Tem < 0.0:
+        raise RuntimeError("Negative Temperature")
+    if m == 0.0:
+        return _massless_fermion_pressure(mu, Tem)
 
     # ---- Sommerfeld mode (fast) ----
     if Sommerfeld:
-        if Tem < 0.0:
-            raise RuntimeError("Negative Temperature")
-
         # P0(mu,m)
         if mu <= m:
             P0 = 0.0
@@ -237,8 +218,6 @@ def P_f(mu, m, Tem, upB=np.inf, rtol=1e-6, Sommerfeld=False):
         return P0 + (np.pi**2 / 6.0) * (Tem*Tem) * fP
 
     # ---- exact T=0 pressure ----
-    if Tem < 0:
-        raise RuntimeError("Negative Temperature")
     if Tem == 0.0:
         if mu <= m:
             return 0.0
@@ -294,12 +273,17 @@ def P_f(mu, m, Tem, upB=np.inf, rtol=1e-6, Sommerfeld=False):
 
 def E_f(mu, m, Tem, upB=np.inf, rtol=1e-6, Sommerfeld=False):
     """
-    Energy density of a single free fermion (particles + antiparticles).
+    Energy density of a single free fermion flavor (particles + antiparticles).
+    The normalization already includes spin degeneracy g=2, but not quark color.
     Uses the same numerical strategy as P_f: T=0 exact branch + adaptive blend.
     """
     mu = float(mu)
     m = float(m)
     Tem = float(Tem)
+    if Tem < 0.0:
+        raise RuntimeError("Negative Temperature")
+    if m == 0.0:
+        return 3.0 * _massless_fermion_pressure(mu, Tem)
 
     def _E0():
         if mu <= m:
@@ -310,8 +294,6 @@ def E_f(mu, m, Tem, upB=np.inf, rtol=1e-6, Sommerfeld=False):
         return ((2.0 * kF**3 + m*m*kF) * mu - m**4 * np.log((kF + mu) / max(m, 1e-300))) / (8.0 * np.pi**2)
 
     if Sommerfeld:
-        if Tem < 0.0:
-            raise RuntimeError("Negative Temperature")
         if mu <= m:
             return 0.0
         if m == 0.0:
@@ -320,8 +302,6 @@ def E_f(mu, m, Tem, upB=np.inf, rtol=1e-6, Sommerfeld=False):
             corr = 0.5 * mu * _kF(mu, m) * Tem * Tem
         return _E0() + corr
 
-    if Tem < 0.0:
-        raise RuntimeError("Negative Temperature")
     if Tem == 0.0:
         return _E0()
 
@@ -352,12 +332,20 @@ def E_f(mu, m, Tem, upB=np.inf, rtol=1e-6, Sommerfeld=False):
     w = _smoothstep01(x)
     return (1.0 - w) * E0 + w * Eint
 
-# number density for a single free fermion
+# number density for a single free fermion flavor (spin g=2 only; no color factor)
 def n_B(mu, m, Tem, upB=5000):
     '''
     Returns number density for a single fermion species.
+    The normalization already includes spin degeneracy g=2, but not quark color.
     Uses thermodynamic relation: dP/dmu = n
     '''
+    mu = float(mu)
+    m = float(m)
+    Tem = float(Tem)
+    if Tem < 0.0:
+        raise RuntimeError("Negative Temperature")
+    if m == 0.0:
+        return _massless_fermion_density(mu, Tem)
 
     if Tem > 1e-3:
         def integrand(k):
@@ -389,6 +377,10 @@ def _quark_mu_triplet(muB, muK):
     )
 
 def _quark_pressure_uds(mu_u, mu_d, mu_s, T, ms, upB=5000):
+    """
+    Physical u,d,s quark pressure.
+    P_f is spin-only per flavor, so this wrapper adds the quark color factor Nc=3.
+    """
     return float(
         3.0 * (
             P_f(mu_u, m=0.0, Tem=T, upB=upB)
@@ -398,6 +390,10 @@ def _quark_pressure_uds(mu_u, mu_d, mu_s, T, ms, upB=5000):
     )
 
 def _quark_edens_uds(mu_u, mu_d, mu_s, T, ms, upB=5000):
+    """
+    Physical u,d,s quark energy density.
+    E_f is spin-only per flavor, so this wrapper adds the quark color factor Nc=3.
+    """
     return float(
         3.0 * (
             E_f(mu_u, m=0.0, Tem=T, upB=upB)
@@ -407,11 +403,20 @@ def _quark_edens_uds(mu_u, mu_d, mu_s, T, ms, upB=5000):
     )
 
 def _quark_density_uds(mu_u, mu_d, mu_s, T, ms, upB=5000):
-    n_u = n_B(mu_u, 0.0, T, upB=upB)
-    n_d = n_B(mu_d, 0.0, T, upB=upB)
-    n_s = n_B(mu_s, ms, T, upB=upB)
-    n_tot = float((n_u + n_d + n_s) / 3.0)
-    return n_tot, {"n_u": float(n_u), "n_d": float(n_d), "n_s": float(n_s)}
+    """
+    Return physical QM baryon density plus physical per-flavor quark densities.
+
+    The base n_B helper is spin-only per flavor, so this wrapper multiplies each
+    quark flavor by the color factor Nc=3 before returning the species
+    dictionary {'n_u', 'n_d', 'n_s'}.
+    With that Convention B bookkeeping, the physical QM baryon density is
+        nB_QM = (n_u + n_d + n_s) / 3.
+    """
+    n_u = 3.0 * n_B(mu_u, 0.0, T, upB=upB)
+    n_d = 3.0 * n_B(mu_d, 0.0, T, upB=upB)
+    n_s = 3.0 * n_B(mu_s, ms, T, upB=upB)
+    nB_qm = float((n_u + n_d + n_s) / 3.0)
+    return nB_qm, {"n_u": float(n_u), "n_d": float(n_d), "n_s": float(n_s)}
 
 
 # pressure for SQM under bag model
@@ -429,6 +434,9 @@ def PQM(muB, muK, B_one_forth, T, ms=0, upB=5000):
 
     Returns:
     - pressure for SQM matter
+
+    Notes:
+    - P_f is spin-only per flavor; quark color Nc=3 is added in _quark_pressure_uds.
     '''
 
     B = B_one_forth**4
@@ -441,15 +449,30 @@ def nB_QM(muB, muK, B_one_forth, T, ms=0, upB=5000, return_species=False):
     Note: B_one_forth is accepted for API parity with PQM but does not affect density.
 
     Returns:
-    - nB_QM = (n_u + n_d + n_s)/3
-    - if return_species=True, also return species dictionary
+    - physical nB_QM = (n_u + n_d + n_s) / 3
+    - if return_species=True, also return physical per-flavor quark densities
+      {'n_u', 'n_d', 'n_s'}, each including both spin and color
     """
     mu_u, mu_d, mu_s = _quark_mu_triplet(muB, muK)
-    n_tot, species = _quark_density_uds(mu_u, mu_d, mu_s, T, ms, upB=upB)
+    nB_qm, species = _quark_density_uds(mu_u, mu_d, mu_s, T, ms, upB=upB)
 
     if return_species:
-        return n_tot, species
-    return n_tot
+        return nB_qm, species
+    return nB_qm
+
+def nK_QM(muB, muK, B_one_forth, T, ms=0, upB=5000, dmu=None):
+    """
+    Kaon-density-like variable nK = dPQM / dmuK.
+
+    _quark_density_uds returns physical per-flavor quark densities including
+    color, so under Convention B
+        nK = dPQM/dmuK = (n_d - n_s) / 2.
+    """
+    mu_u, mu_d, mu_s = _quark_mu_triplet(muB, muK)
+    _, species = _quark_density_uds(mu_u, mu_d, mu_s, T, ms, upB=upB)
+    n_d = float(species["n_d"])
+    n_s = float(species["n_s"])
+    return float(0.5 * (n_d - n_s))
 
 def edensQM(muB, muK, B_one_forth, T, ms=0, include_em=False, muQ_init=300, upB=5000):
     """
@@ -458,6 +481,10 @@ def edensQM(muB, muK, B_one_forth, T, ms=0, include_em=False, muQ_init=300, upB=
     Parameters:
     - include_em=False : match PQM composition (u,d,s quarks + bag constant)
     - include_em=True  : match PQM_em composition (charge-neutral u,d,s,e + thermal gauge term + bag constant)
+
+    Notes:
+    - E_f is spin-only per flavor; quark color Nc=3 is added in _quark_edens_uds.
+    - The electron contribution remains colorless.
     """
     B = B_one_forth**4
 
@@ -474,22 +501,9 @@ def edensQM(muB, muK, B_one_forth, T, ms=0, include_em=False, muQ_init=300, upB=
     return _quark_edens_uds(mu_u, mu_d, mu_s, T, ms, upB=upB) + B
 
 def hQM(muB, muK, B_one_forth, Temp):
-    """Return quark-matter enthalpy density ``epsilon + P`` in MeV^4."""
     return PQM(muB, muK, B_one_forth, T=Temp, ms=0, upB=5000) + edensQM(muB, muK, B_one_forth, T=Temp, ms=0, include_em=False, muQ_init=300, upB=5000)
 
 def Pi_QM(mu_B, mu_K, B_one_forth, Temp, j_B):
-    """Return the quark-matter momentum flux ``Pi`` for a baryon current.
-
-    Inputs:
-    - mu_B: baryon chemical potential in MeV
-    - mu_K: charge/isospin chemical potential in MeV
-    - B_one_forth: bag-constant fourth root in MeV
-    - Temp: temperature in MeV
-    - j_B: baryon current in MeV^3
-
-    Output:
-    - momentum-flux invariant in MeV^4
-    """
     nB = nB_QM(mu_B, mu_K, B_one_forth, Temp)
     if nB <= 0:
         return np.nan
@@ -507,11 +521,14 @@ def _solve_quark_mu_em(muB, muK, T, ms, muQ_init=300, upB=5000):
         mu_d = (muB + muK - mu_u_val) / 2.0
         mu_s = (muB - muK - mu_u_val) / 2.0
         mu_e = (muB - 3.0 * mu_u_val) / 2.0
+        n_u = 3.0 * n_B(mu_u_val, 0, T, upB=upB)
+        n_d = 3.0 * n_B(mu_d, 0, T, upB=upB)
+        n_s = 3.0 * n_B(mu_s, ms, T, upB=upB)
+        n_e = n_B(mu_e, 0, T, upB=upB)
         return float(
-            n_B(mu_e, 0, T, upB=upB)
-            + n_B(mu_s, ms, T, upB=upB) / 3.0
-            + n_B(mu_d, 0, T, upB=upB) / 3.0
-            - 2.0 * n_B(mu_u_val, 0, T, upB=upB) / 3.0
+            # n_u, n_d, n_s are full physical quark densities including color,
+            # while n_e is the physical electron density.
+            3.0 * n_e + n_d + n_s - 2.0 * n_u
         )
 
     sol = root(equation, muQ_init, method='hybr', options={'maxfev': 60000})
@@ -540,6 +557,10 @@ def PQM_em(muB, muK, B_one_forth, T, ms, muQ_init=300, upB=5000):
 
     Returns:
     - pressure for SQM matter
+
+    Notes:
+    - P_f is spin-only per flavor; quark color Nc=3 is added in _quark_pressure_uds.
+    - The electron contribution remains colorless.
     '''
     B = B_one_forth**4
     mu_u, mu_d, mu_s, mu_e = _solve_quark_mu_em(muB, muK, T, ms, muQ_init=muQ_init, upB=upB)
@@ -556,16 +577,17 @@ def nQM_em(muB, muK, B_one_forth, T, ms, muQ_init=300, upB=5000, return_species=
     Note: B_one_forth is accepted for API parity with PQM_em but does not affect density.
 
     Returns:
-    - nB_QM = (n_u + n_d + n_s)/3
-    - if return_species=True, also return species dictionary including n_e
+    - physical nB_QM = (n_u + n_d + n_s) / 3
+    - if return_species=True, return physical quark species densities including
+      color together with the physical electron density n_e
     """
     mu_u, mu_d, mu_s, mu_e = _solve_quark_mu_em(muB, muK, T, ms, muQ_init=muQ_init, upB=upB)
-    n_tot, species = _quark_density_uds(mu_u, mu_d, mu_s, T, ms, upB=upB)
+    nB_qm, species = _quark_density_uds(mu_u, mu_d, mu_s, T, ms, upB=upB)
     species["n_e"] = float(n_B(mu_e, 0.0, T, upB=upB))
 
     if return_species:
-        return n_tot, species
-    return n_tot
+        return nB_qm, species
+    return nB_qm
 
 
 # extract coordinates of a contour
@@ -731,9 +753,2446 @@ def _find_Qstar_on_target(T, B_one_forth, lambda_val, jB, Pi_target, muB_N, muB_
     return muB_star, muK_star
 
 
+def _solve_muB_inf_at_muK0_from_nB(nB_inf, B_one_forth, T, ms=0, upB=5000):
+    """
+    Solve for the equilibrated QM endpoint chemical potential muB_inf at muK=0
+    from the target baryon density nB_inf.
+    """
+    if nB_inf <= 0.0:
+        raise RuntimeError("nB_inf must be positive when solving for muB_inf")
+
+    def density_residual(muB):
+        return float(nB_QM(muB, 0.0, B_one_forth, T, ms=ms, upB=upB) - nB_inf)
+
+    mu_lo = 1.0e-8
+    mu_hi = 1500.0
+    f_lo = density_residual(mu_lo)
+    f_hi = density_residual(mu_hi)
+
+    for _ in range(40):
+        if abs(f_lo) == 0.0:
+            return float(mu_lo)
+        if abs(f_hi) == 0.0:
+            return float(mu_hi)
+        if np.isfinite(f_lo) and np.isfinite(f_hi) and f_lo * f_hi < 0.0:
+            break
+        if not np.isfinite(f_hi) or f_hi < 0.0:
+            mu_hi *= 1.5
+            f_hi = density_residual(mu_hi)
+        else:
+            mu_lo *= 0.5
+            if mu_lo <= 0.0:
+                mu_lo = np.nextafter(0.0, 1.0)
+            f_lo = density_residual(mu_lo)
+    else:
+        raise RuntimeError(
+            f"Failed to bracket muB_inf for nB_inf={nB_inf:.6g} at T={T:.6g}"
+        )
+
+    sol = root_scalar(density_residual, bracket=[mu_lo, mu_hi], method="brentq")
+    if not sol.converged:
+        raise RuntimeError("Root solve for muB_inf failed to converge")
+
+    return float(sol.root)
+
+
+def uN(T, nB_N, Delta_n, B_one_forth, param=para.paraQMCRMF3, ms=0, upB=5000, return_more=False):
+    """
+    Compute the phase-boundary flux data from endpoint states.
+
+    Parameters
+    ----------
+    T : float
+        Temperature.
+    nB_N : float
+        Upstream nuclear baryon density n_B(0^-).
+    Delta_n : float
+        Density jump defined by n_B(infty) = nB_N + Delta_n.
+    B_one_forth : float
+        Bag constant parameter B^(1/4) for the quark EOS.
+    param : sequence, optional
+        RMF parameter set for the nuclear endpoint.
+    ms : float, optional
+        Strange-quark mass used on the QM side.
+    upB : float, optional
+        Upper integration bound passed to the quark EOS helpers.
+    return_more : bool, optional
+        If True, return a dict with endpoint thermodynamic details.
+
+    Notes
+    -----
+    - The far-right quark endpoint is assumed fully equilibrated: muK = 0.
+    - The returned values are Pi, jB, uN, where uN is in natural units.
+    """
+    if nB_N <= 0.0:
+        raise RuntimeError("nB_N must be positive")
+
+    nB_inf = nB_N + Delta_n
+    if nB_inf <= 0.0:
+        raise RuntimeError("nB_inf = nB_N + Delta_n must be positive")
+
+    # Upstream nuclear endpoint from (T, nB_N).
+    P_N = float(PNM_n(nB_N, T, param=param, NM_type="PNM"))
+    h_N = float(P_N + edensNM_n(nB_N, T, param=param))
+
+    # Fully equilibrated QM endpoint at muK = 0 and nB_inf.
+    muB_inf = _solve_muB_inf_at_muK0_from_nB(nB_inf, B_one_forth, T, ms=ms, upB=upB)
+    P_inf = float(PQM(muB_inf, 0.0, B_one_forth, T, ms=ms, upB=upB))
+    h_inf = float(
+        P_inf
+        + edensQM(muB_inf, 0.0, B_one_forth, T, ms=ms, include_em=False, upB=upB)
+    )
+
+    # Momentum-flux matching fixes jB from the two endpoint states.
+    term_N = h_N / (nB_N * nB_N)
+    term_inf = h_inf / (nB_inf * nB_inf)
+    denom = term_N - term_inf
+    denom_scale = max(abs(term_N), abs(term_inf), 1.0)
+    if abs(denom) <= 1.0e-12 * denom_scale:
+        raise RuntimeError("Endpoint momentum-flux denominator is too close to zero")
+
+    jB_sq = (P_inf - P_N) / denom
+    if (not np.isfinite(jB_sq)) or jB_sq <= 0.0:
+        raise RuntimeError(f"Endpoint matching gives non-physical jB^2={jB_sq}")
+
+    jB = float(np.sqrt(jB_sq))
+    uN = float(jB / nB_N)
+    Pi = float(h_N * uN * uN + P_N)
+
+    # Numerical consistency check on the equilibrated QM endpoint.
+    uQ_inf = float(jB / nB_inf)
+    Pi_inf = float(h_inf * uQ_inf * uQ_inf + P_inf)
+    Pi_scale = max(abs(Pi), abs(Pi_inf), 1.0)
+    if not np.isclose(Pi, Pi_inf, rtol=1.0e-8, atol=1.0e-10 * Pi_scale):
+        raise RuntimeError(
+            f"Endpoint momentum-flux mismatch: Pi_N={Pi:.12g}, Pi_inf={Pi_inf:.12g}"
+        )
+
+    if return_more:
+        return {
+            "Pi": Pi,
+            "jB": jB,
+            "uN": uN,
+            "nB_inf": float(nB_inf),
+            "P_N": P_N,
+            "h_N": h_N,
+            "P_inf": P_inf,
+            "h_inf": h_inf,
+            "muB_inf": muB_inf,
+            "uQ_inf": uQ_inf,
+        }
+
+    return Pi, jB, uN
+
+
+def _Pi_QM_state(muB, muK, B_one_forth, T, jB, ms=0.0, upB=5000):
+    """
+    Momentum flux Pi = h*u^2 + P for a quark state at fixed (muB, muK).
+    """
+    nB = nB_QM(muB, muK, B_one_forth, T, ms=ms, upB=upB)
+    if nB <= 0.0:
+        return np.nan
+    P = PQM(muB, muK, B_one_forth, T, ms=ms, upB=upB)
+    h = P + edensQM(muB, muK, B_one_forth, T, ms=ms, include_em=False, upB=upB)
+    u = jB / nB
+    return float(h * u * u + P)
+
+
+def _solve_muB_Q_at_muK0_for_given_Pi(Pi, jB, B_one_forth, T, ms=0.0, upB=5000, stats=None):
+    """
+    Solve for the equilibrated QM endpoint muB_Q at muK=0 for a given Pi.
+    """
+    if stats is not None:
+        stats["q_root_calls"] = stats.get("q_root_calls", 0) + 1
+    muB_Q = float(fsolve(lambda x: Pi_QM(x, 0.0, B_one_forth, T, jB) - Pi, 1100.0)[0])
+
+    nB = nB_QM(muB_Q, 0.0, B_one_forth, T, ms=ms, upB=upB)
+    if (not np.isfinite(muB_Q)) or nB <= 0.0:
+        raise RuntimeError("Solved muB_Q lies on a non-physical density branch")
+
+    return muB_Q
+
+
+def _branch_muK_seed(a_like, muK_rich):
+    """
+    Branch-oriented muK seed used by the steady-front quark-state solves.
+    """
+    if muK_rich:
+        return float(max(1.0, 20.0, 50.0 * abs(float(a_like))))
+    return 0.0
+
+
+def _solve_quark_state_once_from_guess(a_target, Pi, jB, nB_Q, nK_Q, B_one_forth, T, ms=0.0, upB=5000, initial_guess=None, stats=None, stats_key="quark_state_root_calls"):
+    """
+    Try one local quark-state root solve from a single continuation guess.
+    This is the fast path used during IVP integration.
+    """
+    if initial_guess is None:
+        raise RuntimeError("initial_guess is required for single-guess quark-state solve")
+    if nB_Q <= 0.0:
+        raise RuntimeError("nB_Q must be positive when solving for a quark state")
+
+    guess = np.asarray(initial_guess, dtype=float)
+    if guess.shape[0] != 2 or not np.all(np.isfinite(guess)):
+        raise RuntimeError("initial_guess must contain finite (muB, muK)")
+
+    def equations(vec):
+        muB, muK = map(float, vec)
+        return np.array(
+            [
+                _Pi_QM_state(muB, muK, B_one_forth, T, jB, ms=ms, upB=upB) - Pi,
+                (nK_QM(muB, muK, B_one_forth, T, ms=ms, upB=upB) - nK_Q) / nB_Q - a_target,
+            ],
+            dtype=float,
+        )
+
+    if stats is not None:
+        stats[stats_key] = stats.get(stats_key, 0) + 1
+    sol = root(equations, guess, method="hybr", options={"maxfev": 120, "xtol": 1.0e-10})
+    if not (sol.success and np.all(np.isfinite(sol.x))):
+        raise RuntimeError(f"single-guess quark-state solve failed: {sol.message}")
+
+    muB = float(sol.x[0])
+    muK = float(sol.x[1])
+    if muK < -1.0e-8:
+        raise RuntimeError("single-guess quark-state solve returned negative muK")
+    if muK < 0.0:
+        muK = 0.0
+
+    nB = float(nB_QM(muB, muK, B_one_forth, T, ms=ms, upB=upB))
+    if nB <= 0.0:
+        raise RuntimeError("single-guess quark-state solve returned non-positive density")
+    return muB, muK
+
+
+def _solve_interface_Qstar_from_aQstar_and_Pi(aQstar, Pi, jB, nB_Q, nK_Q, B_one_forth, T, ms=0.0, upB=5000, initial_guess=None, muK_rich=True, stats=None, stats_key="qstar_root_calls"):
+    """
+    Solve for the interface state Qstar from Pi and aQstar.
+    """
+    if nB_Q <= 0.0:
+        raise RuntimeError("nB_Q must be positive when solving for Qstar")
+
+    guesses = []
+    muK_seed = _branch_muK_seed(aQstar, muK_rich)
+    if initial_guess is not None:
+        guess0 = np.asarray(initial_guess, dtype=float)
+        guesses.append(guess0)
+        muB_seed = float(guess0[0])
+    else:
+        muB_seed = 1200.0
+
+    if muK_rich:
+        guesses.append(np.array([muB_seed, muK_seed], dtype=float))
+        guesses.append(np.array([1200.0, muK_seed], dtype=float))
+        guesses.append(np.array([1500.0, max(muK_seed, 100.0 * abs(float(aQstar)))], dtype=float))
+    else:
+        guesses.append(np.array([muB_seed, 0.0], dtype=float))
+        guesses.append(np.array([1200.0, 0.0], dtype=float))
+        guesses.append(np.array([1500.0, 0.0], dtype=float))
+
+    def equations(vec):
+        muB, muK = map(float, vec)
+        return np.array(
+            [
+                _Pi_QM_state(muB, muK, B_one_forth, T, jB, ms=ms, upB=upB) - Pi,
+                (nK_QM(muB, muK, B_one_forth, T, ms=ms, upB=upB) - nK_Q) / nB_Q - aQstar,
+            ],
+            dtype=float,
+        )
+
+    best_message = "Qstar solve did not converge"
+    candidates = []
+    candidate_tol = 1.0e-8
+    nonneg_tol = 1.0e-8
+    for guess in guesses:
+        if stats is not None:
+            stats[stats_key] = stats.get(stats_key, 0) + 1
+        sol = root(equations, guess, method="hybr", options={"maxfev": 6000, "xtol": 1.0e-10})
+        if sol.success and np.all(np.isfinite(sol.x)):
+            muB_Qstar = float(sol.x[0])
+            muK_Qstar = float(sol.x[1])
+            nB_Qstar = nB_QM(muB_Qstar, muK_Qstar, B_one_forth, T, ms=ms, upB=upB)
+            if nB_Qstar > 0.0 and muK_Qstar >= -nonneg_tol:
+                if muK_Qstar < 0.0:
+                    muK_Qstar = 0.0
+                is_new = True
+                for cand in candidates:
+                    if (
+                        abs(muB_Qstar - cand["muB"]) <= candidate_tol * max(1.0, abs(cand["muB"]))
+                        and abs(muK_Qstar - cand["muK"]) <= candidate_tol * max(1.0, abs(cand["muK"]), 1.0)
+                    ):
+                        is_new = False
+                        break
+                if is_new:
+                    candidates.append({"muB": muB_Qstar, "muK": muK_Qstar})
+        best_message = sol.message
+
+    if candidates:
+        if initial_guess is not None:
+            muB_ref = float(initial_guess[0])
+            muK_ref = max(0.0, float(initial_guess[1]))
+        else:
+            muB_ref = muB_seed
+            muK_ref = 0.0
+
+        if muK_rich:
+            muK_pref = max(muK_seed, muK_ref)
+            candidates.sort(
+                key=lambda cand: (
+                    abs(cand["muK"] - muK_pref),
+                    abs(cand["muB"] - muB_ref),
+                    -cand["muK"],
+                )
+            )
+        else:
+            candidates.sort(
+                key=lambda cand: (
+                    cand["muK"],
+                    abs(cand["muK"] - muK_ref),
+                    abs(cand["muB"] - muB_ref),
+                )
+            )
+        return candidates[0]["muB"], candidates[0]["muK"]
+
+    raise RuntimeError(f"Qstar state solve failed: {best_message}")
+
+
+def _solve_local_quark_state_from_a_and_Pi(a, Pi, jB, nB_Q, nK_Q, B_one_forth, T, ms=0.0, upB=5000, initial_guess=None, muK_rich=True, stats=None):
+    """
+    Solve the local quark state (muB, muK, nB, u) at fixed a, Pi, jB.
+    """
+    if stats is not None:
+        stats["local_state_calls"] = stats.get("local_state_calls", 0) + 1
+
+    if initial_guess is not None:
+        try:
+            muB, muK = _solve_quark_state_once_from_guess(
+                a,
+                Pi,
+                jB,
+                nB_Q,
+                nK_Q,
+                B_one_forth,
+                T,
+                ms=ms,
+                upB=upB,
+                initial_guess=initial_guess,
+                stats=stats,
+                stats_key="local_root_calls",
+            )
+            nB = float(nB_QM(muB, muK, B_one_forth, T, ms=ms, upB=upB))
+            if nB <= 0.0:
+                raise RuntimeError("Local quark state has non-positive density")
+            u = float(jB / nB)
+            return muB, muK, nB, u
+        except Exception:
+            # Fall back to the broader branch-aware candidate search only when
+            # nearest-neighbor continuation fails.
+            if stats is not None:
+                stats["local_fast_failures"] = stats.get("local_fast_failures", 0) + 1
+
+    muB, muK = _solve_interface_Qstar_from_aQstar_and_Pi(
+        a,
+        Pi,
+        jB,
+        nB_Q,
+        nK_Q,
+        B_one_forth,
+        T,
+        ms=ms,
+        upB=upB,
+        initial_guess=initial_guess,
+        muK_rich=muK_rich,
+        stats=stats,
+        stats_key="local_root_calls",
+    )
+    nB = float(nB_QM(muB, muK, B_one_forth, T, ms=ms, upB=upB))
+    if nB <= 0.0:
+        raise RuntimeError("Local quark state has non-positive density")
+    u = float(jB / nB)
+    return muB, muK, nB, u
+
+
+def _microphysics_at_Qstar(muB_Qstar, T):
+    """
+    Frozen diffusion/reaction coefficients evaluated at Qstar.
+    """
+    muQ_star = muB_Qstar / 3.0
+    if muQ_star <= 0.0:
+        raise RuntimeError("muQ_star must be positive")
+
+    alpha_s = 0.3
+    g_s = np.sqrt(4.0 * np.pi * alpha_s)
+    qD = np.sqrt(3.0 * g_s**2 * muQ_star**2 / (2.0 * np.pi**2))
+    h_const = 1.81317
+
+    part1 = h_const * T**(5.0 / 3.0) / qD**(2.0 / 3.0)
+    part2 = np.pi**3 * T**2 / (12.0 * qD)
+    DQ = 1.0 / (24.0 * alpha_s**2 / np.pi * (part1 + part2))
+
+    eta = 9.0 * np.pi**2 * T**2 / muQ_star**2
+    tau = 1.98e12 * (300.0 / muQ_star) ** 5
+    gamma = 1.0 / tau
+
+    return {
+        "alpha_s": alpha_s,
+        "muQ_star": float(muQ_star),
+        "qD": float(qD),
+        "DQ": float(DQ),
+        "eta": float(eta),
+        "gamma": float(gamma),
+        "tau": float(tau),
+    }
+
+
+def solve_steady_front_2d(
+    T,
+    nB_N,
+    B_one_forth,
+    muK_rich=True,
+    ms=0.0,
+    param=para.paraQMCRMF3,
+    NM_type="PNM",
+    x_max=5e7,
+    n_eval=1200,
+    rtol_ode=1e-8,
+    atol_ode=1e-10,
+    root_tol=1e-8,
+    max_nfev=80,
+    jB_guess=None,
+    aQstar_guess=None,
+    return_profile=False,
+    verb=False,
+):
+    """
+    Solve the full steady hydro + diffusion + reaction front with a 2D shooting method.
+
+    Diagnostics:
+    - verb=False: silent
+    - verb=True: concise per-shoot summary lines only
+    - verb="full": detailed stage-by-stage timing plus tqdm progress bars
+
+    The solver explicitly rejects the near-trivial equilibrium branch where
+    Qstar collapses onto the far-right equilibrated state Q and both a(0+) and
+    q(0+) are numerically negligible.
+    """
+    if nB_N <= 0.0:
+        raise RuntimeError("nB_N must be positive")
+
+    upB = 5000
+    t_start = time.perf_counter()
+    diag_state = {"trial_count": 0}
+    a_trivial_tol = max(1.0e-6, 10.0 * root_tol)
+    q_trivial_tol = max(1.0e-10, root_tol * 1.0e-4)
+    muK_trivial_tol = 1.0e-6
+    nB_rel_trivial_tol = 1.0e-6
+    if isinstance(verb, str):
+        verb_mode = "full" if verb.lower() == "full" else ("simple" if verb else "off")
+    else:
+        verb_mode = "simple" if verb else "off"
+    full_diag = verb_mode == "full"
+    simple_diag = verb_mode in ("simple", "full")
+
+    def _diag(msg):
+        if full_diag:
+            dt = time.perf_counter() - t_start
+            print(f"[steady_front_2d +{dt:8.2f}s] {msg}", flush=True)
+
+    if jB_guess is None:
+        jB_guess = 1.0e-6 * nB_N
+    if jB_guess <= 0.0:
+        raise RuntimeError("jB_guess must be positive")
+
+    if aQstar_guess is None:
+        aQstar_guess = 0.5
+
+    jB_lower_bound = max(1.0e-12, 1.0e-3 * float(jB_guess))
+    jB_upper_bound = max(10.0 * float(jB_guess), 10.0)
+    aQstar_lower_bound = max(1.0e-8, 1.0e-3 * max(abs(float(aQstar_guess)), 1.0e-2), 10.0 * root_tol)
+    aQstar_upper_bound = np.inf
+    best_trial = {"metric": np.inf, "z": None}
+
+    if full_diag and tqdm is None:
+        _diag("tqdm is not available; using timed prints only")
+
+    def _build_trial_state(jB, aQstar, with_profile=False, trial_label="trial"):
+        result = {
+            "success": False,
+            "message": "",
+            "jB": float(jB),
+            "aQstar": float(aQstar),
+            "muK_rich": bool(muK_rich),
+            "branch_label": "muK-rich" if muK_rich else "muK-poor",
+        }
+
+        try:
+            _diag(f"{trial_label}: building N, Q, and Qstar states")
+
+            # Upstream nuclear state N at x = 0^-.
+            P_N = float(PNM_n(nB_N, T, param=param, NM_type=NM_type))
+            e_N = float(edensNM_n(nB_N, T, param=param))
+            h_N = float(P_N + e_N)
+            u_N = float(jB / nB_N)
+            Pi = float(h_N * u_N * u_N + P_N)
+
+            # Far-right equilibrated quark state Q with muK = 0.
+            _diag(f"{trial_label}: solving equilibrated Q at muK=0")
+            muB_Q = _solve_muB_Q_at_muK0_for_given_Pi(Pi, jB, B_one_forth, T, ms=ms, upB=upB)
+            nB_Q = float(nB_QM(muB_Q, 0.0, B_one_forth, T, ms=ms, upB=upB))
+            if nB_Q <= 0.0:
+                raise RuntimeError("Equilibrated Q state has non-positive density")
+            if abs(ms) <= 1.0e-12:
+                nK_Q = 0.0
+            else:
+                nK_Q = float(nK_QM(muB_Q, 0.0, B_one_forth, T, ms=ms, upB=upB))
+
+            # Pure neutron matter implies nK_N = nB_N.
+            a_N = float((nB_N - nK_Q) / nB_Q)
+
+            # Interface state Qstar at x = 0+.
+            _diag(f"{trial_label}: solving interface Qstar")
+            muK_Qstar_seed = _branch_muK_seed(aQstar, muK_rich)
+            muB_Qstar, muK_Qstar = _solve_interface_Qstar_from_aQstar_and_Pi(
+                aQstar,
+                Pi,
+                jB,
+                nB_Q,
+                nK_Q,
+                B_one_forth,
+                T,
+                ms=ms,
+                upB=upB,
+                initial_guess=(muB_Q, muK_Qstar_seed),
+                muK_rich=muK_rich,
+            )
+            nB_Qstar = float(nB_QM(muB_Qstar, muK_Qstar, B_one_forth, T, ms=ms, upB=upB))
+            if nB_Qstar <= 0.0:
+                raise RuntimeError("Qstar state has non-positive density")
+
+            micro = _microphysics_at_Qstar(muB_Qstar, T)
+            DQ = float(micro["DQ"])
+            eta = float(micro["eta"])
+            gamma = float(micro["gamma"])
+            tau = float(micro["tau"])
+
+            # Jump condition gives the initial flux q(0+).
+            q0 = float(-a_N * u_N)
+            y0 = np.array([float(aQstar), q0], dtype=float)
+            qstar_is_equilibrated = (
+                abs(muK_Qstar) <= muK_trivial_tol
+                and abs(nB_Qstar - nB_Q) <= nB_rel_trivial_tol * max(1.0, abs(nB_Q))
+            )
+            if abs(aQstar) <= a_trivial_tol and abs(q0) <= q_trivial_tol and qstar_is_equilibrated:
+                raise RuntimeError("Rejected trivial equilibrium branch with a(0+)≈0 and q(0+)≈0")
+            a_limit = 10.0 * max(1.0, abs(aQstar))
+            cache = {"guess": (muB_Qstar, muK_Qstar)}
+            ivp_state = {"rhs_calls": 0, "last_report": time.perf_counter()}
+
+            _diag(f"{trial_label}: integrating IVP on [0, {x_max:.3e}]")
+
+            def rhs(x, y):
+                ivp_state["rhs_calls"] += 1
+                a_val = float(y[0])
+                q_val = float(y[1])
+                if (not np.isfinite(a_val)) or (not np.isfinite(q_val)):
+                    raise RuntimeError("Non-finite IVP state encountered")
+                if abs(a_val) > a_limit:
+                    raise RuntimeError("Composition variable exceeded stability guard")
+
+                muB_loc, muK_loc, nB_loc, u_loc = _solve_local_quark_state_from_a_and_Pi(
+                    a_val,
+                    Pi,
+                    jB,
+                    nB_Q,
+                    nK_Q,
+                    B_one_forth,
+                    T,
+                    ms=ms,
+                    upB=upB,
+                    initial_guess=cache["guess"],
+                    muK_rich=muK_rich,
+                )
+                cache["guess"] = (muB_loc, muK_loc)
+
+                da_dx = (q_val + u_loc * a_val) / DQ
+                dq_dx = gamma * (a_val**3 + eta * a_val)
+                if (not np.isfinite(da_dx)) or (not np.isfinite(dq_dx)):
+                    raise RuntimeError("Non-finite IVP derivative encountered")
+                if full_diag:
+                    now = time.perf_counter()
+                    if now - ivp_state["last_report"] >= 5.0:
+                        frac = (x / x_max) if x_max > 0.0 else 1.0
+                        _diag(
+                            f"{trial_label}: IVP x={x:.3e} ({100.0*frac:5.1f}%), "
+                            f"a={a_val:.6g}, q={q_val:.6g}, rhs_calls={ivp_state['rhs_calls']}"
+                        )
+                        ivp_state["last_report"] = now
+                return np.array([da_dx, dq_dx], dtype=float)
+
+            t_eval = np.linspace(0.0, x_max, n_eval) if with_profile else None
+            sol_ivp = solve_ivp(
+                rhs,
+                (0.0, x_max),
+                y0,
+                method="RK45",
+                rtol=rtol_ode,
+                atol=atol_ode,
+                t_eval=t_eval,
+            )
+            if not sol_ivp.success:
+                raise RuntimeError(f"IVP integration failed: {sol_ivp.message}")
+
+            a_end = float(sol_ivp.y[0, -1])
+            q_end = float(sol_ivp.y[1, -1])
+            x_end = float(sol_ivp.t[-1])
+            _diag(
+                f"{trial_label}: IVP finished at x={x_end:.3e} with "
+                f"rhs_calls={ivp_state['rhs_calls']}, a_end={a_end:.6g}, q_end={q_end:.6g}"
+            )
+
+            result.update(
+                {
+                    "success": True,
+                    "message": "Steady front shooting trial completed",
+                    "u_N": u_N,
+                    "a_N": a_N,
+                    "aQstar": float(aQstar),
+                    "Pi": Pi,
+                    "muB_Qstar": float(muB_Qstar),
+                    "muK_Qstar": float(muK_Qstar),
+                    "muB_Q": float(muB_Q),
+                    "nB_Q": float(nB_Q),
+                    "nK_Q": float(nK_Q),
+                    "DQ": DQ,
+                    "eta": eta,
+                    "gamma": gamma,
+                    "tau": tau,
+                    "x_end": x_end,
+                    "a_end": a_end,
+                    "q_end": q_end,
+                    "_residual": np.array([a_end, q_end], dtype=float),
+                }
+            )
+
+            if with_profile:
+                _diag(f"{trial_label}: reconstructing profile arrays at {len(sol_ivp.t)} points")
+                x_prof = np.asarray(sol_ivp.t, dtype=float)
+                a_prof = np.asarray(sol_ivp.y[0], dtype=float)
+                q_prof = np.asarray(sol_ivp.y[1], dtype=float)
+                muB_prof = np.empty_like(x_prof)
+                muK_prof = np.empty_like(x_prof)
+                nB_prof = np.empty_like(x_prof)
+                u_prof = np.empty_like(x_prof)
+                profile_guess = (muB_Qstar, muK_Qstar)
+                profile_iter = range(len(a_prof))
+                if full_diag and tqdm is not None:
+                    profile_iter = tqdm(profile_iter, total=len(a_prof), desc=f"{trial_label} profile", unit="pt", leave=False)
+
+                for i in profile_iter:
+                    a_val = float(a_prof[i])
+                    muB_loc, muK_loc, nB_loc, u_loc = _solve_local_quark_state_from_a_and_Pi(
+                        a_val,
+                        Pi,
+                        jB,
+                        nB_Q,
+                        nK_Q,
+                        B_one_forth,
+                        T,
+                        ms=ms,
+                        upB=upB,
+                        initial_guess=profile_guess,
+                        muK_rich=muK_rich,
+                    )
+                    profile_guess = (muB_loc, muK_loc)
+                    muB_prof[i] = muB_loc
+                    muK_prof[i] = muK_loc
+                    nB_prof[i] = nB_loc
+                    u_prof[i] = u_loc
+
+                result.update(
+                    {
+                        "x": x_prof,
+                        "a": a_prof,
+                        "q": q_prof,
+                        "u": u_prof,
+                        "nB": nB_prof,
+                        "muB": muB_prof,
+                        "muK": muK_prof,
+                    }
+                )
+
+            return result
+
+        except Exception as exc:
+            _diag(f"{trial_label}: failed with {exc}")
+            result.update(
+                {
+                    "success": False,
+                    "message": str(exc),
+                    "u_N": np.nan,
+                    "a_N": np.nan,
+                    "Pi": np.nan,
+                    "muB_Qstar": np.nan,
+                    "muK_Qstar": np.nan,
+                    "muB_Q": np.nan,
+                    "nB_Q": np.nan,
+                    "nK_Q": np.nan,
+                    "DQ": np.nan,
+                    "eta": np.nan,
+                    "gamma": np.nan,
+                    "tau": np.nan,
+                    "x_end": np.nan,
+                    "a_end": np.nan,
+                    "q_end": np.nan,
+                    "_residual": np.array([1.0e20, 1.0e20], dtype=float),
+                }
+            )
+            return result
+
+    def shooting_residual(z):
+        diag_state["trial_count"] += 1
+        trial_idx = diag_state["trial_count"]
+        log_jB = float(z[0])
+        aQstar = float(z[1])
+        jB = float(np.exp(np.clip(log_jB, -700.0, 700.0)))
+
+        if (jB < jB_lower_bound) or (aQstar < aQstar_lower_bound):
+            trial_residual = np.array([1.0e20, 1.0e20], dtype=float)
+            if simple_diag:
+                print(
+                    f"shoot jB={jB:.6g}, aQstar={aQstar:.6g}, "
+                    f"res=({trial_residual[0]:.6g}, {trial_residual[1]:.6g}), ok=False"
+                )
+            if shooting_bar is not None:
+                shooting_bar.update(1)
+                shooting_bar.set_postfix_str(
+                    f"jB={jB:.3e}, aQ={aQstar:.3g}, res={np.max(np.abs(trial_residual)):.2e}, ok=False"
+                )
+            return trial_residual
+
+        _diag(f"shoot#{trial_idx}: start jB={jB:.6g}, aQstar={aQstar:.6g}")
+        trial = _build_trial_state(jB, aQstar, with_profile=False, trial_label=f"shoot#{trial_idx}")
+        trial_metric = float(np.max(np.abs(trial["_residual"])))
+        if trial["success"] and np.isfinite(trial_metric) and trial_metric < best_trial["metric"]:
+            best_trial["metric"] = trial_metric
+            best_trial["z"] = np.array([log_jB, aQstar], dtype=float)
+        if simple_diag:
+            print(
+                f"shoot jB={jB:.6g}, aQstar={aQstar:.6g}, "
+                f"res=({trial['_residual'][0]:.6g}, {trial['_residual'][1]:.6g}), "
+                f"ok={trial['success']}"
+            )
+        if shooting_bar is not None:
+            shooting_bar.update(1)
+            shooting_bar.set_postfix_str(
+                f"jB={jB:.3e}, aQ={aQstar:.3g}, res={np.max(np.abs(trial['_residual'])):.2e}, ok={trial['success']}"
+            )
+        return trial["_residual"]
+
+    z0 = np.array([np.log(float(jB_guess)), float(aQstar_guess)], dtype=float)
+    lower_bounds = np.array([np.log(jB_lower_bound), aQstar_lower_bound], dtype=float)
+    upper_bounds = np.array([np.log(jB_upper_bound), aQstar_upper_bound], dtype=float)
+    z0 = np.minimum(np.maximum(z0, lower_bounds), upper_bounds)
+    shooting_bar = None
+    if full_diag and tqdm is not None:
+        shooting_bar = tqdm(total=max_nfev, desc="shooting", unit="eval", leave=False)
+
+    _diag(
+        f"starting bounded least-squares shooting with jB_guess={jB_guess:.6g}, "
+        f"aQstar_guess={aQstar_guess:.6g}, max_nfev={max_nfev}, "
+        f"branch={'muK-rich' if muK_rich else 'muK-poor'}"
+    )
+    try:
+        sol_root = least_squares(
+            shooting_residual,
+            z0,
+            bounds=(lower_bounds, upper_bounds),
+            method="trf",
+            xtol=root_tol,
+            ftol=root_tol,
+            gtol=root_tol,
+            max_nfev=max_nfev,
+        )
+    finally:
+        if shooting_bar is not None:
+            shooting_bar.close()
+
+    z_best = sol_root.x if np.all(np.isfinite(sol_root.x)) else z0
+    if best_trial["z"] is not None:
+        best_trial_metric = float(best_trial["metric"])
+        solver_metric = float(np.max(np.abs(sol_root.fun))) if np.all(np.isfinite(sol_root.fun)) else np.inf
+        if best_trial_metric < solver_metric:
+            z_best = best_trial["z"]
+    jB_best = float(np.exp(np.clip(z_best[0], -700.0, 700.0)))
+    aQstar_best = float(z_best[1])
+    _diag(f"least-squares finished; rebuilding best state at jB={jB_best:.6g}, aQstar={aQstar_best:.6g}")
+
+    result = _build_trial_state(jB_best, aQstar_best, with_profile=return_profile, trial_label="best")
+    resid = np.asarray(result["_residual"], dtype=float)
+    resid_norm = float(np.max(np.abs(resid)))
+    success = bool(sol_root.success and result["success"] and resid_norm <= max(root_tol, 1.0e-6))
+
+    result["success"] = success
+    if success:
+        result["message"] = "2D steady-front shooting converged"
+    else:
+        root_msg = sol_root.message if hasattr(sol_root, "message") else "root solve failed"
+        if result["message"]:
+            result["message"] = f"{root_msg}; last trial: {result['message']}"
+        else:
+            result["message"] = str(root_msg)
+
+    result["_root_success"] = bool(sol_root.success)
+    result["_root_message"] = str(sol_root.message) if hasattr(sol_root, "message") else ""
+    result["_root_residual"] = resid
+    _diag(
+        f"finished solve_steady_front_2d: success={success}, "
+        f"root_success={result['_root_success']}, resid_norm={resid_norm:.6g}"
+    )
+    return result
+
+
+def solve_steady_front_2d_simple(
+    T,
+    nB_N,
+    B_one_forth,
+    muK_rich=True,
+    ms=0.0,
+    param=para.paraQMCRMF3,
+    NM_type="PNM",
+    x_max=5e7,
+    n_eval=1200,
+    rtol_ode=1e-8,
+    atol_ode=1e-10,
+    root_tol=1e-8,
+    max_nfev=80,
+    jB_guess=None,
+    aQstar_guess=None,
+    verb=False,
+):
+    """
+    Convenience wrapper that returns the steady-front shooting summary without
+    profile arrays.
+    """
+    return solve_steady_front_2d(
+        T=T,
+        nB_N=nB_N,
+        B_one_forth=B_one_forth,
+        muK_rich=muK_rich,
+        ms=ms,
+        param=param,
+        NM_type=NM_type,
+        x_max=x_max,
+        n_eval=n_eval,
+        rtol_ode=rtol_ode,
+        atol_ode=atol_ode,
+        root_tol=root_tol,
+        max_nfev=max_nfev,
+        jB_guess=jB_guess,
+        aQstar_guess=aQstar_guess,
+        return_profile=False,
+        verb=verb,
+    )
+
+
+def solve_steady_front_1d_aQstar(
+    T,
+    nB_N,
+    B_one_forth,
+    aQstar,
+    ms=0.0,
+    param=para.paraQMCRMF3,
+    NM_type="PNM",
+    muK_rich=True,
+    x_max=1e6,
+    n_eval=1200,
+    rtol_ode=1e-8,
+    atol_ode=1e-10,
+    root_tol=1e-8,
+    max_nfev=60,
+    jB_guess=None,
+    jB_bounds=None,
+    return_profile=False,
+    verb=False,
+):
+    """
+    Solve the steady-front problem with fixed aQstar and scalar shooting in jB.
+
+    The scalar shooting residual is the asymptotic stable-tail condition at x = x_max:
+
+        F(jB, aQstar) = q(L) + (DQ * lambda + u_Q) * a(L)
+
+    where
+        u_Q = jB / nB_Q
+        lambda = (-u_Q + sqrt(u_Q^2 + 4 DQ gamma eta)) / (2 DQ)
+
+    using DQ, eta, gamma frozen at Qstar and u_Q evaluated at the far-right
+    equilibrated quark state Q.
+    """
+    if nB_N <= 0.0:
+        raise RuntimeError("nB_N must be positive")
+
+    upB = 5000
+    t_start = time.perf_counter()
+    diag_state = {"trial_count": 0}
+    a_trivial_tol = max(1.0e-6, 10.0 * root_tol)
+    q_trivial_tol = max(1.0e-10, root_tol * 1.0e-4)
+    muK_trivial_tol = 1.0e-6
+    nB_rel_trivial_tol = 1.0e-6
+    if isinstance(verb, str):
+        verb_mode = "full" if verb.lower() == "full" else ("simple" if verb else "off")
+    else:
+        verb_mode = "simple" if verb else "off"
+    full_diag = verb_mode == "full"
+    simple_diag = verb_mode in ("simple", "full")
+
+    def _diag(msg):
+        if full_diag:
+            dt = time.perf_counter() - t_start
+            print(f"[steady_front_1d +{dt:8.2f}s] {msg}", flush=True)
+
+    if jB_guess is None:
+        jB_guess = 1.0e-6 * nB_N
+    if jB_guess <= 0.0:
+        raise RuntimeError("jB_guess must be positive")
+
+    if jB_bounds is None:
+        jB_lower_bound = max(1.0e-12, 1.0e-3 * float(jB_guess))
+        jB_upper_bound = max(10.0 * float(jB_guess), 10.0)
+    else:
+        if len(jB_bounds) != 2:
+            raise RuntimeError("jB_bounds must be a 2-tuple (jB_min, jB_max)")
+        jB_lower_bound = float(jB_bounds[0])
+        jB_upper_bound = float(jB_bounds[1])
+        if jB_lower_bound <= 0.0 or jB_upper_bound <= 0.0 or jB_upper_bound <= jB_lower_bound:
+            raise RuntimeError("jB_bounds must satisfy 0 < jB_min < jB_max")
+
+    best_trial = {"metric": np.inf, "log_jB": None}
+    trial_cache = {}
+
+    def _build_trial_state_1d(jB, with_profile=False, trial_label="trial"):
+        result = {
+            "success": False,
+            "message": "",
+            "jB": float(jB),
+            "aQstar": float(aQstar),
+            "muK_rich": bool(muK_rich),
+            "branch_label": "muK-rich" if muK_rich else "muK-poor",
+        }
+
+        try:
+            _diag(f"{trial_label}: building N, Q, and Qstar states")
+            stats = {
+                "q_root_calls": 0,
+                "qstar_root_calls": 0,
+                "local_state_calls": 0,
+                "local_root_calls": 0,
+                "local_fast_failures": 0,
+                "profile_state_calls": 0,
+            }
+
+            # Upstream nuclear state N at x = 0^-.
+            P_N = float(PNM_n(nB_N, T, param=param, NM_type=NM_type))
+            e_N = float(edensNM_n(nB_N, T, param=param))
+            h_N = float(P_N + e_N)
+            u_N = float(jB / nB_N)
+            Pi = float(h_N * u_N * u_N + P_N)
+
+            # Far-right equilibrated quark state Q with muK = 0.
+            _diag(f"{trial_label}: solving equilibrated Q at muK=0")
+            muB_Q = _solve_muB_Q_at_muK0_for_given_Pi(Pi, jB, B_one_forth, T, ms=ms, upB=upB, stats=stats)
+            nB_Q = float(nB_QM(muB_Q, 0.0, B_one_forth, T, ms=ms, upB=upB))
+            if nB_Q <= 0.0:
+                raise RuntimeError("Equilibrated Q state has non-positive density")
+            if abs(ms) <= 1.0e-12:
+                nK_Q = 0.0
+            else:
+                nK_Q = float(nK_QM(muB_Q, 0.0, B_one_forth, T, ms=ms, upB=upB))
+
+            # Pure neutron matter implies nK_N = nB_N.
+            a_N = float((nB_N - nK_Q) / nB_Q)
+
+            # Interface state Qstar at x = 0+.
+            _diag(f"{trial_label}: solving interface Qstar")
+            muK_Qstar_seed = _branch_muK_seed(aQstar, muK_rich)
+            muB_Qstar, muK_Qstar = _solve_interface_Qstar_from_aQstar_and_Pi(
+                aQstar,
+                Pi,
+                jB,
+                nB_Q,
+                nK_Q,
+                B_one_forth,
+                T,
+                ms=ms,
+                upB=upB,
+                initial_guess=(muB_Q, muK_Qstar_seed),
+                muK_rich=muK_rich,
+                stats=stats,
+                stats_key="qstar_root_calls",
+            )
+            nB_Qstar = float(nB_QM(muB_Qstar, muK_Qstar, B_one_forth, T, ms=ms, upB=upB))
+            if nB_Qstar <= 0.0:
+                raise RuntimeError("Qstar state has non-positive density")
+
+            micro = _microphysics_at_Qstar(muB_Qstar, T)
+            DQ = float(micro["DQ"])
+            eta = float(micro["eta"])
+            gamma = float(micro["gamma"])
+            tau = float(micro["tau"])
+
+            # Jump condition gives the initial flux q(0+).
+            q0 = float(-a_N * u_N)
+            y0 = np.array([float(aQstar), q0], dtype=float)
+            qstar_is_equilibrated = (
+                abs(muK_Qstar) <= muK_trivial_tol
+                and abs(nB_Qstar - nB_Q) <= nB_rel_trivial_tol * max(1.0, abs(nB_Q))
+            )
+            if abs(aQstar) <= a_trivial_tol and abs(q0) <= q_trivial_tol and qstar_is_equilibrated:
+                raise RuntimeError("Rejected trivial equilibrium branch with a(0+)≈0 and q(0+)≈0")
+            a_limit = 10.0 * max(1.0, abs(aQstar))
+            cache = {"guess": (muB_Qstar, muK_Qstar)}
+            ivp_state = {"rhs_calls": 0, "last_report": time.perf_counter()}
+
+            _diag(f"{trial_label}: integrating IVP on [0, {x_max:.3e}]")
+
+            def rhs(x, y):
+                ivp_state["rhs_calls"] += 1
+                a_val = float(y[0])
+                q_val = float(y[1])
+                if (not np.isfinite(a_val)) or (not np.isfinite(q_val)):
+                    raise RuntimeError("Non-finite IVP state encountered")
+                if abs(a_val) > a_limit:
+                    raise RuntimeError("Composition variable exceeded stability guard")
+
+                muB_loc, muK_loc, nB_loc, u_loc = _solve_local_quark_state_from_a_and_Pi(
+                    a_val,
+                    Pi,
+                    jB,
+                    nB_Q,
+                    nK_Q,
+                    B_one_forth,
+                    T,
+                    ms=ms,
+                    upB=upB,
+                    initial_guess=cache["guess"],
+                    muK_rich=muK_rich,
+                    stats=stats,
+                )
+                cache["guess"] = (muB_loc, muK_loc)
+
+                da_dx = (q_val + u_loc * a_val) / DQ
+                dq_dx = gamma * (a_val**3 + eta * a_val)
+                if (not np.isfinite(da_dx)) or (not np.isfinite(dq_dx)):
+                    raise RuntimeError("Non-finite IVP derivative encountered")
+                if full_diag:
+                    now = time.perf_counter()
+                    if now - ivp_state["last_report"] >= 5.0:
+                        frac = (x / x_max) if x_max > 0.0 else 1.0
+                        _diag(
+                            f"{trial_label}: IVP x={x:.3e} ({100.0*frac:5.1f}%), "
+                            f"a={a_val:.6g}, q={q_val:.6g}, rhs_calls={ivp_state['rhs_calls']}"
+                        )
+                        ivp_state["last_report"] = now
+                return np.array([da_dx, dq_dx], dtype=float)
+
+            t_eval = np.linspace(0.0, x_max, n_eval) if with_profile else None
+            sol_ivp = solve_ivp(
+                rhs,
+                (0.0, x_max),
+                y0,
+                method="RK45",
+                rtol=rtol_ode,
+                atol=atol_ode,
+                t_eval=t_eval,
+            )
+            if not sol_ivp.success:
+                raise RuntimeError(f"IVP integration failed: {sol_ivp.message}")
+
+            a_end = float(sol_ivp.y[0, -1])
+            q_end = float(sol_ivp.y[1, -1])
+            x_end = float(sol_ivp.t[-1])
+            _diag(
+                f"{trial_label}: IVP finished at x={x_end:.3e} with "
+                f"rhs_calls={ivp_state['rhs_calls']}, a_end={a_end:.6g}, q_end={q_end:.6g}"
+            )
+
+            u_Q = float(jB / nB_Q)
+            disc = float(u_Q * u_Q + 4.0 * DQ * gamma * eta)
+            if (not np.isfinite(disc)) or disc <= 0.0:
+                raise RuntimeError("Tail discriminant is non-positive")
+            lam = float((-u_Q + np.sqrt(disc)) / (2.0 * DQ))
+            tail_coeff = float(DQ * lam + u_Q)
+            tail_drive = float(tail_coeff * a_end)
+            tail_residual = float(q_end + tail_drive)
+            tail_scale = float(max(abs(q_end), abs(tail_drive), np.finfo(float).tiny))
+            tail_residual_norm = float(tail_residual / tail_scale)
+
+            result.update(
+                {
+                    "success": True,
+                    "message": "1D steady-front shooting trial completed",
+                    "u_N": u_N,
+                    "u_Q": u_Q,
+                    "a_N": a_N,
+                    "aQstar": float(aQstar),
+                    "Pi": Pi,
+                    "muB_Qstar": float(muB_Qstar),
+                    "muK_Qstar": float(muK_Qstar),
+                    "nB_Qstar": float(nB_Qstar),
+                    "muB_Q": float(muB_Q),
+                    "nB_Q": float(nB_Q),
+                    "nK_Q": float(nK_Q),
+                    "DQ": DQ,
+                    "eta": eta,
+                    "gamma": gamma,
+                    "tau": tau,
+                    "lambda": lam,
+                    "tail_residual": tail_residual,
+                    "tail_residual_norm": tail_residual_norm,
+                    "tail_scale": tail_scale,
+                    "x_end": x_end,
+                    "a_end": a_end,
+                    "q_end": q_end,
+                    "_residual": np.array([tail_residual_norm], dtype=float),
+                    "shooting_evals": int(diag_state["trial_count"]),
+                    "ivp_rhs_calls": int(ivp_state["rhs_calls"]),
+                    "q_root_calls": int(stats["q_root_calls"]),
+                    "qstar_root_calls": int(stats["qstar_root_calls"]),
+                    "local_state_calls": int(stats["local_state_calls"]),
+                    "local_root_calls": int(stats["local_root_calls"]),
+                    "local_fast_failures": int(stats["local_fast_failures"]),
+                    "profile_state_calls": int(stats["profile_state_calls"]),
+                }
+            )
+
+            if with_profile:
+                _diag(f"{trial_label}: reconstructing profile arrays at {len(sol_ivp.t)} points")
+                x_prof = np.asarray(sol_ivp.t, dtype=float)
+                a_prof = np.asarray(sol_ivp.y[0], dtype=float)
+                q_prof = np.asarray(sol_ivp.y[1], dtype=float)
+                muB_prof = np.empty_like(x_prof)
+                muK_prof = np.empty_like(x_prof)
+                nB_prof = np.empty_like(x_prof)
+                u_prof = np.empty_like(x_prof)
+                profile_guess = (muB_Qstar, muK_Qstar)
+                profile_iter = range(len(a_prof))
+                if full_diag and tqdm is not None:
+                    profile_iter = tqdm(profile_iter, total=len(a_prof), desc=f"{trial_label} profile", unit="pt", leave=False)
+
+                for i in profile_iter:
+                    a_val = float(a_prof[i])
+                    stats["profile_state_calls"] += 1
+                    muB_loc, muK_loc, nB_loc, u_loc = _solve_local_quark_state_from_a_and_Pi(
+                        a_val,
+                        Pi,
+                        jB,
+                        nB_Q,
+                        nK_Q,
+                        B_one_forth,
+                        T,
+                        ms=ms,
+                        upB=upB,
+                        initial_guess=profile_guess,
+                        muK_rich=muK_rich,
+                        stats=stats,
+                    )
+                    profile_guess = (muB_loc, muK_loc)
+                    muB_prof[i] = muB_loc
+                    muK_prof[i] = muK_loc
+                    nB_prof[i] = nB_loc
+                    u_prof[i] = u_loc
+
+                result.update(
+                    {
+                        "x": x_prof,
+                        "a": a_prof,
+                        "q": q_prof,
+                        "u": u_prof,
+                        "nB": nB_prof,
+                        "muB": muB_prof,
+                        "muK": muK_prof,
+                        "profile_state_calls": int(stats["profile_state_calls"]),
+                        "local_state_calls": int(stats["local_state_calls"]),
+                        "local_root_calls": int(stats["local_root_calls"]),
+                        "local_fast_failures": int(stats["local_fast_failures"]),
+                    }
+                )
+
+            return result
+
+        except Exception as exc:
+            _diag(f"{trial_label}: failed with {exc}")
+            result.update(
+                {
+                    "success": False,
+                    "message": str(exc),
+                    "u_N": np.nan,
+                    "u_Q": np.nan,
+                    "a_N": np.nan,
+                    "Pi": np.nan,
+                    "muB_Qstar": np.nan,
+                    "muK_Qstar": np.nan,
+                    "nB_Qstar": np.nan,
+                    "muB_Q": np.nan,
+                    "nB_Q": np.nan,
+                    "nK_Q": np.nan,
+                    "DQ": np.nan,
+                    "eta": np.nan,
+                    "gamma": np.nan,
+                    "tau": np.nan,
+                    "lambda": np.nan,
+                    "tail_residual": np.nan,
+                    "tail_residual_norm": np.nan,
+                    "tail_scale": np.nan,
+                    "x_end": np.nan,
+                    "a_end": np.nan,
+                    "q_end": np.nan,
+                    "_residual": np.array([1.0e20], dtype=float),
+                    "shooting_evals": int(diag_state["trial_count"]),
+                    "ivp_rhs_calls": 0,
+                    "q_root_calls": 0,
+                    "qstar_root_calls": 0,
+                    "local_state_calls": 0,
+                    "local_root_calls": 0,
+                    "local_fast_failures": 0,
+                    "profile_state_calls": 0,
+                }
+            )
+            return result
+
+    def _trial_from_log_jB(log_jB, with_profile=False, trial_label="trial"):
+        cache_key = (round(float(log_jB), 14), bool(with_profile))
+        if cache_key in trial_cache:
+            return trial_cache[cache_key]
+        jB = float(np.exp(np.clip(log_jB, -700.0, 700.0)))
+        result = _build_trial_state_1d(jB, with_profile=with_profile, trial_label=trial_label)
+        trial_cache[cache_key] = result
+        return result
+
+    def _tail_residual_scalar(log_jB):
+        diag_state["trial_count"] += 1
+        trial_idx = diag_state["trial_count"]
+        jB = float(np.exp(np.clip(log_jB, -700.0, 700.0)))
+        if jB < jB_lower_bound or jB > jB_upper_bound:
+            tail_residual = 1.0e20
+            if simple_diag:
+                print(
+                    f"shoot1d jB={jB:.6g}, aQstar={aQstar:.6g}, "
+                    f"tail_norm=({tail_residual:.6g}), ok=False"
+                )
+            return tail_residual
+
+        trial = _trial_from_log_jB(log_jB, with_profile=False, trial_label=f"shoot1d#{trial_idx}")
+        trial_resid = float(trial.get("tail_residual_norm", np.nan))
+        trial_metric = float(abs(trial_resid)) if np.isfinite(trial_resid) else np.inf
+        if trial["success"] and trial_metric < best_trial["metric"]:
+            best_trial["metric"] = trial_metric
+            best_trial["log_jB"] = float(log_jB)
+        if simple_diag:
+            print(
+                f"shoot1d jB={jB:.6g}, aQstar={aQstar:.6g}, "
+                f"tail_norm=({trial.get('tail_residual_norm', np.nan):.6g}), "
+                f"tail_raw=({trial.get('tail_residual', np.nan):.6g}), ok={trial['success']}"
+            )
+        return trial_resid if np.isfinite(trial_resid) else 1.0e20
+
+    log_lower = float(np.log(jB_lower_bound))
+    log_upper = float(np.log(jB_upper_bound))
+    log_guess = float(np.log(jB_guess))
+    log_guess = min(max(log_guess, log_lower), log_upper)
+
+    _diag(
+        f"starting 1D shooting with jB_guess={jB_guess:.6g}, aQstar={aQstar:.6g}, "
+        f"bounds=[{jB_lower_bound:.6g}, {jB_upper_bound:.6g}], "
+        f"branch={'muK-rich' if muK_rich else 'muK-poor'}"
+    )
+
+    bracket = None
+    bracket_found = False
+    bracket_evals = 0
+    root_method = "least_squares"
+    root_success = False
+    root_message = ""
+    z_best = log_guess
+
+    f_guess = _tail_residual_scalar(log_guess)
+    bracket_evals += 1
+    if np.isfinite(f_guess) and abs(f_guess) <= max(root_tol, 1.0e-6):
+        root_method = "initial_guess"
+        root_success = True
+        root_message = "initial guess satisfies normalized tail residual tolerance"
+        z_best = log_guess
+    else:
+        expand_factor = 1.5
+        step = float(np.log(expand_factor))
+        max_expand_steps = max(1, min(8, max_nfev))
+        for k in range(1, max_expand_steps + 1):
+            left_z = max(log_lower, log_guess - k * step)
+            right_z = min(log_upper, log_guess + k * step)
+
+            if left_z < log_guess:
+                f_left = _tail_residual_scalar(left_z)
+                bracket_evals += 1
+                if np.isfinite(f_left) and np.isfinite(f_guess) and f_left * f_guess <= 0.0:
+                    bracket = (left_z, log_guess)
+                    bracket_found = True
+                    break
+
+            if right_z > log_guess:
+                f_right = _tail_residual_scalar(right_z)
+                bracket_evals += 1
+                if np.isfinite(f_right) and np.isfinite(f_guess) and f_guess * f_right <= 0.0:
+                    bracket = (log_guess, right_z)
+                    bracket_found = True
+                    break
+
+            if left_z <= log_lower and right_z >= log_upper:
+                break
+
+    if bracket is not None:
+        _diag(f"found scalar bracket in log_jB: [{bracket[0]:.6g}, {bracket[1]:.6g}]")
+        sol_root = root_scalar(lambda z: _tail_residual_scalar(float(z)), bracket=bracket, method="brentq", xtol=root_tol)
+        root_method = "brentq"
+        root_success = bool(sol_root.converged)
+        root_message = str(sol_root.flag)
+        if root_success:
+            z_best = float(sol_root.root)
+        elif best_trial["log_jB"] is not None:
+            z_best = float(best_trial["log_jB"])
+    elif not root_success:
+        _diag("no sign-changing bracket found; falling back to bounded least-squares in log_jB")
+        sol_root = least_squares(
+            lambda z: np.array([_tail_residual_scalar(float(z[0]))], dtype=float),
+            np.array([log_guess], dtype=float),
+            bounds=(np.array([log_lower]), np.array([log_upper])),
+            method="trf",
+            xtol=root_tol,
+            ftol=root_tol,
+            gtol=root_tol,
+            max_nfev=max_nfev,
+        )
+        root_success = bool(sol_root.success)
+        root_message = str(sol_root.message)
+        if np.all(np.isfinite(sol_root.x)):
+            z_best = float(sol_root.x[0])
+        if best_trial["log_jB"] is not None:
+            best_metric = float(best_trial["metric"])
+            solver_metric = abs(_tail_residual_scalar(float(z_best)))
+            if best_metric < solver_metric:
+                z_best = float(best_trial["log_jB"])
+
+    jB_best = float(np.exp(np.clip(z_best, -700.0, 700.0)))
+    _diag(f"1D shooting finished; rebuilding best state at jB={jB_best:.6g}, aQstar={aQstar:.6g}")
+    result = _trial_from_log_jB(z_best, with_profile=return_profile, trial_label="best1d")
+    tail_resid = float(result["tail_residual_norm"]) if np.isfinite(result["tail_residual_norm"]) else np.inf
+    tail_resid_raw = float(result["tail_residual"]) if np.isfinite(result["tail_residual"]) else np.inf
+    success = bool(root_success and result["success"] and abs(tail_resid) <= root_tol)
+
+    result["success"] = success
+    if success:
+        result["message"] = "1D steady-front shooting converged"
+    else:
+        if result["message"]:
+            result["message"] = f"{root_message}; last trial: {result['message']}"
+        else:
+            result["message"] = root_message
+
+    result["_root_success"] = root_success
+    result["_root_message"] = root_message
+    result["_root_method"] = root_method
+    result["_root_residual"] = np.array([tail_resid], dtype=float)
+    result["_root_raw_residual"] = np.array([tail_resid_raw], dtype=float)
+    result["_bracket_found"] = bool(bracket_found)
+    result["_bracket_evals"] = int(bracket_evals)
+    result["shooting_evals"] = int(diag_state["trial_count"])
+    return result
+
+
+
+def solve_steady_front_1d_aQstar_rescaled(
+    T,
+    nB_N,
+    B_one_forth,
+    aQstar,
+    ms=0.0,
+    param=para.paraQMCRMF3,
+    NM_type="PNM",
+    muK_rich=True,
+    x_max=None,
+    n_eval=1200,
+    rtol_ode=1e-8,
+    atol_ode=1e-10,
+    root_tol=1e-8,
+    max_nfev=60,
+    jB_guess=None,
+    jB_bounds=None,
+    tail_eps=1e-8,
+    kappa_factor=1.0,
+    compact_tail_lengths=0.35,
+    return_profile=False,
+    verb=False,
+):
+    """
+    Solve the fixed-aQstar steady-front problem with scalar shooting in jB on a
+    compactified coordinate.
+
+    This is the same hydro + diffusion + reaction problem solved by
+    solve_steady_front_1d_aQstar, but the quark-side IVP is integrated in
+
+        s = 1 - exp(-x/kappa),     s in [0, 1)
+
+    instead of directly in x. The physical equations are unchanged; only the
+    independent variable is transformed with dx/ds = kappa/(1-s). The scale is
+    chosen from the same frozen-Qstar linear tail used by the finite-domain 1D
+    solver,
+
+        kappa = kappa_factor / lambda,
+        lambda = (-u_Q + sqrt(u_Q^2 + 4 DQ gamma eta)) / (2 DQ),
+
+    with u_Q = jB/nB_Q at the far-right equilibrated quark state Q.
+    """
+    if nB_N <= 0.0:
+        raise RuntimeError("nB_N must be positive")
+    if tail_eps <= 0.0 or tail_eps >= 1.0:
+        raise RuntimeError("tail_eps must satisfy 0 < tail_eps < 1")
+    if kappa_factor <= 0.0:
+        raise RuntimeError("kappa_factor must be positive")
+    if compact_tail_lengths <= 0.0:
+        raise RuntimeError("compact_tail_lengths must be positive")
+    if x_max is not None and x_max <= 0.0:
+        raise RuntimeError("x_max must be positive when provided")
+
+    upB = 5000
+    t_start = time.perf_counter()
+    diag_state = {"trial_count": 0}
+    a_trivial_tol = max(1.0e-6, 10.0 * root_tol)
+    q_trivial_tol = max(1.0e-10, root_tol * 1.0e-4)
+    muK_trivial_tol = 1.0e-6
+    nB_rel_trivial_tol = 1.0e-6
+    if isinstance(verb, str):
+        verb_mode = "full" if verb.lower() == "full" else ("simple" if verb else "off")
+    else:
+        verb_mode = "simple" if verb else "off"
+    full_diag = verb_mode == "full"
+    simple_diag = verb_mode in ("simple", "full")
+
+    def _diag(msg):
+        if full_diag:
+            dt = time.perf_counter() - t_start
+            print(f"[steady_front_1d_rescaled +{dt:8.2f}s] {msg}", flush=True)
+
+    if jB_guess is None:
+        jB_guess = 1.0e-6 * nB_N
+    if jB_guess <= 0.0:
+        raise RuntimeError("jB_guess must be positive")
+
+    if jB_bounds is None:
+        jB_lower_bound = max(1.0e-12, 1.0e-3 * float(jB_guess))
+        jB_upper_bound = max(10.0 * float(jB_guess), 10.0)
+    else:
+        if len(jB_bounds) != 2:
+            raise RuntimeError("jB_bounds must be a 2-tuple (jB_min, jB_max)")
+        jB_lower_bound = float(jB_bounds[0])
+        jB_upper_bound = float(jB_bounds[1])
+        if jB_lower_bound <= 0.0 or jB_upper_bound <= 0.0 or jB_upper_bound <= jB_lower_bound:
+            raise RuntimeError("jB_bounds must satisfy 0 < jB_min < jB_max")
+
+    best_trial = {"metric": np.inf, "log_jB": None}
+    trial_cache = {}
+
+    def _build_trial_state_1d_rescaled(jB, with_profile=False, trial_label="trial"):
+        result = {
+            "success": False,
+            "message": "",
+            "jB": float(jB),
+            "aQstar": float(aQstar),
+            "muK_rich": bool(muK_rich),
+            "branch_label": "muK-rich" if muK_rich else "muK-poor",
+            "coordinate": "s=1-exp(-x/kappa)",
+            "tail_eps": float(tail_eps),
+            "kappa_factor": float(kappa_factor),
+            "compact_tail_lengths": float(compact_tail_lengths),
+        }
+
+        try:
+            _diag(f"{trial_label}: building N, Q, and Qstar states")
+            stats = {
+                "q_root_calls": 0,
+                "qstar_root_calls": 0,
+                "local_state_calls": 0,
+                "local_root_calls": 0,
+                "local_fast_failures": 0,
+                "profile_state_calls": 0,
+            }
+
+            # Upstream nuclear state N at x = 0^-.
+            P_N = float(PNM_n(nB_N, T, param=param, NM_type=NM_type))
+            e_N = float(edensNM_n(nB_N, T, param=param))
+            h_N = float(P_N + e_N)
+            u_N = float(jB / nB_N)
+            Pi = float(h_N * u_N * u_N + P_N)
+
+            # Far-right equilibrated quark state Q with muK = 0.
+            _diag(f"{trial_label}: solving equilibrated Q at muK=0")
+            muB_Q = _solve_muB_Q_at_muK0_for_given_Pi(Pi, jB, B_one_forth, T, ms=ms, upB=upB, stats=stats)
+            nB_Q = float(nB_QM(muB_Q, 0.0, B_one_forth, T, ms=ms, upB=upB))
+            if nB_Q <= 0.0:
+                raise RuntimeError("Equilibrated Q state has non-positive density")
+            if abs(ms) <= 1.0e-12:
+                nK_Q = 0.0
+            else:
+                nK_Q = float(nK_QM(muB_Q, 0.0, B_one_forth, T, ms=ms, upB=upB))
+
+            # Pure neutron matter implies nK_N = nB_N.
+            a_N = float((nB_N - nK_Q) / nB_Q)
+
+            # Interface state Qstar at x = 0+.
+            _diag(f"{trial_label}: solving interface Qstar")
+            muK_Qstar_seed = _branch_muK_seed(aQstar, muK_rich)
+            muB_Qstar, muK_Qstar = _solve_interface_Qstar_from_aQstar_and_Pi(
+                aQstar,
+                Pi,
+                jB,
+                nB_Q,
+                nK_Q,
+                B_one_forth,
+                T,
+                ms=ms,
+                upB=upB,
+                initial_guess=(muB_Q, muK_Qstar_seed),
+                muK_rich=muK_rich,
+                stats=stats,
+                stats_key="qstar_root_calls",
+            )
+            nB_Qstar = float(nB_QM(muB_Qstar, muK_Qstar, B_one_forth, T, ms=ms, upB=upB))
+            if nB_Qstar <= 0.0:
+                raise RuntimeError("Qstar state has non-positive density")
+
+            micro = _microphysics_at_Qstar(muB_Qstar, T)
+            DQ = float(micro["DQ"])
+            eta = float(micro["eta"])
+            gamma = float(micro["gamma"])
+            tau = float(micro["tau"])
+
+            u_Q = float(jB / nB_Q)
+            disc = float(u_Q * u_Q + 4.0 * DQ * gamma * eta)
+            if (not np.isfinite(disc)) or disc <= 0.0:
+                raise RuntimeError("Tail discriminant is non-positive")
+            lam = float((-u_Q + np.sqrt(disc)) / (2.0 * DQ))
+            if (not np.isfinite(lam)) or lam <= 0.0:
+                raise RuntimeError("Tail decay lambda must be positive")
+            kappa = float(kappa_factor / lam)
+            if (not np.isfinite(kappa)) or kappa <= 0.0:
+                raise RuntimeError("Compactification kappa must be positive")
+
+            if x_max is None:
+                # Do not integrate directly to 1-tail_eps by default: the compact
+                # ODE has dx/ds = kappa/(1-s), so the endpoint is singular. Use a
+                # tunable number of tail lengths and keep tail_eps as a hard cap.
+                s_from_auto_tail = float(-np.expm1(-float(compact_tail_lengths)))
+                s_end = float(min(1.0 - tail_eps, s_from_auto_tail))
+            else:
+                # 1 - exp(-x/kappa), evaluated via expm1 for small x/kappa.
+                s_from_xmax = float(-np.expm1(-float(x_max) / kappa))
+                s_end = float(min(1.0 - tail_eps, max(0.0, s_from_xmax)))
+            if (not np.isfinite(s_end)) or s_end <= 0.0 or s_end >= 1.0:
+                raise RuntimeError("Invalid compact-coordinate endpoint")
+            x_end_physical = float(-kappa * np.log1p(-s_end))
+
+            # Jump condition gives the initial flux q(0+).
+            q0 = float(-a_N * u_N)
+            y0 = np.array([float(aQstar), q0], dtype=float)
+            qstar_is_equilibrated = (
+                abs(muK_Qstar) <= muK_trivial_tol
+                and abs(nB_Qstar - nB_Q) <= nB_rel_trivial_tol * max(1.0, abs(nB_Q))
+            )
+            if abs(aQstar) <= a_trivial_tol and abs(q0) <= q_trivial_tol and qstar_is_equilibrated:
+                raise RuntimeError("Rejected trivial equilibrium branch with a(0+)≈0 and q(0+)≈0")
+            a_limit = 10.0 * max(1.0, abs(aQstar))
+            cache = {"guess": (muB_Qstar, muK_Qstar)}
+            ivp_state = {"rhs_calls": 0, "last_report": time.perf_counter()}
+
+            _diag(
+                f"{trial_label}: integrating compact IVP on s=[0, {s_end:.8g}] "
+                f"(x_end={x_end_physical:.3e}, kappa={kappa:.3e})"
+            )
+
+            def rhs_s(s, y):
+                ivp_state["rhs_calls"] += 1
+                a_val = float(y[0])
+                q_val = float(y[1])
+                if (not np.isfinite(a_val)) or (not np.isfinite(q_val)):
+                    raise RuntimeError("Non-finite IVP state encountered")
+                if abs(a_val) > a_limit:
+                    raise RuntimeError("Composition variable exceeded stability guard")
+
+                muB_loc, muK_loc, nB_loc, u_loc = _solve_local_quark_state_from_a_and_Pi(
+                    a_val,
+                    Pi,
+                    jB,
+                    nB_Q,
+                    nK_Q,
+                    B_one_forth,
+                    T,
+                    ms=ms,
+                    upB=upB,
+                    initial_guess=cache["guess"],
+                    muK_rich=muK_rich,
+                    stats=stats,
+                )
+                cache["guess"] = (muB_loc, muK_loc)
+
+                one_minus_s = max(1.0 - float(s), np.finfo(float).tiny)
+                dx_ds = kappa / one_minus_s
+                da_ds = ((q_val + u_loc * a_val) / DQ) * dx_ds
+                dq_ds = (gamma * (a_val**3 + eta * a_val)) * dx_ds
+                if (not np.isfinite(da_ds)) or (not np.isfinite(dq_ds)):
+                    raise RuntimeError("Non-finite IVP derivative encountered")
+                if full_diag:
+                    now = time.perf_counter()
+                    if now - ivp_state["last_report"] >= 5.0:
+                        x_now = -kappa * np.log1p(-min(float(s), 1.0 - np.finfo(float).eps))
+                        frac = float(s) / s_end if s_end > 0.0 else 1.0
+                        _diag(
+                            f"{trial_label}: IVP s={s:.6g} ({100.0*frac:5.1f}%), "
+                            f"x={x_now:.3e}, a={a_val:.6g}, q={q_val:.6g}, "
+                            f"rhs_calls={ivp_state['rhs_calls']}"
+                        )
+                        ivp_state["last_report"] = now
+                return np.array([da_ds, dq_ds], dtype=float)
+
+            s_eval = np.linspace(0.0, s_end, n_eval) if with_profile else None
+            sol_ivp = solve_ivp(
+                rhs_s,
+                (0.0, s_end),
+                y0,
+                method="RK45",
+                rtol=rtol_ode,
+                atol=atol_ode,
+                t_eval=s_eval,
+            )
+            if not sol_ivp.success:
+                raise RuntimeError(f"Compact IVP integration failed: {sol_ivp.message}")
+
+            a_end = float(sol_ivp.y[0, -1])
+            q_end = float(sol_ivp.y[1, -1])
+            s_reached = float(sol_ivp.t[-1])
+            x_reached = float(-kappa * np.log1p(-s_reached))
+            _diag(
+                f"{trial_label}: compact IVP finished at s={s_reached:.6g}, "
+                f"x={x_reached:.3e} with rhs_calls={ivp_state['rhs_calls']}, "
+                f"a_end={a_end:.6g}, q_end={q_end:.6g}"
+            )
+
+            tail_coeff = float(DQ * lam + u_Q)
+            tail_drive = float(tail_coeff * a_end)
+            tail_residual = float(q_end + tail_drive)
+            tail_scale = float(max(abs(q_end), abs(tail_drive), np.finfo(float).tiny))
+            tail_residual_norm = float(tail_residual / tail_scale)
+
+            result.update(
+                {
+                    "success": True,
+                    "message": "Rescaled 1D steady-front shooting trial completed",
+                    "u_N": u_N,
+                    "u_Q": u_Q,
+                    "a_N": a_N,
+                    "aQstar": float(aQstar),
+                    "Pi": Pi,
+                    "muB_Qstar": float(muB_Qstar),
+                    "muK_Qstar": float(muK_Qstar),
+                    "nB_Qstar": float(nB_Qstar),
+                    "muB_Q": float(muB_Q),
+                    "nB_Q": float(nB_Q),
+                    "nK_Q": float(nK_Q),
+                    "DQ": DQ,
+                    "eta": eta,
+                    "gamma": gamma,
+                    "tau": tau,
+                    "lambda": lam,
+                    "kappa": kappa,
+                    "compact_tail_lengths": float(compact_tail_lengths),
+                    "s_end": s_reached,
+                    "x_end": x_reached,
+                    "x_end_target": x_end_physical,
+                    "tail_residual": tail_residual,
+                    "tail_residual_norm": tail_residual_norm,
+                    "tail_scale": tail_scale,
+                    "a_end": a_end,
+                    "q_end": q_end,
+                    "_residual": np.array([tail_residual_norm], dtype=float),
+                    "shooting_evals": int(diag_state["trial_count"]),
+                    "ivp_rhs_calls": int(ivp_state["rhs_calls"]),
+                    "q_root_calls": int(stats["q_root_calls"]),
+                    "qstar_root_calls": int(stats["qstar_root_calls"]),
+                    "local_state_calls": int(stats["local_state_calls"]),
+                    "local_root_calls": int(stats["local_root_calls"]),
+                    "local_fast_failures": int(stats["local_fast_failures"]),
+                    "profile_state_calls": int(stats["profile_state_calls"]),
+                }
+            )
+
+            if with_profile:
+                _diag(f"{trial_label}: reconstructing profile arrays at {len(sol_ivp.t)} points")
+                s_prof = np.asarray(sol_ivp.t, dtype=float)
+                x_prof = -kappa * np.log1p(-s_prof)
+                a_prof = np.asarray(sol_ivp.y[0], dtype=float)
+                q_prof = np.asarray(sol_ivp.y[1], dtype=float)
+                muB_prof = np.empty_like(s_prof)
+                muK_prof = np.empty_like(s_prof)
+                nB_prof = np.empty_like(s_prof)
+                u_prof = np.empty_like(s_prof)
+                profile_guess = (muB_Qstar, muK_Qstar)
+                profile_iter = range(len(a_prof))
+                if full_diag and tqdm is not None:
+                    profile_iter = tqdm(profile_iter, total=len(a_prof), desc=f"{trial_label} profile", unit="pt", leave=False)
+
+                for i in profile_iter:
+                    a_val = float(a_prof[i])
+                    stats["profile_state_calls"] += 1
+                    muB_loc, muK_loc, nB_loc, u_loc = _solve_local_quark_state_from_a_and_Pi(
+                        a_val,
+                        Pi,
+                        jB,
+                        nB_Q,
+                        nK_Q,
+                        B_one_forth,
+                        T,
+                        ms=ms,
+                        upB=upB,
+                        initial_guess=profile_guess,
+                        muK_rich=muK_rich,
+                        stats=stats,
+                    )
+                    profile_guess = (muB_loc, muK_loc)
+                    muB_prof[i] = muB_loc
+                    muK_prof[i] = muK_loc
+                    nB_prof[i] = nB_loc
+                    u_prof[i] = u_loc
+
+                result.update(
+                    {
+                        "s": s_prof,
+                        "x": x_prof,
+                        "a": a_prof,
+                        "q": q_prof,
+                        "u": u_prof,
+                        "nB": nB_prof,
+                        "muB": muB_prof,
+                        "muK": muK_prof,
+                        "profile_state_calls": int(stats["profile_state_calls"]),
+                        "local_state_calls": int(stats["local_state_calls"]),
+                        "local_root_calls": int(stats["local_root_calls"]),
+                        "local_fast_failures": int(stats["local_fast_failures"]),
+                    }
+                )
+
+            return result
+
+        except Exception as exc:
+            _diag(f"{trial_label}: failed with {exc}")
+            result.update(
+                {
+                    "success": False,
+                    "message": str(exc),
+                    "u_N": np.nan,
+                    "u_Q": np.nan,
+                    "a_N": np.nan,
+                    "Pi": np.nan,
+                    "muB_Qstar": np.nan,
+                    "muK_Qstar": np.nan,
+                    "nB_Qstar": np.nan,
+                    "muB_Q": np.nan,
+                    "nB_Q": np.nan,
+                    "nK_Q": np.nan,
+                    "DQ": np.nan,
+                    "eta": np.nan,
+                    "gamma": np.nan,
+                    "tau": np.nan,
+                    "lambda": np.nan,
+                    "kappa": np.nan,
+                    "compact_tail_lengths": float(compact_tail_lengths),
+                    "s_end": np.nan,
+                    "x_end": np.nan,
+                    "x_end_target": np.nan,
+                    "tail_residual": np.nan,
+                    "tail_residual_norm": np.nan,
+                    "tail_scale": np.nan,
+                    "a_end": np.nan,
+                    "q_end": np.nan,
+                    "_residual": np.array([1.0e20], dtype=float),
+                    "shooting_evals": int(diag_state["trial_count"]),
+                    "ivp_rhs_calls": 0,
+                    "q_root_calls": 0,
+                    "qstar_root_calls": 0,
+                    "local_state_calls": 0,
+                    "local_root_calls": 0,
+                    "local_fast_failures": 0,
+                    "profile_state_calls": 0,
+                }
+            )
+            return result
+
+    def _trial_from_log_jB(log_jB, with_profile=False, trial_label="trial"):
+        cache_key = (round(float(log_jB), 14), bool(with_profile))
+        if cache_key in trial_cache:
+            return trial_cache[cache_key]
+        jB = float(np.exp(np.clip(log_jB, -700.0, 700.0)))
+        result = _build_trial_state_1d_rescaled(jB, with_profile=with_profile, trial_label=trial_label)
+        trial_cache[cache_key] = result
+        return result
+
+    def _tail_residual_scalar(log_jB):
+        diag_state["trial_count"] += 1
+        trial_idx = diag_state["trial_count"]
+        jB = float(np.exp(np.clip(log_jB, -700.0, 700.0)))
+        if jB < jB_lower_bound or jB > jB_upper_bound:
+            tail_residual = 1.0e20
+            if simple_diag:
+                print(
+                    f"shoot1d-rescaled jB={jB:.6g}, aQstar={aQstar:.6g}, "
+                    f"tail_norm=({tail_residual:.6g}), ok=False"
+                )
+            return tail_residual
+
+        trial = _trial_from_log_jB(log_jB, with_profile=False, trial_label=f"shoot1d-rescaled#{trial_idx}")
+        trial_resid = float(trial.get("tail_residual_norm", np.nan))
+        trial_metric = float(abs(trial_resid)) if np.isfinite(trial_resid) else np.inf
+        if trial["success"] and trial_metric < best_trial["metric"]:
+            best_trial["metric"] = trial_metric
+            best_trial["log_jB"] = float(log_jB)
+        if simple_diag:
+            print(
+                f"shoot1d-rescaled jB={jB:.6g}, aQstar={aQstar:.6g}, "
+                f"tail_norm=({trial.get('tail_residual_norm', np.nan):.6g}), "
+                f"tail_raw=({trial.get('tail_residual', np.nan):.6g}), "
+                f"s_end={trial.get('s_end', np.nan):.6g}, x_end={trial.get('x_end', np.nan):.6g}, "
+                f"ok={trial['success']}"
+            )
+        return trial_resid if np.isfinite(trial_resid) else 1.0e20
+
+    log_lower = float(np.log(jB_lower_bound))
+    log_upper = float(np.log(jB_upper_bound))
+    log_guess = float(np.log(jB_guess))
+    log_guess = min(max(log_guess, log_lower), log_upper)
+
+    _diag(
+        f"starting rescaled 1D shooting with jB_guess={jB_guess:.6g}, "
+        f"aQstar={aQstar:.6g}, bounds=[{jB_lower_bound:.6g}, {jB_upper_bound:.6g}], "
+        f"branch={'muK-rich' if muK_rich else 'muK-poor'}, tail_eps={tail_eps:.3g}, "
+        f"kappa_factor={kappa_factor:.3g}, compact_tail_lengths={compact_tail_lengths:.3g}"
+    )
+
+    bracket = None
+    bracket_found = False
+    bracket_evals = 0
+    root_method = "least_squares"
+    root_success = False
+    root_message = ""
+    z_best = log_guess
+
+    f_guess = _tail_residual_scalar(log_guess)
+    bracket_evals += 1
+    if np.isfinite(f_guess) and abs(f_guess) <= root_tol:
+        root_method = "initial_guess"
+        root_success = True
+        root_message = "initial guess satisfies normalized tail residual tolerance"
+        z_best = log_guess
+    else:
+        expand_factor = 1.5
+        step = float(np.log(expand_factor))
+        max_expand_steps = max(1, min(8, max_nfev))
+        for k in range(1, max_expand_steps + 1):
+            left_z = max(log_lower, log_guess - k * step)
+            right_z = min(log_upper, log_guess + k * step)
+
+            if left_z < log_guess:
+                f_left = _tail_residual_scalar(left_z)
+                bracket_evals += 1
+                if np.isfinite(f_left) and np.isfinite(f_guess) and f_left * f_guess <= 0.0:
+                    bracket = (left_z, log_guess)
+                    bracket_found = True
+                    break
+
+            if right_z > log_guess:
+                f_right = _tail_residual_scalar(right_z)
+                bracket_evals += 1
+                if np.isfinite(f_right) and np.isfinite(f_guess) and f_guess * f_right <= 0.0:
+                    bracket = (log_guess, right_z)
+                    bracket_found = True
+                    break
+
+            if left_z <= log_lower and right_z >= log_upper:
+                break
+
+    if bracket is not None:
+        _diag(f"found scalar bracket in log_jB: [{bracket[0]:.6g}, {bracket[1]:.6g}]")
+        sol_root = root_scalar(lambda z: _tail_residual_scalar(float(z)), bracket=bracket, method="brentq", xtol=root_tol)
+        root_method = "brentq"
+        root_success = bool(sol_root.converged)
+        root_message = str(sol_root.flag)
+        if root_success:
+            z_best = float(sol_root.root)
+        elif best_trial["log_jB"] is not None:
+            z_best = float(best_trial["log_jB"])
+    elif not root_success:
+        _diag("no sign-changing bracket found; falling back to bounded least-squares in log_jB")
+        sol_root = least_squares(
+            lambda z: np.array([_tail_residual_scalar(float(z[0]))], dtype=float),
+            np.array([log_guess], dtype=float),
+            bounds=(np.array([log_lower]), np.array([log_upper])),
+            method="trf",
+            xtol=root_tol,
+            ftol=root_tol,
+            gtol=root_tol,
+            max_nfev=max_nfev,
+        )
+        root_success = bool(sol_root.success)
+        root_message = str(sol_root.message)
+        if np.all(np.isfinite(sol_root.x)):
+            z_best = float(sol_root.x[0])
+        if best_trial["log_jB"] is not None:
+            best_metric = float(best_trial["metric"])
+            solver_metric = abs(_tail_residual_scalar(float(z_best)))
+            if best_metric < solver_metric:
+                z_best = float(best_trial["log_jB"])
+
+    jB_best = float(np.exp(np.clip(z_best, -700.0, 700.0)))
+    _diag(f"rescaled 1D shooting finished; rebuilding best state at jB={jB_best:.6g}, aQstar={aQstar:.6g}")
+    result = _trial_from_log_jB(z_best, with_profile=return_profile, trial_label="best1d-rescaled")
+    tail_resid = float(result["tail_residual_norm"]) if np.isfinite(result["tail_residual_norm"]) else np.inf
+    tail_resid_raw = float(result["tail_residual"]) if np.isfinite(result["tail_residual"]) else np.inf
+    success = bool(root_success and result["success"] and abs(tail_resid) <= root_tol)
+
+    result["success"] = success
+    if success:
+        result["message"] = "Rescaled 1D steady-front shooting converged"
+    else:
+        if result["message"]:
+            result["message"] = f"{root_message}; last trial: {result['message']}"
+        else:
+            result["message"] = root_message
+
+    result["_root_success"] = root_success
+    result["_root_message"] = root_message
+    result["_root_method"] = root_method
+    result["_root_residual"] = np.array([tail_resid], dtype=float)
+    result["_root_raw_residual"] = np.array([tail_resid_raw], dtype=float)
+    result["_bracket_found"] = bool(bracket_found)
+    result["_bracket_evals"] = int(bracket_evals)
+    result["shooting_evals"] = int(diag_state["trial_count"])
+    return result
+
+def solve_steady_front_1d_aQstar_rescale_bvp(
+    T,
+    nB_N,
+    B_one_forth,
+    aQstar,
+    ms=0.0,
+    param=para.paraQMCRMF3,
+    NM_type="PNM",
+    muK_rich=True,
+    tail_eps=1.0e-3,
+    n_mesh=300,
+    tol_bvp=1.0e-4,
+    max_nodes=50000,
+    jB_guess=None,
+    jB_bounds=None,
+    kappa_factor=1.0,
+    return_profile=False,
+    verb=False,
+):
+    """
+    Solve the fixed-aQstar steady-front problem as a compact-coordinate BVP.
+
+    This solver keeps the same hydro + diffusion + reaction equations as the
+    1D IVP shooting solvers, but uses solve_bvp with jB as an unknown BVP
+    parameter. The compact coordinate is s = 1 - exp(-x/kappa), integrated on
+    s in [0, 1 - tail_eps]. The endpoint truncation is controlled only by
+    tail_eps; no compact_tail_lengths cutoff is used in this BVP path.
+    """
+    if nB_N <= 0.0:
+        raise RuntimeError("nB_N must be positive")
+    if tail_eps <= 0.0 or tail_eps >= 1.0:
+        raise RuntimeError("tail_eps must satisfy 0 < tail_eps < 1")
+    if int(n_mesh) < 5:
+        raise RuntimeError("n_mesh must be at least 5")
+    if tol_bvp <= 0.0:
+        raise RuntimeError("tol_bvp must be positive")
+    if max_nodes <= int(n_mesh):
+        raise RuntimeError("max_nodes must be larger than n_mesh")
+    if kappa_factor <= 0.0:
+        raise RuntimeError("kappa_factor must be positive")
+
+    upB = 5000
+    t_start = time.perf_counter()
+    if isinstance(verb, str):
+        verb_mode = "full" if verb.lower() == "full" else ("simple" if verb else "off")
+    else:
+        verb_mode = "simple" if verb else "off"
+    full_diag = verb_mode == "full"
+    simple_diag = verb_mode in ("simple", "full")
+
+    def _diag(msg):
+        if full_diag:
+            dt = time.perf_counter() - t_start
+            print(f"[steady_front_bvp +{dt:8.2f}s] {msg}", flush=True)
+
+    if jB_guess is None:
+        jB_guess = 1.0e-6 * nB_N
+    jB_guess = float(jB_guess)
+    if jB_guess <= 0.0:
+        raise RuntimeError("jB_guess must be positive")
+
+    bounded_jB = jB_bounds is not None
+    if bounded_jB:
+        if len(jB_bounds) != 2:
+            raise RuntimeError("jB_bounds must be a 2-tuple (jB_min, jB_max)")
+        jB_lower_bound = float(jB_bounds[0])
+        jB_upper_bound = float(jB_bounds[1])
+        if jB_lower_bound <= 0.0 or jB_upper_bound <= 0.0 or jB_upper_bound <= jB_lower_bound:
+            raise RuntimeError("jB_bounds must satisfy 0 < jB_min < jB_max")
+        if not (jB_lower_bound < jB_guess < jB_upper_bound):
+            jB_guess = min(max(jB_guess, jB_lower_bound * (1.0 + 1.0e-6)), jB_upper_bound * (1.0 - 1.0e-6))
+    else:
+        jB_lower_bound = 0.0
+        jB_upper_bound = np.inf
+
+    def _param_from_jB(jB):
+        jB = float(jB)
+        if bounded_jB:
+            frac = (jB - jB_lower_bound) / (jB_upper_bound - jB_lower_bound)
+            frac = float(np.clip(frac, 1.0e-12, 1.0 - 1.0e-12))
+            return float(np.log(frac / (1.0 - frac)))
+        return float(np.log(jB))
+
+    def _jB_from_param(theta):
+        theta = float(theta)
+        if bounded_jB:
+            theta_clip = float(np.clip(theta, -60.0, 60.0))
+            sig = 1.0 / (1.0 + np.exp(-theta_clip))
+            return float(jB_lower_bound + (jB_upper_bound - jB_lower_bound) * sig)
+        return float(np.exp(np.clip(theta, -700.0, 700.0)))
+
+    stats = {
+        "bvp_ode_calls": 0,
+        "bvp_bc_calls": 0,
+        "q_root_calls": 0,
+        "qstar_root_calls": 0,
+        "local_state_calls": 0,
+        "local_root_calls": 0,
+        "local_fast_failures": 0,
+        "profile_state_calls": 0,
+        "global_state_builds": 0,
+        "global_state_failures": 0,
+        "local_state_failures": 0,
+    }
+    state_cache = {}
+    last_failure = {"message": ""}
+    s_end = float(1.0 - tail_eps)
+
+    def _build_global_state(theta):
+        key = round(float(theta), 12)
+        if key in state_cache:
+            return state_cache[key]
+
+        jB = _jB_from_param(theta)
+        stats["global_state_builds"] += 1
+
+        # Upstream nuclear state N at x = 0^-.
+        P_N = float(PNM_n(nB_N, T, param=param, NM_type=NM_type))
+        e_N = float(edensNM_n(nB_N, T, param=param))
+        h_N = float(P_N + e_N)
+        u_N = float(jB / nB_N)
+        Pi = float(h_N * u_N * u_N + P_N)
+
+        # Far-right equilibrated quark state Q with muK = 0.
+        muB_Q = _solve_muB_Q_at_muK0_for_given_Pi(Pi, jB, B_one_forth, T, ms=ms, upB=upB, stats=stats)
+        nB_Q = float(nB_QM(muB_Q, 0.0, B_one_forth, T, ms=ms, upB=upB))
+        if nB_Q <= 0.0:
+            raise RuntimeError("Equilibrated Q state has non-positive density")
+        if abs(ms) <= 1.0e-12:
+            nK_Q = 0.0
+        else:
+            nK_Q = float(nK_QM(muB_Q, 0.0, B_one_forth, T, ms=ms, upB=upB))
+
+        # Pure neutron matter implies nK_N = nB_N.
+        a_N = float((nB_N - nK_Q) / nB_Q)
+
+        # Interface state Qstar at x = 0+.
+        muK_Qstar_seed = _branch_muK_seed(aQstar, muK_rich)
+        muB_Qstar, muK_Qstar = _solve_interface_Qstar_from_aQstar_and_Pi(
+            aQstar,
+            Pi,
+            jB,
+            nB_Q,
+            nK_Q,
+            B_one_forth,
+            T,
+            ms=ms,
+            upB=upB,
+            initial_guess=(muB_Q, muK_Qstar_seed),
+            muK_rich=muK_rich,
+            stats=stats,
+            stats_key="qstar_root_calls",
+        )
+        nB_Qstar = float(nB_QM(muB_Qstar, muK_Qstar, B_one_forth, T, ms=ms, upB=upB))
+        if nB_Qstar <= 0.0:
+            raise RuntimeError("Qstar state has non-positive density")
+
+        micro = _microphysics_at_Qstar(muB_Qstar, T)
+        DQ = float(micro["DQ"])
+        eta = float(micro["eta"])
+        gamma = float(micro["gamma"])
+        tau = float(micro["tau"])
+
+        u_Q = float(jB / nB_Q)
+        disc = float(u_Q * u_Q + 4.0 * DQ * gamma * eta)
+        if (not np.isfinite(disc)) or disc <= 0.0:
+            raise RuntimeError("Tail discriminant is non-positive")
+        lam = float((-u_Q + np.sqrt(disc)) / (2.0 * DQ))
+        if (not np.isfinite(lam)) or lam <= 0.0:
+            raise RuntimeError("Tail decay lambda must be positive")
+        kappa = float(kappa_factor / lam)
+        if (not np.isfinite(kappa)) or kappa <= 0.0:
+            raise RuntimeError("Compactification kappa must be positive")
+
+        q0 = float(-a_N * u_N)
+        x_end = float(-kappa * np.log1p(-s_end))
+        tail_coeff = float(DQ * lam + u_Q)
+        state = {
+            "jB": jB,
+            "P_N": P_N,
+            "e_N": e_N,
+            "h_N": h_N,
+            "u_N": u_N,
+            "Pi": Pi,
+            "muB_Q": float(muB_Q),
+            "nB_Q": nB_Q,
+            "nK_Q": float(nK_Q),
+            "a_N": a_N,
+            "muB_Qstar": float(muB_Qstar),
+            "muK_Qstar": float(muK_Qstar),
+            "nB_Qstar": nB_Qstar,
+            "DQ": DQ,
+            "eta": eta,
+            "gamma": gamma,
+            "tau": tau,
+            "lambda": lam,
+            "kappa": kappa,
+            "u_Q": u_Q,
+            "q0": q0,
+            "tail_coeff": tail_coeff,
+            "x_end": x_end,
+        }
+        state_cache[key] = state
+        return state
+
+    def _state_or_none(theta):
+        try:
+            return _build_global_state(theta)
+        except Exception as exc:
+            stats["global_state_failures"] += 1
+            last_failure["message"] = str(exc)
+            return None
+
+    def _ode(s, y, p):
+        stats["bvp_ode_calls"] += 1
+        state = _state_or_none(float(p[0]))
+        if state is None:
+            return np.zeros_like(y) + 1.0e12
+
+        dyds = np.empty_like(y)
+        guess = (state["muB_Qstar"], state["muK_Qstar"])
+        for i in range(y.shape[1]):
+            a_val = float(y[0, i])
+            q_val = float(y[1, i])
+            if (not np.isfinite(a_val)) or (not np.isfinite(q_val)):
+                stats["local_state_failures"] += 1
+                dyds[:, i] = 1.0e12
+                continue
+            try:
+                muB_loc, muK_loc, nB_loc, u_loc = _solve_local_quark_state_from_a_and_Pi(
+                    a_val,
+                    state["Pi"],
+                    state["jB"],
+                    state["nB_Q"],
+                    state["nK_Q"],
+                    B_one_forth,
+                    T,
+                    ms=ms,
+                    upB=upB,
+                    initial_guess=guess,
+                    muK_rich=muK_rich,
+                    stats=stats,
+                )
+                guess = (muB_loc, muK_loc)
+                one_minus_s = max(1.0 - float(s[i]), np.finfo(float).tiny)
+                dx_ds = state["kappa"] / one_minus_s
+                dyds[0, i] = ((q_val + u_loc * a_val) / state["DQ"]) * dx_ds
+                dyds[1, i] = (state["gamma"] * (a_val**3 + state["eta"] * a_val)) * dx_ds
+            except Exception as exc:
+                stats["local_state_failures"] += 1
+                last_failure["message"] = str(exc)
+                dyds[:, i] = 1.0e12
+        return dyds
+
+    def _bc(ya, yb, p):
+        stats["bvp_bc_calls"] += 1
+        state = _state_or_none(float(p[0]))
+        if state is None:
+            return np.array([1.0e12, 1.0e12, 1.0e12], dtype=float)
+        return np.array(
+            [
+                ya[0] - float(aQstar),
+                ya[1] - state["q0"],
+                yb[1] + state["tail_coeff"] * yb[0],
+            ],
+            dtype=float,
+        )
+
+    theta_guess = _param_from_jB(jB_guess)
+    state0 = _build_global_state(theta_guess)
+    s_mesh = np.linspace(0.0, s_end, int(n_mesh))
+    tail_shape = np.maximum(1.0 - s_mesh, tail_eps) ** max(float(kappa_factor), 1.0e-12)
+    a_guess = float(aQstar) * tail_shape
+    q_tail_guess = -state0["tail_coeff"] * a_guess
+    blend = s_mesh / max(s_end, np.finfo(float).tiny)
+    q_guess = (1.0 - blend) * state0["q0"] + blend * q_tail_guess
+    y_guess = np.vstack((a_guess, q_guess))
+
+    _diag(
+        f"starting compact BVP with jB_guess={jB_guess:.6g}, aQstar={aQstar:.6g}, "
+        f"tail_eps={tail_eps:.3g}, branch={'muK-rich' if muK_rich else 'muK-poor'}"
+    )
+
+    try:
+        sol = solve_bvp(
+            _ode,
+            _bc,
+            s_mesh,
+            y_guess,
+            p=np.array([theta_guess], dtype=float),
+            tol=tol_bvp,
+            max_nodes=max_nodes,
+            verbose=2 if full_diag else 0,
+        )
+    except Exception as exc:
+        return {
+            "success": False,
+            "message": f"solve_bvp raised: {exc}; last failure: {last_failure['message']}",
+            "aQstar": float(aQstar),
+            "jB": np.nan,
+            "muK_rich": bool(muK_rich),
+            "branch_label": "muK-rich" if muK_rich else "muK-poor",
+            "tail_residual": np.nan,
+            "tail_residual_norm": np.nan,
+            "a_end": np.nan,
+            "q_end": np.nan,
+            "bvp_status": -999,
+            **{k: int(v) for k, v in stats.items()},
+        }
+
+    theta_sol = float(sol.p[0])
+    state = _state_or_none(theta_sol)
+    if state is None:
+        return {
+            "success": False,
+            "message": f"BVP final state construction failed: {last_failure['message']}",
+            "aQstar": float(aQstar),
+            "jB": np.nan,
+            "muK_rich": bool(muK_rich),
+            "branch_label": "muK-rich" if muK_rich else "muK-poor",
+            "tail_residual": np.nan,
+            "tail_residual_norm": np.nan,
+            "a_end": np.nan,
+            "q_end": np.nan,
+            "bvp_status": int(sol.status),
+            **{k: int(v) for k, v in stats.items()},
+        }
+
+    a_end = float(sol.y[0, -1])
+    q_end = float(sol.y[1, -1])
+    tail_drive = float(state["tail_coeff"] * a_end)
+    tail_residual = float(q_end + tail_drive)
+    tail_scale = float(max(abs(q_end), abs(tail_drive), np.finfo(float).tiny))
+    tail_residual_norm = float(tail_residual / tail_scale)
+
+    success = bool(sol.success and np.isfinite(tail_residual_norm) and abs(tail_residual_norm) <= max(tol_bvp, 10.0 * np.finfo(float).eps))
+    result = {
+        "success": success,
+        "message": "Compact BVP steady-front solve converged" if success else f"{sol.message}; last failure: {last_failure['message']}",
+        "jB": float(state["jB"]),
+        "aQstar": float(aQstar),
+        "muK_rich": bool(muK_rich),
+        "branch_label": "muK-rich" if muK_rich else "muK-poor",
+        "coordinate": "BVP: s in [0, 1-tail_eps]",
+        "tail_eps": float(tail_eps),
+        "kappa_factor": float(kappa_factor),
+        "u_N": float(state["u_N"]),
+        "u_Q": float(state["u_Q"]),
+        "a_N": float(state["a_N"]),
+        "Pi": float(state["Pi"]),
+        "muB_Qstar": float(state["muB_Qstar"]),
+        "muK_Qstar": float(state["muK_Qstar"]),
+        "nB_Qstar": float(state["nB_Qstar"]),
+        "muB_Q": float(state["muB_Q"]),
+        "nB_Q": float(state["nB_Q"]),
+        "nK_Q": float(state["nK_Q"]),
+        "DQ": float(state["DQ"]),
+        "eta": float(state["eta"]),
+        "gamma": float(state["gamma"]),
+        "tau": float(state["tau"]),
+        "lambda": float(state["lambda"]),
+        "kappa": float(state["kappa"]),
+        "s_end": float(s_end),
+        "x_end": float(state["x_end"]),
+        "a_end": a_end,
+        "q_end": q_end,
+        "tail_residual": tail_residual,
+        "tail_residual_norm": tail_residual_norm,
+        "tail_scale": tail_scale,
+        "_residual": np.array([tail_residual_norm], dtype=float),
+        "_root_method": "solve_bvp_parameter",
+        "bvp_status": int(sol.status),
+        "bvp_message": str(sol.message),
+        "bvp_niter": int(getattr(sol, "niter", -1)),
+        "bvp_nodes": int(sol.x.size),
+        **{k: int(v) for k, v in stats.items()},
+    }
+
+    if return_profile:
+        s_prof = np.asarray(sol.x, dtype=float)
+        a_prof = np.asarray(sol.y[0], dtype=float)
+        q_prof = np.asarray(sol.y[1], dtype=float)
+        x_prof = -state["kappa"] * np.log1p(-s_prof)
+        muB_prof = np.empty_like(s_prof)
+        muK_prof = np.empty_like(s_prof)
+        nB_prof = np.empty_like(s_prof)
+        u_prof = np.empty_like(s_prof)
+        guess = (state["muB_Qstar"], state["muK_Qstar"])
+        for i, a_val in enumerate(a_prof):
+            stats["profile_state_calls"] += 1
+            muB_loc, muK_loc, nB_loc, u_loc = _solve_local_quark_state_from_a_and_Pi(
+                float(a_val),
+                state["Pi"],
+                state["jB"],
+                state["nB_Q"],
+                state["nK_Q"],
+                B_one_forth,
+                T,
+                ms=ms,
+                upB=upB,
+                initial_guess=guess,
+                muK_rich=muK_rich,
+                stats=stats,
+            )
+            guess = (muB_loc, muK_loc)
+            muB_prof[i] = muB_loc
+            muK_prof[i] = muK_loc
+            nB_prof[i] = nB_loc
+            u_prof[i] = u_loc
+        result.update(
+            {
+                "s": s_prof,
+                "x": x_prof,
+                "a": a_prof,
+                "q": q_prof,
+                "u": u_prof,
+                "nB": nB_prof,
+                "muB": muB_prof,
+                "muK": muK_prof,
+                "profile_state_calls": int(stats["profile_state_calls"]),
+                "local_state_calls": int(stats["local_state_calls"]),
+                "local_root_calls": int(stats["local_root_calls"]),
+                "local_fast_failures": int(stats["local_fast_failures"]),
+            }
+        )
+
+    if simple_diag:
+        print(
+            f"bvp jB={result['jB']:.6g}, aQstar={aQstar:.6g}, "
+            f"tail_norm={tail_residual_norm:.6g}, status={sol.status}, success={success}"
+        )
+    return result
+
+def extract_jB_curve_vs_aQstar(
+    T,
+    nB_N,
+    B_one_forth,
+    aQstar_values,
+    ms=0.0,
+    param=para.paraQMCRMF3,
+    NM_type="PNM",
+    muK_rich=True,
+    x_max=1e6,
+    n_eval=1200,
+    rtol_ode=1e-8,
+    atol_ode=1e-10,
+    root_tol=1e-8,
+    max_nfev=60,
+    jB_guess=None,
+    jB_bounds=None,
+    return_profile=False,
+    verb=False,
+):
+    """
+    Sweep over fixed aQstar values and extract the numerical curve jB(aQstar)
+    by scalar shooting in jB.
+    """
+    results = []
+    next_jB_guess = jB_guess
+
+    for aQ in aQstar_values:
+        result = solve_steady_front_1d_aQstar(
+            T=T,
+            nB_N=nB_N,
+            B_one_forth=B_one_forth,
+            aQstar=float(aQ),
+            ms=ms,
+            param=param,
+            NM_type=NM_type,
+            muK_rich=muK_rich,
+            x_max=x_max,
+            n_eval=n_eval,
+            rtol_ode=rtol_ode,
+            atol_ode=atol_ode,
+            root_tol=root_tol,
+            max_nfev=max_nfev,
+            jB_guess=next_jB_guess,
+            jB_bounds=jB_bounds,
+            return_profile=return_profile,
+            verb=verb,
+        )
+        results.append(result)
+        if result.get("success"):
+            next_jB_guess = float(result["jB"])
+
+    success_flags = np.array([bool(res.get("success")) for res in results], dtype=bool)
+    aQ_all = np.array([float(res.get("aQstar", np.nan)) for res in results], dtype=float)
+    jB_all = np.array([float(res.get("jB", np.nan)) if res.get("success") else np.nan for res in results], dtype=float)
+    tail_all = np.array([float(res.get("tail_residual", np.nan)) for res in results], dtype=float)
+
+    return {
+        "results": results,
+        "muK_rich": bool(muK_rich),
+        "branch_label": "muK-rich" if muK_rich else "muK-poor",
+        "aQstar_all": aQ_all,
+        "jB_all": jB_all,
+        "tail_residual_all": tail_all,
+        "success_flags": success_flags,
+        "aQstar_success": aQ_all[success_flags],
+        "jB_success": jB_all[success_flags],
+        "tail_residual_success": tail_all[success_flags],
+    }
+
+
+"""
+Deprecated jB/Pi-based interface retained for reference only.
+
 def _find_Qstar(T, B_one_forth, lambda_val, jB, Pi_over_crit):
     '''
-    solves system of equations to get Qstar 
+    solves system of equations to get Qstar
 
     Eq1: Pi_NM = Pi_QM
     Eq2: piecewise constant approximation equation of the Olinto type ODE
@@ -768,6 +3227,7 @@ def uQ_uN(T, B_one_forth, lambda_val, jB, Pi_over_crit):
     uN = (jB / nB_N) * 3e8
     uQ = (jB / nB_Q) * 3e8
     return float(uQ), float(uN)
+"""
 
 
 
@@ -792,12 +3252,7 @@ def _find_muB_muK_star(PQM, P_target, C, B_one_forth, T, ms, upB=5000, initial_g
         return nB_QM(muB, muK, B_one_forth, T, ms=ms, upB=upB)
 
     def dPQM_dmuK(muB, muK):
-        _, mu_d, mu_s = _quark_mu_triplet(muB, muK)
-
-        n_d = n_B(mu_d, 0, T, upB)
-        n_s = n_B(mu_s, ms, T, upB)
-
-        return 0.5 * (n_d - n_s)
+        return nK_QM(muB, muK, B_one_forth, T, ms=ms, upB=upB)
 
     def system(vec):
         muB, muK = vec
