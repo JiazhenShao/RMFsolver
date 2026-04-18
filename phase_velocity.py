@@ -31,6 +31,64 @@ from RMFsolver.Solver import _set_couplings, RMFsolvePNM, RMFsolvePNM_mu, RMFede
 # Public functions
 __all__ = ["solve_front_isothermal", "solve_front_adiabatic"]
 
+_ADIABATIC_LOW_T_THRESHOLD = 5.0
+_ADIABATIC_HOT_START_OFFSET = 50.0
+_ADIABATIC_LOCAL_T_FLOOR = 1.0e-6
+_ADIABATIC_LOCAL_LOGT_FLOOR = float(np.log(_ADIABATIC_LOCAL_T_FLOOR))
+_TRANSPORT_ALPHA_S = 0.3
+_TRANSPORT_G_S = np.sqrt(4.0 * np.pi * _TRANSPORT_ALPHA_S)
+_TRANSPORT_QD_COEFF = np.sqrt(3.0 * _TRANSPORT_G_S**2 / (2.0 * np.pi**2))
+_TRANSPORT_D_PREFACTOR = 24.0 * _TRANSPORT_ALPHA_S**2 / np.pi
+_TRANSPORT_H_CONST = 1.81317
+_FLOAT_TINY = np.finfo(float).tiny
+
+
+def _adiabatic_default_TQ_guesses(T):
+    """
+    Choose the low-temperature downstream seed policy for omitted TQ_guess.
+    """
+    T = float(T)
+    if (not np.isfinite(T)) or T <= 0.0:
+        raise RuntimeError("Adiabatic T_Q seed requires T > 0")
+    if T < _ADIABATIC_LOW_T_THRESHOLD:
+        hot = float(T + _ADIABATIC_HOT_START_OFFSET)
+        return (hot, float(hot + _ADIABATIC_HOT_START_OFFSET))
+    return (T,)
+
+
+def _adiabatic_initial_state_failed(result):
+    """
+    Detect the cheap-failure path where no usable adiabatic state was built.
+    """
+    return str(result.get("bvp_message", "")) == "initial_state_failure"
+
+
+def _quark_diffusion_coefficient(muQ, T):
+    """
+    Return the Debye scale and diffusion coefficient for a local quark state.
+    """
+    muQ = float(muQ)
+    T = float(T)
+    qD = _TRANSPORT_QD_COEFF * muQ
+    if (not np.isfinite(qD)) or qD <= 0.0:
+        raise RuntimeError("Quark diffusion coefficient requires a positive finite screening scale")
+
+    part1 = _TRANSPORT_H_CONST * T ** (5.0 / 3.0) / qD ** (2.0 / 3.0)
+    part2 = np.pi**3 * T**2 / (12.0 * qD)
+    denom_terms = part1 + part2
+    if (
+        (not np.isfinite(part1))
+        or (not np.isfinite(part2))
+        or (not np.isfinite(denom_terms))
+        or denom_terms <= _FLOAT_TINY
+    ):
+        raise RuntimeError("Quark diffusion coefficient denominator is non-physical")
+
+    D = 1.0 / (_TRANSPORT_D_PREFACTOR * denom_terms)
+    if (not np.isfinite(D)) or D <= 0.0:
+        raise RuntimeError("Quark diffusion coefficient is non-physical")
+    return float(qD), float(D)
+
 
 def PNM(mu_B, Temp, param = para.paraQMCRMF3, NM_type = "PNM"):
     """
@@ -176,12 +234,6 @@ def _find_Qstar_on_target(T, B_one_forth, lambda_val, jB, Pi_target, muB_N, muB_
     Solve the Q* system once the absolute Pi target and the associated mu_B
     roots are already known.
     """
-    alpha_s = 0.3
-    g_s = np.sqrt(4.0 * np.pi * alpha_s)
-    h_const = 1.81317
-    qd_coeff = np.sqrt(3.0 * g_s**2 / (2.0 * np.pi**2))
-    D_prefactor = 24.0 * alpha_s**2 / np.pi
-    T53 = T**(5.0 / 3.0)
     T2 = T * T
 
     quark_Q = _quark_uds_state(muB_Q, 0.0, T, ms=ms, upB=upB)
@@ -204,12 +256,12 @@ def _find_Qstar_on_target(T, B_one_forth, lambda_val, jB, Pi_target, muB_N, muB_
         nK_Qstar = quark_Qstar["nK"]
         aQstar = (nK_Qstar - nK_Q) / nB_Q
 
-        qD = qd_coeff * muQ
+        try:
+            _, D = _quark_diffusion_coefficient(muQ, T)
+        except RuntimeError:
+            return np.array([1e30, 1e30], dtype=float)
         eta = (9.0 * np.pi**2 * T2) / (muQ * muQ)
         gamma = 1.0 / (1.98e12 * ((300.0 / muQ) ** 5))
-        part1 = h_const * T53 / (qD ** (2.0 / 3.0))
-        part2 = np.pi**3 * T2 / (12.0 * qD)
-        D = 1.0 / (D_prefactor * (part1 + part2))
 
         eq1 = Pi_QM(muBstar, muKstar, B_one_forth, T, jB, ms=ms, upB=upB) - Pi_target
         uQ = jB / quark_Qstar["nB"]
@@ -785,13 +837,10 @@ def _microphysics_from_quark_state(muB, T):
     if (not np.isfinite(muQ)) or muQ <= 0.0:
         raise RuntimeError("Local microphysics requires muQ > 0")
 
-    alpha_s = 0.3
-    g_s = np.sqrt(4.0 * np.pi * alpha_s)
-    qD = np.sqrt(3.0 * g_s**2 * muQ**2 / (2.0 * np.pi**2))
-    h_const = 1.81317
-    part1 = h_const * T**(5.0 / 3.0) / qD**(2.0 / 3.0)
-    part2 = np.pi**3 * T**2 / (12.0 * qD)
-    D = 1.0 / (24.0 * alpha_s**2 / np.pi * (part1 + part2))
+    try:
+        qD, D = _quark_diffusion_coefficient(muQ, T)
+    except RuntimeError as exc:
+        raise RuntimeError(f"Local microphysics returned non-physical coefficients: {exc}") from exc
     eta = 9.0 * np.pi**2 * T**2 / muQ**2
     tau = 1.98e12 * (300.0 / muQ) ** 5
     gamma = 1.0 / tau
@@ -810,7 +859,7 @@ def _microphysics_from_quark_state(muB, T):
         raise RuntimeError("Local microphysics returned non-physical coefficients")
 
     return {
-        "alpha_s": float(alpha_s),
+        "alpha_s": float(_TRANSPORT_ALPHA_S),
         "muQ": float(muQ),
         "qD": float(qD),
         "D": float(D),
@@ -830,7 +879,7 @@ def _quark_state_entropy_residual(muB, muK, logT, a_target, w_target, Pi, jB, nB
         raise RuntimeError("nB_Q must be positive when solving an entropy-enabled quark state")
 
     logT = float(logT)
-    if (not np.isfinite(logT)) or abs(logT) > 700.0:
+    if (not np.isfinite(logT)) or abs(logT) > 700.0 or logT < _ADIABATIC_LOCAL_LOGT_FLOOR:
         return np.array([1.0e12, 1.0e12, 1.0e12], dtype=float)
 
     T = float(np.exp(logT))
@@ -1642,7 +1691,7 @@ def _solve_front_adiabatic_once(
         raise RuntimeError("jB_guess must be positive")
 
     if TQ_guess is None:
-        TQ_guess = T
+        TQ_guess = _adiabatic_default_TQ_guesses(T)[0]
     TQ_guess = float(TQ_guess)
     if (not np.isfinite(TQ_guess)) or TQ_guess <= 0.0:
         raise RuntimeError("TQ_guess must be positive")
@@ -2362,7 +2411,11 @@ def solve_front_adiabatic(
         # scale implied by both the upstream density and the interface aQstar.
         direct_jB_guess = float(max(1.0e-12, 1.0e-8 * float(nB_N), 0.8 * abs_target))
 
-    direct_TQ_guess = float(T if TQ_guess is None else TQ_guess)
+    if TQ_guess is None:
+        TQ_guess_candidates = _adiabatic_default_TQ_guesses(T)
+    else:
+        TQ_guess_candidates = (float(TQ_guess),)
+    direct_TQ_guess = float(TQ_guess_candidates[0])
     if (not np.isfinite(direct_TQ_guess)) or direct_TQ_guess <= 0.0:
         raise RuntimeError("TQ_guess must be positive")
 
@@ -2385,6 +2438,37 @@ def solve_front_adiabatic(
         verb=verb,
         profile_guess=None,
     )
+    if (
+        TQ_guess is None
+        and len(TQ_guess_candidates) > 1
+        and _adiabatic_initial_state_failed(direct_result)
+    ):
+        retry_TQ_guess = float(TQ_guess_candidates[1])
+        if simple_diag:
+            print(
+                f"adiabatic-bvp low-T hot-start retry: initial state failed at "
+                f"TQ_guess={direct_TQ_guess:.6g}; retrying with TQ_guess={retry_TQ_guess:.6g}"
+            )
+        direct_TQ_guess = retry_TQ_guess
+        direct_result = _solve_front_adiabatic_once(
+            T,
+            nB_N,
+            B_one_forth,
+            aQstar,
+            ms=ms,
+            param=param,
+            NM_type=NM_type,
+            tail_eps=tail_eps,
+            n_mesh=n_mesh,
+            tol_bvp=tol_bvp,
+            max_nodes=max_nodes,
+            jB_guess=direct_jB_guess,
+            TQ_guess=direct_TQ_guess,
+            jB_bounds=jB_bounds,
+            return_profile=return_profile,
+            verb=verb,
+            profile_guess=None,
+        )
     if bool(direct_result.get("success")) or abs_target <= 1.0e-2:
         result_out = dict(direct_result)
         result_out["continuation_used"] = False
