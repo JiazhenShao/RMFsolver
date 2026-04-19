@@ -3,9 +3,9 @@ import time
 import warnings
 from scipy.integrate import solve_bvp
 from scipy.optimize import fsolve, root_scalar, root, least_squares
-import RMFsolver.constants as const
 import RMFsolver.RMFparameter as para
 from RMFsolver.SQMsolver import (
+    # Legacy re-exports kept for repo-wide notebook/script compatibility.
     E_f,
     P_f,
     PQM,
@@ -15,20 +15,13 @@ from RMFsolver.SQMsolver import (
     n_B,
     nB_QM,
     nK_QM,
-    nQM_em,
     _chiK_QM,
-    _fermion_thermo_state,
-    _normalize_upB,
-    _quark_mu_triplet,
     _quark_uds_state,
-    _quark_uds_state_from_triplet,
-    _solve_quark_mu_em,
     _solve_scalar_root,
 )
 from RMFsolver.Solver import RMFsolve, RMFsolve_mu, RMFpressureSYM, RMFpressurePNM, pressure_RMF
-from RMFsolver.Solver import _set_couplings, RMFsolvePNM, RMFsolvePNM_mu, RMFedensPNM, RMFbaryon_densityPNM, RMFbaryon_densitySYM, RMFbaryon_density
+from RMFsolver.Solver import RMFedensPNM, RMFbaryon_densityPNM, RMFbaryon_densitySYM, RMFbaryon_density
 
-# Public functions
 __all__ = ["solve_front_isothermal", "solve_front_adiabatic"]
 
 _ADIABATIC_LOW_T_THRESHOLD = 5.0
@@ -44,53 +37,7 @@ _FLOAT_TINY = np.finfo(float).tiny
 _ISOTHERMAL_RETRY_ACTIVE = 0
 
 
-def _adiabatic_default_TQ_guesses(T):
-    """
-    Choose the low-temperature downstream seed policy for omitted TQ_guess.
-    """
-    T = float(T)
-    if (not np.isfinite(T)) or T <= 0.0:
-        raise RuntimeError("Adiabatic T_Q seed requires T > 0")
-    if T < _ADIABATIC_LOW_T_THRESHOLD:
-        hot = float(T + _ADIABATIC_HOT_START_OFFSET)
-        return (hot, float(hot + _ADIABATIC_HOT_START_OFFSET))
-    return (T,)
-
-
-def _adiabatic_initial_state_failed(result):
-    """
-    Detect the cheap-failure path where no usable adiabatic state was built.
-    """
-    return str(result.get("bvp_message", "")) == "initial_state_failure"
-
-
-def _quark_diffusion_coefficient(muQ, T):
-    """
-    Return the Debye scale and diffusion coefficient for a local quark state.
-    """
-    muQ = float(muQ)
-    T = float(T)
-    qD = _TRANSPORT_QD_COEFF * muQ
-    if (not np.isfinite(qD)) or qD <= 0.0:
-        raise RuntimeError("Quark diffusion coefficient requires a positive finite screening scale")
-
-    part1 = _TRANSPORT_H_CONST * T ** (5.0 / 3.0) / qD ** (2.0 / 3.0)
-    part2 = np.pi**3 * T**2 / (12.0 * qD)
-    denom_terms = part1 + part2
-    if (
-        (not np.isfinite(part1))
-        or (not np.isfinite(part2))
-        or (not np.isfinite(denom_terms))
-        or denom_terms <= _FLOAT_TINY
-    ):
-        raise RuntimeError("Quark diffusion coefficient denominator is non-physical")
-
-    D = 1.0 / (_TRANSPORT_D_PREFACTOR * denom_terms)
-    if (not np.isfinite(D)) or D <= 0.0:
-        raise RuntimeError("Quark diffusion coefficient is non-physical")
-    return float(qD), float(D)
-
-
+# Nuclear and endpoint thermodynamics
 def PNM(mu_B, Temp, param = para.paraQMCRMF3, NM_type = "PNM"):
     """
     Universal nuclear-matter pressure helper as a function of mu_B.
@@ -128,21 +75,33 @@ def PNM_n(nB, Temp, param = para.paraQMCRMF3, NM_type = "PNM"):
     raise ValueError("Nuclear matter type not defined.")
 
 def edensNM(mu_B, Temp, param = para.paraQMCRMF3, ):
+    """
+    Return the nuclear-matter energy density at fixed mu_B.
+    """
     edens = RMFedensPNM(input_num = mu_B, input_type = "muB", Trmf = Temp, para = param, 
         sigma_init = 30, w0_init = 20, r03_init = -3, mub_init = 990, verb = False
         )
     return float(edens.item())
 
 def edensNM_n(nB, Temp, param = para.paraQMCRMF3, ):
+    """
+    Return the nuclear-matter energy density at fixed n_B.
+    """
     edens = RMFedensPNM(input_num = nB, input_type = "nB", Trmf = Temp, para = param, 
         sigma_init = 30, w0_init = 20, r03_init = -3, mub_init = 990, verb = False
         )
     return float(edens.item())
 
 def hNM(mu_B, Temp):
+    """
+    Return the nuclear-matter enthalpy density at fixed mu_B.
+    """
     return PNM(mu_B, Temp) + edensNM(mu_B, Temp)
 
 def hNM_n(nB, Temp):
+    """
+    Return the nuclear-matter enthalpy density at fixed n_B.
+    """
     return PNM_n(nB, Temp) + edensNM_n(nB, Temp)
 
 def nB_NM(mu_B, Temp, param = para.paraQMCRMF3, NM_type = "PNM"):
@@ -170,6 +129,9 @@ def nB_NM(mu_B, Temp, param = para.paraQMCRMF3, NM_type = "PNM"):
     raise ValueError("Nuclear matter type not defined.")
 
 def Pi_NM(mu_B, Temp, j_B):
+    """
+    Return the nuclear-matter momentum flux Pi = h*u^2 + P.
+    """
     nB = nB_NM(mu_B, Temp)
     if nB <= 0:
         return np.nan
@@ -177,10 +139,16 @@ def Pi_NM(mu_B, Temp, j_B):
     return hNM(mu_B, Temp) * uN * uN + PNM(mu_B, Temp)
     
 def hQM(muB, muK, B_one_forth, Temp, ms=0.0, upB=5000):
+    """
+    Return the quark-matter enthalpy density at fixed (muB, muK, T).
+    """
     quark_state = _quark_uds_state(muB, muK, Temp, ms=ms, upB=upB)
     return float(quark_state["pressure"] + quark_state["energy"])
 
 def Pi_QM(mu_B, mu_K, B_one_forth, Temp, j_B, ms=0.0, upB=5000):
+    """
+    Return the quark-matter momentum flux Pi = h*u^2 + P.
+    """
     return _Pi_QM_state(mu_B, mu_K, B_one_forth, Temp, j_B, ms=ms, upB=upB)
 
 
@@ -399,6 +367,7 @@ def uN(T, nB_N, Delta_n, B_one_forth, param=para.paraQMCRMF3, ms=0, upB=5000, re
     return Pi, jB, uN
 
 
+# Shared quark-state helpers
 def _Pi_QM_state(muB, muK, B_one_forth, T, jB, ms=0.0, upB=5000):
     """
     Momentum flux Pi = h*u^2 + P for a quark state at fixed (muB, muK).
@@ -550,6 +519,9 @@ def _branch_muK_seed(a_like):
 
 
 def _quark_state_residual(muB, muK, a_target, Pi, jB, nB_Q, nK_Q, B_one_forth, T, ms=0.0, upB=5000):
+    """
+    Return the local quark-state residuals at fixed (a_target, Pi, jB).
+    """
     return np.array(
         [
             _Pi_QM_state(muB, muK, B_one_forth, T, jB, ms=ms, upB=upB) - Pi,
@@ -560,6 +532,9 @@ def _quark_state_residual(muB, muK, a_target, Pi, jB, nB_Q, nK_Q, B_one_forth, T
 
 
 def _quark_state_residual_ok(residual, Pi, a_target):
+    """
+    Check whether a local quark-state residual is acceptable.
+    """
     if not np.all(np.isfinite(residual)):
         return False
     pi_tol = 1.0e-8 * max(abs(Pi), 1.0)
@@ -790,6 +765,34 @@ def _solve_local_quark_state_from_a_and_Pi(a, Pi, jB, nB_Q, nK_Q, B_one_forth, T
     return muB, muK, nB, u
 
 
+# Shared transport and microphysics helpers
+def _quark_diffusion_coefficient(muQ, T):
+    """
+    Return the Debye scale and diffusion coefficient for a local quark state.
+    """
+    muQ = float(muQ)
+    T = float(T)
+    qD = _TRANSPORT_QD_COEFF * muQ
+    if (not np.isfinite(qD)) or qD <= 0.0:
+        raise RuntimeError("Quark diffusion coefficient requires a positive finite screening scale")
+
+    part1 = _TRANSPORT_H_CONST * T ** (5.0 / 3.0) / qD ** (2.0 / 3.0)
+    part2 = np.pi**3 * T**2 / (12.0 * qD)
+    denom_terms = part1 + part2
+    if (
+        (not np.isfinite(part1))
+        or (not np.isfinite(part2))
+        or (not np.isfinite(denom_terms))
+        or denom_terms <= _FLOAT_TINY
+    ):
+        raise RuntimeError("Quark diffusion coefficient denominator is non-physical")
+
+    D = 1.0 / (_TRANSPORT_D_PREFACTOR * denom_terms)
+    if (not np.isfinite(D)) or D <= 0.0:
+        raise RuntimeError("Quark diffusion coefficient is non-physical")
+    return float(qD), float(D)
+
+
 def _microphysics_at_Qstar(muB_Qstar, T):
     """
     Frozen diffusion/reaction coefficients evaluated at Qstar.
@@ -897,6 +900,7 @@ def _microphysics_from_quark_state_isothermal_baseline(muB, T):
     }
 
 
+# Entropy-enabled local closure helpers
 def _quark_state_entropy_residual(muB, muK, logT, a_target, w_target, Pi, jB, nB_Q, nK_Q, B_one_forth, ms=0.0, upB=5000):
     """
     Unscaled residual for the entropy-enabled local quark-state closure.
@@ -1152,6 +1156,7 @@ def _solve_local_quark_state_from_a_w_and_Pi(a, w, Pi, jB, nB_Q, nK_Q, B_one_for
     raise RuntimeError(f"Entropy-enabled local quark-state solve failed: {best_message}")
 
 
+# Public isothermal front solver
 def solve_front_isothermal(
     T,
     nB_N,
@@ -1692,6 +1697,7 @@ def solve_front_isothermal(
     return result
 
 
+# Adiabatic solver support helpers
 def _strip_entropy_profile_fields(result):
     """
     Return a shallow copy of an entropy-solver result without profile arrays.
@@ -1717,6 +1723,26 @@ def _strip_entropy_profile_fields(result):
     return result_out
 
 
+def _adiabatic_default_TQ_guesses(T):
+    """
+    Choose the default downstream T_Q seeds for low-temperature adiabatic solves.
+    """
+    T = float(T)
+    if (not np.isfinite(T)) or T <= 0.0:
+        raise RuntimeError("Adiabatic T_Q seed requires T > 0")
+    if T < _ADIABATIC_LOW_T_THRESHOLD:
+        hot = float(T + _ADIABATIC_HOT_START_OFFSET)
+        return (hot, float(hot + _ADIABATIC_HOT_START_OFFSET))
+    return (T,)
+
+
+def _adiabatic_initial_state_failed(result):
+    """
+    Detect the adiabatic failure mode where no usable initial state was built.
+    """
+    return str(result.get("bvp_message", "")) == "initial_state_failure"
+
+
 def _seed_adiabatic_jB_guess(
     T,
     nB_N,
@@ -1731,7 +1757,9 @@ def _seed_adiabatic_jB_guess(
     max_nodes=10000,
     verb=False,
 ):
-    """Build a simple isothermal seed for the adiabatic continuation solve."""
+    """
+    Build a simple isothermal j_B seed for the adiabatic continuation solve.
+    """
     heuristic_guess = float(max(1.0e-12, 1.0e-8 * float(nB_N)))
     seed_tol = float(max(1.0e-3, tol_bvp))
     seed_mesh = int(min(max(int(n_mesh), 60), 120))
@@ -2501,6 +2529,7 @@ def _solve_front_adiabatic_once(
     return result
 
 
+# Public adiabatic front solver
 def solve_front_adiabatic(
     T,
     nB_N,
