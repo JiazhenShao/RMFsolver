@@ -41,6 +41,7 @@ _TRANSPORT_QD_COEFF = np.sqrt(3.0 * _TRANSPORT_G_S**2 / (2.0 * np.pi**2))
 _TRANSPORT_D_PREFACTOR = 24.0 * _TRANSPORT_ALPHA_S**2 / np.pi
 _TRANSPORT_H_CONST = 1.81317
 _FLOAT_TINY = np.finfo(float).tiny
+_ISOTHERMAL_RETRY_ACTIVE = 0
 
 
 def _adiabatic_default_TQ_guesses(T):
@@ -796,6 +797,13 @@ def _microphysics_at_Qstar(muB_Qstar, T):
     return _microphysics_from_quark_state(muB_Qstar, T)
 
 
+def _microphysics_at_Qstar_isothermal_baseline(muB_Qstar, T):
+    """
+    Isothermal BVP microphysics that matches the baseline steady-front solver.
+    """
+    return _microphysics_from_quark_state_isothermal_baseline(muB_Qstar, T)
+
+
 def _microphysics_from_quark_state(muB, T):
     """
     Compute diffusion/reaction coefficients from a local quark thermodynamic
@@ -833,6 +841,53 @@ def _microphysics_from_quark_state(muB, T):
 
     return {
         "alpha_s": float(_TRANSPORT_ALPHA_S),
+        "muQ": float(muQ),
+        "qD": float(qD),
+        "D": float(D),
+        "eta": float(eta),
+        "gamma": float(gamma),
+        "tau": float(tau),
+    }
+
+
+def _microphysics_from_quark_state_isothermal_baseline(muB, T):
+    """
+    Baseline diffusion/reaction coefficients for the isothermal BVP path.
+    """
+    T = float(T)
+    if (not np.isfinite(T)) or T <= 0.0:
+        raise RuntimeError("Local microphysics requires T > 0")
+
+    muQ = float(muB) / 3.0
+    if (not np.isfinite(muQ)) or muQ <= 0.0:
+        raise RuntimeError("Local microphysics requires muQ > 0")
+
+    alpha_s = 0.3
+    g_s = np.sqrt(4.0 * np.pi * alpha_s)
+    qD = np.sqrt(3.0 * g_s**2 * muQ**2 / (2.0 * np.pi**2))
+    h_const = 1.81317
+    part1 = h_const * T**(5.0 / 3.0) / qD**(2.0 / 3.0)
+    part2 = np.pi**3 * T**2 / (12.0 * qD)
+    D = 1.0 / (24.0 * alpha_s**2 / np.pi * (part1 + part2))
+    eta = 9.0 * np.pi**2 * T**2 / muQ**2
+    tau = 1.98e12 * (300.0 / muQ) ** 5
+    gamma = 1.0 / tau
+
+    if (
+        (not np.isfinite(qD))
+        or (not np.isfinite(D))
+        or (not np.isfinite(eta))
+        or (not np.isfinite(tau))
+        or (not np.isfinite(gamma))
+        or D <= 0.0
+        or eta < 0.0
+        or tau <= 0.0
+        or gamma <= 0.0
+    ):
+        raise RuntimeError("Local microphysics returned non-physical coefficients")
+
+    return {
+        "alpha_s": float(alpha_s),
         "muQ": float(muQ),
         "qD": float(qD),
         "D": float(D),
@@ -1252,7 +1307,7 @@ def solve_front_isothermal(
         if nB_Qstar <= 0.0:
             raise RuntimeError("Qstar state has non-positive density")
 
-        micro = _microphysics_at_Qstar(muB_Qstar, T)
+        micro = _microphysics_at_Qstar_isothermal_baseline(muB_Qstar, T)
         D = float(micro["D"])
         eta = float(micro["eta"])
         gamma = float(micro["gamma"])
@@ -1464,66 +1519,170 @@ def solve_front_isothermal(
         **{k: int(v) for k, v in stats.items()},
     }
 
+    coarse_tol_bvp = max(float(tol_bvp), 1.0e-3)
+    coarse_n_mesh = int(n_mesh) if int(n_mesh) <= 60 else 60
+    coarse_retry_available = (
+        (coarse_tol_bvp > float(tol_bvp))
+        or (coarse_n_mesh != int(n_mesh))
+    )
+
     if return_profile:
-        s_prof = np.asarray(sol.x, dtype=float)
-        a_prof = np.asarray(sol.y[0], dtype=float)
-        q_prof = np.asarray(sol.y[1], dtype=float)
-        x_prof = -float(kappa_factor) * np.log1p(-s_prof) / float(state["lambda"])
-        muB_prof = np.empty_like(s_prof)
-        muK_prof = np.empty_like(s_prof)
-        nB_prof = np.empty_like(s_prof)
-        u_prof = np.empty_like(s_prof)
-        guess = (state["muB_Qstar"], state["muK_Qstar"])
-        for i, a_val in enumerate(a_prof):
-            stats["profile_state_calls"] += 1
-            muB_loc, muK_loc, nB_loc, u_loc = _solve_local_quark_state_from_a_and_Pi(
-                float(a_val),
-                state["Pi"],
-                state["jB"],
-                state["nB_Q"],
-                state["nK_Q"],
-                B_one_forth,
-                T,
+        try:
+            s_prof = np.asarray(sol.x, dtype=float)
+            a_prof = np.asarray(sol.y[0], dtype=float)
+            q_prof = np.asarray(sol.y[1], dtype=float)
+            x_prof = -float(kappa_factor) * np.log1p(-s_prof) / float(state["lambda"])
+            muB_prof = np.empty_like(s_prof)
+            muK_prof = np.empty_like(s_prof)
+            nB_prof = np.empty_like(s_prof)
+            u_prof = np.empty_like(s_prof)
+            guess = (state["muB_Qstar"], state["muK_Qstar"])
+            for i, a_val in enumerate(a_prof):
+                stats["profile_state_calls"] += 1
+                muB_loc, muK_loc, nB_loc, u_loc = _solve_local_quark_state_from_a_and_Pi(
+                    float(a_val),
+                    state["Pi"],
+                    state["jB"],
+                    state["nB_Q"],
+                    state["nK_Q"],
+                    B_one_forth,
+                    T,
+                    ms=ms,
+                    upB=upB,
+                    initial_guess=guess,
+                    stats=stats,
+                )
+                guess = (muB_loc, muK_loc)
+                muB_prof[i] = muB_loc
+                muK_prof[i] = muK_loc
+                nB_prof[i] = nB_loc
+                u_prof[i] = u_loc
+            closure_prof = np.abs(
+                np.array(
+                    [
+                        (nK_QM(float(muB_prof[i]), float(muK_prof[i]), B_one_forth, T, ms=ms, upB=upB) - state["nK_Q"])
+                        / state["nB_Q"]
+                        - a_prof[i]
+                        for i in range(len(a_prof))
+                    ],
+                    dtype=float,
+                )
+            )
+            closure_error_max = float(np.max(closure_prof)) if len(closure_prof) else 0.0
+            result.update(
+                {
+                    "s": s_prof,
+                    "x": x_prof,
+                    "a": a_prof,
+                    "q": q_prof,
+                    "u": u_prof,
+                    "nB": nB_prof,
+                    "muB": muB_prof,
+                    "muK": muK_prof,
+                    "closure_error": closure_prof,
+                    "closure_error_max": closure_error_max,
+                    "profile_state_calls": int(stats["profile_state_calls"]),
+                    "local_state_calls": int(stats["local_state_calls"]),
+                    "local_root_calls": int(stats["local_root_calls"]),
+                    "local_fast_failures": int(stats["local_fast_failures"]),
+                }
+            )
+        except Exception as exc:
+            global _ISOTHERMAL_RETRY_ACTIVE
+            if coarse_retry_available and _ISOTHERMAL_RETRY_ACTIVE == 0:
+                _ISOTHERMAL_RETRY_ACTIVE += 1
+                try:
+                    coarse_profile = solve_front_isothermal(
+                        T=T,
+                        nB_N=nB_N,
+                        B_one_forth=B_one_forth,
+                        aQstar=aQstar,
+                        ms=ms,
+                        param=param,
+                        NM_type=NM_type,
+                        tail_eps=tail_eps,
+                        n_mesh=coarse_n_mesh,
+                        tol_bvp=coarse_tol_bvp,
+                        max_nodes=max(max_nodes, coarse_n_mesh + 1),
+                        jB_guess=(
+                            float(jB_guess)
+                            if jB_guess is not None and np.isfinite(float(jB_guess)) and float(jB_guess) > 0.0
+                            else float(state["jB"])
+                        ),
+                        jB_bounds=jB_bounds,
+                        kappa_factor=kappa_factor,
+                        return_profile=True,
+                        verb=False,
+                    )
+                    if bool(coarse_profile.get("success")) and "x" in coarse_profile:
+                        coarse_profile = dict(coarse_profile)
+                        coarse_profile["retry_source"] = "coarse_isothermal_profile"
+                        coarse_profile["retry_seed_jB"] = float(state["jB"])
+                        coarse_profile["message"] = (
+                            f"{coarse_profile.get('message', '')}; returned coarse profile after strict profile reconstruction failed: {exc}"
+                        )
+                        return coarse_profile
+                finally:
+                    _ISOTHERMAL_RETRY_ACTIVE -= 1
+            raise
+
+    retryable_isothermal_failure = (
+        (not bool(result.get("success")))
+        and int(result.get("bvp_status", -999)) == 2
+        and "singular jacobian" in str(result.get("bvp_message", "")).lower()
+    )
+
+    if retryable_isothermal_failure and coarse_retry_available and _ISOTHERMAL_RETRY_ACTIVE == 0:
+        _ISOTHERMAL_RETRY_ACTIVE += 1
+        try:
+            coarse_result = solve_front_isothermal(
+                T=T,
+                nB_N=nB_N,
+                B_one_forth=B_one_forth,
+                aQstar=aQstar,
                 ms=ms,
-                upB=upB,
-                initial_guess=guess,
-                stats=stats,
+                param=param,
+                NM_type=NM_type,
+                tail_eps=tail_eps,
+                n_mesh=coarse_n_mesh,
+                tol_bvp=coarse_tol_bvp,
+                max_nodes=max(max_nodes, coarse_n_mesh + 1),
+                jB_guess=jB_guess,
+                jB_bounds=jB_bounds,
+                kappa_factor=kappa_factor,
+                return_profile=False,
+                verb=False,
             )
-            guess = (muB_loc, muK_loc)
-            muB_prof[i] = muB_loc
-            muK_prof[i] = muK_loc
-            nB_prof[i] = nB_loc
-            u_prof[i] = u_loc
-        closure_prof = np.abs(
-            np.array(
-                [
-                    (nK_QM(float(muB_prof[i]), float(muK_prof[i]), B_one_forth, T, ms=ms, upB=upB) - state["nK_Q"])
-                    / state["nB_Q"]
-                    - a_prof[i]
-                    for i in range(len(a_prof))
-                ],
-                dtype=float,
-            )
-        )
-        closure_error_max = float(np.max(closure_prof)) if len(closure_prof) else 0.0
-        result.update(
-            {
-                "s": s_prof,
-                "x": x_prof,
-                "a": a_prof,
-                "q": q_prof,
-                "u": u_prof,
-                "nB": nB_prof,
-                "muB": muB_prof,
-                "muK": muK_prof,
-                "closure_error": closure_prof,
-                "closure_error_max": closure_error_max,
-                "profile_state_calls": int(stats["profile_state_calls"]),
-                "local_state_calls": int(stats["local_state_calls"]),
-                "local_root_calls": int(stats["local_root_calls"]),
-                "local_fast_failures": int(stats["local_fast_failures"]),
-            }
-        )
+            coarse_jB = float(coarse_result.get("jB", np.nan))
+            if bool(coarse_result.get("success")) and np.isfinite(coarse_jB) and coarse_jB > 0.0:
+                refined_result = solve_front_isothermal(
+                    T=T,
+                    nB_N=nB_N,
+                    B_one_forth=B_one_forth,
+                    aQstar=aQstar,
+                    ms=ms,
+                    param=param,
+                    NM_type=NM_type,
+                    tail_eps=tail_eps,
+                    n_mesh=n_mesh,
+                    tol_bvp=tol_bvp,
+                    max_nodes=max_nodes,
+                    jB_guess=coarse_jB,
+                    jB_bounds=jB_bounds,
+                    kappa_factor=kappa_factor,
+                    return_profile=return_profile,
+                    verb=verb,
+                )
+                if bool(refined_result.get("success")):
+                    refined_result = dict(refined_result)
+                    refined_result["retry_seed_jB"] = coarse_jB
+                    refined_result["retry_source"] = "coarse_isothermal_seed"
+                    refined_result["message"] = (
+                        f"{refined_result.get('message', '')}; recovered via coarse jB-seeded retry"
+                    )
+                    return refined_result
+        finally:
+            _ISOTHERMAL_RETRY_ACTIVE -= 1
 
     if simple_diag:
         print(
