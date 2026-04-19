@@ -144,52 +144,25 @@ def hNM(mu_B, Temp):
 def hNM_n(nB, Temp):
     return PNM_n(nB, Temp) + edensNM_n(nB, Temp)
 
-def nB_NM(mu_B, Temp, param = para.paraQMCRMF3, ):
-    nB = RMFbaryon_densityPNM(
-        input_num=mu_B,
-        input_type="muB",
-        Trmf=Temp,
-        para=param,
-        sigma_init=30,
-        w0_init=20,
-        r03_init=-3,
-        mub_init=990,
-        verb=False,
-    )
-    return float(np.asarray(nB).item())
-
-def nB_NM_type(mu_B, Temp, param = para.paraQMCRMF3, NM_type = "PNM"):
+def nB_NM(mu_B, Temp, param = para.paraQMCRMF3, NM_type = "PNM"):
     """
     Universal nuclear-matter baryon density helper as a function of mu_B.
     """
     if NM_type == "Beta_eq":
-        nB = RMFbaryon_density(
-            input_num=mu_B,
-            input_type="muB",
-            Trmf=Temp,
-            para=param,
-            sigma_init=30,
-            w0_init=20,
-            r03_init=-3,
-            mub_init=990,
-            mue_init=50,
-            verb=False,
+        nB = RMFbaryon_density(input_num=mu_B, input_type="muB", Trmf=Temp, para=param,
+            sigma_init=30, w0_init=20, r03_init=-3, mub_init=990, mue_init=50, verb=False,
         )
         return float(np.asarray(nB).item())
 
     if NM_type == "PNM":
-        return nB_NM(mu_B, Temp, param=param)
+        nB = RMFbaryon_densityPNM(input_num=mu_B, input_type="muB", Trmf=Temp, para=param,
+            sigma_init=30, w0_init=20, r03_init=-3, mub_init=990, verb=False,
+        )
+        return float(np.asarray(nB).item())
 
     if NM_type == "SYM":
-        nB = RMFbaryon_densitySYM(
-            input_num=mu_B,
-            input_type="muB",
-            Trmf=Temp,
-            para=param,
-            sigma_init=30,
-            w0_init=20,
-            mub_init=990,
-            verb=False,
+        nB = RMFbaryon_densitySYM(input_num=mu_B, input_type="muB", Trmf=Temp, para=param,
+            sigma_init=30, w0_init=20, mub_init=990, verb=False,
         )
         return float(np.asarray(nB).item())
 
