@@ -6,7 +6,6 @@ from scipy.integrate import quad, quad_vec
 from scipy.optimize import fsolve
 
 __all__ = [
-    "PQM_bag",
     "P_f",
     "E_f",
     "n_B",
@@ -26,14 +25,6 @@ def _P_f(mu, m):
         return 0.0
     k_F = np.sqrt(mu**2 - m**2)
     return ((2 * k_F**3 - 3 * m**2 * k_F) * mu + 3 * m**4 * np.log((k_F + mu) / m)) / (24 * np.pi**2)
-
-
-def PQM_bag(muB, muK, bag_constant, m_s=0.0):
-    """Return bag-model quark pressure at T=0."""
-    mu_u = muB / 3 + muK / 2
-    mu_d = muB / 3
-    mu_s = muB / 3 - muK / 2
-    return (mu_u**4 + mu_d**4) * 3 / (12 * np.pi**2) + 3 * _P_f(mu_s, m_s) - bag_constant
 
 
 def _Ek(k, m):

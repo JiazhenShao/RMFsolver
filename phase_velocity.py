@@ -20,7 +20,7 @@ from RMFsolver.SQMsolver import (
     _solve_scalar_root,
 )
 from RMFsolver.Solver import RMFsolve, RMFsolve_mu, RMFpressureSYM, RMFpressurePNM, pressure_RMF
-from RMFsolver.Solver import RMFedensPNM, RMFbaryon_densityPNM, RMFbaryon_densitySYM, RMFbaryon_density
+from RMFsolver.Solver import RMFedensPNM, RMFentropyPNM, RMFbaryon_densityPNM, RMFbaryon_densitySYM, RMFbaryon_density
 
 __all__ = ["solve_front_isothermal", "solve_front_adiabatic"]
 
@@ -91,6 +91,18 @@ def edensNM_n(nB, Temp, param = para.paraQMCRMF3, ):
         sigma_init = 30, w0_init = 20, r03_init = -3, mub_init = 990, verb = False
         )
     return float(edens.item())
+
+def sNM_n(nB, Temp, param = para.paraQMCRMF3, NM_type = "PNM"):
+    """
+    Return the nuclear-matter entropy density at fixed n_B.
+    """
+    if NM_type != "PNM":
+        raise RuntimeError("entropy_jump currently supports NM_type='PNM' only")
+    entropy = RMFentropyPNM(input_num=nB, input_type="nB", Trmf=Temp, para=param,
+        sigma_init=30, w0_init=20, r03_init=-3, mub_init=990, verb=False,
+        electrons=False, neutrinos=False,
+        )
+    return float(np.asarray(entropy).item())
 
 def hNM(mu_B, Temp):
     """
@@ -518,6 +530,84 @@ def _branch_muK_seed(a_like):
     return float(max(1.0, 20.0, 250.0 * abs(float(a_like))))
 
 
+def _normalize_interface_temperature_mode(mode):
+    mode = str(mode)
+    valid_modes = ("hu_const", "T_const", "entropy_jump")
+    if mode not in valid_modes:
+        raise RuntimeError(
+            "interface_temperature_mode must be one of "
+            + ", ".join(repr(item) for item in valid_modes)
+        )
+    return mode
+
+
+def _entropy_jump_nan_diagnostics():
+    return {
+        "s_N": np.nan,
+        "w_N": np.nan,
+        "muK_N": np.nan,
+        "nK_N": np.nan,
+        "entropy_jump_w0": np.nan,
+        "entropy_jump_residual": np.nan,
+        "entropy_jump_eos_w_residual": np.nan,
+    }
+
+
+def _entropy_jump_boundary_diagnostics(thermo_Qstar, nB_N, jB, T_N, param=para.paraQMCRMF3, NM_type="PNM"):
+    """
+    Return the entropy-flux boundary diagnostics for the picture jump condition.
+    """
+    T_N = float(T_N)
+    if (not np.isfinite(T_N)) or T_N <= 0.0:
+        raise RuntimeError("entropy_jump boundary requires T_N > 0")
+    nB_N = float(nB_N)
+    if (not np.isfinite(nB_N)) or nB_N <= 0.0:
+        raise RuntimeError("entropy_jump boundary requires positive nB_N")
+    jB = float(jB)
+    if (not np.isfinite(jB)) or jB <= 0.0:
+        raise RuntimeError("entropy_jump boundary requires positive jB")
+
+    T_Qstar = float(thermo_Qstar["T"])
+    if (not np.isfinite(T_Qstar)) or T_Qstar <= 0.0:
+        raise RuntimeError("entropy_jump boundary requires positive T_Qstar")
+
+    muK_N = 0.0
+    nK_N = nB_N
+    u_N = float(jB / nB_N)
+    s_N = float(sNM_n(nB_N, T_N, param=param, NM_type=NM_type))
+    w_N = float(s_N * u_N)
+
+    muK_Qstar = float(thermo_Qstar["muK"])
+    nK_Qstar = float(thermo_Qstar["nK"])
+    u_Qstar = float(thermo_Qstar["u"])
+    denom = float(T_Qstar + T_N)
+    if (not np.isfinite(denom)) or denom <= 0.0:
+        raise RuntimeError("entropy_jump boundary has non-positive temperature denominator")
+
+    rhs = float((muK_Qstar - muK_N) / denom * (nK_Qstar * u_Qstar - nK_N * u_N))
+    w0 = float(w_N + rhs)
+    residual = float(w0 - w_N - rhs)
+    eos_w_residual = float(thermo_Qstar["w"] - w0)
+    for value in (s_N, w_N, rhs, w0, residual, eos_w_residual):
+        if not np.isfinite(value):
+            raise RuntimeError("entropy_jump boundary returned a non-finite diagnostic")
+
+    return {
+        "s_N": s_N,
+        "w_N": w_N,
+        "muK_N": muK_N,
+        "nK_N": nK_N,
+        "u_N": u_N,
+        "T_Qstar": T_Qstar,
+        "muK_Qstar": muK_Qstar,
+        "nK_Qstar": nK_Qstar,
+        "u_Qstar": u_Qstar,
+        "entropy_jump_w0": w0,
+        "entropy_jump_residual": residual,
+        "entropy_jump_eos_w_residual": eos_w_residual,
+    }
+
+
 def _quark_state_residual(muB, muK, a_target, Pi, jB, nB_Q, nK_Q, B_one_forth, T, ms=0.0, upB=5000):
     """
     Return the local quark-state residuals at fixed (a_target, Pi, jB).
@@ -708,6 +798,265 @@ def _solve_interface_Qstar_from_aQstar_and_Pi(aQstar, Pi, jB, nB_Q, nK_Q, B_one_
         return candidates[0]["muB"], candidates[0]["muK"]
 
     raise RuntimeError(f"Qstar state solve failed: {best_message}")
+
+
+def _qstar_enthalpy_jump_residual(muB, muK, logT, aQstar, Pi, jB, nB_Q, nK_Q, B_one_forth, h_over_nB_N, ms=0.0, upB=5000):
+    if nB_Q <= 0.0:
+        raise RuntimeError("nB_Q must be positive when solving enthalpy-jump Qstar")
+    if (not np.isfinite(h_over_nB_N)) or h_over_nB_N <= 0.0:
+        raise RuntimeError("Nuclear h/nB must be positive when solving enthalpy-jump Qstar")
+
+    logT = float(logT)
+    if (not np.isfinite(logT)) or abs(logT) > 700.0 or logT < _ADIABATIC_LOCAL_LOGT_FLOOR:
+        return np.array([1.0e12, 1.0e12, 1.0e12], dtype=float)
+
+    try:
+        thermo = _quark_thermo_state(muB, muK, B_one_forth, float(np.exp(logT)), jB, ms=ms, upB=upB)
+    except Exception:
+        return np.array([1.0e12, 1.0e12, 1.0e12], dtype=float)
+
+    return np.array(
+        [
+            thermo["Pi"] - Pi,
+            (thermo["nK"] - nK_Q) / nB_Q - aQstar,
+            thermo["h"] / thermo["nB"] - h_over_nB_N,
+        ],
+        dtype=float,
+    )
+
+
+def _qstar_enthalpy_jump_residual_ok(residual, Pi, aQstar, h_over_nB_N):
+    if not np.all(np.isfinite(residual)):
+        return False
+    pi_tol = 1.0e-8 * max(abs(Pi), 1.0)
+    a_tol = 1.0e-8 * max(abs(aQstar), 1.0)
+    h_tol = 1.0e-8 * max(abs(h_over_nB_N), 1.0)
+    return bool(
+        abs(float(residual[0])) <= pi_tol
+        and abs(float(residual[1])) <= a_tol
+        and abs(float(residual[2])) <= h_tol
+    )
+
+
+def _append_unique_qstar_guess(guesses, guess, min_temperature=_ADIABATIC_LOCAL_T_FLOOR):
+    try:
+        arr = np.asarray(guess, dtype=float)
+    except Exception:
+        return
+    if arr.shape[0] < 2 or not np.all(np.isfinite(arr[:2])):
+        return
+    muB = float(arr[0])
+    muK = max(0.0, float(arr[1]))
+    if muB <= 0.0:
+        return
+    if arr.shape[0] >= 3 and np.isfinite(float(arr[2])) and float(arr[2]) > 0.0:
+        temp = float(arr[2])
+    else:
+        return
+    temp = max(float(temp), float(min_temperature))
+    candidate = np.array([muB, muK, temp], dtype=float)
+    for item in guesses:
+        if (
+            abs(candidate[0] - item[0]) <= 1.0e-10 * max(1.0, abs(item[0]))
+            and abs(candidate[1] - item[1]) <= 1.0e-10 * max(1.0, abs(item[1]), 1.0)
+            and abs(candidate[2] - item[2]) <= 1.0e-10 * max(1.0, abs(item[2]))
+        ):
+            return
+    guesses.append(candidate)
+
+
+def _solve_interface_Qstar_enthalpy_jump(
+    aQstar,
+    Pi,
+    jB,
+    nB_Q,
+    nK_Q,
+    B_one_forth,
+    h_over_nB_N,
+    T_N,
+    T_Q,
+    ms=0.0,
+    upB=5000,
+    initial_guess=None,
+    stats=None,
+    stats_key="qstar_root_calls",
+):
+    """
+    Solve the Qstar interface state with temperature determined by h/nB continuity.
+
+    Unknowns are (muB, muK, logT_Qstar). The constraints are momentum flux,
+    the fixed aQstar composition coordinate, and h_Qstar/nB_Qstar = h_N/nB_N.
+    """
+    if nB_Q <= 0.0:
+        raise RuntimeError("nB_Q must be positive when solving enthalpy-jump Qstar")
+    T_N = float(T_N)
+    T_Q = float(T_Q)
+    if (not np.isfinite(T_N)) or T_N <= 0.0:
+        raise RuntimeError("T_N must be positive when solving enthalpy-jump Qstar")
+    if (not np.isfinite(T_Q)) or T_Q <= 0.0:
+        raise RuntimeError("T_Q must be positive when solving enthalpy-jump Qstar")
+
+    guesses = []
+    muK_seed = _branch_muK_seed(aQstar)
+    muK_seed_strong = float(max(muK_seed, 400.0 * abs(float(aQstar))))
+
+    temp_seeds = [
+        T_N,
+        T_Q,
+        float(np.sqrt(T_N * T_Q)),
+        0.5 * (T_N + T_Q),
+        T_N + _ADIABATIC_HOT_START_OFFSET,
+        max(T_Q, T_N + _ADIABATIC_HOT_START_OFFSET),
+        10.0,
+        50.0,
+    ]
+    temp_seeds = [float(t) for t in temp_seeds if np.isfinite(t) and t > 0.0]
+
+    if initial_guess is not None:
+        guess0 = np.asarray(initial_guess, dtype=float)
+        if guess0.shape[0] >= 3:
+            _append_unique_qstar_guess(guesses, guess0)
+            muB_seed = float(guess0[0])
+            muK_ref = max(0.0, float(guess0[1]))
+        elif guess0.shape[0] >= 2:
+            muB_seed = float(guess0[0])
+            muK_ref = max(0.0, float(guess0[1]))
+            for temp_seed in temp_seeds:
+                _append_unique_qstar_guess(guesses, (muB_seed, muK_ref, temp_seed))
+        else:
+            muB_seed = 1200.0
+            muK_ref = muK_seed
+    else:
+        muB_seed = 1200.0
+        muK_ref = muK_seed
+
+    for temp_seed in temp_seeds:
+        _append_unique_qstar_guess(guesses, (muB_seed, muK_ref, temp_seed))
+        _append_unique_qstar_guess(guesses, (muB_seed, muK_seed, temp_seed))
+        _append_unique_qstar_guess(guesses, (1200.0, muK_seed, temp_seed))
+        _append_unique_qstar_guess(guesses, (1500.0, max(muK_seed, 100.0 * abs(float(aQstar))), temp_seed))
+        _append_unique_qstar_guess(guesses, (muB_seed, muK_seed_strong, temp_seed))
+        _append_unique_qstar_guess(guesses, (1500.0, muK_seed_strong, temp_seed))
+
+    # The legacy fixed-temperature Qstar solve often provides an excellent
+    # chemical-potential seed even when the final interface temperature jumps.
+    try:
+        legacy_muB, legacy_muK = _solve_interface_Qstar_from_aQstar_and_Pi(
+            aQstar,
+            Pi,
+            jB,
+            nB_Q,
+            nK_Q,
+            B_one_forth,
+            T_N,
+            ms=ms,
+            upB=upB,
+            initial_guess=(muB_seed, muK_ref),
+            stats=stats,
+            stats_key=stats_key,
+        )
+        for temp_seed in temp_seeds:
+            _append_unique_qstar_guess(guesses, (legacy_muB, legacy_muK, temp_seed))
+    except Exception:
+        pass
+
+    pi_scale = max(abs(Pi), 1.0)
+    h_scale = max(abs(h_over_nB_N), 1.0)
+
+    def equations(vec):
+        residual = _qstar_enthalpy_jump_residual(
+            float(vec[0]),
+            float(vec[1]),
+            float(vec[2]),
+            aQstar,
+            Pi,
+            jB,
+            nB_Q,
+            nK_Q,
+            B_one_forth,
+            h_over_nB_N,
+            ms=ms,
+            upB=upB,
+        )
+        return np.array([residual[0] / pi_scale, residual[1], residual[2] / h_scale], dtype=float)
+
+    best_message = "enthalpy-jump Qstar solve did not converge"
+    candidates = []
+    for guess in guesses:
+        if stats is not None:
+            stats[stats_key] = stats.get(stats_key, 0) + 1
+        sol = root(
+            equations,
+            np.array([float(guess[0]), float(guess[1]), float(np.log(float(guess[2])))], dtype=float),
+            method="hybr",
+            options={"maxfev": 1200, "xtol": 1.0e-10},
+        )
+        if not (sol.success and np.all(np.isfinite(sol.x))):
+            best_message = str(sol.message)
+            continue
+
+        muB = float(sol.x[0])
+        muK = float(sol.x[1])
+        logT = float(sol.x[2])
+        if muB <= 0.0 or muK < -1.0e-8 or (not np.isfinite(logT)) or abs(logT) > 700.0:
+            best_message = "enthalpy-jump Qstar solve returned a non-physical root"
+            continue
+        muK = max(0.0, muK)
+        T_Qstar = float(np.exp(logT))
+        residual = _qstar_enthalpy_jump_residual(
+            muB,
+            muK,
+            np.log(T_Qstar),
+            aQstar,
+            Pi,
+            jB,
+            nB_Q,
+            nK_Q,
+            B_one_forth,
+            h_over_nB_N,
+            ms=ms,
+            upB=upB,
+        )
+        if not _qstar_enthalpy_jump_residual_ok(residual, Pi, aQstar, h_over_nB_N):
+            best_message = (
+                "enthalpy-jump Qstar solve returned an unacceptable residual "
+                f"({residual[0]:.3e}, {residual[1]:.3e}, {residual[2]:.3e})"
+            )
+            continue
+
+        try:
+            thermo = _quark_thermo_state(muB, muK, B_one_forth, T_Qstar, jB, ms=ms, upB=upB)
+        except Exception as exc:
+            best_message = str(exc)
+            continue
+        if thermo["nB"] <= 0.0 or thermo["s"] <= 0.0 or thermo["w"] <= 0.0:
+            best_message = "enthalpy-jump Qstar solve returned a non-physical thermodynamic state"
+            continue
+
+        is_new = True
+        for cand in candidates:
+            if (
+                abs(thermo["muB"] - cand["muB"]) <= 1.0e-8 * max(1.0, abs(cand["muB"]))
+                and abs(thermo["muK"] - cand["muK"]) <= 1.0e-8 * max(1.0, abs(cand["muK"]), 1.0)
+                and abs(thermo["T"] - cand["T"]) <= 1.0e-8 * max(1.0, abs(cand["T"]))
+            ):
+                is_new = False
+                break
+        if is_new:
+            candidates.append(thermo)
+
+    if candidates:
+        candidates.sort(
+            key=lambda cand: (
+                abs(cand["muK"] - max(muK_seed, muK_ref)),
+                abs(np.log(cand["T"] / max(T_Q, _ADIABATIC_LOCAL_T_FLOOR))),
+                abs(cand["muB"] - muB_seed),
+                -cand["T"],
+            )
+        )
+        return candidates[0]
+
+    raise RuntimeError(f"enthalpy-jump Qstar state solve failed: {best_message}")
 
 
 def _solve_local_quark_state_from_a_and_Pi(a, Pi, jB, nB_Q, nK_Q, B_one_forth, T, ms=0.0, upB=5000, initial_guess=None, stats=None):
@@ -1804,6 +2153,7 @@ def _solve_front_adiabatic_once(
     jB_guess=None,
     TQ_guess=None,
     jB_bounds=None,
+    interface_temperature_mode="hu_const",
     return_profile=False,
     verb=False,
     profile_guess=None,
@@ -1855,6 +2205,7 @@ def _solve_front_adiabatic_once(
     TQ_guess = float(TQ_guess)
     if (not np.isfinite(TQ_guess)) or TQ_guess <= 0.0:
         raise RuntimeError("TQ_guess must be positive")
+    interface_temperature_mode = _normalize_interface_temperature_mode(interface_temperature_mode)
 
     bounded_jB = jB_bounds is not None
     if bounded_jB:
@@ -1930,6 +2281,7 @@ def _solve_front_adiabatic_once(
         P_N = float(PNM_n(nB_N, T, param=param, NM_type=NM_type))
         e_N = float(edensNM_n(nB_N, T, param=param))
         h_N = float(P_N + e_N)
+        h_over_nB_N = float(h_N / nB_N)
         u_N = float(jB / nB_N)
         Pi = float(h_N * u_N * u_N + P_N)
 
@@ -1957,9 +2309,10 @@ def _solve_front_adiabatic_once(
 
         a_N = float((nB_N - nK_Q) / nB_Q)
 
-        # Interface state Qstar at x = 0+ with fixed interface temperature T.
+        # Interface state Qstar at x = 0+. In hu_const mode the temperature is
+        # solved from h/nB continuity; in the fixed-temperature modes it is T.
         muK_Qstar_seed = _branch_muK_seed(aQstar)
-        qstar_initial_guess = (muB_Q, muK_Qstar_seed)
+        qstar_initial_guess = (muB_Q, muK_Qstar_seed, T_Q)
         if qstar_last_guess["value"] is not None:
             qstar_initial_guess = qstar_last_guess["value"]
         elif isinstance(profile_guess, dict):
@@ -1980,27 +2333,74 @@ def _solve_front_adiabatic_once(
                     and muB_Qstar_guess > 0.0
                     and muK_Qstar_guess >= 0.0
                 ):
-                    qstar_initial_guess = (muB_Qstar_guess, muK_Qstar_guess)
-        muB_Qstar, muK_Qstar = _solve_interface_Qstar_from_aQstar_and_Pi(
-            aQstar,
-            Pi,
-            jB,
-            nB_Q,
-            nK_Q,
-            B_one_forth,
-            T,
-            ms=ms,
-            upB=upB,
-            initial_guess=qstar_initial_guess,
-            stats=stats,
-            stats_key="qstar_root_calls",
-        )
-        qstar_last_guess["value"] = (float(muB_Qstar), float(muK_Qstar))
-        thermo_Qstar = _quark_thermo_state(muB_Qstar, muK_Qstar, B_one_forth, T, jB, ms=ms, upB=upB)
+                    T_Qstar_guess = profile_guess.get("T_Qstar", T_Q)
+                    try:
+                        T_Qstar_guess = float(T_Qstar_guess)
+                    except Exception:
+                        T_Qstar_guess = T_Q
+                    if (not np.isfinite(T_Qstar_guess)) or T_Qstar_guess <= 0.0:
+                        T_Qstar_guess = T_Q
+                    qstar_initial_guess = (muB_Qstar_guess, muK_Qstar_guess, T_Qstar_guess)
+
+        if interface_temperature_mode == "hu_const":
+            thermo_Qstar = _solve_interface_Qstar_enthalpy_jump(
+                aQstar,
+                Pi,
+                jB,
+                nB_Q,
+                nK_Q,
+                B_one_forth,
+                h_over_nB_N,
+                T,
+                T_Q,
+                ms=ms,
+                upB=upB,
+                initial_guess=qstar_initial_guess,
+                stats=stats,
+                stats_key="qstar_root_calls",
+            )
+            muB_Qstar = float(thermo_Qstar["muB"])
+            muK_Qstar = float(thermo_Qstar["muK"])
+            qstar_last_guess["value"] = (muB_Qstar, muK_Qstar, float(thermo_Qstar["T"]))
+        else:
+            muB_Qstar, muK_Qstar = _solve_interface_Qstar_from_aQstar_and_Pi(
+                aQstar,
+                Pi,
+                jB,
+                nB_Q,
+                nK_Q,
+                B_one_forth,
+                T,
+                ms=ms,
+                upB=upB,
+                initial_guess=np.asarray(qstar_initial_guess, dtype=float)[:2],
+                stats=stats,
+                stats_key="qstar_root_calls",
+            )
+            qstar_last_guess["value"] = (float(muB_Qstar), float(muK_Qstar))
+            thermo_Qstar = _quark_thermo_state(muB_Qstar, muK_Qstar, B_one_forth, T, jB, ms=ms, upB=upB)
+
         if thermo_Qstar["s"] <= 0.0:
             raise RuntimeError("Interface Qstar state has non-positive entropy density")
         if thermo_Qstar["w"] <= 0.0:
             raise RuntimeError("Interface Qstar state has non-positive entropy flux")
+        h_over_nB_Qstar = float(thermo_Qstar["h"] / thermo_Qstar["nB"])
+        h_over_nB_jump_residual = float(h_over_nB_Qstar - h_over_nB_N)
+        entropy_jump_diag = _entropy_jump_nan_diagnostics()
+        if interface_temperature_mode == "entropy_jump":
+            entropy_jump_diag = _entropy_jump_boundary_diagnostics(
+                thermo_Qstar,
+                nB_N,
+                jB,
+                T,
+                param=param,
+                NM_type=NM_type,
+            )
+            w0 = float(entropy_jump_diag["entropy_jump_w0"])
+            if w0 <= 0.0:
+                raise RuntimeError("entropy_jump boundary returned non-positive entropy flux")
+        else:
+            w0 = float(thermo_Qstar["w"])
 
         micro_Q = _microphysics_from_quark_state(muB_Q, T_Q)
         D_Q = float(micro_Q["D"])
@@ -2016,7 +2416,6 @@ def _solve_front_adiabatic_once(
         if (not np.isfinite(lam)) or lam <= 0.0:
             raise RuntimeError("Adiabatic solver tail decay lambda must be positive")
         q0 = float(-a_N * u_N)
-        w0 = float(thermo_Qstar["w"])
         w_Q = float(thermo_Q["w"])
         x_end = float(-np.log1p(-s_coord_end) / lam)
         tail_coeff_Q = float(D_Q * lam + u_Q)
@@ -2026,6 +2425,7 @@ def _solve_front_adiabatic_once(
             "P_N": P_N,
             "e_N": e_N,
             "h_N": h_N,
+            "h_over_nB_N": h_over_nB_N,
             "u_N": u_N,
             "Pi": Pi,
             "muB_Q": float(muB_Q),
@@ -2039,7 +2439,16 @@ def _solve_front_adiabatic_once(
             "w_Q": float(w_Q),
             "s_Qstar": float(thermo_Qstar["s"]),
             "u_Qstar": float(thermo_Qstar["u"]),
-            "T_Qstar": float(T),
+            "T_Qstar": float(thermo_Qstar["T"]),
+            "h_over_nB_Qstar": h_over_nB_Qstar,
+            "h_over_nB_jump_residual": h_over_nB_jump_residual,
+            "s_N": float(entropy_jump_diag["s_N"]),
+            "w_N": float(entropy_jump_diag["w_N"]),
+            "muK_N": float(entropy_jump_diag["muK_N"]),
+            "nK_N": float(entropy_jump_diag["nK_N"]),
+            "entropy_jump_w0": float(entropy_jump_diag["entropy_jump_w0"]),
+            "entropy_jump_residual": float(entropy_jump_diag["entropy_jump_residual"]),
+            "entropy_jump_eos_w_residual": float(entropy_jump_diag["entropy_jump_eos_w_residual"]),
             "D_Q": D_Q,
             "eta_Q": eta_Q,
             "gamma_Q": gamma_Q,
@@ -2202,7 +2611,14 @@ def _solve_front_adiabatic_once(
             "aQstar": float(aQstar),
             "jB": np.nan,
             "T_Q": np.nan,
+            "T_N": float(T),
+            "T_Qstar": np.nan,
             "w_Q": np.nan,
+            "interface_temperature_mode": interface_temperature_mode,
+            "h_over_nB_N": np.nan,
+            "h_over_nB_Qstar": np.nan,
+            "h_over_nB_jump_residual": np.nan,
+            **_entropy_jump_nan_diagnostics(),
             "branch_label": "muK-rich",
             "tail_residual": np.nan,
             "tail_residual_norm": np.nan,
@@ -2324,7 +2740,14 @@ def _solve_front_adiabatic_once(
             "aQstar": float(aQstar),
             "jB": np.nan,
             "T_Q": np.nan,
+            "T_N": float(T),
+            "T_Qstar": np.nan,
             "w_Q": np.nan,
+            "interface_temperature_mode": interface_temperature_mode,
+            "h_over_nB_N": np.nan,
+            "h_over_nB_Qstar": np.nan,
+            "h_over_nB_jump_residual": np.nan,
+            **_entropy_jump_nan_diagnostics(),
             "branch_label": "muK-rich",
             "tail_residual": np.nan,
             "tail_residual_norm": np.nan,
@@ -2350,7 +2773,14 @@ def _solve_front_adiabatic_once(
             "aQstar": float(aQstar),
             "jB": np.nan,
             "T_Q": np.nan,
+            "T_N": float(T),
+            "T_Qstar": np.nan,
             "w_Q": np.nan,
+            "interface_temperature_mode": interface_temperature_mode,
+            "h_over_nB_N": np.nan,
+            "h_over_nB_Qstar": np.nan,
+            "h_over_nB_jump_residual": np.nan,
+            **_entropy_jump_nan_diagnostics(),
             "branch_label": "muK-rich",
             "tail_residual": np.nan,
             "tail_residual_norm": np.nan,
@@ -2389,9 +2819,12 @@ def _solve_front_adiabatic_once(
         "message": "Adiabatic compact BVP steady-front solve converged" if success else f"{sol.message}; last failure: {last_failure['message']}",
         "jB": float(state["jB"]),
         "T_Q": float(state["T_Q"]),
+        "T_N": float(T),
+        "T_Qstar": float(state["T_Qstar"]),
         "w_Q": float(state["w_Q"]),
         "aQstar": float(aQstar),
         "branch_label": "muK-rich",
+        "interface_temperature_mode": interface_temperature_mode,
         "entropy_flux_equation": "ua_gradient",
         "coordinate": "BVP: s_coord in [0, 1-tail_eps], s_coord=1-exp(-lambda*x)",
         "tail_eps": float(tail_eps),
@@ -2407,6 +2840,17 @@ def _solve_front_adiabatic_once(
         "muK_Qstar": float(state["muK_Qstar"]),
         "nB_Qstar": float(state["nB_Qstar"]),
         "s_Qstar": float(state["s_Qstar"]),
+        "h_over_nB_N": float(state["h_over_nB_N"]),
+        "h_over_nB_Qstar": float(state["h_over_nB_Qstar"]),
+        "h_over_nB_jump_residual": float(state["h_over_nB_jump_residual"]),
+        "s_N": float(state["s_N"]),
+        "w_N": float(state["w_N"]),
+        "muK_N": float(state["muK_N"]),
+        "nK_N": float(state["nK_N"]),
+        "entropy_jump_w0": float(state["entropy_jump_w0"]),
+        "entropy_jump_residual": float(state["entropy_jump_residual"]),
+        "entropy_jump_eos_w_residual": float(state["entropy_jump_eos_w_residual"]),
+        "w0": float(state["w0"]),
         "D_Q": float(state["D_Q"]),
         "eta_Q": float(state["eta_Q"]),
         "gamma_Q": float(state["gamma_Q"]),
@@ -2545,6 +2989,7 @@ def solve_front_adiabatic(
     jB_guess=None,
     TQ_guess=None,
     jB_bounds=None,
+    interface_temperature_mode="hu_const",
     return_profile=False,
     verb=False,
 ):
@@ -2565,6 +3010,7 @@ def solve_front_adiabatic(
     else:
         verb_mode = "simple" if verb else "off"
     simple_diag = verb_mode in ("simple", "full")
+    interface_temperature_mode = _normalize_interface_temperature_mode(interface_temperature_mode)
 
     direct_jB_guess = jB_guess
     if direct_jB_guess is None:
@@ -2595,6 +3041,7 @@ def solve_front_adiabatic(
         jB_guess=direct_jB_guess,
         TQ_guess=direct_TQ_guess,
         jB_bounds=jB_bounds,
+        interface_temperature_mode=interface_temperature_mode,
         return_profile=return_profile,
         verb=verb,
         profile_guess=None,
@@ -2626,6 +3073,7 @@ def solve_front_adiabatic(
             jB_guess=direct_jB_guess,
             TQ_guess=direct_TQ_guess,
             jB_bounds=jB_bounds,
+            interface_temperature_mode=interface_temperature_mode,
             return_profile=return_profile,
             verb=verb,
             profile_guess=None,
@@ -2688,6 +3136,7 @@ def solve_front_adiabatic(
         jB_guess=stage_jB_guess,
         TQ_guess=direct_TQ_guess,
         jB_bounds=jB_bounds,
+        interface_temperature_mode=interface_temperature_mode,
         return_profile=False,
         verb=False,
         profile_guess=None,
@@ -2725,6 +3174,7 @@ def solve_front_adiabatic(
             jB_guess=current["jB"],
             TQ_guess=current["T_Q"],
             jB_bounds=jB_bounds,
+            interface_temperature_mode=interface_temperature_mode,
             return_profile=False,
             verb=False,
             profile_guess=current,
@@ -2771,6 +3221,7 @@ def solve_front_adiabatic(
         jB_guess=current["jB"],
         TQ_guess=current["T_Q"],
         jB_bounds=jB_bounds,
+        interface_temperature_mode=interface_temperature_mode,
         return_profile=return_profile,
         verb=False,
         profile_guess=current,
@@ -2795,6 +3246,7 @@ def solve_front_adiabatic(
                 jB_guess=current["jB"],
                 TQ_guess=current["T_Q"],
                 jB_bounds=jB_bounds,
+                interface_temperature_mode=interface_temperature_mode,
                 return_profile=True,
                 verb=False,
                 profile_guess=current,
