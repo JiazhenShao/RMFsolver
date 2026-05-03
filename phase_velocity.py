@@ -22,7 +22,7 @@ from RMFsolver.SQMsolver import (
 from RMFsolver.Solver import RMFsolve, RMFsolve_mu, RMFpressureSYM, RMFpressurePNM, pressure_RMF
 from RMFsolver.Solver import RMFedensPNM, RMFentropyPNM, RMFbaryon_densityPNM, RMFbaryon_densitySYM, RMFbaryon_density
 
-__all__ = ["solve_front_isothermal", "solve_front_adiabatic"]
+__all__ = ["solve_front_isothermal", "solve_front_adiabatic", "solve_front_energy_conserving"]
 
 _ADIABATIC_LOW_T_THRESHOLD = 5.0
 _ADIABATIC_HOT_START_OFFSET = 50.0
@@ -1505,6 +1505,261 @@ def _solve_local_quark_state_from_a_w_and_Pi(a, w, Pi, jB, nB_Q, nK_Q, B_one_for
     raise RuntimeError(f"Entropy-enabled local quark-state solve failed: {best_message}")
 
 
+# Energy-conserving local closure helpers
+def _quark_state_hu_residual(muB, muK, logT, a_target, hu_target, Pi, jB, nB_Q, nK_Q, B_one_forth, ms=0.0, upB=5000):
+    """
+    Unscaled residual for the energy-conserving local quark-state closure.
+    """
+    if hu_target <= 0.0:
+        raise RuntimeError("Energy-conserving closure requires h*u > 0")
+    if nB_Q <= 0.0:
+        raise RuntimeError("nB_Q must be positive when solving an energy-conserving quark state")
+
+    logT = float(logT)
+    if (not np.isfinite(logT)) or abs(logT) > 700.0 or logT < _ADIABATIC_LOCAL_LOGT_FLOOR:
+        return np.array([1.0e12, 1.0e12, 1.0e12], dtype=float)
+
+    T = float(np.exp(logT))
+    try:
+        thermo = _quark_thermo_state(muB, muK, B_one_forth, T, jB, ms=ms, upB=upB)
+    except Exception:
+        return np.array([1.0e12, 1.0e12, 1.0e12], dtype=float)
+
+    return np.array(
+        [
+            thermo["Pi"] - Pi,
+            (thermo["nK"] - nK_Q) / nB_Q - a_target,
+            thermo["h"] * thermo["u"] - hu_target,
+        ],
+        dtype=float,
+    )
+
+
+def _quark_state_hu_residual_ok(residual, Pi, a_target, hu_target):
+    """
+    Accept/reject an energy-conserving local quark-state solve.
+    """
+    if not np.all(np.isfinite(residual)):
+        return False
+    pi_tol = 1.0e-8 * max(abs(Pi), 1.0)
+    a_tol = 1.0e-8 * max(abs(a_target), 1.0)
+    hu_tol = 1.0e-8 * max(abs(hu_target), 1.0)
+    return bool(
+        abs(float(residual[0])) <= pi_tol
+        and abs(float(residual[1])) <= a_tol
+        and abs(float(residual[2])) <= hu_tol
+    )
+
+
+def _solve_quark_hu_state_once_from_guess(a_target, hu_target, Pi, jB, nB_Q, nK_Q, B_one_forth, ms=0.0, upB=5000, initial_guess=None, stats=None, stats_key="quark_state_hu_root_calls"):
+    """
+    Try one energy-conserving local quark-state root solve from a single
+    continuation guess. The nonlinear solve is carried out in (muB, muK, logT).
+    """
+    if initial_guess is None:
+        raise RuntimeError("initial_guess is required for single-guess energy-conserving quark-state solve")
+    if hu_target <= 0.0:
+        raise RuntimeError("Energy-conserving closure requires h*u > 0")
+    if nB_Q <= 0.0:
+        raise RuntimeError("nB_Q must be positive when solving an energy-conserving quark state")
+
+    guess = np.asarray(initial_guess, dtype=float)
+    if guess.shape[0] != 3 or not np.all(np.isfinite(guess)):
+        raise RuntimeError("initial_guess must contain finite (muB, muK, T)")
+    if guess[2] <= 0.0:
+        raise RuntimeError("initial_guess temperature must be positive")
+
+    pi_scale = max(abs(Pi), 1.0)
+    hu_scale = max(abs(hu_target), 1.0)
+
+    def equations(vec):
+        residual = _quark_state_hu_residual(
+            float(vec[0]),
+            float(vec[1]),
+            float(vec[2]),
+            a_target,
+            hu_target,
+            Pi,
+            jB,
+            nB_Q,
+            nK_Q,
+            B_one_forth,
+            ms=ms,
+            upB=upB,
+        )
+        return np.array([residual[0] / pi_scale, residual[1], residual[2] / hu_scale], dtype=float)
+
+    if stats is not None:
+        stats[stats_key] = stats.get(stats_key, 0) + 1
+    sol = root(
+        equations,
+        np.array([float(guess[0]), float(guess[1]), float(np.log(float(guess[2])))], dtype=float),
+        method="hybr",
+        options={"maxfev": 180, "xtol": 1.0e-10},
+    )
+    if not (sol.success and np.all(np.isfinite(sol.x))):
+        raise RuntimeError(f"single-guess energy-conserving quark-state solve failed: {sol.message}")
+
+    muB = float(sol.x[0])
+    muK = float(sol.x[1])
+    logT = float(sol.x[2])
+    if muK < -1.0e-8:
+        raise RuntimeError("single-guess energy-conserving quark-state solve returned negative muK")
+    if (not np.isfinite(logT)) or abs(logT) > 700.0:
+        raise RuntimeError("single-guess energy-conserving quark-state solve returned an invalid logT")
+
+    if muK < 0.0:
+        muK = 0.0
+    T_loc = float(np.exp(logT))
+    residual = _quark_state_hu_residual(
+        muB,
+        muK,
+        np.log(T_loc),
+        a_target,
+        hu_target,
+        Pi,
+        jB,
+        nB_Q,
+        nK_Q,
+        B_one_forth,
+        ms=ms,
+        upB=upB,
+    )
+    if not _quark_state_hu_residual_ok(residual, Pi, a_target, hu_target):
+        raise RuntimeError(
+            "single-guess energy-conserving quark-state solve returned an unacceptable residual "
+            f"({residual[0]:.3e}, {residual[1]:.3e}, {residual[2]:.3e})"
+        )
+
+    thermo = _quark_thermo_state(muB, muK, B_one_forth, T_loc, jB, ms=ms, upB=upB)
+    hu = float(thermo["h"] * thermo["u"])
+    if thermo["h"] <= 0.0 or hu <= 0.0:
+        raise RuntimeError("single-guess energy-conserving quark-state solve returned non-positive h*u")
+    thermo["hu"] = hu
+    return thermo
+
+
+def _solve_local_quark_state_from_a_hu_and_Pi(a, hu, Pi, jB, nB_Q, nK_Q, B_one_forth, ms=0.0, upB=5000, initial_guess=None, T_ref=None, stats=None):
+    """
+    Solve the local quark state (muB, muK, T, nB, u, h) at fixed
+    (a, h*u, Pi, jB) using the energy-conserving closure equations.
+    """
+    if stats is not None:
+        stats["local_state_calls"] = stats.get("local_state_calls", 0) + 1
+    if hu <= 0.0:
+        raise RuntimeError("Local energy-conserving closure requires h*u > 0")
+
+    if initial_guess is not None:
+        try:
+            return _solve_quark_hu_state_once_from_guess(
+                a,
+                hu,
+                Pi,
+                jB,
+                nB_Q,
+                nK_Q,
+                B_one_forth,
+                ms=ms,
+                upB=upB,
+                initial_guess=initial_guess,
+                stats=stats,
+                stats_key="local_root_calls",
+            )
+        except Exception:
+            if stats is not None:
+                stats["local_fast_failures"] = stats.get("local_fast_failures", 0) + 1
+
+    if nB_Q <= 0.0:
+        raise RuntimeError("nB_Q must be positive when solving an energy-conserving quark state")
+
+    guesses = []
+    muK_seed = _branch_muK_seed(a)
+    muK_seed_strong = float(max(muK_seed, 400.0 * abs(float(a))))
+    if initial_guess is not None:
+        guess0 = np.asarray(initial_guess, dtype=float)
+        if guess0.shape[0] != 3 or not np.all(np.isfinite(guess0)):
+            raise RuntimeError("initial_guess must contain finite (muB, muK, T)")
+        if guess0[2] <= 0.0:
+            raise RuntimeError("initial_guess temperature must be positive")
+        guesses.append(guess0)
+        muB_seed = float(guess0[0])
+        muK_ref = max(0.0, float(guess0[1]))
+        T_seed = float(guess0[2])
+    else:
+        if T_ref is None or (not np.isfinite(T_ref)) or T_ref <= 0.0:
+            raise RuntimeError("T_ref must be positive when no energy-closure initial_guess is provided")
+        muB_seed = 1200.0
+        muK_ref = muK_seed
+        T_seed = float(T_ref)
+
+    guesses.append(np.array([muB_seed, muK_seed, T_seed], dtype=float))
+    guesses.append(np.array([1200.0, muK_seed, T_seed], dtype=float))
+    guesses.append(np.array([1500.0, max(muK_seed, 100.0 * abs(float(a))), T_seed], dtype=float))
+    guesses.append(np.array([muB_seed, muK_seed_strong, T_seed], dtype=float))
+    guesses.append(np.array([1500.0, muK_seed_strong, T_seed], dtype=float))
+    if T_ref is not None and np.isfinite(T_ref) and T_ref > 0.0:
+        guesses.append(np.array([muB_seed, max(muK_seed, muK_ref), float(T_ref)], dtype=float))
+
+    best_message = "Energy-conserving local quark-state solve did not converge"
+    candidates = []
+    candidate_tol = 1.0e-8
+    nonneg_tol = 1.0e-8
+    for guess in guesses:
+        try:
+            thermo = _solve_quark_hu_state_once_from_guess(
+                a,
+                hu,
+                Pi,
+                jB,
+                nB_Q,
+                nK_Q,
+                B_one_forth,
+                ms=ms,
+                upB=upB,
+                initial_guess=guess,
+                stats=stats,
+                stats_key="local_root_calls",
+            )
+            if thermo["muK"] < -nonneg_tol or thermo["h"] <= 0.0 or thermo["hu"] <= 0.0:
+                continue
+            is_new = True
+            for cand in candidates:
+                if (
+                    abs(thermo["muB"] - cand["muB"]) <= candidate_tol * max(1.0, abs(cand["muB"]))
+                    and abs(thermo["muK"] - cand["muK"]) <= candidate_tol * max(1.0, abs(cand["muK"]), 1.0)
+                    and abs(thermo["T"] - cand["T"]) <= candidate_tol * max(1.0, abs(cand["T"]))
+                ):
+                    is_new = False
+                    break
+            if is_new:
+                candidates.append(thermo)
+        except Exception as exc:
+            best_message = str(exc)
+
+    if candidates:
+        if initial_guess is not None:
+            muB_ref = float(initial_guess[0])
+            muK_ref = max(0.0, float(initial_guess[1]))
+            T_pref = float(initial_guess[2])
+        else:
+            muB_ref = muB_seed
+            muK_ref = muK_seed
+            T_pref = T_seed
+
+        muK_pref = max(muK_seed, muK_ref)
+        candidates.sort(
+            key=lambda cand: (
+                abs(cand["muK"] - muK_pref),
+                abs(np.log(cand["T"] / T_pref)),
+                abs(cand["muB"] - muB_ref),
+                -cand["muK"],
+            )
+        )
+        return candidates[0]
+
+    raise RuntimeError(f"Energy-conserving local quark-state solve failed: {best_message}")
+
+
 # Public isothermal front solver
 def solve_front_isothermal(
     T,
@@ -2064,6 +2319,31 @@ def _strip_entropy_profile_fields(result):
         "muK",
         "T_profile",
         "s_profile",
+        "D_profile",
+        "eta_profile",
+        "gamma_profile",
+    ):
+        result_out.pop(key, None)
+    return result_out
+
+
+def _strip_energy_profile_fields(result):
+    """
+    Return a shallow copy of an energy-solver result without profile arrays.
+    """
+    result_out = dict(result)
+    for key in (
+        "s_coord",
+        "x",
+        "a",
+        "q",
+        "hu",
+        "u",
+        "nB",
+        "muB",
+        "muK",
+        "T_profile",
+        "h_profile",
         "D_profile",
         "eta_profile",
         "gamma_profile",
@@ -3265,3 +3545,951 @@ def solve_front_adiabatic(
     if return_profile:
         return result_out
     return _strip_entropy_profile_fields(result_out)
+
+
+def _solve_front_energy_conserving_once(
+    T,
+    nB_N,
+    B_one_forth,
+    aQstar,
+    ms=0.0,
+    param=para.paraQMCRMF3,
+    NM_type="PNM",
+    tail_eps=1e-8,
+    n_mesh=200,
+    tol_bvp=1e-4,
+    max_nodes=10000,
+    jB_guess=None,
+    TQ_guess=None,
+    jB_bounds=None,
+    return_profile=False,
+    verb=False,
+    profile_guess=None,
+    seed_profile=False,
+):
+    """
+    Solve the energy-conserving steady-front problem as a compact-coordinate
+    BVP with downstream temperature T_Q promoted to a global unknown.
+
+    The ODE unknowns are (a, q, hu), where hu = h*u is conserved.
+    """
+    T = float(T)
+    if (not np.isfinite(T)) or T <= 0.0:
+        raise RuntimeError("solve_front_energy_conserving requires T > 0")
+    if nB_N <= 0.0:
+        raise RuntimeError("nB_N must be positive")
+    if tail_eps <= 0.0 or tail_eps >= 1.0:
+        raise RuntimeError("tail_eps must satisfy 0 < tail_eps < 1")
+    if int(n_mesh) < 5:
+        raise RuntimeError("n_mesh must be at least 5")
+    if tol_bvp <= 0.0:
+        raise RuntimeError("tol_bvp must be positive")
+    if max_nodes <= int(n_mesh):
+        raise RuntimeError("max_nodes must be larger than n_mesh")
+
+    upB = 5000
+    t_start = time.perf_counter()
+    if isinstance(verb, str):
+        verb_mode = "full" if verb.lower() == "full" else ("simple" if verb else "off")
+    else:
+        verb_mode = "simple" if verb else "off"
+    full_diag = verb_mode == "full"
+    simple_diag = verb_mode in ("simple", "full")
+
+    def _diag(msg):
+        if full_diag:
+            dt = time.perf_counter() - t_start
+            print(f"[front_energy +{dt:8.2f}s] {msg}", flush=True)
+
+    if jB_guess is None:
+        jB_guess = 1.0e-8 * nB_N
+    jB_guess = float(jB_guess)
+    if jB_guess <= 0.0:
+        raise RuntimeError("jB_guess must be positive")
+
+    if TQ_guess is None:
+        TQ_guess = _adiabatic_default_TQ_guesses(T)[0]
+    TQ_guess = float(TQ_guess)
+    if (not np.isfinite(TQ_guess)) or TQ_guess <= 0.0:
+        raise RuntimeError("TQ_guess must be positive")
+
+    bounded_jB = jB_bounds is not None
+    if bounded_jB:
+        if len(jB_bounds) != 2:
+            raise RuntimeError("jB_bounds must be a 2-tuple (jB_min, jB_max)")
+        jB_lower_bound = float(jB_bounds[0])
+        jB_upper_bound = float(jB_bounds[1])
+        if jB_lower_bound <= 0.0 or jB_upper_bound <= 0.0 or jB_upper_bound <= jB_lower_bound:
+            raise RuntimeError("jB_bounds must satisfy 0 < jB_min < jB_max")
+        if not (jB_lower_bound < jB_guess < jB_upper_bound):
+            jB_guess = min(max(jB_guess, jB_lower_bound * (1.0 + 1.0e-6)), jB_upper_bound * (1.0 - 1.0e-6))
+    else:
+        jB_lower_bound = 0.0
+        jB_upper_bound = np.inf
+
+    def _param_from_jB(jB):
+        jB = float(jB)
+        if bounded_jB:
+            frac = (jB - jB_lower_bound) / (jB_upper_bound - jB_lower_bound)
+            frac = float(np.clip(frac, 1.0e-12, 1.0 - 1.0e-12))
+            return float(np.log(frac / (1.0 - frac)))
+        return float(np.log(jB))
+
+    def _jB_from_param(theta):
+        theta = float(theta)
+        if bounded_jB:
+            theta_clip = float(np.clip(theta, -60.0, 60.0))
+            sig = 1.0 / (1.0 + np.exp(-theta_clip))
+            return float(jB_lower_bound + (jB_upper_bound - jB_lower_bound) * sig)
+        return float(np.exp(np.clip(theta, -700.0, 700.0)))
+
+    def _param_from_TQ(TQ):
+        TQ = float(TQ)
+        if (not np.isfinite(TQ)) or TQ <= 0.0:
+            raise RuntimeError("T_Q must be positive")
+        return float(np.log(TQ))
+
+    def _TQ_from_param(phi):
+        return float(np.exp(np.clip(float(phi), -700.0, 700.0)))
+
+    stats = {
+        "bvp_ode_calls": 0,
+        "bvp_bc_calls": 0,
+        "q_root_calls": 0,
+        "qstar_root_calls": 0,
+        "local_state_calls": 0,
+        "local_root_calls": 0,
+        "local_fast_failures": 0,
+        "profile_state_calls": 0,
+        "global_state_builds": 0,
+        "global_state_failures": 0,
+        "local_state_failures": 0,
+    }
+    state_cache = {}
+    muB_Q_last_guess = {"value": None}
+    qstar_last_guess = {"value": None}
+    last_failure = {"message": ""}
+    s_coord_end = float(1.0 - tail_eps)
+
+    def _nan_result(message, bvp_status=-999, bvp_message="initial_state_failure", sol=None):
+        return {
+            "success": False,
+            "message": message,
+            "aQstar": float(aQstar),
+            "jB": np.nan,
+            "T_Q": np.nan,
+            "T_N": float(T),
+            "T_Qstar": np.nan,
+            "hu_N": np.nan,
+            "hu_Q": np.nan,
+            "hu_Qstar": np.nan,
+            "branch_label": "muK-rich",
+            "energy_flux_equation": "hu_const",
+            "tail_residual": np.nan,
+            "tail_residual_norm": np.nan,
+            "hu_tail_residual": np.nan,
+            "hu_tail_residual_norm": np.nan,
+            "a_end": np.nan,
+            "q_end": np.nan,
+            "hu_end": np.nan,
+            "bvp_status": int(bvp_status),
+            "bvp_message": str(bvp_message),
+            "bvp_niter": int(getattr(sol, "niter", -1)) if sol is not None else -1,
+            "bvp_nodes": int(sol.x.size) if sol is not None else 0,
+            **{k: int(v) for k, v in stats.items()},
+        }
+
+    def _build_global_state(theta, phi):
+        key = (round(float(theta), 12), round(float(phi), 12))
+        if key in state_cache:
+            return state_cache[key]
+
+        jB = _jB_from_param(theta)
+        T_Q = _TQ_from_param(phi)
+        if (not np.isfinite(T_Q)) or T_Q <= 0.0:
+            raise RuntimeError("Energy-conserving solver requires T_Q > 0")
+
+        stats["global_state_builds"] += 1
+
+        P_N = float(PNM_n(nB_N, T, param=param, NM_type=NM_type))
+        e_N = float(edensNM_n(nB_N, T, param=param))
+        h_N = float(P_N + e_N)
+        h_over_nB_N = float(h_N / nB_N)
+        u_N = float(jB / nB_N)
+        hu_N = float(h_N * u_N)
+        Pi = float(h_N * u_N * u_N + P_N)
+
+        muB_Q_guess = muB_Q_last_guess["value"]
+        if muB_Q_guess is None and isinstance(profile_guess, dict):
+            muB_Q_guess = profile_guess.get("muB_Q", None)
+        muB_Q = _solve_muB_Q_at_muK0_for_given_Pi_ms(
+            Pi,
+            jB,
+            B_one_forth,
+            T_Q,
+            ms=ms,
+            upB=upB,
+            stats=stats,
+            initial_guess=muB_Q_guess,
+        )
+        muB_Q_last_guess["value"] = float(muB_Q)
+        thermo_Q = _quark_thermo_state(muB_Q, 0.0, B_one_forth, T_Q, jB, ms=ms, upB=upB)
+        nB_Q = float(thermo_Q["nB"])
+        if abs(ms) <= 1.0e-12:
+            nK_Q = 0.0
+        else:
+            nK_Q = float(thermo_Q["nK"])
+
+        a_N = float((nB_N - nK_Q) / nB_Q)
+        hu_Q = float(thermo_Q["h"] * thermo_Q["u"])
+
+        muK_Qstar_seed = _branch_muK_seed(aQstar)
+        qstar_initial_guess = (muB_Q, muK_Qstar_seed, T_Q)
+        if qstar_last_guess["value"] is not None:
+            qstar_initial_guess = qstar_last_guess["value"]
+        elif isinstance(profile_guess, dict):
+            muB_Qstar_guess = profile_guess.get("muB_Qstar", None)
+            muK_Qstar_guess = profile_guess.get("muK_Qstar", None)
+            if muB_Qstar_guess is not None and muK_Qstar_guess is not None:
+                try:
+                    muB_Qstar_guess = float(muB_Qstar_guess)
+                    muK_Qstar_guess = float(muK_Qstar_guess)
+                    T_Qstar_guess = float(profile_guess.get("T_Qstar", T_Q))
+                except Exception:
+                    muB_Qstar_guess = None
+                    muK_Qstar_guess = None
+                    T_Qstar_guess = T_Q
+                if (
+                    muB_Qstar_guess is not None
+                    and muK_Qstar_guess is not None
+                    and np.isfinite(muB_Qstar_guess)
+                    and np.isfinite(muK_Qstar_guess)
+                    and muB_Qstar_guess > 0.0
+                    and muK_Qstar_guess >= 0.0
+                ):
+                    if (not np.isfinite(T_Qstar_guess)) or T_Qstar_guess <= 0.0:
+                        T_Qstar_guess = T_Q
+                    qstar_initial_guess = (muB_Qstar_guess, muK_Qstar_guess, T_Qstar_guess)
+
+        thermo_Qstar = _solve_interface_Qstar_enthalpy_jump(
+            aQstar,
+            Pi,
+            jB,
+            nB_Q,
+            nK_Q,
+            B_one_forth,
+            h_over_nB_N,
+            T,
+            T_Q,
+            ms=ms,
+            upB=upB,
+            initial_guess=qstar_initial_guess,
+            stats=stats,
+            stats_key="qstar_root_calls",
+        )
+        muB_Qstar = float(thermo_Qstar["muB"])
+        muK_Qstar = float(thermo_Qstar["muK"])
+        qstar_last_guess["value"] = (muB_Qstar, muK_Qstar, float(thermo_Qstar["T"]))
+        hu_Qstar = float(thermo_Qstar["h"] * thermo_Qstar["u"])
+        h_over_nB_Qstar = float(thermo_Qstar["h"] / thermo_Qstar["nB"])
+        h_over_nB_jump_residual = float(h_over_nB_Qstar - h_over_nB_N)
+        hu_jump_residual = float(hu_Qstar - hu_N)
+
+        micro_Q = _microphysics_from_quark_state(muB_Q, T_Q)
+        D_Q = float(micro_Q["D"])
+        eta_Q = float(micro_Q["eta"])
+        gamma_Q = float(micro_Q["gamma"])
+        tau_Q = float(micro_Q["tau"])
+
+        u_Q = float(thermo_Q["u"])
+        disc = float(u_Q * u_Q + 4.0 * D_Q * gamma_Q * eta_Q)
+        if (not np.isfinite(disc)) or disc <= 0.0:
+            raise RuntimeError("Energy-conserving solver tail discriminant is non-positive")
+        lam = float((-u_Q + np.sqrt(disc)) / (2.0 * D_Q))
+        if (not np.isfinite(lam)) or lam <= 0.0:
+            raise RuntimeError("Energy-conserving solver tail decay lambda must be positive")
+        q0 = float(-a_N * u_N)
+        x_end = float(-np.log1p(-s_coord_end) / lam)
+        tail_coeff_Q = float(D_Q * lam + u_Q)
+
+        state = {
+            "jB": float(jB),
+            "T_Q": float(T_Q),
+            "P_N": P_N,
+            "e_N": e_N,
+            "h_N": h_N,
+            "h_over_nB_N": h_over_nB_N,
+            "u_N": u_N,
+            "hu_N": hu_N,
+            "Pi": Pi,
+            "muB_Q": float(muB_Q),
+            "nB_Q": float(nB_Q),
+            "nK_Q": float(nK_Q),
+            "a_N": float(a_N),
+            "muB_Qstar": muB_Qstar,
+            "muK_Qstar": muK_Qstar,
+            "nB_Qstar": float(thermo_Qstar["nB"]),
+            "u_Qstar": float(thermo_Qstar["u"]),
+            "T_Qstar": float(thermo_Qstar["T"]),
+            "h_Q": float(thermo_Q["h"]),
+            "h_Qstar": float(thermo_Qstar["h"]),
+            "hu_Q": hu_Q,
+            "hu_Qstar": hu_Qstar,
+            "hu_jump_residual": hu_jump_residual,
+            "h_over_nB_Qstar": h_over_nB_Qstar,
+            "h_over_nB_jump_residual": h_over_nB_jump_residual,
+            "D_Q": D_Q,
+            "eta_Q": eta_Q,
+            "gamma_Q": gamma_Q,
+            "tau_Q": tau_Q,
+            "lambda": float(lam),
+            "u_Q": float(u_Q),
+            "q0": float(q0),
+            "tail_coeff_Q": float(tail_coeff_Q),
+            "x_end": float(x_end),
+        }
+        state_cache[key] = state
+        return state
+
+    def _state_or_none(theta, phi):
+        try:
+            return _build_global_state(theta, phi)
+        except Exception as exc:
+            stats["global_state_failures"] += 1
+            last_failure["message"] = str(exc)
+            return None
+
+    def _ode(s_coord, y, p):
+        stats["bvp_ode_calls"] += 1
+        state = _state_or_none(float(p[0]), float(p[1]))
+        if state is None:
+            return np.zeros_like(y) + 1.0e12
+
+        dyds = np.empty_like(y)
+        guess = (state["muB_Qstar"], state["muK_Qstar"], state["T_Qstar"])
+        for i in range(y.shape[1]):
+            a_val = float(y[0, i])
+            q_val = float(y[1, i])
+            hu_val = float(y[2, i])
+            if (not np.isfinite(a_val)) or (not np.isfinite(q_val)) or (not np.isfinite(hu_val)):
+                stats["local_state_failures"] += 1
+                dyds[:, i] = 1.0e12
+                continue
+            try:
+                thermo_loc = _solve_local_quark_state_from_a_hu_and_Pi(
+                    a_val,
+                    hu_val,
+                    state["Pi"],
+                    state["jB"],
+                    state["nB_Q"],
+                    state["nK_Q"],
+                    B_one_forth,
+                    ms=ms,
+                    upB=upB,
+                    initial_guess=guess,
+                    T_ref=state["T_Q"],
+                    stats=stats,
+                )
+                guess = (thermo_loc["muB"], thermo_loc["muK"], thermo_loc["T"])
+                micro_loc = _microphysics_from_quark_state(thermo_loc["muB"], thermo_loc["T"])
+                reaction = float(micro_loc["gamma"] * (a_val**3 + micro_loc["eta"] * a_val))
+                one_minus_s = max(1.0 - float(s_coord[i]), np.finfo(float).tiny)
+                dx_ds = 1.0 / (state["lambda"] * one_minus_s)
+                da_dx = float((q_val + thermo_loc["u"] * a_val) / micro_loc["D"])
+                dyds[0, i] = da_dx * dx_ds
+                dyds[1, i] = reaction * dx_ds
+                dyds[2, i] = 0.0
+            except Exception as exc:
+                stats["local_state_failures"] += 1
+                last_failure["message"] = str(exc)
+                dyds[:, i] = 1.0e12
+        return dyds
+
+    def _bc(ya, yb, p):
+        stats["bvp_bc_calls"] += 1
+        state = _state_or_none(float(p[0]), float(p[1]))
+        if state is None:
+            return np.array([1.0e12, 1.0e12, 1.0e12, 1.0e12, 1.0e12], dtype=float)
+        return np.array(
+            [
+                ya[0] - float(aQstar),
+                ya[1] - state["q0"],
+                ya[2] - state["hu_N"],
+                yb[1] + state["tail_coeff_Q"] * yb[0],
+                yb[2] - state["hu_Q"],
+            ],
+            dtype=float,
+        )
+
+    theta_guess = _param_from_jB(jB_guess)
+    phi_guess = _param_from_TQ(TQ_guess)
+    state0 = _state_or_none(theta_guess, phi_guess)
+    if state0 is None:
+        return _nan_result(
+            f"Initial energy-conserving state construction failed: {last_failure['message']}",
+            bvp_status=-999,
+            bvp_message="initial_state_failure",
+        )
+
+    s_coord_mesh = np.linspace(0.0, s_coord_end, int(n_mesh))
+    blend = s_coord_mesh / max(s_coord_end, np.finfo(float).tiny)
+    tail_shape = np.maximum(1.0 - s_coord_mesh, tail_eps)
+
+    def _default_initial_guess():
+        a_guess_loc = float(aQstar) * tail_shape
+        q_tail_guess_loc = -state0["tail_coeff_Q"] * a_guess_loc
+        q_guess_loc = (1.0 - blend) * state0["q0"] + blend * q_tail_guess_loc
+        hu_guess_loc = (1.0 - blend) * state0["hu_N"] + blend * state0["hu_Q"]
+        return a_guess_loc, q_guess_loc, hu_guess_loc
+
+    def _profile_initial_guess(profile):
+        try:
+            s_prev = np.asarray(profile["s_coord"], dtype=float)
+            a_prev = np.asarray(profile["a"], dtype=float)
+            q_prev = np.asarray(profile["q"], dtype=float)
+            hu_prev = np.asarray(profile["hu"], dtype=float)
+        except Exception:
+            return _default_initial_guess()
+
+        if (
+            s_prev.ndim != 1
+            or a_prev.shape != s_prev.shape
+            or q_prev.shape != s_prev.shape
+            or hu_prev.shape != s_prev.shape
+            or s_prev.size < 5
+            or not np.all(np.isfinite(s_prev))
+            or not np.all(np.isfinite(a_prev))
+            or not np.all(np.isfinite(q_prev))
+            or not np.all(np.isfinite(hu_prev))
+        ):
+            return _default_initial_guess()
+
+        a_prev0 = float(a_prev[0])
+        a_scale = float(aQstar) / a_prev0 if abs(a_prev0) > 1.0e-12 else 1.0
+        a_guess_loc = np.interp(s_coord_mesh, s_prev, a_prev) * a_scale
+        a_guess_loc[0] = float(aQstar)
+
+        q_base = np.interp(s_coord_mesh, s_prev, q_prev) * a_scale
+        q_base0 = float(q_base[0])
+        q_base_end = float(q_base[-1])
+        q_target0 = float(state0["q0"])
+        q_target_end = float(-state0["tail_coeff_Q"] * a_guess_loc[-1])
+        q_span = q_base_end - q_base0
+        if np.isfinite(q_span) and abs(q_span) > 1.0e-12 * max(1.0, abs(q_base0), abs(q_base_end)):
+            q_frac = (q_base - q_base0) / q_span
+            q_guess_loc = q_target0 + q_frac * (q_target_end - q_target0)
+        else:
+            q_guess_loc = (1.0 - blend) * q_target0 + blend * q_target_end
+        q_guess_loc[0] = q_target0
+
+        hu_base = np.interp(s_coord_mesh, s_prev, hu_prev)
+        hu_base0 = float(hu_base[0])
+        hu_base_end = float(hu_base[-1])
+        hu_span = hu_base_end - hu_base0
+        if (
+            np.all(np.isfinite(hu_base))
+            and hu_base0 > 0.0
+            and hu_base_end > 0.0
+            and abs(hu_span) > 1.0e-12 * max(1.0, abs(hu_base0), abs(hu_base_end))
+        ):
+            hu_frac = (hu_base - hu_base0) / hu_span
+            hu_guess_loc = state0["hu_N"] + hu_frac * (state0["hu_Q"] - state0["hu_N"])
+        else:
+            hu_guess_loc = (1.0 - blend) * state0["hu_N"] + blend * state0["hu_Q"]
+
+        if (not np.all(np.isfinite(a_guess_loc))) or (not np.all(np.isfinite(q_guess_loc))) or (not np.all(np.isfinite(hu_guess_loc))) or np.any(hu_guess_loc <= 0.0):
+            return _default_initial_guess()
+
+        hu_guess_loc[0] = float(state0["hu_N"])
+        return a_guess_loc, q_guess_loc, hu_guess_loc
+
+    if profile_guess is None:
+        a_guess, q_guess, hu_guess = _default_initial_guess()
+    else:
+        a_guess, q_guess, hu_guess = _profile_initial_guess(profile_guess)
+    y_guess = np.vstack((a_guess, q_guess, hu_guess))
+
+    _diag(
+        f"starting energy compact BVP with jB_guess={jB_guess:.6g}, "
+        f"TQ_guess={TQ_guess:.6g}, aQstar={aQstar:.6g}, tail_eps={tail_eps:.3g}, branch=muK-rich"
+    )
+
+    try:
+        sol = solve_bvp(
+            _ode,
+            _bc,
+            s_coord_mesh,
+            y_guess,
+            p=np.array([theta_guess, phi_guess], dtype=float),
+            tol=tol_bvp,
+            max_nodes=max_nodes,
+            verbose=2 if full_diag else 0,
+        )
+    except Exception as exc:
+        return _nan_result(
+            f"solve_bvp raised: {exc}; last failure: {last_failure['message']}",
+            bvp_status=-999,
+            bvp_message=f"solve_bvp raised: {exc}",
+        )
+
+    theta_sol = float(sol.p[0])
+    phi_sol = float(sol.p[1])
+    state = _state_or_none(theta_sol, phi_sol)
+    if state is None:
+        return _nan_result(
+            f"BVP final state construction failed: {last_failure['message']}",
+            bvp_status=int(sol.status),
+            bvp_message=str(sol.message),
+            sol=sol,
+        )
+
+    a_end = float(sol.y[0, -1])
+    q_end = float(sol.y[1, -1])
+    hu_end = float(sol.y[2, -1])
+    tail_drive = float(state["tail_coeff_Q"] * a_end)
+    tail_residual = float(q_end + tail_drive)
+    tail_scale = float(max(abs(q_end), abs(tail_drive), np.finfo(float).tiny))
+    tail_residual_norm = float(tail_residual / tail_scale)
+    hu_tail_residual = float(hu_end - state["hu_Q"])
+    hu_tail_scale = float(max(abs(hu_end), abs(state["hu_Q"]), np.finfo(float).tiny))
+    hu_tail_residual_norm = float(hu_tail_residual / hu_tail_scale)
+
+    success = bool(
+        sol.success
+        and np.isfinite(tail_residual_norm)
+        and np.isfinite(hu_tail_residual_norm)
+        and abs(tail_residual_norm) <= max(tol_bvp, 10.0 * np.finfo(float).eps)
+        and abs(hu_tail_residual_norm) <= max(tol_bvp, 10.0 * np.finfo(float).eps)
+    )
+    result = {
+        "success": success,
+        "message": "Energy-conserving compact BVP steady-front solve converged" if success else f"{sol.message}; last failure: {last_failure['message']}",
+        "jB": float(state["jB"]),
+        "T_Q": float(state["T_Q"]),
+        "T_N": float(T),
+        "T_Qstar": float(state["T_Qstar"]),
+        "aQstar": float(aQstar),
+        "branch_label": "muK-rich",
+        "energy_flux_equation": "hu_const",
+        "coordinate": "BVP: s_coord in [0, 1-tail_eps], s_coord=1-exp(-lambda*x)",
+        "tail_eps": float(tail_eps),
+        "u_N": float(state["u_N"]),
+        "u_Q": float(state["u_Q"]),
+        "a_N": float(state["a_N"]),
+        "Pi": float(state["Pi"]),
+        "muB_Q": float(state["muB_Q"]),
+        "nB_Q": float(state["nB_Q"]),
+        "nK_Q": float(state["nK_Q"]),
+        "muB_Qstar": float(state["muB_Qstar"]),
+        "muK_Qstar": float(state["muK_Qstar"]),
+        "nB_Qstar": float(state["nB_Qstar"]),
+        "h_N": float(state["h_N"]),
+        "h_Q": float(state["h_Q"]),
+        "h_Qstar": float(state["h_Qstar"]),
+        "h_over_nB_N": float(state["h_over_nB_N"]),
+        "h_over_nB_Qstar": float(state["h_over_nB_Qstar"]),
+        "h_over_nB_jump_residual": float(state["h_over_nB_jump_residual"]),
+        "hu_N": float(state["hu_N"]),
+        "hu_Q": float(state["hu_Q"]),
+        "hu_Qstar": float(state["hu_Qstar"]),
+        "hu_jump_residual": float(state["hu_jump_residual"]),
+        "D_Q": float(state["D_Q"]),
+        "eta_Q": float(state["eta_Q"]),
+        "gamma_Q": float(state["gamma_Q"]),
+        "tau_Q": float(state["tau_Q"]),
+        "lambda": float(state["lambda"]),
+        "kappa": float(1.0 / state["lambda"]),
+        "s_end": float(s_coord_end),
+        "x_end": float(state["x_end"]),
+        "a_end": a_end,
+        "q_end": q_end,
+        "hu_end": hu_end,
+        "tail_residual": tail_residual,
+        "tail_residual_norm": tail_residual_norm,
+        "tail_scale": tail_scale,
+        "hu_tail_residual": hu_tail_residual,
+        "hu_tail_residual_norm": hu_tail_residual_norm,
+        "hu_tail_scale": hu_tail_scale,
+        "_residual": np.array([tail_residual_norm, hu_tail_residual_norm], dtype=float),
+        "_root_method": "solve_bvp_parameter_2d",
+        "bvp_status": int(sol.status),
+        "bvp_message": str(sol.message),
+        "bvp_niter": int(getattr(sol, "niter", -1)),
+        "bvp_nodes": int(sol.x.size),
+        **{k: int(v) for k, v in stats.items()},
+    }
+
+    if return_profile or seed_profile:
+        s_coord_prof = np.asarray(sol.x, dtype=float)
+        a_prof = np.asarray(sol.y[0], dtype=float)
+        q_prof = np.asarray(sol.y[1], dtype=float)
+        hu_prof = np.asarray(sol.y[2], dtype=float)
+        x_prof = -np.log1p(-s_coord_prof) / float(state["lambda"])
+        result.update(
+            {
+                "s_coord": s_coord_prof,
+                "x": x_prof,
+                "a": a_prof,
+                "q": q_prof,
+                "hu": hu_prof,
+            }
+        )
+    if return_profile and success:
+        muB_prof = np.empty_like(s_coord_prof)
+        muK_prof = np.empty_like(s_coord_prof)
+        T_prof = np.empty_like(s_coord_prof)
+        nB_prof = np.empty_like(s_coord_prof)
+        u_prof = np.empty_like(s_coord_prof)
+        h_prof = np.empty_like(s_coord_prof)
+        D_prof = np.empty_like(s_coord_prof)
+        eta_prof = np.empty_like(s_coord_prof)
+        gamma_prof = np.empty_like(s_coord_prof)
+        guess = (state["muB_Qstar"], state["muK_Qstar"], state["T_Qstar"])
+        try:
+            for i, a_val in enumerate(a_prof):
+                stats["profile_state_calls"] += 1
+                thermo_loc = _solve_local_quark_state_from_a_hu_and_Pi(
+                    float(a_val),
+                    float(hu_prof[i]),
+                    state["Pi"],
+                    state["jB"],
+                    state["nB_Q"],
+                    state["nK_Q"],
+                    B_one_forth,
+                    ms=ms,
+                    upB=upB,
+                    initial_guess=guess,
+                    T_ref=state["T_Q"],
+                    stats=stats,
+                )
+                guess = (thermo_loc["muB"], thermo_loc["muK"], thermo_loc["T"])
+                micro_loc = _microphysics_from_quark_state(thermo_loc["muB"], thermo_loc["T"])
+                muB_prof[i] = thermo_loc["muB"]
+                muK_prof[i] = thermo_loc["muK"]
+                T_prof[i] = thermo_loc["T"]
+                nB_prof[i] = thermo_loc["nB"]
+                u_prof[i] = thermo_loc["u"]
+                h_prof[i] = thermo_loc["h"]
+                D_prof[i] = micro_loc["D"]
+                eta_prof[i] = micro_loc["eta"]
+                gamma_prof[i] = micro_loc["gamma"]
+        except Exception as exc:
+            result["success"] = False
+            result["message"] = f"{result['message']}; profile reconstruction failed: {exc}"
+            result["profile_reconstruction_failed"] = True
+            result["profile_reconstruction_message"] = str(exc)
+            result["profile_state_calls"] = int(stats["profile_state_calls"])
+            result["local_state_calls"] = int(stats["local_state_calls"])
+            result["local_root_calls"] = int(stats["local_root_calls"])
+            result["local_fast_failures"] = int(stats["local_fast_failures"])
+            if simple_diag:
+                print(f"energy-bvp profile reconstruction failed for aQstar={aQstar:.6g}: {exc}")
+            return result
+
+        result.update(
+            {
+                "u": u_prof,
+                "nB": nB_prof,
+                "muB": muB_prof,
+                "muK": muK_prof,
+                "T_profile": T_prof,
+                "h_profile": h_prof,
+                "D_profile": D_prof,
+                "eta_profile": eta_prof,
+                "gamma_profile": gamma_prof,
+                "profile_state_calls": int(stats["profile_state_calls"]),
+                "local_state_calls": int(stats["local_state_calls"]),
+                "local_root_calls": int(stats["local_root_calls"]),
+                "local_fast_failures": int(stats["local_fast_failures"]),
+            }
+        )
+
+    if simple_diag:
+        print(
+            f"energy-bvp jB={result['jB']:.6g}, T_Q={result['T_Q']:.6g}, "
+            f"aQstar={aQstar:.6g}, tail_norm={tail_residual_norm:.6g}, "
+            f"hu_tail_norm={hu_tail_residual_norm:.6g}, status={sol.status}, success={success}"
+        )
+    return result
+
+
+def solve_front_energy_conserving(
+    T,
+    nB_N,
+    B_one_forth,
+    aQstar,
+    ms=0.0,
+    param=para.paraQMCRMF3,
+    NM_type="PNM",
+    tail_eps=1e-8,
+    n_mesh=200,
+    tol_bvp=1e-4,
+    max_nodes=10000,
+    jB_guess=None,
+    TQ_guess=None,
+    jB_bounds=None,
+    return_profile=False,
+    verb=False,
+):
+    """
+    Solve the steady-front problem with h(x)*u(x) conserved across the front.
+
+    The solver follows the adiabatic compact-BVP structure, but its third
+    profile variable is hu = h*u instead of entropy flux.
+    """
+    aQstar = float(aQstar)
+    abs_target = abs(aQstar)
+    sign = -1.0 if aQstar < 0.0 else 1.0
+
+    if isinstance(verb, str):
+        verb_mode = "full" if verb.lower() == "full" else ("simple" if verb else "off")
+    else:
+        verb_mode = "simple" if verb else "off"
+    simple_diag = verb_mode in ("simple", "full")
+
+    direct_jB_guess = jB_guess
+    if direct_jB_guess is None:
+        direct_jB_guess = float(max(1.0e-12, 1.0e-8 * float(nB_N), 0.8 * abs_target))
+
+    if TQ_guess is None:
+        TQ_guess_candidates = _adiabatic_default_TQ_guesses(T)
+    else:
+        TQ_guess_candidates = (float(TQ_guess),)
+    direct_TQ_guess = float(TQ_guess_candidates[0])
+    if (not np.isfinite(direct_TQ_guess)) or direct_TQ_guess <= 0.0:
+        raise RuntimeError("TQ_guess must be positive")
+
+    direct_result = _solve_front_energy_conserving_once(
+        T,
+        nB_N,
+        B_one_forth,
+        aQstar,
+        ms=ms,
+        param=param,
+        NM_type=NM_type,
+        tail_eps=tail_eps,
+        n_mesh=n_mesh,
+        tol_bvp=tol_bvp,
+        max_nodes=max_nodes,
+        jB_guess=direct_jB_guess,
+        TQ_guess=direct_TQ_guess,
+        jB_bounds=jB_bounds,
+        return_profile=return_profile,
+        verb=verb,
+        profile_guess=None,
+    )
+    if (
+        TQ_guess is None
+        and len(TQ_guess_candidates) > 1
+        and _adiabatic_initial_state_failed(direct_result)
+    ):
+        retry_TQ_guess = float(TQ_guess_candidates[1])
+        if simple_diag:
+            print(
+                f"energy-bvp low-T hot-start retry: initial state failed at "
+                f"TQ_guess={direct_TQ_guess:.6g}; retrying with TQ_guess={retry_TQ_guess:.6g}"
+            )
+        direct_TQ_guess = retry_TQ_guess
+        direct_result = _solve_front_energy_conserving_once(
+            T,
+            nB_N,
+            B_one_forth,
+            aQstar,
+            ms=ms,
+            param=param,
+            NM_type=NM_type,
+            tail_eps=tail_eps,
+            n_mesh=n_mesh,
+            tol_bvp=tol_bvp,
+            max_nodes=max_nodes,
+            jB_guess=direct_jB_guess,
+            TQ_guess=direct_TQ_guess,
+            jB_bounds=jB_bounds,
+            return_profile=return_profile,
+            verb=verb,
+            profile_guess=None,
+        )
+    if bool(direct_result.get("success")) or abs_target <= 1.0e-2:
+        result_out = dict(direct_result)
+        result_out["continuation_used"] = False
+        result_out["continuation_steps"] = 0
+        if return_profile:
+            return result_out
+        return _strip_energy_profile_fields(result_out)
+
+    if simple_diag:
+        print(
+            f"energy-bvp continuation: direct solve failed at aQstar={aQstar:.6g}; "
+            f"retrying with staged continuation"
+        )
+
+    stage_n_mesh = int(min(max(max(int(n_mesh) // 2, 25), 25), 40))
+    stage_tol = float(max(float(tol_bvp), 2.0e-2))
+    stage_max_nodes = int(max(stage_n_mesh + 5, min(int(max_nodes), 250)))
+    base_step_abs = 1.0e-3
+    min_step_abs = 1.0e-4
+    step_abs = float(min(base_step_abs, max(abs_target - min(abs_target, 1.0e-2), 0.0)))
+    current_abs = min(abs_target, 1.0e-2)
+    stage_jB_guess = direct_jB_guess
+    if not (np.isfinite(stage_jB_guess) and stage_jB_guess > 0.0):
+        stage_jB_guess = None
+    direct_jB_out = direct_result.get("jB", np.nan)
+    if np.isfinite(direct_jB_out) and direct_jB_out > 0.0:
+        stage_jB_guess = float(direct_jB_out)
+    if stage_jB_guess is None:
+        seed_abs = current_abs if current_abs > 0.0 else 1.0e-2
+        stage_jB_guess = _seed_adiabatic_jB_guess(
+            T,
+            nB_N,
+            B_one_forth,
+            sign * seed_abs,
+            ms=ms,
+            param=param,
+            NM_type=NM_type,
+            tail_eps=tail_eps,
+            n_mesh=n_mesh,
+            tol_bvp=tol_bvp,
+            max_nodes=max_nodes,
+            verb=False,
+        )
+
+    current = _solve_front_energy_conserving_once(
+        T,
+        nB_N,
+        B_one_forth,
+        sign * current_abs,
+        ms=ms,
+        param=param,
+        NM_type=NM_type,
+        tail_eps=tail_eps,
+        n_mesh=stage_n_mesh,
+        tol_bvp=stage_tol,
+        max_nodes=stage_max_nodes,
+        jB_guess=stage_jB_guess,
+        TQ_guess=direct_TQ_guess,
+        jB_bounds=jB_bounds,
+        return_profile=False,
+        verb=False,
+        profile_guess=None,
+        seed_profile=True,
+    )
+    if not bool(current.get("success")):
+        failed = dict(current)
+        failed["message"] = (
+            f"{direct_result['message']}; continuation seed at aQstar={sign * current_abs:.6g} failed: "
+            f"{current['message']}"
+        )
+        failed["continuation_used"] = True
+        failed["continuation_steps"] = 0
+        failed["continuation_seed_aQstar"] = float(sign * current_abs)
+        if return_profile:
+            return failed
+        return _strip_energy_profile_fields(failed)
+
+    steps_taken = 0
+    while current_abs < abs_target - 1.0e-12:
+        next_abs = min(abs_target, current_abs + step_abs)
+        next_a = sign * next_abs
+        trial = _solve_front_energy_conserving_once(
+            T,
+            nB_N,
+            B_one_forth,
+            next_a,
+            ms=ms,
+            param=param,
+            NM_type=NM_type,
+            tail_eps=tail_eps,
+            n_mesh=stage_n_mesh,
+            tol_bvp=stage_tol,
+            max_nodes=stage_max_nodes,
+            jB_guess=current["jB"],
+            TQ_guess=current["T_Q"],
+            jB_bounds=jB_bounds,
+            return_profile=False,
+            verb=False,
+            profile_guess=current,
+            seed_profile=True,
+        )
+        if bool(trial.get("success")):
+            current = trial
+            current_abs = next_abs
+            steps_taken += 1
+            if simple_diag and (steps_taken % 25 == 0 or current_abs >= abs_target - 1.0e-12):
+                print(
+                    f"energy-bvp continuation: reached aQstar={next_a:.6g} "
+                    f"with jB={current['jB']:.6g}, T_Q={current['T_Q']:.6g}"
+                )
+            step_abs = min(base_step_abs, max(abs_target - current_abs, 0.0))
+            continue
+
+        step_abs *= 0.5
+        if step_abs < min_step_abs:
+            failed = dict(trial)
+            failed["message"] = (
+                f"Energy-conserving continuation failed after reaching aQstar={sign * current_abs:.6g}; "
+                f"last attempted aQstar={next_a:.6g}. {trial['message']}"
+            )
+            failed["continuation_used"] = True
+            failed["continuation_steps"] = steps_taken
+            failed["continuation_seed_aQstar"] = float(sign * min(abs_target, 1.0e-2))
+            if return_profile:
+                return failed
+            return _strip_energy_profile_fields(failed)
+
+    refined = _solve_front_energy_conserving_once(
+        T,
+        nB_N,
+        B_one_forth,
+        aQstar,
+        ms=ms,
+        param=param,
+        NM_type=NM_type,
+        tail_eps=tail_eps,
+        n_mesh=n_mesh,
+        tol_bvp=tol_bvp,
+        max_nodes=max_nodes,
+        jB_guess=current["jB"],
+        TQ_guess=current["T_Q"],
+        jB_bounds=jB_bounds,
+        return_profile=return_profile,
+        verb=False,
+        profile_guess=current,
+    )
+    if bool(refined.get("success")):
+        result_out = dict(refined)
+        result_out["continuation_refined"] = True
+    else:
+        if return_profile:
+            coarse_profile = _solve_front_energy_conserving_once(
+                T,
+                nB_N,
+                B_one_forth,
+                aQstar,
+                ms=ms,
+                param=param,
+                NM_type=NM_type,
+                tail_eps=tail_eps,
+                n_mesh=stage_n_mesh,
+                tol_bvp=stage_tol,
+                max_nodes=stage_max_nodes,
+                jB_guess=current["jB"],
+                TQ_guess=current["T_Q"],
+                jB_bounds=jB_bounds,
+                return_profile=True,
+                verb=False,
+                profile_guess=current,
+            )
+            result_out = dict(coarse_profile if bool(coarse_profile.get("success")) else current)
+        else:
+            result_out = dict(current)
+        result_out["message"] = (
+            f"{result_out['message']}; final refinement failed: {refined['message']}"
+        )
+        result_out["continuation_refined"] = False
+
+    result_out["continuation_used"] = True
+    result_out["continuation_steps"] = steps_taken
+    result_out["continuation_seed_aQstar"] = float(sign * min(abs_target, 1.0e-2))
+    if return_profile:
+        return result_out
+    return _strip_energy_profile_fields(result_out)

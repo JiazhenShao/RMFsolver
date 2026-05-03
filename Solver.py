@@ -2646,7 +2646,7 @@ def RMFedensPNM(input_num, input_type, Trmf, para, sigma_init=30, w0_init=20, r0
     _warn_if_inaccurate(chk, verb)
     return edens_total
 
-def RMFentropyPNM(input_num, input_type, Trmf, para, sigma_init=30, w0_init=20, r03_init=-3, mub_init=990, verb=False, boundmult=40, add_photons=False, electrons=False, neutrinos=False, use_thermal=False):
+def RMFentropyPNM(input_num, input_type, Trmf, para, sigma_init=30, w0_init=20, r03_init=-3, mub_init=990, verb=False, boundmult=40, add_photons=False, electrons=False, neutrinos=False, use_thermal=True):
     """
     Compute entropy density for pure neutron matter (PNM).
 
@@ -3113,7 +3113,7 @@ def _entropy_RMF_thermal(soltab, add_photons=False, electrons=True, neutrinos=Fa
 
 # (CHECK AGAIN!!! not so accurate, %2.5 error)
 # module to compute entropy density at finite T
-def entropy_RMF(soltab, boundmult=40, add_photons=False, integration_method="LocalAdaptive", electrons=True, neutrinos=False, use_thermal=False):
+def entropy_RMF(soltab, boundmult=40, add_photons=False, integration_method="LocalAdaptive", electrons=True, neutrinos=False, use_thermal=True):
     """
     Compute entropy density from RMF solution.
 

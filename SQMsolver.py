@@ -629,7 +629,7 @@ def edensQM(muB, muK, B_one_forth, T, ms=0, include_em=False, muQ_init=300, upB=
     return float(quark_state["energy"] + B)
 
 
-def entropyQM(muB, muK, B_one_forth, T, ms=0, include_em=False, muQ_init=300, upB=5000, use_thermal=True):
+def entropyQM(muB, muK, B_one_forth, T, ms=0, include_em=False, muQ_init=300, upB=5000, use_thermal=False):
     """
     Entropy density of strange quark matter under the bag model.
     """
