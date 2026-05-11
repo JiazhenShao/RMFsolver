@@ -97,7 +97,7 @@ def sNM_n(nB, Temp, param = para.paraQMCRMF3, NM_type = "PNM"):
     Return the nuclear-matter entropy density at fixed n_B.
     """
     if NM_type != "PNM":
-        raise RuntimeError("entropy_jump currently supports NM_type='PNM' only")
+        raise RuntimeError("sNM_n currently supports NM_type='PNM' only")
     entropy = RMFentropyPNM(input_num=nB, input_type="nB", Trmf=Temp, para=param,
         sigma_init=30, w0_init=20, r03_init=-3, mub_init=990, verb=False,
         electrons=False, neutrinos=False,
@@ -532,80 +532,13 @@ def _branch_muK_seed(a_like):
 
 def _normalize_interface_temperature_mode(mode):
     mode = str(mode)
-    valid_modes = ("hu_const", "T_const", "entropy_jump")
+    valid_modes = ("hu_const", "T_const")
     if mode not in valid_modes:
         raise RuntimeError(
             "interface_temperature_mode must be one of "
             + ", ".join(repr(item) for item in valid_modes)
         )
     return mode
-
-
-def _entropy_jump_nan_diagnostics():
-    return {
-        "s_N": np.nan,
-        "w_N": np.nan,
-        "muK_N": np.nan,
-        "nK_N": np.nan,
-        "entropy_jump_w0": np.nan,
-        "entropy_jump_residual": np.nan,
-        "entropy_jump_eos_w_residual": np.nan,
-    }
-
-
-def _entropy_jump_boundary_diagnostics(thermo_Qstar, nB_N, jB, T_N, param=para.paraQMCRMF3, NM_type="PNM"):
-    """
-    Return the entropy-flux boundary diagnostics for the picture jump condition.
-    """
-    T_N = float(T_N)
-    if (not np.isfinite(T_N)) or T_N <= 0.0:
-        raise RuntimeError("entropy_jump boundary requires T_N > 0")
-    nB_N = float(nB_N)
-    if (not np.isfinite(nB_N)) or nB_N <= 0.0:
-        raise RuntimeError("entropy_jump boundary requires positive nB_N")
-    jB = float(jB)
-    if (not np.isfinite(jB)) or jB <= 0.0:
-        raise RuntimeError("entropy_jump boundary requires positive jB")
-
-    T_Qstar = float(thermo_Qstar["T"])
-    if (not np.isfinite(T_Qstar)) or T_Qstar <= 0.0:
-        raise RuntimeError("entropy_jump boundary requires positive T_Qstar")
-
-    muK_N = 0.0
-    nK_N = nB_N
-    u_N = float(jB / nB_N)
-    s_N = float(sNM_n(nB_N, T_N, param=param, NM_type=NM_type))
-    w_N = float(s_N * u_N)
-
-    muK_Qstar = float(thermo_Qstar["muK"])
-    nK_Qstar = float(thermo_Qstar["nK"])
-    u_Qstar = float(thermo_Qstar["u"])
-    denom = float(T_Qstar + T_N)
-    if (not np.isfinite(denom)) or denom <= 0.0:
-        raise RuntimeError("entropy_jump boundary has non-positive temperature denominator")
-
-    rhs = float((muK_Qstar - muK_N) / denom * (nK_Qstar * u_Qstar - nK_N * u_N))
-    w0 = float(w_N + rhs)
-    residual = float(w0 - w_N - rhs)
-    eos_w_residual = float(thermo_Qstar["w"] - w0)
-    for value in (s_N, w_N, rhs, w0, residual, eos_w_residual):
-        if not np.isfinite(value):
-            raise RuntimeError("entropy_jump boundary returned a non-finite diagnostic")
-
-    return {
-        "s_N": s_N,
-        "w_N": w_N,
-        "muK_N": muK_N,
-        "nK_N": nK_N,
-        "u_N": u_N,
-        "T_Qstar": T_Qstar,
-        "muK_Qstar": muK_Qstar,
-        "nK_Qstar": nK_Qstar,
-        "u_Qstar": u_Qstar,
-        "entropy_jump_w0": w0,
-        "entropy_jump_residual": residual,
-        "entropy_jump_eos_w_residual": eos_w_residual,
-    }
 
 
 def _quark_state_residual(muB, muK, a_target, Pi, jB, nB_Q, nK_Q, B_one_forth, T, ms=0.0, upB=5000):
@@ -2680,21 +2613,7 @@ def _solve_front_adiabatic_once(
             raise RuntimeError("Interface Qstar state has non-positive entropy flux")
         h_over_nB_Qstar = float(thermo_Qstar["h"] / thermo_Qstar["nB"])
         h_over_nB_jump_residual = float(h_over_nB_Qstar - h_over_nB_N)
-        entropy_jump_diag = _entropy_jump_nan_diagnostics()
-        if interface_temperature_mode == "entropy_jump":
-            entropy_jump_diag = _entropy_jump_boundary_diagnostics(
-                thermo_Qstar,
-                nB_N,
-                jB,
-                T,
-                param=param,
-                NM_type=NM_type,
-            )
-            w0 = float(entropy_jump_diag["entropy_jump_w0"])
-            if w0 <= 0.0:
-                raise RuntimeError("entropy_jump boundary returned non-positive entropy flux")
-        else:
-            w0 = float(thermo_Qstar["w"])
+        w0 = float(thermo_Qstar["w"])
 
         micro_Q = _microphysics_from_quark_state(muB_Q, T_Q)
         D_Q = float(micro_Q["D"])
@@ -2736,13 +2655,6 @@ def _solve_front_adiabatic_once(
             "T_Qstar": float(thermo_Qstar["T"]),
             "h_over_nB_Qstar": h_over_nB_Qstar,
             "h_over_nB_jump_residual": h_over_nB_jump_residual,
-            "s_N": float(entropy_jump_diag["s_N"]),
-            "w_N": float(entropy_jump_diag["w_N"]),
-            "muK_N": float(entropy_jump_diag["muK_N"]),
-            "nK_N": float(entropy_jump_diag["nK_N"]),
-            "entropy_jump_w0": float(entropy_jump_diag["entropy_jump_w0"]),
-            "entropy_jump_residual": float(entropy_jump_diag["entropy_jump_residual"]),
-            "entropy_jump_eos_w_residual": float(entropy_jump_diag["entropy_jump_eos_w_residual"]),
             "D_Q": D_Q,
             "eta_Q": eta_Q,
             "gamma_Q": gamma_Q,
@@ -2912,7 +2824,6 @@ def _solve_front_adiabatic_once(
             "h_over_nB_N": np.nan,
             "h_over_nB_Qstar": np.nan,
             "h_over_nB_jump_residual": np.nan,
-            **_entropy_jump_nan_diagnostics(),
             "branch_label": "muK-rich",
             "tail_residual": np.nan,
             "tail_residual_norm": np.nan,
@@ -3041,7 +2952,6 @@ def _solve_front_adiabatic_once(
             "h_over_nB_N": np.nan,
             "h_over_nB_Qstar": np.nan,
             "h_over_nB_jump_residual": np.nan,
-            **_entropy_jump_nan_diagnostics(),
             "branch_label": "muK-rich",
             "tail_residual": np.nan,
             "tail_residual_norm": np.nan,
@@ -3074,7 +2984,6 @@ def _solve_front_adiabatic_once(
             "h_over_nB_N": np.nan,
             "h_over_nB_Qstar": np.nan,
             "h_over_nB_jump_residual": np.nan,
-            **_entropy_jump_nan_diagnostics(),
             "branch_label": "muK-rich",
             "tail_residual": np.nan,
             "tail_residual_norm": np.nan,
@@ -3137,13 +3046,6 @@ def _solve_front_adiabatic_once(
         "h_over_nB_N": float(state["h_over_nB_N"]),
         "h_over_nB_Qstar": float(state["h_over_nB_Qstar"]),
         "h_over_nB_jump_residual": float(state["h_over_nB_jump_residual"]),
-        "s_N": float(state["s_N"]),
-        "w_N": float(state["w_N"]),
-        "muK_N": float(state["muK_N"]),
-        "nK_N": float(state["nK_N"]),
-        "entropy_jump_w0": float(state["entropy_jump_w0"]),
-        "entropy_jump_residual": float(state["entropy_jump_residual"]),
-        "entropy_jump_eos_w_residual": float(state["entropy_jump_eos_w_residual"]),
         "w0": float(state["w0"]),
         "D_Q": float(state["D_Q"]),
         "eta_Q": float(state["eta_Q"]),
