@@ -3,6 +3,7 @@ import time
 import warnings
 from scipy.integrate import solve_bvp
 from scipy.optimize import fsolve, root_scalar, root, least_squares
+import RMFsolver.constants as const
 import RMFsolver.RMFparameter as para
 from RMFsolver.SQMsolver import (
     # Legacy re-exports kept for repo-wide notebook/script compatibility.
@@ -22,7 +23,13 @@ from RMFsolver.SQMsolver import (
 from RMFsolver.Solver import RMFsolve, RMFsolve_mu, RMFpressureSYM, RMFpressurePNM, pressure_RMF
 from RMFsolver.Solver import RMFedensPNM, RMFentropyPNM, RMFbaryon_densityPNM, RMFbaryon_densitySYM, RMFbaryon_density
 
-__all__ = ["solve_front_isothermal", "solve_front_adiabatic", "solve_front_energy_conserving"]
+__all__ = [
+    "analytic_velocity_bound",
+    "solve_front_isothermal",
+    "solve_front_adiabatic",
+    "solve_front_energy_conserving",
+    "solve_front_energy_conserving_uNmax",
+]
 
 _ADIABATIC_LOW_T_THRESHOLD = 5.0
 _ADIABATIC_HOT_START_OFFSET = 50.0
@@ -139,6 +146,267 @@ def nB_NM(mu_B, Temp, param = para.paraQMCRMF3, NM_type = "PNM"):
         return float(np.asarray(nB).item())
 
     raise ValueError("Nuclear matter type not defined.")
+
+def _analytic_weak_rate_from_mu_q(mu_q):
+    """
+    Return the nonleptonic weak-rate gamma and corresponding tau.
+
+    gamma is evaluated in natural units (MeV), so tau is returned in MeV^-1.
+    tau_seconds is included as a diagnostic conversion using hbar = MeV_sec.
+    """
+    mu_q = float(mu_q)
+    if (not np.isfinite(mu_q)) or mu_q <= 0.0:
+        raise RuntimeError("Weak-rate coefficient requires mu_q > 0")
+
+    gamma = (
+        (128.0 / 27.0)
+        * (1.0 / (5.0 * np.pi**3))
+        * const.G_Fermi**2
+        * np.cos(const.Cabibbo_angle_rad) ** 2
+        * np.sin(const.Cabibbo_angle_rad) ** 2
+        * mu_q**5
+    )
+    if (not np.isfinite(gamma)) or gamma <= 0.0:
+        raise RuntimeError("Weak-rate coefficient is non-physical")
+
+    tau = 1.0 / gamma
+    tau_seconds = tau * const.MeV_sec
+    if (
+        (not np.isfinite(tau))
+        or (not np.isfinite(tau_seconds))
+        or tau <= 0.0
+        or tau_seconds <= 0.0
+    ):
+        raise RuntimeError("Weak-rate timescale is non-physical")
+
+    return {
+        "gamma": float(gamma),
+        "tau": float(tau),
+        "tau_seconds": float(tau_seconds),
+    }
+
+
+def analytic_velocity_bound(
+    muB_N,
+    T_N,
+    B_one_forth,
+    xi=0.0,
+    ms=0.0,
+    param=para.paraQMCRMF3,
+    NM_type="PNM",
+    upB=5000,
+    initial_guess=None,
+):
+    """
+    Evaluate the analytic upper bound for the upstream nuclear velocity u_N.
+
+    The nuclear state is read from the existing EOS helpers at (muB_N, T_N).
+    The downstream quark endpoint is solved at muK = 0 from pressure
+    continuity and h/nB matching. Densities use nB_NM and nB_QM directly;
+    the leading massless nB ~ muB^3 approximation is not used in the bound.
+    """
+    muB_N = float(muB_N)
+    T_N = float(T_N)
+    B_one_forth = float(B_one_forth)
+    xi = float(xi)
+
+    if (not np.isfinite(muB_N)) or muB_N <= 0.0:
+        raise RuntimeError("muB_N must be positive and finite")
+    if (not np.isfinite(T_N)) or T_N <= 0.0:
+        raise RuntimeError("T_N must be positive and finite")
+    if (not np.isfinite(B_one_forth)) or B_one_forth <= 0.0:
+        raise RuntimeError("B_one_forth must be positive and finite")
+    if (not np.isfinite(xi)) or not (-1.0 < xi < 1.0):
+        raise RuntimeError("xi must satisfy -1 < xi < 1")
+
+    P_N = float(PNM(muB_N, T_N, param=param, NM_type=NM_type))
+    e_N = float(edensNM(muB_N, T_N, param=param))
+    h_N = float(P_N + e_N)
+    nB_N = float(nB_NM(muB_N, T_N, param=param, NM_type=NM_type))
+    if (not np.isfinite(P_N)) or (not np.isfinite(e_N)) or (not np.isfinite(h_N)):
+        raise RuntimeError("Nuclear EOS returned non-finite pressure or enthalpy")
+    if (not np.isfinite(nB_N)) or nB_N <= 0.0:
+        raise RuntimeError("nB_N must be positive and finite")
+    if h_N <= 0.0:
+        raise RuntimeError("h_N must be positive")
+    h_over_nB_N = float(h_N / nB_N)
+    if (not np.isfinite(h_over_nB_N)) or h_over_nB_N <= 0.0:
+        raise RuntimeError("Nuclear h_N/nB_N must be positive and finite")
+
+    def _append_guess(guesses, muB_guess, T_guess):
+        try:
+            muB_guess = float(muB_guess)
+            T_guess = float(T_guess)
+        except Exception:
+            return
+        if (
+            np.isfinite(muB_guess)
+            and np.isfinite(T_guess)
+            and muB_guess > 0.0
+            and T_guess > 0.0
+        ):
+            candidate = (muB_guess, T_guess)
+            if candidate not in guesses:
+                guesses.append(candidate)
+
+    guesses = []
+    if initial_guess is not None:
+        guess_arr = np.asarray(initial_guess, dtype=float).ravel()
+        if guess_arr.size >= 2:
+            _append_guess(guesses, guess_arr[0], guess_arr[1])
+    _append_guess(guesses, muB_N, T_N)
+    _append_guess(guesses, max(muB_N, 900.0), max(T_N, 1.0))
+    _append_guess(guesses, 1100.0, max(T_N, 10.0))
+    _append_guess(guesses, 900.0, 10.0)
+    _append_guess(guesses, 1300.0, 10.0)
+    _append_guess(guesses, 1100.0, 50.0)
+
+    p_scale = max(abs(P_N), 1.0)
+    h_scale = max(abs(h_over_nB_N), 1.0)
+
+    def equations(vec):
+        muB = float(vec[0])
+        logT = float(vec[1])
+        if (not np.isfinite(muB)) or muB <= 0.0 or (not np.isfinite(logT)) or abs(logT) > 700.0:
+            return np.array([1.0e30, 1.0e30], dtype=float)
+        T_Q = float(np.exp(logT))
+        try:
+            P_Q = float(PQM(muB, 0.0, B_one_forth, T_Q, ms=ms, upB=upB))
+            e_Q = float(edensQM(muB, 0.0, B_one_forth, T_Q, ms=ms, include_em=False, upB=upB))
+            nB_Q = float(nB_QM(muB, 0.0, B_one_forth, T_Q, ms=ms, upB=upB))
+        except Exception:
+            return np.array([1.0e30, 1.0e30], dtype=float)
+        if (
+            (not np.isfinite(P_Q))
+            or (not np.isfinite(e_Q))
+            or (not np.isfinite(nB_Q))
+            or nB_Q <= 0.0
+        ):
+            return np.array([1.0e30, 1.0e30], dtype=float)
+        h_over_nB_Q = float((P_Q + e_Q) / nB_Q)
+        if (not np.isfinite(h_over_nB_Q)) or h_over_nB_Q <= 0.0:
+            return np.array([1.0e30, 1.0e30], dtype=float)
+        return np.array(
+            [
+                (P_Q - P_N) / p_scale,
+                (h_over_nB_Q - h_over_nB_N) / h_scale,
+            ],
+            dtype=float,
+        )
+
+    best = None
+    best_norm = np.inf
+    best_message = "analytic quark-equilibrium solve did not converge"
+    for muB_guess, T_guess in guesses:
+        sol = root(
+            equations,
+            np.array([float(muB_guess), float(np.log(T_guess))], dtype=float),
+            method="hybr",
+            options={"maxfev": 1200, "xtol": 1.0e-10},
+        )
+        if not (sol.success and np.all(np.isfinite(sol.x))):
+            best_message = str(sol.message)
+            continue
+        residual = equations(sol.x)
+        residual_norm = float(np.linalg.norm(residual, ord=np.inf))
+        if residual_norm < best_norm:
+            best_norm = residual_norm
+            best = sol.x.copy()
+        if residual_norm <= 1.0e-8:
+            break
+
+    if best is None or best_norm > 1.0e-8:
+        raise RuntimeError(f"{best_message}; best scaled residual={best_norm:.3e}")
+
+    muB_bar = float(best[0])
+    T_Q = float(np.exp(float(best[1])))
+    if (not np.isfinite(muB_bar)) or muB_bar <= 0.0 or (not np.isfinite(T_Q)) or T_Q <= 0.0:
+        raise RuntimeError("Analytic quark-equilibrium solve returned a non-physical root")
+
+    P_Q = float(PQM(muB_bar, 0.0, B_one_forth, T_Q, ms=ms, upB=upB))
+    e_Q = float(edensQM(muB_bar, 0.0, B_one_forth, T_Q, ms=ms, include_em=False, upB=upB))
+    h_Q = float(P_Q + e_Q)
+    nB_Q = float(nB_QM(muB_bar, 0.0, B_one_forth, T_Q, ms=ms, upB=upB))
+    if (
+        (not np.isfinite(P_Q))
+        or (not np.isfinite(e_Q))
+        or (not np.isfinite(h_Q))
+        or (not np.isfinite(nB_Q))
+        or nB_Q <= 0.0
+    ):
+        raise RuntimeError("Equilibrated quark EOS returned non-physical quantities")
+
+    mu_q = float(muB_bar / 3.0)
+    weak_rate = _analytic_weak_rate_from_mu_q(mu_q)
+    gamma = float(weak_rate["gamma"])
+    tau = float(weak_rate["tau"])
+    tau_seconds = float(weak_rate["tau_seconds"])
+
+    a_N = float(nB_N / nB_Q)
+    if (not np.isfinite(a_N)) or a_N <= 0.0:
+        raise RuntimeError("a_N must be positive and finite")
+
+    aQstar_max = float((9.0 * np.pi / np.sqrt(2.0)) * (T_Q / muB_bar))
+    muKstar_max = float(np.sqrt(2.0) * np.pi * T_Q)
+    one_minus_aQstar = float(1.0 - aQstar_max)
+    one_plus_xi_aQstar = float(1.0 + xi * aQstar_max)
+    a_N_squared = float(a_N * a_N)
+
+    if (not np.isfinite(aQstar_max)) or not (0.0 < aQstar_max < 1.0):
+        raise RuntimeError("aQstar_max must satisfy 0 < aQstar_max < 1")
+    if (not np.isfinite(one_plus_xi_aQstar)) or one_plus_xi_aQstar <= 0.0:
+        raise RuntimeError("1 + xi*aQstar_max must be positive")
+
+    alpha_s = float(_TRANSPORT_ALPHA_S)
+    h_D = float(_TRANSPORT_H_CONST)
+    denominator = float(muB_bar * a_N_squared * one_minus_aQstar * one_plus_xi_aQstar)
+    if (not np.isfinite(denominator)) or denominator <= 0.0:
+        raise RuntimeError("Analytic velocity denominator is non-physical")
+
+    prefactor = float(
+        (54.0 * np.pi ** (7.0 / 3.0) * gamma)
+        / (7.0 * np.sqrt(2.0) * h_D * alpha_s ** (5.0 / 3.0))
+    )
+    u_N_squared = float(prefactor * aQstar_max ** (7.0 / 3.0) / denominator)
+    if (not np.isfinite(u_N_squared)) or u_N_squared < 0.0:
+        raise RuntimeError("Analytic velocity bound produced non-physical u_N^2")
+    u_N_max = float(np.sqrt(u_N_squared))
+
+    return {
+        "success": True,
+        "message": "analytic velocity bound evaluated",
+        "u_N_max": u_N_max,
+        "u_N_squared": u_N_squared,
+        "muB_N": muB_N,
+        "T_N": T_N,
+        "P_N": P_N,
+        "e_N": e_N,
+        "h_N": h_N,
+        "nB_N": nB_N,
+        "h_over_nB_N": h_over_nB_N,
+        "muB_bar": muB_bar,
+        "T_Q": T_Q,
+        "P_Q": P_Q,
+        "e_Q": e_Q,
+        "h_Q": h_Q,
+        "nB_Q": nB_Q,
+        "h_over_nB_Q": float(h_Q / nB_Q),
+        "mu_q": mu_q,
+        "a_N": a_N,
+        "aQstar_max": aQstar_max,
+        "muKstar_max": muKstar_max,
+        "one_minus_aQstar": one_minus_aQstar,
+        "one_plus_xi_aQstar": one_plus_xi_aQstar,
+        "a_N_squared": a_N_squared,
+        "alpha_s": alpha_s,
+        "h_D": h_D,
+        "gamma": gamma,
+        "tau": tau,
+        "tau_seconds": tau_seconds,
+        "xi": xi,
+        "slow_front_consistent": bool(u_N_max < 1.0),
+    }
+
 
 def Pi_NM(mu_B, Temp, j_B):
     """
@@ -1585,6 +1853,157 @@ def _solve_quark_E_state_once_from_guess(a_target, E_target, Pi, jB, nB_Q, nK_Q,
     thermo["r_gamma"] = r_gamma
     thermo["E"] = E
     return thermo
+
+
+def _fixed_TQstar_E_residual(muB, muK, T_Qstar, E_target, Pi, jB, B_one_forth, ms=0.0, upB=5000):
+    """
+    Residual for the fixed-T_Qstar interface solve. The unknowns are
+    (muB_Qstar, muK_Qstar); the temperature is prescribed.
+    """
+    if E_target <= 0.0:
+        raise RuntimeError("Fixed-T_Qstar interface closure requires E = h*u*r_gamma > 0")
+    T_Qstar = float(T_Qstar)
+    if (not np.isfinite(T_Qstar)) or T_Qstar <= 0.0:
+        raise RuntimeError("Fixed-T_Qstar interface closure requires T_Qstar > 0")
+    try:
+        thermo = _quark_thermo_state(muB, muK, B_one_forth, T_Qstar, jB, ms=ms, upB=upB)
+    except Exception:
+        return np.array([1.0e12, 1.0e12], dtype=float)
+    E_loc = float(thermo["h"] * thermo["u"] * _relativistic_gamma_from_u(thermo["u"]))
+    return np.array([thermo["Pi"] - Pi, E_loc - E_target], dtype=float)
+
+
+def _fixed_TQstar_E_residual_ok(residual, Pi, E_target):
+    if not np.all(np.isfinite(residual)):
+        return False
+    pi_tol = 1.0e-8 * max(abs(Pi), 1.0)
+    E_tol = 1.0e-8 * max(abs(E_target), 1.0)
+    return bool(abs(float(residual[0])) <= pi_tol and abs(float(residual[1])) <= E_tol)
+
+
+def _solve_interface_Qstar_from_TQstar_E_and_Pi(
+    T_Qstar,
+    E_target,
+    Pi,
+    jB,
+    nB_Q,
+    nK_Q,
+    B_one_forth,
+    ms=0.0,
+    upB=5000,
+    initial_guess=None,
+    stats=None,
+    stats_key="qstar_root_calls",
+):
+    """
+    Solve the Qstar interface state at prescribed T_Qstar.
+
+    The two unknowns are (muB_Qstar, muK_Qstar). The constraints are momentum
+    flux conservation and relativistic enthalpy-flux conservation. The
+    interface composition aQstar is derived after the thermodynamic state is
+    found.
+    """
+    T_Qstar = float(T_Qstar)
+    if (not np.isfinite(T_Qstar)) or T_Qstar <= 0.0:
+        raise RuntimeError("Fixed-T_Qstar interface solve requires T_Qstar > 0")
+    if E_target <= 0.0:
+        raise RuntimeError("Fixed-T_Qstar interface solve requires E = h*u*r_gamma > 0")
+    if nB_Q <= 0.0:
+        raise RuntimeError("nB_Q must be positive when deriving aQstar")
+
+    guesses = []
+    if initial_guess is not None:
+        guess0 = np.asarray(initial_guess, dtype=float)
+        if guess0.shape[0] >= 2 and np.all(np.isfinite(guess0[:2])):
+            guesses.append(np.array([float(guess0[0]), max(0.0, float(guess0[1]))], dtype=float))
+    guesses.extend(
+        [
+            np.array([1200.0, 120.0], dtype=float),
+            np.array([1100.0, 80.0], dtype=float),
+            np.array([1400.0, 160.0], dtype=float),
+            np.array([1500.0, 240.0], dtype=float),
+            np.array([1000.0, 40.0], dtype=float),
+        ]
+    )
+
+    pi_scale = max(abs(Pi), 1.0)
+    E_scale = max(abs(E_target), 1.0)
+
+    def equations(vec):
+        residual = _fixed_TQstar_E_residual(
+            float(vec[0]),
+            float(vec[1]),
+            T_Qstar,
+            E_target,
+            Pi,
+            jB,
+            B_one_forth,
+            ms=ms,
+            upB=upB,
+        )
+        return np.array([residual[0] / pi_scale, residual[1] / E_scale], dtype=float)
+
+    best_message = "Fixed-T_Qstar interface solve did not converge"
+    candidates = []
+    nonneg_tol = 1.0e-8
+    for guess in guesses:
+        try:
+            if stats is not None:
+                stats[stats_key] = stats.get(stats_key, 0) + 1
+            sol = root(equations, guess, method="hybr", options={"maxfev": 160, "xtol": 1.0e-10})
+            if not (sol.success and np.all(np.isfinite(sol.x))):
+                best_message = str(sol.message)
+                continue
+            muB = float(sol.x[0])
+            muK = float(sol.x[1])
+            if muK < -nonneg_tol or muB <= 0.0:
+                best_message = "Fixed-T_Qstar interface solve returned a non-physical chemical potential"
+                continue
+            if muK < 0.0:
+                muK = 0.0
+            residual = _fixed_TQstar_E_residual(
+                muB,
+                muK,
+                T_Qstar,
+                E_target,
+                Pi,
+                jB,
+                B_one_forth,
+                ms=ms,
+                upB=upB,
+            )
+            if not _fixed_TQstar_E_residual_ok(residual, Pi, E_target):
+                best_message = (
+                    "Fixed-T_Qstar interface solve returned an unacceptable residual "
+                    f"({residual[0]:.3e}, {residual[1]:.3e})"
+                )
+                continue
+            thermo = _quark_thermo_state(muB, muK, B_one_forth, T_Qstar, jB, ms=ms, upB=upB)
+            r_gamma = _relativistic_gamma_from_u(thermo["u"])
+            E_loc = float(thermo["h"] * thermo["u"] * r_gamma)
+            aQstar = float((thermo["nK"] - nK_Q) / nB_Q)
+            if thermo["h"] <= 0.0 or E_loc <= 0.0 or not np.isfinite(aQstar):
+                best_message = "Fixed-T_Qstar interface solve returned a non-physical state"
+                continue
+            thermo["r_gamma"] = r_gamma
+            thermo["E"] = E_loc
+            thermo["aQstar"] = aQstar
+            candidates.append(thermo)
+        except Exception as exc:
+            best_message = str(exc)
+
+    if not candidates:
+        raise RuntimeError(f"Fixed-T_Qstar interface solve failed: {best_message}")
+
+    if initial_guess is not None:
+        guess0 = np.asarray(initial_guess, dtype=float)
+        muB_ref = float(guess0[0]) if guess0.shape[0] >= 1 and np.isfinite(guess0[0]) else 1200.0
+        muK_ref = float(guess0[1]) if guess0.shape[0] >= 2 and np.isfinite(guess0[1]) else 120.0
+    else:
+        muB_ref = 1200.0
+        muK_ref = 120.0
+    candidates.sort(key=lambda cand: (abs(cand["muK"] - muK_ref), abs(cand["muB"] - muB_ref), -cand["muK"]))
+    return candidates[0]
 
 
 def _solve_local_quark_state_from_a_E_and_Pi(a, E, Pi, jB, nB_Q, nK_Q, B_one_forth, ms=0.0, upB=5000, initial_guess=None, T_ref=None, stats=None):
@@ -3482,6 +3901,7 @@ def _solve_front_energy_conserving_once(
     verb=False,
     profile_guess=None,
     seed_profile=False,
+    TQstar_target=None,
 ):
     """
     Solve the energy-conserving steady-front problem as a compact-coordinate
@@ -3490,9 +3910,17 @@ def _solve_front_energy_conserving_once(
     The ODE unknowns are (a, q). The conserved enthalpy flux
     E = h*u*sqrt(1+u^2) is derived from the upstream trial jB, like Pi.
     """
+    fixed_TQstar_mode = TQstar_target is not None
     T = float(T)
     if (not np.isfinite(T)) or T <= 0.0:
         raise RuntimeError("solve_front_energy_conserving requires T > 0")
+    if fixed_TQstar_mode:
+        TQstar_target = float(TQstar_target)
+        if (not np.isfinite(TQstar_target)) or TQstar_target <= 0.0:
+            raise RuntimeError("TQstar_target must be positive")
+        aQstar = np.nan if aQstar is None else float(aQstar)
+    else:
+        aQstar = float(aQstar)
     if nB_N <= 0.0:
         raise RuntimeError("nB_N must be positive")
     if tail_eps <= 0.0 or tail_eps >= 1.0:
@@ -3592,7 +4020,7 @@ def _solve_front_energy_conserving_once(
         return {
             "success": False,
             "message": message,
-            "aQstar": float(aQstar),
+            "aQstar": float(aQstar) if np.isfinite(aQstar) else np.nan,
             "jB": np.nan,
             "E": np.nan,
             "T_Q": np.nan,
@@ -3668,8 +4096,8 @@ def _solve_front_energy_conserving_once(
         r_gamma_Q = _relativistic_gamma_from_u(thermo_Q["u"])
         E_Q = float(thermo_Q["h"] * thermo_Q["u"] * r_gamma_Q)
 
-        muK_Qstar_seed = _branch_muK_seed(aQstar)
-        qstar_initial_guess = (muB_Q, muK_Qstar_seed, T_Q)
+        muK_Qstar_seed = _branch_muK_seed(aQstar if np.isfinite(aQstar) else a_N)
+        qstar_initial_guess = (muB_Q, muK_Qstar_seed, TQstar_target if fixed_TQstar_mode else T_Q)
         if qstar_last_guess["value"] is not None:
             qstar_initial_guess = qstar_last_guess["value"]
         elif isinstance(profile_guess, dict):
@@ -3696,9 +4124,9 @@ def _solve_front_energy_conserving_once(
                         T_Qstar_guess = T_Q
                     qstar_initial_guess = (muB_Qstar_guess, muK_Qstar_guess, T_Qstar_guess)
 
-        try:
-            thermo_Qstar = _solve_quark_E_state_once_from_guess(
-                aQstar,
+        if fixed_TQstar_mode:
+            thermo_Qstar = _solve_interface_Qstar_from_TQstar_E_and_Pi(
+                TQstar_target,
                 E,
                 Pi,
                 jB,
@@ -3711,21 +4139,39 @@ def _solve_front_energy_conserving_once(
                 stats=stats,
                 stats_key="qstar_root_calls",
             )
-        except Exception:
-            thermo_Qstar = _solve_local_quark_state_from_a_E_and_Pi(
-                aQstar,
-                E,
-                Pi,
-                jB,
-                nB_Q,
-                nK_Q,
-                B_one_forth,
-                ms=ms,
-                upB=upB,
-                initial_guess=qstar_initial_guess,
-                T_ref=T_Q,
-                stats=stats,
-            )
+            aQstar_state = float(thermo_Qstar["aQstar"])
+        else:
+            try:
+                thermo_Qstar = _solve_quark_E_state_once_from_guess(
+                    aQstar,
+                    E,
+                    Pi,
+                    jB,
+                    nB_Q,
+                    nK_Q,
+                    B_one_forth,
+                    ms=ms,
+                    upB=upB,
+                    initial_guess=qstar_initial_guess,
+                    stats=stats,
+                    stats_key="qstar_root_calls",
+                )
+            except Exception:
+                thermo_Qstar = _solve_local_quark_state_from_a_E_and_Pi(
+                    aQstar,
+                    E,
+                    Pi,
+                    jB,
+                    nB_Q,
+                    nK_Q,
+                    B_one_forth,
+                    ms=ms,
+                    upB=upB,
+                    initial_guess=qstar_initial_guess,
+                    T_ref=T_Q,
+                    stats=stats,
+                )
+            aQstar_state = float(aQstar)
         muB_Qstar = float(thermo_Qstar["muB"])
         muK_Qstar = float(thermo_Qstar["muK"])
         qstar_last_guess["value"] = (muB_Qstar, muK_Qstar, float(thermo_Qstar["T"]))
@@ -3768,6 +4214,7 @@ def _solve_front_energy_conserving_once(
             "nB_Q": float(nB_Q),
             "nK_Q": float(nK_Q),
             "a_N": float(a_N),
+            "aQstar": float(aQstar_state),
             "muB_Qstar": muB_Qstar,
             "muK_Qstar": muK_Qstar,
             "nB_Qstar": float(thermo_Qstar["nB"]),
@@ -3854,7 +4301,7 @@ def _solve_front_energy_conserving_once(
             return np.array([1.0e12, 1.0e12, 1.0e12, 1.0e12], dtype=float)
         return np.array(
             [
-                ya[0] - float(aQstar),
+                ya[0] - state["aQstar"],
                 ya[1] - state["q0"],
                 yb[1] + state["tail_coeff_Q"] * yb[0],
                 state["E_Q"] - state["E"],
@@ -3877,7 +4324,7 @@ def _solve_front_energy_conserving_once(
     tail_shape = np.maximum(1.0 - s_coord_mesh, tail_eps)
 
     def _default_initial_guess():
-        a_guess_loc = float(aQstar) * tail_shape
+        a_guess_loc = float(state0["aQstar"]) * tail_shape
         q_tail_guess_loc = -state0["tail_coeff_Q"] * a_guess_loc
         q_guess_loc = (1.0 - blend) * state0["q0"] + blend * q_tail_guess_loc
         return a_guess_loc, q_guess_loc
@@ -3902,9 +4349,9 @@ def _solve_front_energy_conserving_once(
             return _default_initial_guess()
 
         a_prev0 = float(a_prev[0])
-        a_scale = float(aQstar) / a_prev0 if abs(a_prev0) > 1.0e-12 else 1.0
+        a_scale = float(state0["aQstar"]) / a_prev0 if abs(a_prev0) > 1.0e-12 else 1.0
         a_guess_loc = np.interp(s_coord_mesh, s_prev, a_prev) * a_scale
-        a_guess_loc[0] = float(aQstar)
+        a_guess_loc[0] = float(state0["aQstar"])
 
         q_base = np.interp(s_coord_mesh, s_prev, q_prev) * a_scale
         q_base0 = float(q_base[0])
@@ -3932,7 +4379,7 @@ def _solve_front_energy_conserving_once(
 
     _diag(
         f"starting energy compact BVP with jB_guess={jB_guess:.6g}, "
-        f"TQ_guess={TQ_guess:.6g}, aQstar={aQstar:.6g}, tail_eps={tail_eps:.3g}, branch=muK-rich"
+        f"TQ_guess={TQ_guess:.6g}, aQstar={state0['aQstar']:.6g}, tail_eps={tail_eps:.3g}, branch=muK-rich"
     )
 
     try:
@@ -3989,7 +4436,7 @@ def _solve_front_energy_conserving_once(
         "T_Q": float(state["T_Q"]),
         "T_N": float(T),
         "T_Qstar": float(state["T_Qstar"]),
-        "aQstar": float(aQstar),
+        "aQstar": float(state["aQstar"]),
         "branch_label": "muK-rich",
         "energy_flux_equation": "E_rgamma_const",
         "coordinate": "BVP: s_coord in [0, 1-tail_eps], s_coord=1-exp(-lambda*x)",
@@ -4106,7 +4553,7 @@ def _solve_front_energy_conserving_once(
             result["local_root_calls"] = int(stats["local_root_calls"])
             result["local_fast_failures"] = int(stats["local_fast_failures"])
             if simple_diag:
-                print(f"energy-bvp profile reconstruction failed for aQstar={aQstar:.6g}: {exc}")
+                print(f"energy-bvp profile reconstruction failed for aQstar={state['aQstar']:.6g}: {exc}")
             return result
 
         result.update(
@@ -4131,7 +4578,7 @@ def _solve_front_energy_conserving_once(
     if simple_diag:
         print(
             f"energy-bvp jB={result['jB']:.6g}, T_Q={result['T_Q']:.6g}, "
-            f"aQstar={aQstar:.6g}, tail_norm={tail_residual_norm:.6g}, "
+            f"aQstar={state['aQstar']:.6g}, tail_norm={tail_residual_norm:.6g}, "
             f"E_right_norm={E_right_residual_norm:.6g}, status={sol.status}, success={success}"
         )
     return result
@@ -4416,6 +4863,390 @@ def solve_front_energy_conserving(
     result_out["continuation_used"] = True
     result_out["continuation_steps"] = steps_taken
     result_out["continuation_seed_aQstar"] = float(sign * min(abs_target, 1.0e-2))
+    if return_profile:
+        return result_out
+    return _strip_energy_profile_fields(result_out)
+
+
+def _annotate_energy_uNmax_result(
+    result,
+    TQstar_target,
+    continuation_used=False,
+    continuation_steps=0,
+    last_success=None,
+):
+    out = dict(result)
+    TQstar_target = float(TQstar_target)
+    T_Qstar = float(out.get("T_Qstar", np.nan))
+    aQstar_out = float(out.get("aQstar", np.nan))
+    u_N_out = float(out.get("u_N", np.nan))
+    out["solver_variant"] = "uNmax_fixed_TQstar"
+    out["T_Qstar_target"] = TQstar_target
+    out["T_Qstar_residual"] = (
+        float(T_Qstar - TQstar_target)
+        if np.isfinite(T_Qstar) and np.isfinite(TQstar_target)
+        else np.nan
+    )
+    out["aQstar_derived"] = aQstar_out
+    out["u_N_max_candidate"] = u_N_out
+    out["TQstar_continuation_used"] = bool(continuation_used)
+    out["TQstar_continuation_steps"] = int(continuation_steps)
+    if last_success is not None:
+        out["last_success_T_Qstar"] = float(last_success.get("T_Qstar", np.nan))
+        out["last_success_aQstar"] = float(last_success.get("aQstar", np.nan))
+        out["last_success_u_N"] = float(last_success.get("u_N", np.nan))
+    return out
+
+
+def solve_front_energy_conserving_uNmax(
+    T,
+    nB_N,
+    B_one_forth,
+    TQstar=0.01,
+    ms=0.0,
+    param=para.paraQMCRMF3,
+    NM_type="PNM",
+    tail_eps=1e-8,
+    n_mesh=200,
+    tol_bvp=1e-4,
+    max_nodes=10000,
+    jB_guess=None,
+    TQ_guess=None,
+    jB_bounds=None,
+    return_profile=False,
+    verb=False,
+    TQstar_start=5.0,
+):
+    """
+    Solve the energy-conserving front with the interface temperature fixed.
+
+    This variant treats T_Qstar as the input and derives a_Qstar from the
+    quark EOS, which is useful for probing the upper end of the branch where
+    T_Qstar approaches zero. It is not a separate optimizer: the returned
+    u_N_max_candidate is the upstream velocity for the requested fixed
+    T_Qstar.
+    """
+    TQstar = float(TQstar)
+    if (not np.isfinite(TQstar)) or TQstar <= 0.0:
+        raise RuntimeError("TQstar must be positive")
+
+    if isinstance(verb, str):
+        verb_mode = "full" if verb.lower() == "full" else ("simple" if verb else "off")
+    else:
+        verb_mode = "simple" if verb else "off"
+    simple_diag = verb_mode in ("simple", "full")
+
+    direct_jB_guess = jB_guess
+    if direct_jB_guess is None:
+        direct_jB_guess = float(max(1.0e-12, 1.0e-8 * float(nB_N), 1.0))
+    continuation_jB_guess = float(direct_jB_guess)
+
+    if TQ_guess is None:
+        TQ_guess_candidates = _adiabatic_default_TQ_guesses(T)
+    else:
+        TQ_guess_candidates = (float(TQ_guess),)
+    direct_TQ_guess = float(TQ_guess_candidates[0])
+    if (not np.isfinite(direct_TQ_guess)) or direct_TQ_guess <= 0.0:
+        raise RuntimeError("TQ_guess must be positive")
+
+    direct_result = _solve_front_energy_conserving_once(
+        T,
+        nB_N,
+        B_one_forth,
+        None,
+        ms=ms,
+        param=param,
+        NM_type=NM_type,
+        tail_eps=tail_eps,
+        n_mesh=n_mesh,
+        tol_bvp=tol_bvp,
+        max_nodes=max_nodes,
+        jB_guess=direct_jB_guess,
+        TQ_guess=direct_TQ_guess,
+        jB_bounds=jB_bounds,
+        return_profile=return_profile,
+        verb=verb,
+        profile_guess=None,
+        TQstar_target=TQstar,
+    )
+    if (
+        TQ_guess is None
+        and len(TQ_guess_candidates) > 1
+        and _adiabatic_initial_state_failed(direct_result)
+    ):
+        retry_TQ_guess = float(TQ_guess_candidates[1])
+        if simple_diag:
+            print(
+                f"energy-uNmax low-T hot-start retry: initial state failed at "
+                f"TQ_guess={direct_TQ_guess:.6g}; retrying with TQ_guess={retry_TQ_guess:.6g}"
+            )
+        direct_TQ_guess = retry_TQ_guess
+        direct_result = _solve_front_energy_conserving_once(
+            T,
+            nB_N,
+            B_one_forth,
+            None,
+            ms=ms,
+            param=param,
+            NM_type=NM_type,
+            tail_eps=tail_eps,
+            n_mesh=n_mesh,
+            tol_bvp=tol_bvp,
+            max_nodes=max_nodes,
+            jB_guess=direct_jB_guess,
+            TQ_guess=direct_TQ_guess,
+            jB_bounds=jB_bounds,
+            return_profile=return_profile,
+            verb=verb,
+            profile_guess=None,
+            TQstar_target=TQstar,
+        )
+
+    if not bool(direct_result.get("success")):
+        retry_jB_guesses = [
+            0.75 * float(direct_jB_guess),
+            0.5 * float(direct_jB_guess),
+            1.0,
+            0.6,
+        ]
+        if jB_bounds is not None:
+            jB_min = float(jB_bounds[0])
+            jB_max = float(jB_bounds[1])
+            retry_jB_guesses = [
+                min(max(float(g), jB_min * (1.0 + 1.0e-6)), jB_max * (1.0 - 1.0e-6))
+                for g in retry_jB_guesses
+            ]
+        seen_jB_guesses = {round(float(direct_jB_guess), 12)}
+        for retry_jB_guess in retry_jB_guesses:
+            retry_jB_guess = float(retry_jB_guess)
+            if (
+                (not np.isfinite(retry_jB_guess))
+                or retry_jB_guess <= 0.0
+                or round(retry_jB_guess, 12) in seen_jB_guesses
+            ):
+                continue
+            if round(retry_jB_guess, 12) == round(1.0, 12):
+                continuation_jB_guess = retry_jB_guess
+            seen_jB_guesses.add(round(retry_jB_guess, 12))
+            if simple_diag:
+                print(
+                    f"energy-uNmax seed retry: direct solve failed at "
+                    f"jB_guess={direct_jB_guess:.6g}; retrying jB_guess={retry_jB_guess:.6g}"
+                )
+            trial = _solve_front_energy_conserving_once(
+                T,
+                nB_N,
+                B_one_forth,
+                None,
+                ms=ms,
+                param=param,
+                NM_type=NM_type,
+                tail_eps=tail_eps,
+                n_mesh=n_mesh,
+                tol_bvp=tol_bvp,
+                max_nodes=max_nodes,
+                jB_guess=retry_jB_guess,
+                TQ_guess=direct_TQ_guess,
+                jB_bounds=jB_bounds,
+                return_profile=return_profile,
+                verb=False,
+                profile_guess=None,
+                TQstar_target=TQstar,
+            )
+            if bool(trial.get("success")):
+                direct_result = trial
+                break
+
+    if bool(direct_result.get("success")):
+        result_out = _annotate_energy_uNmax_result(
+            direct_result,
+            TQstar,
+            continuation_used=False,
+            continuation_steps=0,
+        )
+        if return_profile:
+            return result_out
+        return _strip_energy_profile_fields(result_out)
+
+    TQstar_start = float(TQstar_start)
+    if (not np.isfinite(TQstar_start)) or TQstar_start <= 0.0 or TQstar_start <= TQstar:
+        failed = _annotate_energy_uNmax_result(
+            direct_result,
+            TQstar,
+            continuation_used=False,
+            continuation_steps=0,
+        )
+        if return_profile:
+            return failed
+        return _strip_energy_profile_fields(failed)
+
+    if simple_diag:
+        print(
+            f"energy-uNmax continuation: direct solve failed at T_Qstar={TQstar:.6g}; "
+            f"starting from T_Qstar={TQstar_start:.6g}"
+        )
+
+    stage_n_mesh = int(min(max(max(int(n_mesh) // 2, 25), 25), 40))
+    stage_tol = float(max(float(tol_bvp), 2.0e-2))
+    stage_max_nodes = int(max(stage_n_mesh + 5, min(int(max_nodes), 250)))
+    stage_jB_guess = continuation_jB_guess
+    direct_jB_out = direct_result.get("jB", np.nan)
+    if np.isfinite(direct_jB_out) and direct_jB_out > 0.0:
+        stage_jB_guess = float(direct_jB_out)
+
+    current = _solve_front_energy_conserving_once(
+        T,
+        nB_N,
+        B_one_forth,
+        None,
+        ms=ms,
+        param=param,
+        NM_type=NM_type,
+        tail_eps=tail_eps,
+        n_mesh=stage_n_mesh,
+        tol_bvp=stage_tol,
+        max_nodes=stage_max_nodes,
+        jB_guess=stage_jB_guess,
+        TQ_guess=direct_TQ_guess,
+        jB_bounds=jB_bounds,
+        return_profile=False,
+        verb=False,
+        profile_guess=None,
+        seed_profile=True,
+        TQstar_target=TQstar_start,
+    )
+    if not bool(current.get("success")):
+        failed = _annotate_energy_uNmax_result(
+            current,
+            TQstar,
+            continuation_used=True,
+            continuation_steps=0,
+        )
+        failed["message"] = (
+            f"{direct_result['message']}; T_Qstar continuation seed at "
+            f"{TQstar_start:.6g} failed: {current['message']}"
+        )
+        if return_profile:
+            return failed
+        return _strip_energy_profile_fields(failed)
+
+    steps_taken = 0
+    targets = np.linspace(TQstar_start, TQstar, max(2, int(np.ceil((TQstar_start - TQstar) / 0.5)) + 1))[1:]
+    last_success = current
+    for target in targets:
+        target = float(target)
+        trial = _solve_front_energy_conserving_once(
+            T,
+            nB_N,
+            B_one_forth,
+            None,
+            ms=ms,
+            param=param,
+            NM_type=NM_type,
+            tail_eps=tail_eps,
+            n_mesh=stage_n_mesh,
+            tol_bvp=stage_tol,
+            max_nodes=stage_max_nodes,
+            jB_guess=current["jB"],
+            TQ_guess=current["T_Q"],
+            jB_bounds=jB_bounds,
+            return_profile=False,
+            verb=False,
+            profile_guess=current,
+            seed_profile=True,
+            TQstar_target=target,
+        )
+        if not bool(trial.get("success")):
+            failed = _annotate_energy_uNmax_result(
+                trial,
+                TQstar,
+                continuation_used=True,
+                continuation_steps=steps_taken,
+                last_success=last_success,
+            )
+            failed["message"] = (
+                f"Energy-uNmax T_Qstar continuation failed after reaching "
+                f"T_Qstar={last_success.get('T_Qstar', np.nan):.6g}; "
+                f"last attempted T_Qstar={target:.6g}. {trial['message']}"
+            )
+            if return_profile:
+                return failed
+            return _strip_energy_profile_fields(failed)
+        current = trial
+        last_success = current
+        steps_taken += 1
+        if simple_diag:
+            print(
+                f"energy-uNmax continuation: reached T_Qstar={target:.6g} "
+                f"with aQstar={current['aQstar']:.6g}, u_N={current['u_N']:.6g}"
+            )
+
+    refined = _solve_front_energy_conserving_once(
+        T,
+        nB_N,
+        B_one_forth,
+        None,
+        ms=ms,
+        param=param,
+        NM_type=NM_type,
+        tail_eps=tail_eps,
+        n_mesh=n_mesh,
+        tol_bvp=tol_bvp,
+        max_nodes=max_nodes,
+        jB_guess=current["jB"],
+        TQ_guess=current["T_Q"],
+        jB_bounds=jB_bounds,
+        return_profile=return_profile,
+        verb=False,
+        profile_guess=current,
+        TQstar_target=TQstar,
+    )
+    if bool(refined.get("success")):
+        result_out = _annotate_energy_uNmax_result(
+            refined,
+            TQstar,
+            continuation_used=True,
+            continuation_steps=steps_taken,
+            last_success=last_success,
+        )
+        result_out["TQstar_continuation_refined"] = True
+    else:
+        if return_profile and abs(float(current.get("T_Qstar", np.nan)) - TQstar) <= 1.0e-10:
+            coarse_profile = _solve_front_energy_conserving_once(
+                T,
+                nB_N,
+                B_one_forth,
+                None,
+                ms=ms,
+                param=param,
+                NM_type=NM_type,
+                tail_eps=tail_eps,
+                n_mesh=stage_n_mesh,
+                tol_bvp=stage_tol,
+                max_nodes=stage_max_nodes,
+                jB_guess=current["jB"],
+                TQ_guess=current["T_Q"],
+                jB_bounds=jB_bounds,
+                return_profile=True,
+                verb=False,
+                profile_guess=current,
+                TQstar_target=TQstar,
+            )
+            result_base = coarse_profile if bool(coarse_profile.get("success")) else current
+        else:
+            result_base = current
+        result_out = _annotate_energy_uNmax_result(
+            result_base,
+            TQstar,
+            continuation_used=True,
+            continuation_steps=steps_taken,
+            last_success=last_success,
+        )
+        result_out["message"] = (
+            f"{result_out['message']}; final refinement failed: {refined['message']}"
+        )
+        result_out["TQstar_continuation_refined"] = False
+
     if return_profile:
         return result_out
     return _strip_energy_profile_fields(result_out)
