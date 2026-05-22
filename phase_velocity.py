@@ -186,6 +186,306 @@ def _analytic_weak_rate_from_mu_q(mu_q):
     }
 
 
+def _analytic_nuclear_state(muB_N, T_N, param=para.paraQMCRMF3, NM_type="PNM"):
+    """
+    Return the upstream nuclear state used by analytic_velocity_bound.
+    """
+    P_N = float(PNM(muB_N, T_N, param=param, NM_type=NM_type))
+    e_N = float(edensNM(muB_N, T_N, param=param))
+    h_N = float(P_N + e_N)
+    nB_N = float(nB_NM(muB_N, T_N, param=param, NM_type=NM_type))
+    if (not np.isfinite(P_N)) or (not np.isfinite(e_N)) or (not np.isfinite(h_N)):
+        raise RuntimeError("Nuclear EOS returned non-finite pressure or enthalpy")
+    if (not np.isfinite(nB_N)) or nB_N <= 0.0:
+        raise RuntimeError("nB_N must be positive and finite")
+    if h_N <= 0.0:
+        raise RuntimeError("h_N must be positive")
+    h_over_nB_N = float(h_N / nB_N)
+    if (not np.isfinite(h_over_nB_N)) or h_over_nB_N <= 0.0:
+        raise RuntimeError("Nuclear h_N/nB_N must be positive and finite")
+    return {
+        "P_N": P_N,
+        "e_N": e_N,
+        "h_N": h_N,
+        "nB_N": nB_N,
+        "h_over_nB_N": h_over_nB_N,
+    }
+
+
+def _append_analytic_endpoint_guess(guesses, muB_guess, T_guess):
+    try:
+        muB_guess = float(muB_guess)
+        T_guess = float(T_guess)
+    except Exception:
+        return
+    if (
+        np.isfinite(muB_guess)
+        and np.isfinite(T_guess)
+        and muB_guess > 0.0
+        and T_guess > 0.0
+    ):
+        candidate = (muB_guess, T_guess)
+        if candidate not in guesses:
+            guesses.append(candidate)
+
+
+def _solve_analytic_downstream_endpoint_for_uN(
+    u_N,
+    nuclear_state,
+    B_one_forth,
+    ms=0.0,
+    upB=5000,
+    initial_guess=None,
+):
+    """
+    Solve the muK=0 downstream quark endpoint from exact hydro jump conditions.
+    """
+    u_N = float(u_N)
+    if (not np.isfinite(u_N)) or u_N <= 0.0:
+        raise RuntimeError("Trial u_N must be positive and finite")
+
+    P_N = float(nuclear_state["P_N"])
+    h_N = float(nuclear_state["h_N"])
+    nB_N = float(nuclear_state["nB_N"])
+    h_over_nB_N = float(nuclear_state["h_over_nB_N"])
+    jB = float(nB_N * u_N)
+    gamma_N = float(np.sqrt(1.0 + u_N * u_N))
+    energy_flux_N = float(h_N * u_N * gamma_N)
+    momentum_flux_N = float(P_N + h_N * u_N * u_N)
+    energy_target = float(h_over_nB_N * gamma_N)
+
+    guesses = []
+    if initial_guess is not None:
+        guess_arr = np.asarray(initial_guess, dtype=float).ravel()
+        if guess_arr.size >= 2:
+            _append_analytic_endpoint_guess(guesses, guess_arr[0], guess_arr[1])
+    for muB_guess in (
+        float(nuclear_state.get("muB_N", 0.0)),
+        900.0,
+        1100.0,
+        1300.0,
+        1500.0,
+        700.0,
+    ):
+        for T_guess in (
+            float(nuclear_state.get("T_N", 0.0)),
+            max(float(nuclear_state.get("T_N", 0.0)), 1.0),
+            10.0,
+            30.0,
+            60.0,
+            100.0,
+        ):
+            _append_analytic_endpoint_guess(guesses, muB_guess, T_guess)
+
+    def equations(vec):
+        muB = float(vec[0])
+        logT = float(vec[1])
+        if (
+            (not np.isfinite(muB))
+            or muB <= 0.0
+            or (not np.isfinite(logT))
+            or abs(logT) > 700.0
+        ):
+            return np.array([1.0e30, 1.0e30], dtype=float)
+        T_Q = float(np.exp(logT))
+        try:
+            P_Q = float(PQM(muB, 0.0, B_one_forth, T_Q, ms=ms, upB=upB))
+            e_Q = float(
+                edensQM(
+                    muB,
+                    0.0,
+                    B_one_forth,
+                    T_Q,
+                    ms=ms,
+                    include_em=False,
+                    upB=upB,
+                )
+            )
+            nB_Q = float(nB_QM(muB, 0.0, B_one_forth, T_Q, ms=ms, upB=upB))
+        except Exception:
+            return np.array([1.0e30, 1.0e30], dtype=float)
+        if (
+            (not np.isfinite(P_Q))
+            or (not np.isfinite(e_Q))
+            or (not np.isfinite(nB_Q))
+            or nB_Q <= 0.0
+        ):
+            return np.array([1.0e30, 1.0e30], dtype=float)
+        h_Q = float(P_Q + e_Q)
+        u_Q = float(jB / nB_Q)
+        gamma_Q = float(np.sqrt(1.0 + u_Q * u_Q))
+        energy_flux_Q = float(h_Q * u_Q * gamma_Q)
+        momentum_flux_Q = float(P_Q + h_Q * u_Q * u_Q)
+        if (
+            (not np.isfinite(h_Q))
+            or h_Q <= 0.0
+            or (not np.isfinite(energy_flux_Q))
+            or (not np.isfinite(momentum_flux_Q))
+        ):
+            return np.array([1.0e30, 1.0e30], dtype=float)
+        energy_residual = float(h_Q * gamma_Q / nB_Q - energy_target)
+        pressure_jump = float(P_Q - P_N)
+        pressure_jump_balance = float(h_N * u_N * u_N - h_Q * u_Q * u_Q)
+        momentum_scale = max(abs(h_N * u_N * u_N), abs(h_Q * u_Q * u_Q), 1.0)
+        return np.array(
+            [
+                energy_residual / max(abs(energy_target), _FLOAT_TINY),
+                (pressure_jump - pressure_jump_balance) / momentum_scale,
+            ],
+            dtype=float,
+        )
+
+    best = None
+    best_norm = np.inf
+    best_message = "analytic hydro endpoint solve did not converge"
+    for muB_guess, T_guess in guesses:
+        sol = root(
+            equations,
+            np.array([float(muB_guess), float(np.log(T_guess))], dtype=float),
+            method="hybr",
+            options={"maxfev": 1600, "xtol": 1.0e-10},
+        )
+        if np.all(np.isfinite(sol.x)):
+            residual = equations(sol.x)
+            residual_norm = float(np.linalg.norm(residual, ord=np.inf))
+            if residual_norm < best_norm:
+                best_norm = residual_norm
+                best = sol.x.copy()
+        if sol.success and np.all(np.isfinite(sol.x)) and best_norm <= 1.0e-6:
+            break
+        best_message = str(sol.message)
+
+    if best is None or best_norm > 1.0e-6:
+        raise RuntimeError(f"{best_message}; best scaled residual={best_norm:.3e}")
+
+    muB_Q = float(best[0])
+    T_Q = float(np.exp(float(best[1])))
+    if (not np.isfinite(muB_Q)) or muB_Q <= 0.0 or (not np.isfinite(T_Q)) or T_Q <= 0.0:
+        raise RuntimeError("Analytic hydro endpoint solve returned a non-physical root")
+
+    P_Q = float(PQM(muB_Q, 0.0, B_one_forth, T_Q, ms=ms, upB=upB))
+    e_Q = float(
+        edensQM(
+            muB_Q,
+            0.0,
+            B_one_forth,
+            T_Q,
+            ms=ms,
+            include_em=False,
+            upB=upB,
+        )
+    )
+    h_Q = float(P_Q + e_Q)
+    nB_Q = float(nB_QM(muB_Q, 0.0, B_one_forth, T_Q, ms=ms, upB=upB))
+    if (
+        (not np.isfinite(P_Q))
+        or (not np.isfinite(e_Q))
+        or (not np.isfinite(h_Q))
+        or h_Q <= 0.0
+        or (not np.isfinite(nB_Q))
+        or nB_Q <= 0.0
+    ):
+        raise RuntimeError("Hydro endpoint quark EOS returned non-physical quantities")
+
+    u_Q = float(jB / nB_Q)
+    gamma_Q = float(np.sqrt(1.0 + u_Q * u_Q))
+    energy_flux_Q = float(h_Q * u_Q * gamma_Q)
+    momentum_flux_Q = float(P_Q + h_Q * u_Q * u_Q)
+    energy_flux_residual = float(energy_flux_Q - energy_flux_N)
+    momentum_flux_residual = float(momentum_flux_Q - momentum_flux_N)
+    pressure_jump = float(P_Q - P_N)
+    pressure_jump_balance = float(h_N * u_N * u_N - h_Q * u_Q * u_Q)
+
+    return {
+        "muB_Q": muB_Q,
+        "T_Q": T_Q,
+        "P_Q": P_Q,
+        "e_Q": e_Q,
+        "h_Q": h_Q,
+        "nB_Q": nB_Q,
+        "h_over_nB_Q": float(h_Q / nB_Q),
+        "u_N": u_N,
+        "u_Q": u_Q,
+        "jB": jB,
+        "gamma_N": gamma_N,
+        "gamma_Q": gamma_Q,
+        "energy_flux_N": energy_flux_N,
+        "energy_flux_Q": energy_flux_Q,
+        "momentum_flux_N": momentum_flux_N,
+        "momentum_flux_Q": momentum_flux_Q,
+        "energy_flux_residual": energy_flux_residual,
+        "momentum_flux_residual": momentum_flux_residual,
+        "pressure_jump": pressure_jump,
+        "pressure_jump_balance": pressure_jump_balance,
+        "pressure_jump_residual": float(pressure_jump - pressure_jump_balance),
+        "endpoint_scaled_residual": best_norm,
+        "endpoint_initial_guess": (muB_Q, T_Q),
+        "h_over_nB_N": h_over_nB_N,
+    }
+
+
+def _analytic_velocity_formula_from_endpoint(endpoint, nuclear_state, xi):
+    """
+    Evaluate equation-51 analytic velocity data from a hydro endpoint.
+    """
+    xi = float(xi)
+    muB_Q = float(endpoint["muB_Q"])
+    T_Q = float(endpoint["T_Q"])
+    nB_Q = float(endpoint["nB_Q"])
+    nB_N = float(nuclear_state["nB_N"])
+
+    mu_q = float(muB_Q / 3.0)
+    weak_rate = _analytic_weak_rate_from_mu_q(mu_q)
+    gamma = float(weak_rate["gamma"])
+    tau = float(weak_rate["tau"])
+    tau_seconds = float(weak_rate["tau_seconds"])
+
+    a_N = float(nB_N / nB_Q)
+    if (not np.isfinite(a_N)) or a_N <= 0.0:
+        raise RuntimeError("a_N must be positive and finite")
+
+    aQstar_max = float((9.0 * np.pi / np.sqrt(2.0)) * (T_Q / muB_Q))
+    muKstar_max = float(np.sqrt(2.0) * np.pi * T_Q)
+    one_minus_aQstar = float(1.0 - aQstar_max)
+    one_plus_xi_aQstar = float(1.0 + xi * aQstar_max)
+    a_N_squared = float(a_N * a_N)
+    if (not np.isfinite(aQstar_max)) or not (0.0 < aQstar_max < 1.0):
+        raise RuntimeError("aQstar_max must satisfy 0 < aQstar_max < 1")
+    if (not np.isfinite(one_plus_xi_aQstar)) or one_plus_xi_aQstar <= 0.0:
+        raise RuntimeError("1 + xi*aQstar_max must be positive")
+
+    alpha_s = float(_TRANSPORT_ALPHA_S)
+    h_D = float(_TRANSPORT_H_CONST)
+    denominator = float(muB_Q * a_N_squared * one_minus_aQstar * one_plus_xi_aQstar)
+    if (not np.isfinite(denominator)) or denominator <= 0.0:
+        raise RuntimeError("Analytic velocity denominator is non-physical")
+
+    prefactor = float(
+        (54.0 * np.pi ** (7.0 / 3.0) * gamma)
+        / (7.0 * np.sqrt(2.0) * h_D * alpha_s ** (5.0 / 3.0))
+    )
+    u_N_formula_squared = float(prefactor * aQstar_max ** (7.0 / 3.0) / denominator)
+    if (not np.isfinite(u_N_formula_squared)) or u_N_formula_squared < 0.0:
+        raise RuntimeError("Analytic velocity bound produced non-physical u_N^2")
+    return {
+        "u_N_formula_squared": u_N_formula_squared,
+        "mu_q": mu_q,
+        "a_N": a_N,
+        "aQstar_max": aQstar_max,
+        "muKstar_max": muKstar_max,
+        "one_minus_aQstar": one_minus_aQstar,
+        "one_plus_xi_aQstar": one_plus_xi_aQstar,
+        "a_N_squared": a_N_squared,
+        "alpha_s": alpha_s,
+        "h_D": h_D,
+        "gamma": gamma,
+        "tau": tau,
+        "tau_seconds": tau_seconds,
+        "prefactor": prefactor,
+        "analytic_denominator": denominator,
+    }
+
+
 def analytic_velocity_bound(
     muB_N,
     T_N,
@@ -198,12 +498,12 @@ def analytic_velocity_bound(
     initial_guess=None,
 ):
     """
-    Evaluate the analytic upper bound for the upstream nuclear velocity u_N.
+    Evaluate the hydro-consistent analytic upper bound for u_N.
 
-    The nuclear state is read from the existing EOS helpers at (muB_N, T_N).
-    The downstream quark endpoint is solved at muK = 0 from pressure
-    continuity and h/nB matching. Densities use nB_NM and nB_QM directly;
-    the leading massless nB ~ muB^3 approximation is not used in the bound.
+    The nuclear state is read from the EOS at (muB_N, T_N). The downstream
+    quark endpoint is solved at muK = 0 from exact energy and momentum flux
+    jumps for each trial u_N, with jB = nB_N*u_N derived internally. Equation
+    51 then supplies a scalar eigenvalue condition for u_N.
     """
     muB_N = float(muB_N)
     T_N = float(T_N)
@@ -219,190 +519,140 @@ def analytic_velocity_bound(
     if (not np.isfinite(xi)) or not (-1.0 < xi < 1.0):
         raise RuntimeError("xi must satisfy -1 < xi < 1")
 
-    P_N = float(PNM(muB_N, T_N, param=param, NM_type=NM_type))
-    e_N = float(edensNM(muB_N, T_N, param=param))
-    h_N = float(P_N + e_N)
-    nB_N = float(nB_NM(muB_N, T_N, param=param, NM_type=NM_type))
-    if (not np.isfinite(P_N)) or (not np.isfinite(e_N)) or (not np.isfinite(h_N)):
-        raise RuntimeError("Nuclear EOS returned non-finite pressure or enthalpy")
-    if (not np.isfinite(nB_N)) or nB_N <= 0.0:
-        raise RuntimeError("nB_N must be positive and finite")
-    if h_N <= 0.0:
-        raise RuntimeError("h_N must be positive")
-    h_over_nB_N = float(h_N / nB_N)
-    if (not np.isfinite(h_over_nB_N)) or h_over_nB_N <= 0.0:
-        raise RuntimeError("Nuclear h_N/nB_N must be positive and finite")
+    nuclear_state = _analytic_nuclear_state(muB_N, T_N, param=param, NM_type=NM_type)
+    nuclear_state["muB_N"] = muB_N
+    nuclear_state["T_N"] = T_N
 
-    def _append_guess(guesses, muB_guess, T_guess):
-        try:
-            muB_guess = float(muB_guess)
-            T_guess = float(T_guess)
-        except Exception:
-            return
-        if (
-            np.isfinite(muB_guess)
-            and np.isfinite(T_guess)
-            and muB_guess > 0.0
-            and T_guess > 0.0
-        ):
-            candidate = (muB_guess, T_guess)
-            if candidate not in guesses:
-                guesses.append(candidate)
+    endpoint_guess_cache = {"value": initial_guess}
+    best_eval = {"theta": np.nan, "residual": np.inf, "data": None, "message": ""}
 
-    guesses = []
-    if initial_guess is not None:
-        guess_arr = np.asarray(initial_guess, dtype=float).ravel()
-        if guess_arr.size >= 2:
-            _append_guess(guesses, guess_arr[0], guess_arr[1])
-    _append_guess(guesses, muB_N, T_N)
-    _append_guess(guesses, max(muB_N, 900.0), max(T_N, 1.0))
-    _append_guess(guesses, 1100.0, max(T_N, 10.0))
-    _append_guess(guesses, 900.0, 10.0)
-    _append_guess(guesses, 1300.0, 10.0)
-    _append_guess(guesses, 1100.0, 50.0)
-
-    p_scale = max(abs(P_N), 1.0)
-    h_scale = max(abs(h_over_nB_N), 1.0)
-
-    def equations(vec):
-        muB = float(vec[0])
-        logT = float(vec[1])
-        if (not np.isfinite(muB)) or muB <= 0.0 or (not np.isfinite(logT)) or abs(logT) > 700.0:
-            return np.array([1.0e30, 1.0e30], dtype=float)
-        T_Q = float(np.exp(logT))
-        try:
-            P_Q = float(PQM(muB, 0.0, B_one_forth, T_Q, ms=ms, upB=upB))
-            e_Q = float(edensQM(muB, 0.0, B_one_forth, T_Q, ms=ms, include_em=False, upB=upB))
-            nB_Q = float(nB_QM(muB, 0.0, B_one_forth, T_Q, ms=ms, upB=upB))
-        except Exception:
-            return np.array([1.0e30, 1.0e30], dtype=float)
-        if (
-            (not np.isfinite(P_Q))
-            or (not np.isfinite(e_Q))
-            or (not np.isfinite(nB_Q))
-            or nB_Q <= 0.0
-        ):
-            return np.array([1.0e30, 1.0e30], dtype=float)
-        h_over_nB_Q = float((P_Q + e_Q) / nB_Q)
-        if (not np.isfinite(h_over_nB_Q)) or h_over_nB_Q <= 0.0:
-            return np.array([1.0e30, 1.0e30], dtype=float)
-        return np.array(
-            [
-                (P_Q - P_N) / p_scale,
-                (h_over_nB_Q - h_over_nB_N) / h_scale,
-            ],
-            dtype=float,
+    def evaluate_log_u(theta):
+        theta = float(theta)
+        u_N = float(np.exp(np.clip(theta, -700.0, np.log(0.999999))))
+        endpoint = _solve_analytic_downstream_endpoint_for_uN(
+            u_N,
+            nuclear_state,
+            B_one_forth,
+            ms=ms,
+            upB=upB,
+            initial_guess=endpoint_guess_cache["value"],
         )
+        endpoint_guess_cache["value"] = endpoint["endpoint_initial_guess"]
+        formula = _analytic_velocity_formula_from_endpoint(endpoint, nuclear_state, xi)
+        residual = float(formula["u_N_formula_squared"] - u_N * u_N)
+        data = {**endpoint, **formula, "residual": residual, "theta": theta}
+        abs_residual = abs(residual)
+        if abs_residual < abs(float(best_eval["residual"])):
+            best_eval.update({"theta": theta, "residual": residual, "data": data, "message": ""})
+        return residual, data
 
-    best = None
-    best_norm = np.inf
-    best_message = "analytic quark-equilibrium solve did not converge"
-    for muB_guess, T_guess in guesses:
-        sol = root(
-            equations,
-            np.array([float(muB_guess), float(np.log(T_guess))], dtype=float),
-            method="hybr",
-            options={"maxfev": 1200, "xtol": 1.0e-10},
-        )
-        if not (sol.success and np.all(np.isfinite(sol.x))):
-            best_message = str(sol.message)
+    valid_scan = []
+    scan_thetas = np.linspace(np.log(1.0e-12), np.log(0.99), 72)
+    for theta in scan_thetas:
+        try:
+            residual, data = evaluate_log_u(theta)
+        except Exception as exc:
+            best_eval["message"] = str(exc)
             continue
-        residual = equations(sol.x)
-        residual_norm = float(np.linalg.norm(residual, ord=np.inf))
-        if residual_norm < best_norm:
-            best_norm = residual_norm
-            best = sol.x.copy()
-        if residual_norm <= 1.0e-8:
-            break
+        if np.isfinite(residual):
+            valid_scan.append((float(theta), float(residual), data))
 
-    if best is None or best_norm > 1.0e-8:
-        raise RuntimeError(f"{best_message}; best scaled residual={best_norm:.3e}")
+    if not valid_scan:
+        message = best_eval["message"] or "no valid hydro endpoint evaluations"
+        raise RuntimeError(f"Analytic velocity eigenvalue scan failed: {message}")
 
-    muB_bar = float(best[0])
-    T_Q = float(np.exp(float(best[1])))
-    if (not np.isfinite(muB_bar)) or muB_bar <= 0.0 or (not np.isfinite(T_Q)) or T_Q <= 0.0:
-        raise RuntimeError("Analytic quark-equilibrium solve returned a non-physical root")
+    bracket = None
+    exact_data = None
+    residual_tol = 1.0e-18
+    prev_theta, prev_residual, prev_data = valid_scan[0]
+    if abs(prev_residual) <= residual_tol:
+        exact_data = prev_data
+    else:
+        for theta, residual, data in valid_scan[1:]:
+            if abs(residual) <= residual_tol:
+                exact_data = data
+                break
+            if prev_residual * residual < 0.0:
+                bracket = (prev_theta, theta)
+                break
+            prev_theta, prev_residual, prev_data = theta, residual, data
 
-    P_Q = float(PQM(muB_bar, 0.0, B_one_forth, T_Q, ms=ms, upB=upB))
-    e_Q = float(edensQM(muB_bar, 0.0, B_one_forth, T_Q, ms=ms, include_em=False, upB=upB))
-    h_Q = float(P_Q + e_Q)
-    nB_Q = float(nB_QM(muB_bar, 0.0, B_one_forth, T_Q, ms=ms, upB=upB))
-    if (
-        (not np.isfinite(P_Q))
-        or (not np.isfinite(e_Q))
-        or (not np.isfinite(h_Q))
-        or (not np.isfinite(nB_Q))
-        or nB_Q <= 0.0
-    ):
-        raise RuntimeError("Equilibrated quark EOS returned non-physical quantities")
+    if exact_data is not None:
+        final_data = exact_data
+    elif bracket is not None:
+        def scalar_residual(theta):
+            residual, _ = evaluate_log_u(theta)
+            return residual
 
-    mu_q = float(muB_bar / 3.0)
-    weak_rate = _analytic_weak_rate_from_mu_q(mu_q)
-    gamma = float(weak_rate["gamma"])
-    tau = float(weak_rate["tau"])
-    tau_seconds = float(weak_rate["tau_seconds"])
+        sol = root_scalar(scalar_residual, bracket=bracket, method="brentq", xtol=1.0e-12, rtol=1.0e-12)
+        if not sol.converged:
+            raise RuntimeError(f"Analytic velocity eigenvalue solve did not converge: {sol.flag}")
+        _, final_data = evaluate_log_u(float(sol.root))
+    else:
+        best = best_eval["data"]
+        best_msg = (
+            f"; best theta={best_eval['theta']:.6g}, best residual={best_eval['residual']:.6e}"
+            if best is not None
+            else ""
+        )
+        raise RuntimeError(f"Analytic velocity eigenvalue solve found no sign change{best_msg}")
 
-    a_N = float(nB_N / nB_Q)
-    if (not np.isfinite(a_N)) or a_N <= 0.0:
-        raise RuntimeError("a_N must be positive and finite")
-
-    aQstar_max = float((9.0 * np.pi / np.sqrt(2.0)) * (T_Q / muB_bar))
-    muKstar_max = float(np.sqrt(2.0) * np.pi * T_Q)
-    one_minus_aQstar = float(1.0 - aQstar_max)
-    one_plus_xi_aQstar = float(1.0 + xi * aQstar_max)
-    a_N_squared = float(a_N * a_N)
-
-    if (not np.isfinite(aQstar_max)) or not (0.0 < aQstar_max < 1.0):
-        raise RuntimeError("aQstar_max must satisfy 0 < aQstar_max < 1")
-    if (not np.isfinite(one_plus_xi_aQstar)) or one_plus_xi_aQstar <= 0.0:
-        raise RuntimeError("1 + xi*aQstar_max must be positive")
-
-    alpha_s = float(_TRANSPORT_ALPHA_S)
-    h_D = float(_TRANSPORT_H_CONST)
-    denominator = float(muB_bar * a_N_squared * one_minus_aQstar * one_plus_xi_aQstar)
-    if (not np.isfinite(denominator)) or denominator <= 0.0:
-        raise RuntimeError("Analytic velocity denominator is non-physical")
-
-    prefactor = float(
-        (54.0 * np.pi ** (7.0 / 3.0) * gamma)
-        / (7.0 * np.sqrt(2.0) * h_D * alpha_s ** (5.0 / 3.0))
-    )
-    u_N_squared = float(prefactor * aQstar_max ** (7.0 / 3.0) / denominator)
-    if (not np.isfinite(u_N_squared)) or u_N_squared < 0.0:
-        raise RuntimeError("Analytic velocity bound produced non-physical u_N^2")
-    u_N_max = float(np.sqrt(u_N_squared))
+    u_N_max = float(final_data["u_N"])
+    u_N_squared = float(u_N_max * u_N_max)
+    formula_residual = float(final_data["u_N_formula_squared"] - u_N_squared)
+    formula_scale = max(abs(float(final_data["u_N_formula_squared"])), abs(u_N_squared), 1.0)
+    if abs(formula_residual) > 1.0e-8 * formula_scale:
+        raise RuntimeError(f"Analytic velocity closure residual is too large: {formula_residual:.6e}")
 
     return {
         "success": True,
-        "message": "analytic velocity bound evaluated",
+        "message": "hydro-consistent analytic velocity bound evaluated",
         "u_N_max": u_N_max,
+        "u_N": u_N_max,
         "u_N_squared": u_N_squared,
+        "u_N_formula_squared": float(final_data["u_N_formula_squared"]),
+        "analytic_velocity_residual": formula_residual,
+        "jB": float(final_data["jB"]),
         "muB_N": muB_N,
         "T_N": T_N,
-        "P_N": P_N,
-        "e_N": e_N,
-        "h_N": h_N,
-        "nB_N": nB_N,
-        "h_over_nB_N": h_over_nB_N,
-        "muB_bar": muB_bar,
-        "T_Q": T_Q,
-        "P_Q": P_Q,
-        "e_Q": e_Q,
-        "h_Q": h_Q,
-        "nB_Q": nB_Q,
-        "h_over_nB_Q": float(h_Q / nB_Q),
-        "mu_q": mu_q,
-        "a_N": a_N,
-        "aQstar_max": aQstar_max,
-        "muKstar_max": muKstar_max,
-        "one_minus_aQstar": one_minus_aQstar,
-        "one_plus_xi_aQstar": one_plus_xi_aQstar,
-        "a_N_squared": a_N_squared,
-        "alpha_s": alpha_s,
-        "h_D": h_D,
-        "gamma": gamma,
-        "tau": tau,
-        "tau_seconds": tau_seconds,
+        "P_N": float(nuclear_state["P_N"]),
+        "e_N": float(nuclear_state["e_N"]),
+        "h_N": float(nuclear_state["h_N"]),
+        "nB_N": float(nuclear_state["nB_N"]),
+        "h_over_nB_N": float(nuclear_state["h_over_nB_N"]),
+        "muB_bar": float(final_data["muB_Q"]),
+        "muB_Q": float(final_data["muB_Q"]),
+        "T_Q": float(final_data["T_Q"]),
+        "P_Q": float(final_data["P_Q"]),
+        "e_Q": float(final_data["e_Q"]),
+        "h_Q": float(final_data["h_Q"]),
+        "nB_Q": float(final_data["nB_Q"]),
+        "h_over_nB_Q": float(final_data["h_over_nB_Q"]),
+        "u_Q": float(final_data["u_Q"]),
+        "gamma_N": float(final_data["gamma_N"]),
+        "gamma_Q": float(final_data["gamma_Q"]),
+        "energy_flux_N": float(final_data["energy_flux_N"]),
+        "energy_flux_Q": float(final_data["energy_flux_Q"]),
+        "momentum_flux_N": float(final_data["momentum_flux_N"]),
+        "momentum_flux_Q": float(final_data["momentum_flux_Q"]),
+        "energy_flux_residual": float(final_data["energy_flux_residual"]),
+        "momentum_flux_residual": float(final_data["momentum_flux_residual"]),
+        "pressure_jump": float(final_data["pressure_jump"]),
+        "pressure_jump_balance": float(final_data["pressure_jump_balance"]),
+        "pressure_jump_residual": float(final_data["pressure_jump_residual"]),
+        "endpoint_scaled_residual": float(final_data["endpoint_scaled_residual"]),
+        "mu_q": float(final_data["mu_q"]),
+        "a_N": float(final_data["a_N"]),
+        "aQstar_max": float(final_data["aQstar_max"]),
+        "muKstar_max": float(final_data["muKstar_max"]),
+        "one_minus_aQstar": float(final_data["one_minus_aQstar"]),
+        "one_plus_xi_aQstar": float(final_data["one_plus_xi_aQstar"]),
+        "a_N_squared": float(final_data["a_N_squared"]),
+        "alpha_s": float(final_data["alpha_s"]),
+        "h_D": float(final_data["h_D"]),
+        "gamma": float(final_data["gamma"]),
+        "tau": float(final_data["tau"]),
+        "tau_seconds": float(final_data["tau_seconds"]),
         "xi": xi,
         "slow_front_consistent": bool(u_N_max < 1.0),
     }

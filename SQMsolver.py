@@ -3,7 +3,7 @@
 import numpy as np
 from functools import lru_cache
 from scipy.integrate import quad, quad_vec
-from scipy.optimize import fsolve
+from scipy.optimize import brentq, fsolve
 
 __all__ = [
     "P_f",
@@ -440,14 +440,14 @@ def _fermion_thermo_state(mu, m, Tem, upB=np.inf):
     return _fermion_thermo_state_cached(float(mu), float(m), float(Tem), _normalize_upB(upB))
 
 
-def _quark_mu_triplet(muB, muK):
+def _quark_mu_triplet_from_muQ(muB, muK, muQ):
     """
-    Return (mu_u, mu_d, mu_s) from (muB, muK).
+    Return quark chemical potentials with an auxiliary charge-neutrality muQ.
     """
     return (
-        float(muB / 3.0),
-        float(muB / 3.0 + muK / 2.0),
-        float(muB / 3.0 - muK / 2.0),
+        float(muB / 3.0 + 2.0 * muQ / 3.0),
+        float(muB / 3.0 - muQ / 3.0 + muK / 2.0),
+        float(muB / 3.0 - muQ / 3.0 - muK / 2.0),
     )
 
 
@@ -540,9 +540,107 @@ def _quark_uds_state_from_triplet(mu_u, mu_d, mu_s, T, ms, upB=5000):
     }
 
 
+def _neutral_quark_chiK(susceptibilities):
+    """
+    Return d nK / d muK along the quark-only charge-neutral constraint.
+    """
+    chi_u = susceptibilities["chi_u"]
+    chi_d = susceptibilities["chi_d"]
+    chi_s = susceptibilities["chi_s"]
+    denom = 4.0 * chi_u + chi_d + chi_s
+    if denom == 0.0:
+        return 0.0
+    return float(0.25 * (chi_d + chi_s) - ((chi_d - chi_s) ** 2) / (4.0 * denom))
+
+
+def _solve_neutral_muQ(equation, muQ_init, scale):
+    center = float(muQ_init)
+    f_center = equation(center)
+    if abs(f_center) <= 1.0e-8:
+        return center
+
+    root, info, ier, _ = fsolve(
+        lambda x: equation(float(np.atleast_1d(x)[0])),
+        center,
+        xtol=1.0e-8,
+        maxfev=100,
+        full_output=True,
+    )
+    candidate = float(root[0])
+    f_candidate = equation(candidate)
+    if ier == 1 and abs(f_candidate) <= max(1.0e-8, 1.0e-10 * max(abs(f_center), 1.0)):
+        return candidate
+
+    width = max(float(scale), 1.0)
+    for _ in range(80):
+        lo = center - width
+        hi = center + width
+        f_lo = equation(lo)
+        f_hi = equation(hi)
+        if f_lo == 0.0:
+            return float(lo)
+        if f_hi == 0.0:
+            return float(hi)
+        if f_lo * f_hi < 0.0:
+            return float(brentq(equation, lo, hi, xtol=1.0e-8, rtol=1.0e-12, maxiter=200))
+        width *= 2.0
+
+    return _solve_scalar_root(equation, center, xtol=1.0e-8, maxfev=60000)
+
+
+@lru_cache(maxsize=4096)
+def _quark_mu_triplet_neutral_cached(muB, muK, T, ms, muQ_init, upB):
+    muB = float(muB)
+    muK = float(muK)
+    T = float(T)
+    ms = float(ms)
+    muQ_init = float(muQ_init)
+    upB = _normalize_upB(upB)
+
+    def equation(muQ):
+        mu_u, mu_d, mu_s = _quark_mu_triplet_from_muQ(muB, muK, muQ)
+        state = _quark_uds_state_from_triplet(mu_u, mu_d, mu_s, T, ms, upB=upB)
+        species = state["species"]
+        return float(2.0 * species["n_u"] - species["n_d"] - species["n_s"])
+
+    scale = max(abs(muB), abs(muK), abs(ms), abs(T), 1.0)
+    muQ = _solve_neutral_muQ(equation, muQ_init, scale)
+    return _quark_mu_triplet_from_muQ(muB, muK, muQ)
+
+
+def _quark_mu_triplet_neutral(muB, muK, T, ms=0, muQ_init=100.0, upB=5000):
+    """
+    Return charge-neutral quark chemical potentials for known (muB, muK, T).
+
+    The auxiliary muQ is solved from the color-included physical densities
+    2*n_u - n_d - n_s = 0. It is not an electron chemical potential.
+    """
+    return _quark_mu_triplet_neutral_cached(
+        float(muB),
+        float(muK),
+        float(T),
+        float(ms),
+        float(muQ_init),
+        _normalize_upB(upB),
+    )
+
+
 def _quark_uds_state(muB, muK, T, ms=0, upB=5000):
-    mu_u, mu_d, mu_s = _quark_mu_triplet(muB, muK)
-    return _quark_uds_state_from_triplet(mu_u, mu_d, mu_s, T, ms, upB=upB)
+    mu_u, mu_d, mu_s = _quark_mu_triplet_neutral(muB, muK, T, ms=ms, upB=upB)
+    state = _quark_uds_state_from_triplet(mu_u, mu_d, mu_s, T, ms, upB=upB)
+    state["chemical_potentials"] = {
+        "mu_u": float(mu_u),
+        "mu_d": float(mu_d),
+        "mu_s": float(mu_s),
+    }
+    state["susceptibilities"] = state["susceptibilities"].copy()
+    state["susceptibilities"]["chiK"] = _neutral_quark_chiK(state["susceptibilities"])
+    return state
+
+
+def _quark_mu_triplet_for_state(quark_state):
+    mu = quark_state["chemical_potentials"]
+    return mu["mu_u"], mu["mu_d"], mu["mu_s"]
 
 
 def _quark_pressure_uds(mu_u, mu_d, mu_s, T, ms, upB=5000):
@@ -581,7 +679,7 @@ def PQM(muB, muK, B_one_forth, T, ms=0, upB=5000):
     """
     B = B_one_forth**4
     quark_state = _quark_uds_state(muB, muK, T, ms=ms, upB=upB)
-    return float(quark_state["pressure"] - B)
+    return float(_gauge_pressure(T) + quark_state["pressure"] - B)
 
 
 def nB_QM(muB, muK, B_one_forth, T, ms=0, upB=5000, return_species=False):
@@ -626,7 +724,7 @@ def edensQM(muB, muK, B_one_forth, T, ms=0, include_em=False, muQ_init=300, upB=
         return float(_gauge_energy(T) + electron_state[1] + quark_state["energy"] + B)
 
     quark_state = _quark_uds_state(muB, muK, T, ms=ms, upB=upB)
-    return float(quark_state["energy"] + B)
+    return float(_gauge_energy(T) + quark_state["energy"] + B)
 
 
 def entropyQM(muB, muK, B_one_forth, T, ms=0, include_em=False, muQ_init=300, upB=5000, use_thermal=False):
@@ -661,18 +759,18 @@ def entropyQM(muB, muK, B_one_forth, T, ms=0, include_em=False, muQ_init=300, up
         chemical_term = mu_u * species["n_u"] + mu_d * species["n_d"] + mu_s * species["n_s"] + mu_e * n_e
         return float((edens_total + pressure_total - chemical_term) / T)
 
-    mu_u, mu_d, mu_s = _quark_mu_triplet(muB, muK)
-    quark_state = _quark_uds_state_from_triplet(mu_u, mu_d, mu_s, T, ms, upB=upB)
+    quark_state = _quark_uds_state(muB, muK, T, ms=ms, upB=upB)
     quark_entropy = quark_state["entropy"]
     if not use_thermal:
-        return quark_entropy
+        return float(quark_entropy + _gauge_entropy(T))
 
     quark_pressure = quark_state["pressure"]
     quark_edens = quark_state["energy"]
     species = quark_state["species"]
+    mu_u, mu_d, mu_s = _quark_mu_triplet_for_state(quark_state)
     chemical_term = mu_u * species["n_u"] + mu_d * species["n_d"] + mu_s * species["n_s"]
-    pressure_total = quark_pressure - B
-    edens_total = quark_edens + B
+    pressure_total = _gauge_pressure(T) + quark_pressure - B
+    edens_total = _gauge_energy(T) + quark_edens + B
     return float((edens_total + pressure_total - chemical_term) / T)
 
 
