@@ -41,6 +41,7 @@ _TRANSPORT_QD_COEFF = np.sqrt(3.0 * _TRANSPORT_G_S**2 / (2.0 * np.pi**2))
 _TRANSPORT_D_PREFACTOR = 24.0 * _TRANSPORT_ALPHA_S**2 / np.pi
 _TRANSPORT_H_CONST = 1.81317
 _FLOAT_TINY = np.finfo(float).tiny
+_ENERGY_PROFILE_MAX_LAMBDA_DX = 5.0e-2
 _ISOTHERMAL_RETRY_ACTIVE = 0
 
 
@@ -147,7 +148,7 @@ def nB_NM(mu_B, Temp, param = para.paraQMCRMF3, NM_type = "PNM"):
 
     raise ValueError("Nuclear matter type not defined.")
 
-def _analytic_weak_rate_from_mu_q(mu_q):
+def _weak_rate_from_mu_q(mu_q):
     """
     Return the nonleptonic weak-rate gamma and corresponding tau.
 
@@ -184,6 +185,13 @@ def _analytic_weak_rate_from_mu_q(mu_q):
         "tau": float(tau),
         "tau_seconds": float(tau_seconds),
     }
+
+
+def _analytic_weak_rate_from_mu_q(mu_q):
+    """
+    Backward-compatible alias for the canonical nonleptonic weak-rate helper.
+    """
+    return _weak_rate_from_mu_q(mu_q)
 
 
 def _analytic_nuclear_state(muB_N, T_N, param=para.paraQMCRMF3, NM_type="PNM"):
@@ -733,7 +741,7 @@ def _find_Qstar_on_target(T, B_one_forth, lambda_val, jB, Pi_target, muB_N, muB_
         except RuntimeError:
             return np.array([1e30, 1e30], dtype=float)
         eta = (9.0 * np.pi**2 * T2) / (muQ * muQ)
-        gamma = 1.0 / (1.98e12 * ((300.0 / muQ) ** 5))
+        gamma = float(_weak_rate_from_mu_q(muQ)["gamma"])
 
         eq1 = Pi_QM(muBstar, muKstar, B_one_forth, T, jB, ms=ms, upB=upB) - Pi_target
         uQ = jB / quark_Qstar["nB"]
@@ -1630,8 +1638,9 @@ def _microphysics_from_quark_state(muB, T):
         raise RuntimeError(f"Local microphysics returned non-physical coefficients: {exc}") from exc
     invD = float(1.0 / D)
     eta = 9.0 * np.pi**2 * T**2 / muQ**2
-    tau = 1.98e12 * (300.0 / muQ) ** 5
-    gamma = 1.0 / tau
+    weak_rate = _weak_rate_from_mu_q(muQ)
+    tau = float(weak_rate["tau"])
+    gamma = float(weak_rate["gamma"])
 
     if (
         (not np.isfinite(qD))
@@ -1697,8 +1706,9 @@ def _microphysics_from_quark_state_energy(muB, T, allow_zero_temperature=False):
         invD = float(_TRANSPORT_D_PREFACTOR * denom_terms)
         eta = float(9.0 * np.pi**2 * T**2 / muQ**2)
 
-    tau = 1.98e12 * (300.0 / muQ) ** 5
-    gamma = 1.0 / tau
+    weak_rate = _weak_rate_from_mu_q(muQ)
+    tau = float(weak_rate["tau"])
+    gamma = float(weak_rate["gamma"])
     if (
         (not np.isfinite(invD))
         or invD < 0.0
@@ -1742,8 +1752,9 @@ def _microphysics_from_quark_state_isothermal_baseline(muB, T):
     part2 = np.pi**3 * T**2 / (12.0 * qD)
     D = 1.0 / (24.0 * alpha_s**2 / np.pi * (part1 + part2))
     eta = 9.0 * np.pi**2 * T**2 / muQ**2
-    tau = 1.98e12 * (300.0 / muQ) ** 5
-    gamma = 1.0 / tau
+    weak_rate = _weak_rate_from_mu_q(muQ)
+    tau = float(weak_rate["tau"])
+    gamma = float(weak_rate["gamma"])
 
     if (
         (not np.isfinite(qD))
@@ -2074,6 +2085,60 @@ def _mean_kaon_equation_residual(q_prime_minus_reaction, reaction_at_mean_a):
         "kaon_equation_scale": scale,
         "kaon_equation_residual_norm": residual_norm,
     }
+
+
+def _energy_profile_export_grid(lam, tail_eps, min_points=2, max_lambda_dx=_ENERGY_PROFILE_MAX_LAMBDA_DX):
+    """
+    Return a uniform physical-x grid and matching compact coordinates for export.
+
+    The BVP is solved on adaptive compact-coordinate nodes. Exporting those
+    nodes directly creates a sparse physical-x tail, which makes downstream
+    finite differences look much worse than the solver residual. This helper
+    keeps the solve coordinate unchanged and only controls the reported profile
+    spacing.
+    """
+    lam = float(lam)
+    tail_eps = float(tail_eps)
+    max_lambda_dx = float(max_lambda_dx)
+    min_points = int(min_points)
+    if (not np.isfinite(lam)) or lam <= 0.0:
+        raise RuntimeError("Energy profile export grid requires positive lambda")
+    if (not np.isfinite(tail_eps)) or tail_eps <= 0.0 or tail_eps >= 1.0:
+        raise RuntimeError("Energy profile export grid requires 0 < tail_eps < 1")
+    if (not np.isfinite(max_lambda_dx)) or max_lambda_dx <= 0.0:
+        raise RuntimeError("Energy profile export grid requires positive max_lambda_dx")
+
+    x_end = float(-np.log(tail_eps) / lam)
+    lambda_x_end = float(lam * x_end)
+    n_from_spacing = int(np.ceil(lambda_x_end / max_lambda_dx)) + 1
+    n_points = max(int(min_points), 2, n_from_spacing)
+    x_export = np.linspace(0.0, x_end, n_points, dtype=float)
+    s_export = -np.expm1(-lam * x_export)
+    s_export[0] = 0.0
+    s_export[-1] = 1.0 - tail_eps
+    return x_export, s_export
+
+
+def _bvp_dense_derivative(sol, s_eval):
+    """
+    Evaluate dy/ds from a solve_bvp solution, falling back to finite differences.
+    """
+    s_eval = np.asarray(s_eval, dtype=float)
+    try:
+        dy_ds = np.asarray(sol.sol.derivative(1)(s_eval), dtype=float)
+    except Exception:
+        y_eval = np.asarray(sol.sol(s_eval), dtype=float)
+        dy_ds = np.vstack(
+            [
+                np.gradient(np.asarray(y_eval[row], dtype=float), s_eval, edge_order=1)
+                for row in range(y_eval.shape[0])
+            ]
+        )
+    if dy_ds.shape[0] != sol.y.shape[0] and dy_ds.shape[-1] == sol.y.shape[0]:
+        dy_ds = np.moveaxis(dy_ds, -1, 0)
+    if dy_ds.shape[0] != sol.y.shape[0] or dy_ds.shape[-1] != s_eval.size:
+        raise RuntimeError("invalid BVP dense derivative shape")
+    return dy_ds
 
 
 def _relativistic_gamma_from_u(u):
@@ -3096,6 +3161,10 @@ def _strip_energy_profile_fields(result):
     result_out = dict(result)
     for key in (
         "s_coord",
+        "bvp_s_coord",
+        "bvp_x",
+        "bvp_a",
+        "bvp_q",
         "x",
         "a",
         "q",
@@ -3109,6 +3178,9 @@ def _strip_energy_profile_fields(result):
         "invD_profile",
         "eta_profile",
         "gamma_profile",
+        "q_prime_profile",
+        "R_kaon_profile",
+        "kaon_equation_residual_profile",
     ):
         result_out.pop(key, None)
     return result_out
@@ -4769,18 +4841,8 @@ def _solve_front_energy_conserving_once(
             if s_eval.ndim != 1 or a_eval.shape != s_eval.shape or s_eval.size == 0:
                 raise RuntimeError("invalid BVP profile for kaon equation diagnostic")
 
-            try:
-                dy_ds = np.asarray(sol.sol.derivative(1)(s_eval), dtype=float)
-            except Exception:
-                dy_ds = np.vstack(
-                    [
-                        np.gradient(np.asarray(sol.y[row], dtype=float), s_eval, edge_order=1)
-                        for row in range(sol.y.shape[0])
-                    ]
-                )
-            if dy_ds.shape[0] != sol.y.shape[0] and dy_ds.shape[-1] == sol.y.shape[0]:
-                dy_ds = np.moveaxis(dy_ds, -1, 0)
-            if dy_ds.shape[0] < 2 or dy_ds.shape[-1] != s_eval.size:
+            dy_ds = _bvp_dense_derivative(sol, s_eval)
+            if dy_ds.shape[0] < 2:
                 raise RuntimeError("invalid BVP derivative shape for kaon equation diagnostic")
 
             one_minus_s = np.maximum(1.0 - s_eval, np.finfo(float).tiny)
@@ -4879,9 +4941,9 @@ def _solve_front_energy_conserving_once(
 
     def _profile_initial_guess(profile):
         try:
-            s_prev = np.asarray(profile["s_coord"], dtype=float)
-            a_prev = np.asarray(profile["a"], dtype=float)
-            q_prev = np.asarray(profile["q"], dtype=float)
+            s_prev = np.asarray(profile["bvp_s_coord"] if "bvp_s_coord" in profile else profile["s_coord"], dtype=float)
+            a_prev = np.asarray(profile["bvp_a"] if "bvp_a" in profile else profile["a"], dtype=float)
+            q_prev = np.asarray(profile["bvp_q"] if "bvp_q" in profile else profile["q"], dtype=float)
         except Exception:
             return _default_initial_guess()
 
@@ -5066,18 +5128,63 @@ def _solve_front_energy_conserving_once(
     }
 
     if return_profile or seed_profile:
-        s_coord_prof = np.asarray(sol.x, dtype=float)
-        a_prof = np.asarray(sol.y[0], dtype=float)
-        q_prof = np.asarray(sol.y[1], dtype=float)
-        x_prof = -np.log1p(-s_coord_prof) / float(state["lambda"])
+        bvp_s_coord_prof = np.asarray(sol.x, dtype=float)
+        bvp_a_prof = np.asarray(sol.y[0], dtype=float)
+        bvp_q_prof = np.asarray(sol.y[1], dtype=float)
+        bvp_x_prof = -np.log1p(-bvp_s_coord_prof) / float(state["lambda"])
         result.update(
             {
-                "s_coord": s_coord_prof,
-                "x": x_prof,
-                "a": a_prof,
-                "q": q_prof,
+                "bvp_s_coord": bvp_s_coord_prof,
+                "bvp_x": bvp_x_prof,
+                "bvp_a": bvp_a_prof,
+                "bvp_q": bvp_q_prof,
             }
         )
+        if return_profile and success:
+            x_prof, s_coord_prof = _energy_profile_export_grid(
+                state["lambda"],
+                tail_eps,
+                min_points=sol.x.size,
+            )
+            y_prof = np.asarray(sol.sol(s_coord_prof), dtype=float)
+            if y_prof.shape[0] != sol.y.shape[0] and y_prof.shape[-1] == sol.y.shape[0]:
+                y_prof = np.moveaxis(y_prof, -1, 0)
+            if y_prof.shape[0] < 2 or y_prof.shape[-1] != s_coord_prof.size:
+                result["success"] = False
+                result["message"] = f"{result['message']}; profile export failed: invalid dense solution shape"
+                result["profile_reconstruction_failed"] = True
+                result["profile_reconstruction_message"] = "invalid dense solution shape"
+                return result
+            a_prof = np.asarray(y_prof[0], dtype=float)
+            q_prof = np.asarray(y_prof[1], dtype=float)
+            dy_ds_prof = _bvp_dense_derivative(sol, s_coord_prof)
+            dx_ds_prof = 1.0 / (state["lambda"] * np.maximum(1.0 - s_coord_prof, np.finfo(float).tiny))
+            q_prime_prof = np.asarray(dy_ds_prof[1], dtype=float) / dx_ds_prof
+            result.update(
+                {
+                    "s_coord": s_coord_prof,
+                    "x": x_prof,
+                    "a": a_prof,
+                    "q": q_prof,
+                    "profile_export_max_lambda_dx": float(_ENERGY_PROFILE_MAX_LAMBDA_DX),
+                    "profile_export_points": int(s_coord_prof.size),
+                    "profile_export_grid": "uniform_x",
+                }
+            )
+        else:
+            s_coord_prof = bvp_s_coord_prof
+            x_prof = bvp_x_prof
+            a_prof = bvp_a_prof
+            q_prof = bvp_q_prof
+            result.update(
+                {
+                    "s_coord": s_coord_prof,
+                    "x": x_prof,
+                    "a": a_prof,
+                    "q": q_prof,
+                    "profile_export_grid": "bvp_nodes",
+                }
+            )
     if return_profile and success:
         muB_prof = np.empty_like(s_coord_prof)
         muK_prof = np.empty_like(s_coord_prof)
@@ -5155,6 +5262,8 @@ def _solve_front_energy_conserving_once(
                 print(f"energy-bvp profile reconstruction failed for aQstar={state['aQstar']:.6g}: {exc}")
             return result
 
+        R_kaon_prof = gamma_prof * (a_prof**3 + eta_prof * a_prof)
+        kaon_residual_prof = q_prime_prof - R_kaon_prof
         result.update(
             {
                 "u": u_prof,
@@ -5167,6 +5276,9 @@ def _solve_front_energy_conserving_once(
                 "invD_profile": invD_prof,
                 "eta_profile": eta_prof,
                 "gamma_profile": gamma_prof,
+                "q_prime_profile": q_prime_prof,
+                "R_kaon_profile": R_kaon_prof,
+                "kaon_equation_residual_profile": kaon_residual_prof,
                 "profile_state_calls": int(stats["profile_state_calls"]),
                 "local_state_calls": int(stats["local_state_calls"]),
                 "local_root_calls": int(stats["local_root_calls"]),
