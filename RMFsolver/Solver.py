@@ -1,5 +1,3 @@
-"""Core relativistic mean-field solvers and thermodynamic helpers."""
-
 import numpy as np
 from numpy.linalg import eigvals
 from numdifftools import Derivative
@@ -12,59 +10,22 @@ from scipy.optimize import brentq
 
 
 # Public functions
-__all__ = [
-    "baryon_density",
-    "n_electron",
-    "electron_pressure",
-    "electron_edens",
-    "n_neutrino",
-    "neutrino_pressure",
-    "neutrino_edens",
-    "neutrino_entropy",
-    "neutrino_test",
-    "nucleon_pressure",
-    "nucleon_edens",
-    "pressure_hesse",
-    "RMFsolve_mu",
-    "analyze_dPds",
-    "RMFsolve_nonequil",
-    "RMFsolve_xp",
-    "RMFsolve_muB_muQ",
-    "RMFsolve_nu",
-    "RMFsolve_nu_nb",
-    "RMFsolve",
-    "RMFsolve_nb",
-    "RMFpressure",
-    "RMFbaryon_density",
-    "RMFedens",
-    "RMFsolveSYM",
-    "RMFsolveSYM_renorm",
-    "RMFsolveSYM_mu",
-    "RMFsolve_nb_SYM",
-    "RMFpressureSYM",
-    "RMFbaryon_densitySYM",
-    "RMFedensSYM",
-    "RMFbindingSYM",
-    "RMFsolvePNM",
-    "RMFsolvePNM_mu",
-    "RMFsolve_nb_PNM",
-    "RMFpressurePNM",
-    "RMFbaryon_densityPNM",
-    "RMFedensPNM",
-    "RMFbindingPNM",
-    "pressure_RMF_PNM",
-    "edens_RMF_PNM",
-    "DeltaMU",
-    "proton_fraction_RMF",
-    "pressure_RMF",
-    "baryon_density_RMF",
-    "entropy_RMF",
-    "edens_RMF",
-    "free_energy_density_RMF",
-    "create_EOS",
-    "binding_energy_RMF",
-    "dU_threshold",
-]
+__all__ = ["RMFsolve", "RMFsolve_nu", "proton_fraction_RMF", 
+           "RMFpressure", "RMFedens", "electron_pressure", "electron_edens", "n_electron", 
+           "n_neutrino", "nucleon_pressure", "nucleon_edens", "RMFsolveSYM", 
+           "RMFpressureSYM", "RMFedensSYM", "edens_RMF", "pressure_RMF", 
+           "entropy_RMF", "binding_energy_RMF", 
+           "RMFpressurePNM", "RMFedensPNM", "RMFentropyPNM", "RMFsolvePNM", "RMFbindingPNM", 
+           "RMFsolve_nb", "baryon_density", "baryon_density_RMF", "RMFbaryon_density",
+           "RMFbaryon_densitySYM", "RMFbaryon_densityPNM", "RMFbindingSYM", 
+           "RMFsolve_nb_PNM", "RMFsolve_nb_SYM", "create_EOS", 
+           "DeltaMU", "dU_threshold", "freeener_RMF", "RMFsolve_mu", 
+           "RMFsolve_nonequil", "RMFsolve_nonequil_xpconst", 
+           "RMFsolve_xp", "neutrino_test", "neutrino_pressure", 
+           "neutrino_entropy", "neutrino_edens", "RMFsolve_nu_brent", 
+           "pressure_hesse", "RMFsolveSYM_renorm", "ds_dT", "d2s_dT2", 
+           "RMFsolve_muB_muQ", "analyze_dPds", "RMFsolvePNM_mu", 
+           "RMFsolveSYM_mu"];
 
 
 
@@ -310,6 +271,43 @@ def _solve_from_input_type(input_num, input_type, solve_from_nb, solve_from_mub)
         return solve_from_mub(input_num)
     print("Unknown input type")
     return None
+
+def _warn_if_inaccurate(chk, verb):
+    """
+    Emit the standard residual warning used by the RMF wrapper helpers.
+    """
+    if verb and max(abs(c) for c in chk) > 1e-6:
+        print("Accuracy not achieved, check functions > 10^(-6)")
+
+def _copy_soltab_with_min_state_len(soltab, min_len=7):
+    """
+    Return a shallow copy of ``soltab`` whose state vector has at least ``min_len`` entries.
+    """
+    soltab_local = list(soltab)
+    soltab_local[0] = list(soltab_local[0])
+    if len(soltab_local[0]) < min_len:
+        soltab_local[0] += [0.0] * (min_len - len(soltab_local[0]))
+    return soltab_local
+
+def _solve_pnm_from_input_type(input_num, input_type, Trmf, para, sigma_init=30, w0_init=20, r03_init=-3, mub_init=990, verb=False):
+    """
+    Shared dispatcher for PNM wrappers that accept either density or baryon chemical potential.
+    """
+    return _solve_from_input_type(
+        input_num,
+        input_type,
+        lambda nb: RMFsolvePNM(nb, Trmf, para, sigma_init, w0_init, r03_init, mub_init, verb),
+        lambda mub: RMFsolvePNM_mu(mub, Trmf, para, sigma_init, w0_init, r03_init, verb),
+    )
+
+def _warn_if_disabled_leptons(mue, munu, electrons, neutrinos):
+    """
+    Emit consistency warnings when lepton chemical potentials are present but those species are disabled.
+    """
+    if not electrons and mue != 0:
+        print("WARNING: electrons have finite chemical potential but electron flag = False")
+    if not neutrinos and munu != 0:
+        print("WARNING: neutrinos have finite chemical potential but neutrino flag = False")
 
 # scalar density 
 def _ns(T, muB, BI, sigma, w0, r03, upB=5000):
@@ -1480,18 +1478,6 @@ def RMFsolve_xp(nbext, xp, Trmf, para, sigma_init=30, w0_init=20, r03_init=-3, m
 # (CHECK AGAIN)
 # RMFsolver out of equilibrium at given T,mu_B and xp, enforces charge neutrality
 def RMFsolve_muB_muQ(mub, mu_e, Trmf, para, sigma_init=30, w0_init=20, r03_init=-3, mu_p_init=990, verb=False):
-    """Solve beta-unequilibrated RMF matter at fixed ``mu_B`` and ``mu_e``.
-
-    Inputs:
-    - mub: baryon chemical potential in MeV
-    - mu_e: electron chemical potential in MeV
-    - Trmf: temperature in MeV
-    - para: RMF parameter set
-    - sigma_init, w0_init, r03_init, mu_p_init: solver initial guesses
-
-    Output:
-    - RMF solution table ``[fields_and_chemical_potentials, residuals, T, nB, para]``
-    """
     _set_couplings(para)
 
     if verb and Trmf <= 0.1:
@@ -2009,17 +1995,6 @@ def RMFsolveSYM(nbext, Trmf, para, sigma_init=30, w0_init=20, mub_init=990, verb
 
 # module to solve isospin symmetric nuclear matter for a renormalized model of the bogota bodmer type
 def RMFsolveSYM_renorm(nbext, Trmf, para, sigma_init=30, w0_init=20, muB_init=990, verb=False):
-    """Solve symmetric nuclear matter with the renormalized meson sector.
-
-    Inputs:
-    - nbext: baryon density in MeV^3
-    - Trmf: temperature in MeV
-    - para: RMF parameter set
-    - sigma_init, w0_init, muB_init: solver initial guesses
-
-    Output:
-    - RMF solution table for symmetric matter
-    """
     _set_couplings(para)
 
     def Eq1(sigma, w0, muN, muP):
@@ -2604,21 +2579,22 @@ def RMFpressurePNM(input_num, input_type, Trmf, para, sigma_init=30, w0_init=20,
     float
         Total pressure (meson + neutron).
     """
-    vevs = _solve_from_input_type(
-        input_num,
-        input_type,
-        lambda nb: RMFsolvePNM(nb, Trmf, para, sigma_init, w0_init, r03_init, mub_init, verb),
-        lambda mub: RMFsolvePNM_mu(mub, Trmf, para, sigma_init, w0_init, r03_init, verb),
+    vevs = _solve_pnm_from_input_type(
+        input_num, input_type, Trmf, para, sigma_init, w0_init, r03_init, mub_init, verb
     )
     if vevs is None:
         return None
 
     chk = vevs[1]
-    pressure = pressure_RMF_PNM(vevs)
+    pressure = pressure_RMF(
+        vevs,
+        add_photons=False,
+        renorm=False,
+        electrons=False,
+        neutrinos=False,
+    )
 
-    if verb:
-        if max(abs(c) for c in chk) > 1e-6:
-            print("Accuracy not achieved, check functions > 10^(-6)")
+    _warn_if_inaccurate(chk, verb)
     return pressure
 
 def RMFbaryon_densityPNM(input_num, input_type, Trmf, para, sigma_init=30, w0_init=20, r03_init=-3, mub_init=990, verb=False, return_species=False):
@@ -2629,11 +2605,8 @@ def RMFbaryon_densityPNM(input_num, input_type, Trmf, para, sigma_init=30, w0_in
     - input_type: "nB" or "muB"
     - return_species: if True, also return {"n_n": ..., "n_p": ...}
     """
-    vevs = _solve_from_input_type(
-        input_num,
-        input_type,
-        lambda nb: RMFsolvePNM(nb, Trmf, para, sigma_init, w0_init, r03_init, mub_init, verb),
-        lambda mub: RMFsolvePNM_mu(mub, Trmf, para, sigma_init, w0_init, r03_init, verb),
+    vevs = _solve_pnm_from_input_type(
+        input_num, input_type, Trmf, para, sigma_init, w0_init, r03_init, mub_init, verb
     )
     if vevs is None:
         return None
@@ -2641,8 +2614,7 @@ def RMFbaryon_densityPNM(input_num, input_type, Trmf, para, sigma_init=30, w0_in
     chk = vevs[1]
     n_tot, n_n, n_p = _species_baryon_densities_from_soltab(vevs)
 
-    if verb and max(abs(c) for c in chk) > 1e-6:
-        print("Accuracy not achieved, check functions > 10^(-6)")
+    _warn_if_inaccurate(chk, verb)
 
     if return_species:
         return n_tot, {"n_n": n_n, "n_p": n_p}
@@ -2654,22 +2626,16 @@ def RMFedensPNM(input_num, input_type, Trmf, para, sigma_init=30, w0_init=20, r0
 
     Parameters mirror RMFpressurePNM; energy density is returned in MeV^4.
     """
-    vevs = _solve_from_input_type(
-        input_num,
-        input_type,
-        lambda nb: RMFsolvePNM(nb, Trmf, para, sigma_init, w0_init, r03_init, mub_init, verb),
-        lambda mub: RMFsolvePNM_mu(mub, Trmf, para, sigma_init, w0_init, r03_init, verb),
+    vevs = _solve_pnm_from_input_type(
+        input_num, input_type, Trmf, para, sigma_init, w0_init, r03_init, mub_init, verb
     )
     if vevs is None:
         return None
 
-    # Normalize to 7-component chemical-potential block expected by edens_RMF
-    if len(vevs[0]) < 7:
-        vevs[0] = list(vevs[0]) + [0.0] * (7 - len(vevs[0]))
-
     chk = vevs[1]
+    vevs_local = _copy_soltab_with_min_state_len(vevs)
     _, edens_total, _ = edens_RMF(
-        vevs,
+        vevs_local,
         add_photons=False,
         renorm=renorm,
         electrons=False,
@@ -2677,13 +2643,34 @@ def RMFedensPNM(input_num, input_type, Trmf, para, sigma_init=30, w0_init=20, r0
         use_entropy=use_entropy,
     )
 
-    if verb:
-        if max(abs(c) for c in chk) > 1e-6:
-            print("Accuracy not achieved, check functions > 10^(-6)")
-        else:
-            return edens_total
-
+    _warn_if_inaccurate(chk, verb)
     return edens_total
+
+def RMFentropyPNM(input_num, input_type, Trmf, para, sigma_init=30, w0_init=20, r03_init=-3, mub_init=990, verb=False, boundmult=40, add_photons=False, electrons=False, neutrinos=False, use_thermal=True):
+    """
+    Compute entropy density for pure neutron matter (PNM).
+
+    Parameters mirror RMFpressurePNM; entropy density is returned in MeV^3.
+    """
+    vevs = _solve_pnm_from_input_type(
+        input_num, input_type, Trmf, para, sigma_init, w0_init, r03_init, mub_init, verb
+    )
+    if vevs is None:
+        return None
+
+    chk = vevs[1]
+    vevs_local = _copy_soltab_with_min_state_len(vevs)
+    entropy_total = entropy_RMF(
+        vevs_local,
+        boundmult=boundmult,
+        add_photons=add_photons,
+        electrons=electrons,
+        neutrinos=neutrinos,
+        use_thermal=use_thermal,
+    )
+
+    _warn_if_inaccurate(chk, verb)
+    return entropy_total
 
 # module to solve RMF AND compute binding energy PNM
 def RMFbindingPNM(nbext, Trmf, para, sigma_init=30, w0_init=20, r03_init=-3, mub_init=990, verb=False):
@@ -2713,61 +2700,9 @@ def RMFbindingPNM(nbext, Trmf, para, sigma_init=30, w0_init=20, r03_init=-3, mub
     vevs = RMFsolvePNM(nbext, Trmf, para, sigma_init, w0_init, r03_init, mub_init, verb)
     chk = vevs[1]
 
-    # Ensure the solution vector has length at least 7 to match what binding_energy_RMF expects
-    if len(vevs[0]) < 7:
-        vevs[0] += [0.0] * (7 - len(vevs[0]))
-
-    bind = binding_energy_RMF(vevs)
-
-    if verb:
-        if max(abs(c) for c in chk) > 1e-6:
-            print("Accuracy not achieved, check functions > 10^(-6)")
-        else:
-            return bind
-
+    bind = binding_energy_RMF(_copy_soltab_with_min_state_len(vevs))
+    _warn_if_inaccurate(chk, verb)
     return bind
-
-# module to compute pressure for given solution of RMF obtained by RMFsolver- UPDATE: this module should be obsolete and not be used in new codes
-def pressure_RMF_PNM(soltab):
-    """
-    Compute pressure for a solution of RMF obtained by RMFsolvePNM.
-
-    Parameters
-    ----------
-    soltab : list
-        Solution table directly from RMFsolvePNM
-
-    Returns
-    -------
-    float
-        Total pressure (meson + nucleon)
-    """
-    return pressure_RMF(
-        soltab,
-        add_photons=False,
-        renorm=False,
-        electrons=False,
-        neutrinos=False,
-    )
-
-def edens_RMF_PNM(soltab, renorm=False, use_entropy=False):
-    """
-    Compute energy density for a PNM RMF solution table.
-    """
-    soltab_local = list(soltab)
-    soltab_local[0] = list(soltab_local[0])
-    if len(soltab_local[0]) < 7:
-        soltab_local[0] += [0.0] * (7 - len(soltab_local[0]))
-
-    _, edens_total, _ = edens_RMF(
-        soltab_local,
-        add_photons=False,
-        renorm=renorm,
-        electrons=False,
-        neutrinos=False,
-        use_entropy=use_entropy,
-    )
-    return edens_total
 
 # This module computes the out of equilibrium chemical potential if initially beta equilibrated matter is pushed out of equilibrium by a density oscillation of magnitude deltan
 def DeltaMU(nbext, deltan, Trmf, para, sigma_init=30, w0_init=20, r03_init=-3, mub_init=990, mue_init=50, verb=False):
@@ -2903,18 +2838,6 @@ def _proton_fraction_RMF(soltab):
     xp = _nB(T, mup, 1, sigma, w0, r03) / dens
     return xp
 
-
-def proton_fraction_RMF(soltab):
-    """Return the proton fraction for an RMF solution table.
-
-    Inputs:
-    - soltab: output from ``RMFsolve`` or a related RMF solver
-
-    Output:
-    - proton fraction ``x_p`` (dimensionless)
-    """
-    return _proton_fraction_RMF(soltab)
-
 # Calculating pressure from given solution table from RMF solvers
 def pressure_RMF(soltab, add_photons=False, renorm=False, electrons=True, neutrinos=False):
     """
@@ -2999,22 +2922,48 @@ def baryon_density_RMF(soltab, return_species=False):
         return n_tot, {"n_n": n_n, "n_p": n_p}
     return n_tot
 
-# (CHECK AGAIN!!! not so accurate, %2.5 error)
-# module to compute entropy density at finite T
-def entropy_RMF(soltab, boundmult=40, add_photons=False, integration_method="LocalAdaptive", electrons=True, neutrinos=False):
+def _direct_edens_RMF_raw(soltab, up=5000, add_photons=False, electrons=True, neutrinos=False, warn_on_disabled_leptons=True):
     """
-    Compute entropy density from RMF solution.
+    Direct microscopic RMF energy density before the vacuum offset correction.
+    """
+    para = soltab[4]
+    _set_couplings(para)
 
-    Parameters:
-    - soltab: solution list returned by RMFsolve
-    - boundmult: integration bound multiplier for entropy integrals
-    - add_photons: include photon entropy contribution
-    - integration_method: method name placeholder for future compatibility
-    - electrons: whether to include electron contribution
-    - neutrinos: whether to include neutrino contribution
+    T = soltab[2]
+    sig, w0, r03 = soltab[0][:3]
+    mun, mup = soltab[0][3:5]
+    mue = soltab[0][5] if isinstance(soltab[0][5], (int, float)) else (mun - mup if mup > 0 else 0)
+    munu = soltab[0][6] if len(soltab[0]) > 6 and isinstance(soltab[0][6], (int, float)) else 0
+    muv = [mun, mup]
 
-    Returns:
-    - total entropy density
+    if warn_on_disabled_leptons:
+        _warn_if_disabled_leptons(mue, munu, electrons, neutrinos)
+
+    mespart = (
+        _Lmes(sig, w0, r03)
+        + 2 * _U_sigma(sig)
+        + gr[0] ** 2 * r03 ** 2 * (2 * b1 * w0 ** 2 + 4 * b2 * w0 ** 4 + 6 * b3 * w0 ** 6)
+        + 2 * zet / 24 * gw[0] ** 4 * w0 ** 4
+        + 2 * xi / 24 * gr[0] ** 4 * r03 ** 4
+    )
+
+    if mup > 0:
+        edens_nucleons = sum(
+            nucleon_edens(T, muv[BI], sig, w0, r03, BI)
+            for BI in range(2)
+        )
+    else:
+        edens_nucleons = nucleon_edens(T, mun, sig, w0, r03, 0)
+
+    edens_electron = electron_edens(T, mue, me=me, upB=up) if electrons else 0
+    edens_neutrino = neutrino_edens(T, munu, up) if neutrinos else 0
+    E_photon = _photon_energy(T) if add_photons else 0
+
+    return edens_nucleons + edens_electron + mespart + E_photon + edens_neutrino
+
+def _entropy_RMF_integral(soltab, boundmult=40, add_photons=False, electrons=True, neutrinos=False):
+    """
+    Numerical entropy-density evaluation from the phase-space integral over occupation numbers.
     """
     def adaptive_entropy_integral(integrand, kmin, kmax, tol=1e-10, maxiter=10):
         """
@@ -3039,7 +2988,6 @@ def entropy_RMF(soltab, boundmult=40, add_photons=False, integration_method="Loc
             iter_count += 1
 
         if intervals:
-            # If still unfinished after maxiter subdivisions, fallback to final quad
             for a, b in intervals:
                 I, _ = quad(integrand, a, b, epsabs=tol)
                 result += I
@@ -3068,14 +3016,11 @@ def entropy_RMF(soltab, boundmult=40, add_photons=False, integration_method="Loc
 
     kfp = arg_p**(1 / 3) if arg_p >= 0 else 0.0
     kfn = arg_n**(1 / 3) if arg_n >= 0 else 0.0
-
     kfv = [kfn, kfp]
 
     arg_e = 3 * np.pi**2 * n_electron(T, mue)
     arg_nu = 3 * np.pi**2 * n_neutrino(T, munu)
-
-    kfe = arg_e**(1 / 3) if arg_e >=0 else 0.0
-    kfnu = arg_nu**(1 / 3) if arg_nu >= 0 else 0.0
+    kfe = arg_e**(1 / 3) if arg_e >= 0 else 0.0
 
     if T > 0:
         entr_nucl = 0
@@ -3089,7 +3034,7 @@ def entropy_RMF(soltab, boundmult=40, add_photons=False, integration_method="Loc
                     )
                 kmin = max(0, kfv[BI] - boundmult * T)
                 kmax = kfv[BI] + boundmult * T
-                integral = adaptive_entropy_integral(integrand, kmin, kmax, tol=1e-10) # quad(integrand, kmin, kmax, epsabs=1e-10, limit=1000)[0]
+                integral = adaptive_entropy_integral(integrand, kmin, kmax, tol=1e-10)
                 entr_nucl += -2 / (2 * np.pi)**3 * 4 * np.pi * integral
     else:
         entr_nucl = 0
@@ -3102,11 +3047,13 @@ def entropy_RMF(soltab, boundmult=40, add_photons=False, integration_method="Loc
                     E = np.sqrt(k**2 + me**2)
                     fd_pos = _fd(E, sgn * mue, -T)
                     fd_neg = _fd(E, sgn * mue, T)
-                    return k**2 * (fd_pos * np.clip(np.log(np.clip(fd_pos, 1e-300, 1.0)), -700, 700) +
-                                   fd_neg * np.clip(np.log(np.clip(fd_neg, 1e-300, 1.0)), -700, 700))
+                    return k**2 * (
+                        fd_pos * np.clip(np.log(np.clip(fd_pos, 1e-300, 1.0)), -700, 700) +
+                        fd_neg * np.clip(np.log(np.clip(fd_neg, 1e-300, 1.0)), -700, 700)
+                    )
                 kmin = max(0, kfe - boundmult * T)
                 kmax = kfe + boundmult * T
-                integral = adaptive_entropy_integral(integrand, kmin, kmax, tol=1e-10) # quad(integrand, kmin, kmax, epsabs=1e-10, limit=100000)[0]
+                integral = adaptive_entropy_integral(integrand, kmin, kmax, tol=1e-10)
                 entr_electron += -2 / (2 * np.pi)**3 * 4 * np.pi * integral
         else:
             entr_electron = 0
@@ -3116,13 +3063,87 @@ def entropy_RMF(soltab, boundmult=40, add_photons=False, integration_method="Loc
     entr_neutrino = neutrino_entropy(T, munu, 4000) if neutrinos else 0
     entr_photon = _photon_entropy(T) if add_photons else 0
 
-    if not electrons and mue != 0:
-        print("WARNING: electrons have finite chemical potential but electron flag = False")
-    if not neutrinos and munu != 0:
-        print("WARNING: neutrinos have finite chemical potential but neutrino flag = False")
+    _warn_if_disabled_leptons(mue, munu, electrons, neutrinos)
 
-    entropy_total = entr_photon + entr_nucl + entr_electron + entr_neutrino
-    return entropy_total
+    return entr_photon + entr_nucl + entr_electron + entr_neutrino
+
+def _entropy_RMF_thermal(soltab, add_photons=False, electrons=True, neutrinos=False):
+    """
+    Thermodynamic entropy-density reconstruction using s = (epsilon + P - sum(mu_i n_i)) / T.
+    """
+    para = soltab[4]
+    _set_couplings(para)
+
+    T = soltab[2]
+    if T <= 0:
+        return 0.0
+
+    mun, mup = soltab[0][3:5]
+    mue = soltab[0][5] if isinstance(soltab[0][5], (int, float)) else (mun - mup if mup > 0 else 0)
+    munu = soltab[0][6] if len(soltab[0]) > 6 and isinstance(soltab[0][6], (int, float)) else 0
+
+    _warn_if_disabled_leptons(mue, munu, electrons, neutrinos)
+
+    _, nn, np_species = _species_baryon_densities_from_soltab(soltab)
+    ne = n_electron(T, mue) if electrons else 0.0
+    nnu = n_neutrino(T, munu) if neutrinos else 0.0
+
+    chemical_term = mun * nn + mup * np_species
+    if electrons:
+        chemical_term += mue * ne
+    if neutrinos:
+        chemical_term += munu * nnu
+
+    pressure_total = pressure_RMF(
+        soltab,
+        add_photons=add_photons,
+        electrons=electrons,
+        neutrinos=neutrinos,
+    )
+    edens_direct = _direct_edens_RMF_raw(
+        soltab,
+        up=5000,
+        add_photons=add_photons,
+        electrons=electrons,
+        neutrinos=neutrinos,
+        warn_on_disabled_leptons=False,
+    ) - P_offset
+
+    return (edens_direct + pressure_total - chemical_term) / T
+
+# (CHECK AGAIN!!! not so accurate, %2.5 error)
+# module to compute entropy density at finite T
+def entropy_RMF(soltab, boundmult=40, add_photons=False, integration_method="LocalAdaptive", electrons=True, neutrinos=False, use_thermal=True):
+    """
+    Compute entropy density from RMF solution.
+
+    Parameters:
+    - soltab: solution list returned by RMFsolve
+    - boundmult: integration bound multiplier for entropy integrals
+    - add_photons: include photon entropy contribution
+    - integration_method: method name placeholder for future compatibility
+    - electrons: whether to include electron contribution
+    - neutrinos: whether to include neutrino contribution
+    - use_thermal: if True, use the thermodynamic relation; otherwise use the numerical entropy integral
+
+    Returns:
+    - total entropy density
+    """
+    if use_thermal:
+        return _entropy_RMF_thermal(
+            soltab,
+            add_photons=add_photons,
+            electrons=electrons,
+            neutrinos=neutrinos,
+        )
+
+    return _entropy_RMF_integral(
+        soltab,
+        boundmult=boundmult,
+        add_photons=add_photons,
+        electrons=electrons,
+        neutrinos=neutrinos,
+    )
 
 # (CHECK AGAIN!!!) uses entropy function which has errors
 # module to compute energy density for given solution of RMF obtained by RMFsolver
@@ -3139,14 +3160,13 @@ def edens_RMF(soltab, up=5000, boundmult=20, add_photons=False, renorm=False, el
     - renorm: whether to use renormalized meson pressure
     - electrons: whether to include electrons
     - neutrinos: whether to include neutrinos
-    - use_entropy: whether to calculate thermodynamic energy density (slow)
+    - use_entropy: whether to also calculate a thermodynamic diagnostic energy density using the numerical entropy integral
 
     Returns:
     - Thermodynamic energy density (or None if disabled)
-    - Total energy density
+    - Direct microscopic energy density
     - Relative error between thermo and total (or None if disabled)
     """
-    # Unpack solution and set couplings
     para = soltab[4]
     _set_couplings(para)
 
@@ -3155,32 +3175,31 @@ def edens_RMF(soltab, up=5000, boundmult=20, add_photons=False, renorm=False, el
     mun, mup = soltab[0][3:5]
     mue = soltab[0][5] if isinstance(soltab[0][5], (int, float)) else (mun - mup if mup > 0 else 0)
     munu = soltab[0][6] if len(soltab[0]) > 6 and isinstance(soltab[0][6], (int, float)) else 0
-    muv = [mun, mup]
-
-    # Total pressure and entropy
-    totpress = pressure_RMF(
+    edens_total = _direct_edens_RMF_raw(
         soltab,
+        up=up,
         add_photons=add_photons,
-        renorm=renorm,
         electrons=electrons,
-        neutrinos=neutrinos
+        neutrinos=neutrinos,
     )
-    entr = entropy_RMF(
-        soltab,
-        boundmult=boundmult,
-        add_photons=add_photons,
-        electrons=electrons,
-        neutrinos=neutrinos
-    ) if use_entropy else None
-
-    if not electrons and mue != 0:
-        print("WARNING: electrons have finite chemical potential but electron flag = False")
-    if not neutrinos and munu != 0:
-        print("WARNING: neutrinos have finite chemical potential but neutrino flag = False")
 
     # Thermodynamic energy density
     edens_thermo = None
     if use_entropy:
+        totpress = pressure_RMF(
+            soltab,
+            add_photons=add_photons,
+            renorm=renorm,
+            electrons=electrons,
+            neutrinos=neutrinos
+        )
+        entr = _entropy_RMF_integral(
+            soltab,
+            boundmult=boundmult,
+            add_photons=add_photons,
+            electrons=electrons,
+            neutrinos=neutrinos,
+        )
         edens_thermo = -(
             totpress
             - mun * _nB(T, mun, 0, sig, w0, r03)
@@ -3190,36 +3209,6 @@ def edens_RMF(soltab, up=5000, boundmult=20, add_photons=False, renorm=False, el
         )
         if T > 0.1:
             edens_thermo += T * entr
-
-    # Microscopic meson part
-    mespart = (
-        _Lmes(sig, w0, r03)
-        + 2 * _U_sigma(sig)
-        + gr[0] ** 2 * r03 ** 2 * (2 * b1 * w0 ** 2 + 4 * b2 * w0 ** 4 + 6 * b3 * w0 ** 6)
-        + 2 * zet / 24 * gw[0] ** 4 * w0 ** 4
-        + 2 * xi / 24 * gr[0] ** 4 * r03 ** 4
-    )
-
-    # Nucleon energy density
-    if mup > 0:
-        edens_nucleons = sum(
-            nucleon_edens(T, muv[BI], sig, w0, r03, BI)
-            for BI in range(2)
-        )
-    else:
-        edens_nucleons = nucleon_edens(T, mun, sig, w0, r03, 0)
-
-    # Electron energy density
-    if electrons:
-        edens_electron = electron_edens(T, mue, me=me, upB=up)
-    else:
-        edens_electron = 0
-
-    # Photon and neutrino energy densities
-    E_photon = _photon_energy(T) if add_photons else 0
-    edens_neutrino = neutrino_edens(T, munu, up) if neutrinos else 0
-
-    edens_total = edens_nucleons + edens_electron + mespart + E_photon + edens_neutrino
 
     if use_entropy:
         return edens_thermo, edens_total - P_offset, (edens_thermo - edens_total + P_offset) / (edens_total - P_offset)
