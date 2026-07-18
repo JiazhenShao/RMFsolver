@@ -1,7 +1,7 @@
 import numpy as np
 import time
 import warnings
-from scipy.integrate import solve_bvp
+from scipy.integrate import solve_bvp, solve_ivp
 from scipy.optimize import fsolve, root_scalar, root, least_squares
 import RMFsolver.constants as const
 import RMFsolver.RMFparameter as para
@@ -30,6 +30,7 @@ __all__ = [
     "solve_front_energy_conserving",
     "solve_front_energy_conserving_nK",
     "solve_front_energy_conserving_uNmax",
+    "z_time_evolution",
 ]
 
 _ADIABATIC_LOW_T_THRESHOLD = 5.0
@@ -44,6 +45,77 @@ _TRANSPORT_H_CONST = 1.81317
 _FLOAT_TINY = np.finfo(float).tiny
 _ENERGY_PROFILE_MAX_LAMBDA_DX = 5.0e-2
 _ISOTHERMAL_RETRY_ACTIVE = 0
+
+
+class SlowFrontNoSolution(RuntimeError):
+    """
+    No steadily moving conversion front exists for the given upstream state.
+
+    Raised by analytic_velocity_bound when the metastable neutron matter has a
+    lower enthalpy per baryon than the coldest equilibrated (mu_K = 0) quark
+    matter reachable on the isobar P = P_N. Energy-plus-baryon flux conservation
+    then forces h_Q/n_Q = h_N/n_N with no root, so a finite-speed front cannot
+    bridge the gap even though the static u_N = 0 coexistence still exists. This
+    is a physical outcome (typically at small metastability and finite
+    temperature), not a numerical failure. Callers can inspect ``status``,
+    ``gap``, ``muB_cold``, and ``h_over_nB_N``.
+    """
+
+    def __init__(self, message, *, gap, muB_cold, h_over_nB_N):
+        super().__init__(message)
+        self.status = "no_slow_front_solution"
+        self.gap = float(gap)
+        self.muB_cold = float(muB_cold)
+        self.h_over_nB_N = float(h_over_nB_N)
+
+
+def _slow_front_enthalpy_gap(nuclear_state, B_one_forth):
+    """
+    Enthalpy-per-baryon gap that blocks a slow conversion front.
+
+    Returns (gap, muB_cold) where muB_cold is the baryon chemical potential of
+    cold (T = 0) equilibrated quark matter at pressure P_N, and
+    gap = muB_cold - h_N/n_B,N. The cold state minimizes h_Q/n_B,Q along the
+    P = P_N isobar (there h_Q/n_B,Q = mu_B), so gap > 0 means no equilibrated
+    downstream state satisfies energy-per-baryon continuity and no moving front
+    exists.
+    """
+    P_N = float(nuclear_state["P_N"])
+    h_over_nB_N = float(nuclear_state["h_over_nB_N"])
+    U_bag = float(B_one_forth) ** 4
+    radicand = 108.0 * np.pi**2 * (P_N + U_bag)
+    if (not np.isfinite(radicand)) or radicand <= 0.0:
+        return float("nan"), float("nan")
+    muB_cold = float(radicand**0.25)
+    return float(muB_cold - h_over_nB_N), muB_cold
+
+
+def _raise_scan_failure(nuclear_state, B_one_forth, numerical_message):
+    """
+    Classify an eigenvalue-scan failure as physical or numerical.
+
+    If the closed-form enthalpy gap is positive the upstream state admits no
+    moving front, and a SlowFrontNoSolution is raised with a clear report.
+    Otherwise the failure is genuinely numerical and ``numerical_message`` is
+    raised as a plain RuntimeError.
+    """
+    gap, muB_cold = _slow_front_enthalpy_gap(nuclear_state, B_one_forth)
+    if np.isfinite(gap) and gap > 0.0:
+        h_over_nB_N = float(nuclear_state["h_over_nB_N"])
+        raise SlowFrontNoSolution(
+            (
+                "No steadily moving conversion front exists: the metastable neutron "
+                f"matter has enthalpy per baryon {h_over_nB_N:.4f} MeV, below the "
+                f"coldest equilibrated quark matter on the P_N isobar at "
+                f"{muB_cold:.4f} MeV (gap {gap:.4f} MeV). Energy-plus-baryon flux "
+                "conservation has no root, so only the static u_N = 0 coexistence "
+                "exists at this metastability and temperature."
+            ),
+            gap=gap,
+            muB_cold=muB_cold,
+            h_over_nB_N=h_over_nB_N,
+        )
+    raise RuntimeError(numerical_message)
 
 
 # Nuclear and endpoint thermodynamics
@@ -436,7 +508,12 @@ def _solve_analytic_downstream_endpoint_for_uN(
         energy_residual = float(h_Q * gamma_Q / nB_Q - energy_target)
         pressure_jump = float(P_Q - P_N)
         pressure_jump_balance = float(h_N * u_N * u_N - h_Q * u_Q * u_Q)
-        momentum_scale = max(abs(h_N * u_N * u_N), abs(h_Q * u_Q * u_Q), 1.0)
+        # Scale the momentum residual by the pressure, not by the momentum flux
+        # h*u^2. For slow fronts h*u^2 -> 0 and flooring at 1.0 left this
+        # residual as an absolute value in MeV^4 (~1e7), mis-scaled against the
+        # relative energy residual, which stalled the hybr solve. The pressure
+        # scale keeps both residuals relative and comparable.
+        momentum_scale = max(abs(P_N), abs(P_Q), 1.0)
         return np.array(
             [
                 energy_residual / max(abs(energy_target), _FLOAT_TINY),
@@ -531,6 +608,7 @@ def _solve_analytic_downstream_endpoint_for_uN(
         "endpoint_scaled_residual": best_norm,
         "endpoint_initial_guess": (muB_Q, T_Q),
         "h_over_nB_N": h_over_nB_N,
+        "U_bag": float(B_one_forth) ** 4,
     }
 
 
@@ -571,7 +649,20 @@ def _analytic_velocity_formula_from_endpoint(
     if (not np.isfinite(lambda_n)) or lambda_n <= 0.0:
         raise RuntimeError("lambda_n must be positive and finite")
 
-    A_boundary = float((9.0 * np.pi / np.sqrt(2.0)) * (T_Q / muB_Q))
+    # Interface-fraction ceiling A, the T = 0 endpoint of the constant-pressure
+    # isobar defined by P_QM(A, T = 0) = P_Q. Using the quadratic quark EoS with
+    # mu_K = 2 mu_B a / 9 this is the exact closed form
+    #   A = (3/2) sqrt(108 pi^2 (P_Q + U_bag) - mu_B^4) / mu_B^2 ,
+    # which matches the full-EoS root to <1%. The older leading-order form
+    # A = 9 pi T_Q / (sqrt(2) mu_B_Q) is 3/2 too small relative to the intended
+    # definition and is kept only as a fallback when U_bag is unavailable.
+    U_bag = endpoint.get("U_bag", None)
+    P_Q = float(endpoint.get("P_Q", np.nan))
+    if U_bag is not None and np.isfinite(float(U_bag)) and np.isfinite(P_Q):
+        A_radicand = float(108.0 * np.pi**2 * (P_Q + float(U_bag)) - muB_Q**4)
+        A_boundary = float(1.5 * np.sqrt(max(A_radicand, 0.0)) / (muB_Q * muB_Q))
+    else:
+        A_boundary = float((9.0 * np.pi / np.sqrt(2.0)) * (T_Q / muB_Q))
     muKstar_max = float(np.sqrt(2.0) * np.pi * T_Q)
     one_minus_A_boundary = float(1.0 - A_boundary)
     one_plus_xi_A_boundary = float(1.0 + xi * A_boundary)
@@ -707,7 +798,7 @@ def analytic_velocity_bound(
     NM_type="PNM",
     upB=5000,
     initial_guess=None,
-    aQstar_max="LTE",
+    aQstar_max="extreme_endothermic",
     interface_fraction_mode=None,
 ):
     """
@@ -716,9 +807,16 @@ def analytic_velocity_bound(
     The nuclear state is read from the EOS at (muB_N, T_N). The downstream
     quark endpoint is solved at muK = 0 from exact energy and momentum flux
     jumps for each trial u_N, with jB = nB_N*u_N derived internally. Equation
-    51 then supplies a scalar eigenvalue condition for u_N. The default LTE
-    mode limits the usable interface fraction. The legacy aQstar_max keyword
-    still selects this mode when interface_fraction_mode is not supplied.
+    51 then supplies a scalar eigenvalue condition for u_N. The default
+    extreme_endothermic mode sets the interface fraction to its ceiling
+    a(0+) = A, giving the maximum-speed bound directly; pass
+    interface_fraction_mode="LTE" (or aQstar_max="LTE") for the LTE-limited
+    interface fraction. The legacy aQstar_max keyword still selects the mode
+    when interface_fraction_mode is not supplied.
+
+    Raises SlowFrontNoSolution when no steadily moving front exists (the
+    small-metastability, finite-temperature gap): the message and its gap
+    attribute report the enthalpy-per-baryon deficit that blocks the front.
     """
     muB_N = float(muB_N)
     T_N = float(T_N)
@@ -805,7 +903,11 @@ def analytic_velocity_bound(
             or best_eval["message"]
             or "no valid hydro endpoint evaluations"
         )
-        raise RuntimeError(f"Analytic velocity eigenvalue scan failed: {message}")
+        _raise_scan_failure(
+            nuclear_state,
+            B_one_forth,
+            f"Analytic velocity eigenvalue scan failed: {message}",
+        )
 
     bracket = None
     exact_data = None
@@ -841,7 +943,11 @@ def analytic_velocity_bound(
             if best is not None
             else ""
         )
-        raise RuntimeError(f"Analytic velocity eigenvalue solve found no sign change{best_msg}")
+        _raise_scan_failure(
+            nuclear_state,
+            B_one_forth,
+            f"Analytic velocity eigenvalue solve found no sign change{best_msg}",
+        )
 
     u_N_max = float(final_data["u_N"])
     u_N_squared = float(u_N_max * u_N_max)
@@ -7554,6 +7660,13 @@ def _solve_front_energy_conserving_uNmax_aq_legacy_once(
     return _mask_failed_public_state(result)
 
 
+def _uNmax_collocation_status_is_acceptable(
+    *, solver_success, solver_status, exact_zero_left
+):
+    """Require SciPy's collocation solve itself to have converged."""
+    return bool(solver_success)
+
+
 def _solve_front_energy_conserving_uNmax_once(
     T,
     nB_N,
@@ -7571,6 +7684,7 @@ def _solve_front_energy_conserving_uNmax_once(
     jB_bounds=None,
     return_profile=False,
     verb=False,
+    continuation_guess=None,
 ):
     """Solve the fixed-TQstar energy front using absolute nK and physical jK."""
     T = float(T)
@@ -7605,7 +7719,21 @@ def _solve_front_energy_conserving_uNmax_once(
     if (not np.isfinite(jB_guess)) or jB_guess <= 0.0:
         raise RuntimeError("jB_guess must be positive")
     endpoint_initial_guess = None
-    if TQ_guess is not None:
+    if isinstance(continuation_guess, dict):
+        try:
+            continued_muB_Q = float(continuation_guess.get("muB_Q", np.nan))
+            continued_T_Q = float(continuation_guess.get("T_Q", np.nan))
+        except Exception:
+            continued_muB_Q = np.nan
+            continued_T_Q = np.nan
+        if (
+            np.isfinite(continued_muB_Q)
+            and continued_muB_Q > 0.0
+            and np.isfinite(continued_T_Q)
+            and continued_T_Q > 0.0
+        ):
+            endpoint_initial_guess = (continued_muB_Q, continued_T_Q)
+    if endpoint_initial_guess is None and TQ_guess is not None:
         try:
             TQ_guess_value = float(TQ_guess)
         except Exception:
@@ -7654,7 +7782,30 @@ def _solve_front_energy_conserving_uNmax_once(
     state_cache = {}
     last_failure = {"message": ""}
     endpoint_guess_cache = {"value": endpoint_initial_guess}
-    qstar_guess_cache = {"value": None}
+    qstar_initial_guess = None
+    if isinstance(continuation_guess, dict):
+        try:
+            continued_muB_Qstar = float(continuation_guess.get("muB_Qstar", np.nan))
+            continued_muK_Qstar = float(continuation_guess.get("muK_Qstar", np.nan))
+            continued_T_Qstar = float(continuation_guess.get("T_Qstar", TQstar))
+        except Exception:
+            continued_muB_Qstar = np.nan
+            continued_muK_Qstar = np.nan
+            continued_T_Qstar = np.nan
+        if (
+            np.isfinite(continued_muB_Qstar)
+            and continued_muB_Qstar > 0.0
+            and np.isfinite(continued_muK_Qstar)
+            and continued_muK_Qstar >= 0.0
+            and np.isfinite(continued_T_Qstar)
+            and continued_T_Qstar >= 0.0
+        ):
+            qstar_initial_guess = (
+                continued_muB_Qstar,
+                continued_muK_Qstar,
+                max(continued_T_Qstar, TQ_min),
+            )
+    qstar_guess_cache = {"value": qstar_initial_guess}
     exact_zero_left = bool(TQstar == 0.0)
     s_end = float(1.0 - tail_eps)
 
@@ -7872,9 +8023,34 @@ def _solve_front_energy_conserving_uNmax_once(
     bvp_nK_scale = max(abs(state0["thermo_Qstar"]["nK"]), abs(state0["thermo_Q"]["nK"]), 1.0)
     bvp_jK_scale = max(abs(state0["jB"]), abs(state0["jK_Q"]), 1.0)
 
+    continuation_profile = None
+    if isinstance(continuation_guess, dict):
+        try:
+            previous_s = np.asarray(continuation_guess["s_coord"], dtype=float)
+            previous_nK = np.asarray(continuation_guess["nK"], dtype=float)
+            previous_jK = np.asarray(continuation_guess["jK"], dtype=float)
+            previous_nK_Q = float(continuation_guess["nK_Q"])
+            if (
+                previous_s.ndim == 1
+                and previous_s.size >= 2
+                and previous_nK.shape == previous_s.shape
+                and previous_jK.shape == previous_s.shape
+                and np.all(np.isfinite(previous_nK))
+                and np.all(np.isfinite(previous_jK))
+                and np.all(np.diff(previous_s) > 0.0)
+            ):
+                continuation_profile = (
+                    previous_s,
+                    previous_nK,
+                    previous_jK,
+                    previous_nK_Q,
+                )
+        except Exception:
+            continuation_profile = None
+
     s_mesh = np.linspace(0.0, s_end, int(n_mesh))
+    blend = s_mesh / s_end
     if exact_zero_left:
-        blend = s_mesh / s_end
         tail_weight = tail_eps + (1.0 - tail_eps) * (1.0 - 3.0 * blend**2 + 2.0 * blend**3)
     else:
         tail_weight = np.maximum(1.0 - s_mesh, tail_eps)
@@ -7885,6 +8061,25 @@ def _solve_front_energy_conserving_uNmax_once(
     jK_guess = state0["jK_Q"] + (state0["jB"] - state0["jK_Q"]) * jK_tail_weight
     nK_guess[0] = qstar0["nK"]
     jK_guess[0] = state0["jB"]
+    if continuation_profile is not None:
+        previous_s, previous_nK, previous_jK, previous_nK_Q = continuation_profile
+        previous_delta = previous_nK - previous_nK_Q
+        previous_left_delta = float(previous_delta[0])
+        new_left_delta = float(qstar0["nK"] - target0["nK"])
+        profile_scale = (
+            new_left_delta / previous_left_delta
+            if abs(previous_left_delta) > 1.0e-12
+            else 1.0
+        )
+        nK_guess = target0["nK"] + profile_scale * np.interp(
+            s_mesh,
+            previous_s,
+            previous_delta,
+        )
+        jK_guess = np.interp(s_mesh, previous_s, previous_jK)
+        jK_guess += (state0["jB"] - jK_guess[0]) * (1.0 - blend)
+        nK_guess[0] = qstar0["nK"]
+        jK_guess[0] = state0["jB"]
 
     try:
         sol = solve_bvp(
@@ -7971,8 +8166,13 @@ def _solve_front_energy_conserving_uNmax_once(
     E_right_residual_norm = float(E_right_residual / max(abs(state["E"]), abs(state["E_Q"]), 1.0))
     Pi_right_residual = float(state["Pi_Q"] - state["Pi"])
     Pi_right_residual_norm = float(Pi_right_residual / max(abs(state["Pi"]), abs(state["Pi_Q"]), 1.0))
+    collocation_status_acceptable = _uNmax_collocation_status_is_acceptable(
+        solver_success=sol.success,
+        solver_status=sol.status,
+        exact_zero_left=exact_zero_left,
+    )
     success = bool(
-        sol.success
+        collocation_status_acceptable
         and np.max(np.abs(bc_residuals)) <= max(float(tol_bvp), 1.0e-10)
         and kaon_residual_norm <= 5.0 * float(tol_bvp)
         and abs(E_right_residual_norm) <= max(float(tol_bvp), 1.0e-8)
@@ -7994,9 +8194,19 @@ def _solve_front_energy_conserving_uNmax_once(
             "u": target["u"],
         },
     )
+    accepted_max_nodes = bool(success and not sol.success and int(sol.status) == 1)
+    if success and accepted_max_nodes:
+        result_message = (
+            "Absolute-nK uNmax BVP reached max_nodes at the exact TQstar=0 "
+            "endpoint and passed all physical residual checks"
+        )
+    elif success:
+        result_message = "Absolute-nK uNmax BVP converged"
+    else:
+        result_message = f"{sol.message}; last failure: {last_failure['message']}"
     result = {
         "success": success,
-        "message": "Absolute-nK uNmax BVP converged" if success else f"{sol.message}; last failure: {last_failure['message']}",
+        "message": result_message,
         "jB": float(state["jB"]),
         "u_N": float(state["u_N"]),
         "u_N_max_candidate": float(state["u_N"]),
@@ -8065,6 +8275,11 @@ def _solve_front_energy_conserving_uNmax_once(
         "_root_method": "solve_bvp_uNmax_nK_parameter_1d",
         "bvp_status": int(sol.status),
         "bvp_message": str(sol.message),
+        "bvp_collocation_converged": bool(sol.success),
+        "bvp_max_nodes_postvalidated": accepted_max_nodes,
+        "bvp_max_rms_residual": float(
+            np.max(np.asarray(getattr(sol, "rms_residuals", [np.nan]), dtype=float))
+        ),
         "bvp_niter": int(getattr(sol, "niter", -1)),
         "bvp_nodes": int(sol.x.size),
         "bvp_parameters": np.asarray(sol.p, dtype=float),
@@ -8140,6 +8355,7 @@ def solve_front_energy_conserving_uNmax(
     jB_bounds=None,
     return_profile=False,
     verb=False,
+    continuation_guess=None,
 ):
     """
     Solve the energy-conserving front with the interface temperature fixed.
@@ -8175,8 +8391,453 @@ def solve_front_energy_conserving_uNmax(
         jB_bounds=jB_bounds,
         return_profile=return_profile,
         verb=verb,
+        continuation_guess=continuation_guess,
     )
     result_out = _annotate_energy_uNmax_result(direct_result, TQstar)
     if return_profile:
         return result_out
     return _strip_energy_profile_fields(result_out)
+
+
+def _piecewise_linear_travel_time(z_samples, velocity_samples):
+    """Return the exact travel time for a positive piecewise-linear velocity."""
+    z_samples = np.asarray(z_samples, dtype=float)
+    velocity_samples = np.asarray(velocity_samples, dtype=float)
+    if z_samples.ndim != 1 or velocity_samples.ndim != 1:
+        raise RuntimeError("Travel-time samples must be one-dimensional")
+    if z_samples.size != velocity_samples.size or z_samples.size < 2:
+        raise RuntimeError("Travel-time samples must have matching lengths of at least two")
+    if np.any(np.diff(z_samples) <= 0.0):
+        raise RuntimeError("Travel-time z samples must be strictly increasing")
+    if np.any(~np.isfinite(velocity_samples)) or np.any(velocity_samples < 0.0):
+        raise RuntimeError("Travel-time velocity samples must be finite and non-negative")
+    if np.any(velocity_samples == 0.0):
+        return np.inf
+
+    total = 0.0
+    for index in range(z_samples.size - 1):
+        dz = float(z_samples[index + 1] - z_samples[index])
+        v_left = float(velocity_samples[index])
+        v_right = float(velocity_samples[index + 1])
+        dv = float(v_right - v_left)
+        if abs(dv) <= 1.0e-12 * max(v_left, v_right):
+            total += dz / (0.5 * (v_left + v_right))
+        else:
+            total += dz * np.log1p(dv / v_left) / dv
+    return float(total)
+
+
+def z_time_evolution(
+    nB_target,
+    temperature,
+    B_one_forth,
+    *,
+    z0=1.0,
+    density_slope_n0_per_km=0.3,
+    z_stop=1.0e-6,
+    t_max=20.0,
+    sample_count=24,
+    output_count=500,
+    TQstar=0.5,
+    ms=0.0,
+    param=para.paraQMCRMF3,
+    NM_type="PNM",
+    tail_eps=1e-8,
+    n_mesh=200,
+    tol_bvp=1e-4,
+    max_nodes=10000,
+    jB_guess=None,
+    TQ_guess=None,
+    jB_bounds=None,
+    adaptive_continuation=True,
+    max_continuation_subdivisions=12,
+    stall_on_terminal_branch=True,
+    return_solver_results=False,
+    verb=False,
+):
+    """
+    Evolve the remaining distance between a phase front and its target.
+
+    The front begins ``z0`` km inside the target position. The magnitude of
+    the outward density gradient is prescribed in units of n0/km, where
+    n0 = 0.16 fm^-3, so the upstream density used by the hydrodynamic solver
+    is
+
+        nB_N(z) = nB_target + density_slope_n0_per_km * n0 * z.
+
+    ``temperature`` may be a positive scalar in MeV or a callable accepting
+    ``z`` in km and returning the local upstream temperature in MeV. Explicit
+    time-dependent cooling is not supported because it would require a
+    two-dimensional velocity surrogate v(z, t).
+
+    The hydrodynamic solver returns the spatial four-velocity u_N. It is
+    converted to ordinary speed with beta_N = u_N/sqrt(1 + u_N**2), and the
+    ODE dz/dt = -v(z) is integrated until ``z_stop`` or ``t_max``.
+
+    Parameters
+    ----------
+    nB_target : float
+        Nuclear baryon density at the target position, in MeV^3.
+    temperature : float or callable
+        Upstream temperature in MeV, either constant or a function of z_km.
+    B_one_forth : float
+        Bag-model parameter B^(1/4), in MeV.
+    z0, z_stop : float, optional
+        Initial and terminal distances in km, satisfying 0 < z_stop < z0.
+    density_slope_n0_per_km : float, optional
+        Positive density-gradient magnitude in units of n0/km.
+    t_max : float, optional
+        Maximum integration time in seconds.
+    sample_count : int, optional
+        Number of nominal logarithmically spaced hydrodynamic velocity
+        samples. Additional samples may be inserted to continue the nonlinear
+        hydrodynamic solution through difficult density intervals.
+    output_count : int, optional
+        Number of points returned on the z(t) curve.
+    adaptive_continuation : bool, optional
+        If true, bisect a failed logarithmic z interval and retry using the
+        complete last successful uNmax solution as a continuation state.
+    max_continuation_subdivisions : int, optional
+        Maximum number of logarithmic interval subdivisions for one nominal
+        sample before reporting the hydrodynamic failure.
+    stall_on_terminal_branch : bool, optional
+        At exact ``TQstar=0``, return an explicitly unsuccessful numerical
+        continuation result with a zero-velocity closure when retries are
+        exhausted. This does not classify the failure as a physical terminal
+        branch.
+
+    Returns
+    -------
+    dict
+        Evolution curve, catch-up estimates, sampled upstream states, and
+        hydrodynamic diagnostics.
+    """
+    nB_target = float(nB_target)
+    B_one_forth = float(B_one_forth)
+    z0 = float(z0)
+    density_slope_n0_per_km = float(density_slope_n0_per_km)
+    z_stop = float(z_stop)
+    t_max = float(t_max)
+    TQstar = float(TQstar)
+    ms = float(ms)
+
+    if (not np.isfinite(nB_target)) or nB_target <= 0.0:
+        raise ValueError("nB_target must be positive and finite")
+    if (not np.isfinite(B_one_forth)) or B_one_forth <= 0.0:
+        raise ValueError("B_one_forth must be positive and finite")
+    if (not np.isfinite(z0)) or (not np.isfinite(z_stop)) or not (0.0 < z_stop < z0):
+        raise ValueError("z0 and z_stop must satisfy 0 < z_stop < z0")
+    if (not np.isfinite(density_slope_n0_per_km)) or density_slope_n0_per_km <= 0.0:
+        raise ValueError("density_slope_n0_per_km must be positive and finite")
+    if (not np.isfinite(t_max)) or t_max <= 0.0:
+        raise ValueError("t_max must be positive and finite")
+    if int(sample_count) != sample_count or int(sample_count) < 2:
+        raise ValueError("sample_count must be an integer of at least two")
+    if int(output_count) != output_count or int(output_count) < 2:
+        raise ValueError("output_count must be an integer of at least two")
+    if (
+        int(max_continuation_subdivisions) != max_continuation_subdivisions
+        or int(max_continuation_subdivisions) < 0
+    ):
+        raise ValueError("max_continuation_subdivisions must be a non-negative integer")
+    sample_count = int(sample_count)
+    output_count = int(output_count)
+    max_continuation_subdivisions = int(max_continuation_subdivisions)
+    adaptive_continuation = bool(adaptive_continuation)
+    stall_on_terminal_branch = bool(stall_on_terminal_branch)
+
+    if callable(temperature):
+        temperature_of_z = temperature
+        temperature_description = "callable_z"
+    else:
+        constant_temperature = float(temperature)
+        if (not np.isfinite(constant_temperature)) or constant_temperature <= 0.0:
+            raise ValueError("temperature must be positive and finite")
+
+        def temperature_of_z(_z):
+            return constant_temperature
+
+        temperature_description = "constant"
+
+    n0 = float(0.16 * const.MeV_fm**3)
+    nominal_z_descending = np.geomspace(z0, z_stop, sample_count)
+    successful_samples = []
+    solver_results = []
+    current_continuation = None
+    inserted_point_count = 0
+    stalled = False
+    stall_z_km = np.nan
+    stall_reason = ""
+
+    def solve_velocity_sample(z_value, continuation_guess):
+        z_value = float(z_value)
+        nB_N = float(nB_target + density_slope_n0_per_km * n0 * z_value)
+        try:
+            T_N = float(temperature_of_z(z_value))
+        except Exception as exc:
+            raise RuntimeError(
+                f"temperature(z) failed at z={z_value:.9g} km: {exc}"
+            ) from exc
+        if (not np.isfinite(T_N)) or T_N <= 0.0:
+            raise RuntimeError(
+                f"temperature(z) must be positive and finite at z={z_value:.9g} km"
+            )
+
+        point_jB_guess = jB_guess
+        point_TQ_guess = TQ_guess
+        if isinstance(continuation_guess, dict):
+            point_jB_guess = continuation_guess.get("jB", point_jB_guess)
+            point_TQ_guess = continuation_guess.get("T_Q", point_TQ_guess)
+
+        result = solve_front_energy_conserving_uNmax(
+            T_N,
+            float(nB_N),
+            B_one_forth,
+            TQstar=TQstar,
+            ms=ms,
+            param=param,
+            NM_type=NM_type,
+            tail_eps=tail_eps,
+            n_mesh=n_mesh,
+            tol_bvp=tol_bvp,
+            max_nodes=max_nodes,
+            jB_guess=point_jB_guess,
+            TQ_guess=point_TQ_guess,
+            jB_bounds=jB_bounds,
+            continuation_guess=continuation_guess,
+            return_profile=True,
+            verb=verb,
+        )
+        if not bool(result.get("success", False)):
+            return None, result, nB_N, T_N
+
+        u_N = float(result.get("u_N_max_candidate", result.get("u_N", np.nan)))
+        if (not np.isfinite(u_N)) or u_N < 0.0:
+            raise RuntimeError(
+                f"uNmax returned a non-physical u_N={u_N!r} at z={z_value:.9g} km"
+            )
+        beta_N = float(u_N / np.sqrt(1.0 + u_N * u_N))
+        velocity_km_s = float(const.c_km * beta_N)
+        if (not np.isfinite(velocity_km_s)) or velocity_km_s < 0.0:
+            raise RuntimeError(
+                f"uNmax produced a non-physical velocity at z={z_value:.9g} km"
+            )
+
+        sample = {
+            "z": z_value,
+            "nB_N": nB_N,
+            "T_N": T_N,
+            "u_N": u_N,
+            "velocity_km_s": velocity_km_s,
+            "T_Q": float(result.get("T_Q", np.nan)),
+            "T_Qstar": float(result.get("T_Qstar", np.nan)),
+        }
+        return sample, result, nB_N, T_N
+
+    def failed_sample_message(z_value, nB_N, T_N, failure, subdivisions):
+        last_success = successful_samples[-1]["z"] if successful_samples else np.nan
+        return (
+            "uNmax velocity solve failed at "
+            f"z={float(z_value):.9g} km, nB_N={float(nB_N):.9g} MeV^3, "
+            f"T_N={float(T_N):.9g} MeV after {int(subdivisions)} adaptive "
+            f"subdivision(s); last successful z={float(last_success):.9g} km: "
+            f"{failure.get('message', 'unknown failure')}"
+        )
+
+    for nominal_index, nominal_z in enumerate(nominal_z_descending):
+        pending = [(float(nominal_z), 0, False)]
+        while pending:
+            z_value, subdivisions, is_inserted = pending.pop()
+            sample, result, nB_N, T_N = solve_velocity_sample(
+                z_value,
+                current_continuation,
+            )
+            if sample is not None:
+                successful_samples.append(sample)
+                current_continuation = result
+                if return_solver_results:
+                    solver_results.append(result)
+                if is_inserted:
+                    inserted_point_count += 1
+                continue
+
+            can_subdivide = (
+                adaptive_continuation
+                and bool(successful_samples)
+                and subdivisions < max_continuation_subdivisions
+            )
+            if not can_subdivide:
+                if (
+                    stall_on_terminal_branch
+                    and TQstar == 0.0
+                ):
+                    had_successful_sample = bool(successful_samples)
+                    successful_samples.append(
+                        {
+                            "z": float(z_value),
+                            "nB_N": float(nB_N),
+                            "T_N": float(T_N),
+                            "u_N": 0.0,
+                            "velocity_km_s": 0.0,
+                            "T_Q": np.nan,
+                            "T_Qstar": 0.0,
+                        }
+                    )
+                    if return_solver_results:
+                        solver_results.append(dict(result))
+                    if not had_successful_sample and z_value > z_stop:
+                        try:
+                            T_stop = float(temperature_of_z(z_stop))
+                        except Exception:
+                            T_stop = float(T_N)
+                        successful_samples.append(
+                            {
+                                "z": float(z_stop),
+                                "nB_N": float(
+                                    nB_target
+                                    + density_slope_n0_per_km * n0 * z_stop
+                                ),
+                                "T_N": T_stop,
+                                "u_N": 0.0,
+                                "velocity_km_s": 0.0,
+                                "T_Q": np.nan,
+                                "T_Qstar": 0.0,
+                            }
+                        )
+                        if return_solver_results:
+                            solver_results.append(
+                                {
+                                    "success": False,
+                                    "message": "Synthetic zero-velocity support point below exhausted continuation",
+                                    "synthetic_stall_support": True,
+                                    "T_Qstar": 0.0,
+                                }
+                            )
+                    stalled = True
+                    stall_z_km = float(z_value)
+                    stall_reason = failed_sample_message(
+                        z_value, nB_N, T_N, result, subdivisions
+                    )
+                    pending.clear()
+                    break
+                raise RuntimeError(
+                    failed_sample_message(z_value, nB_N, T_N, result, subdivisions)
+                )
+
+            last_success_z = float(successful_samples[-1]["z"])
+            midpoint_z = float(np.sqrt(last_success_z * z_value))
+            if not (z_value < midpoint_z < last_success_z):
+                raise RuntimeError(
+                    failed_sample_message(z_value, nB_N, T_N, result, subdivisions)
+                )
+            pending.append((z_value, subdivisions + 1, is_inserted))
+            pending.append((midpoint_z, subdivisions + 1, True))
+        if stalled:
+            break
+
+    z_descending = np.asarray([sample["z"] for sample in successful_samples], dtype=float)
+    density_descending = np.asarray(
+        [sample["nB_N"] for sample in successful_samples], dtype=float
+    )
+    temperature_descending = np.asarray(
+        [sample["T_N"] for sample in successful_samples], dtype=float
+    )
+    u_N_descending = np.asarray(
+        [sample["u_N"] for sample in successful_samples], dtype=float
+    )
+    velocity_descending = np.asarray(
+        [sample["velocity_km_s"] for sample in successful_samples], dtype=float
+    )
+    T_Q_descending = np.asarray(
+        [sample["T_Q"] for sample in successful_samples], dtype=float
+    )
+    T_Qstar_descending = np.asarray(
+        [sample["T_Qstar"] for sample in successful_samples], dtype=float
+    )
+
+    z_samples = z_descending[::-1].copy()
+    density_samples = density_descending[::-1].copy()
+    temperature_samples = temperature_descending[::-1].copy()
+    u_N_samples = u_N_descending[::-1].copy()
+    velocity_samples = velocity_descending[::-1].copy()
+    T_Q_samples = T_Q_descending[::-1].copy()
+    T_Qstar_samples = T_Qstar_descending[::-1].copy()
+
+    def velocity_of_z(z_value):
+        z_value = float(z_value)
+        # RK stages may temporarily cross an event boundary. Clamp those
+        # probes to the sampled endpoint instead of extrapolating v(z).
+        return float(np.interp(np.clip(z_value, z_stop, z0), z_samples, velocity_samples))
+
+    def dzdt(_t, y):
+        return np.array([-velocity_of_z(float(y[0]))], dtype=float)
+
+    def hit_z_stop(_t, y):
+        return float(y[0] - z_stop)
+
+    hit_z_stop.terminal = True
+    hit_z_stop.direction = -1
+
+    sol = solve_ivp(
+        dzdt,
+        (0.0, t_max),
+        np.array([z0], dtype=float),
+        method="RK45",
+        events=hit_z_stop,
+        dense_output=True,
+        rtol=1.0e-7,
+        atol=min(1.0e-9, 1.0e-3 * z_stop),
+    )
+    if not sol.success:
+        raise RuntimeError(f"z(t) integration failed: {sol.message}")
+
+    caught_up = bool(sol.t_events[0].size > 0)
+    catchup_time_s = float(sol.t_events[0][0]) if caught_up else np.nan
+    evolution_end_time = catchup_time_s if caught_up else float(sol.t[-1])
+    t_s = np.linspace(0.0, evolution_end_time, output_count)
+    z_km = np.asarray(sol.sol(t_s)[0], dtype=float)
+    if caught_up:
+        z_km[-1] = z_stop
+
+    integral_catchup_time_s = _piecewise_linear_travel_time(
+        z_samples,
+        velocity_samples,
+    )
+    result = {
+        "success": bool(not stalled),
+        "message": (
+            "Hydrodynamic continuation exhausted; zero-velocity closure applied"
+            if stalled
+            else "Phase-boundary distance evolution integrated"
+        ),
+        "caught_up": caught_up,
+        "catchup_time_s": catchup_time_s,
+        "integral_catchup_time_s": integral_catchup_time_s,
+        "t_s": t_s,
+        "z_km": z_km,
+        "z0_km": z0,
+        "z_stop_km": z_stop,
+        "t_max_s": t_max,
+        "n0_MeV3": n0,
+        "nB_target_MeV3": nB_target,
+        "density_slope_n0_per_km": density_slope_n0_per_km,
+        "temperature_mode": temperature_description,
+        "z_samples_km": z_samples,
+        "nB_N_samples_MeV3": density_samples,
+        "T_N_samples_MeV": temperature_samples,
+        "u_N_samples": u_N_samples,
+        "velocity_samples_km_s": velocity_samples,
+        "T_Q_samples_MeV": T_Q_samples,
+        "T_Qstar_samples_MeV": T_Qstar_samples,
+        "nominal_sample_count": sample_count,
+        "adaptive_continuation_used": bool(inserted_point_count > 0),
+        "continuation_inserted_point_count": int(inserted_point_count),
+        "stalled": stalled,
+        "continuation_exhausted": stalled,
+        "stall_is_physical_terminal": False,
+        "stall_z_km": stall_z_km,
+        "stall_reason": stall_reason,
+    }
+    if return_solver_results:
+        result["solver_results"] = list(reversed(solver_results))
+    return result
