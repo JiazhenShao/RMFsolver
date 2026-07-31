@@ -1919,7 +1919,17 @@ def _solve_local_quark_state_from_nK_E_and_Pi(
     T_ref=None,
     stats=None,
 ):
-    """Solve the energy-conserving local EOS closure at an absolute nK."""
+    """
+    Solve the energy-conserving local EOS closure at an absolute nK.
+
+    The third unknown is w = T**2 rather than T or log T. Every thermodynamic
+    quantity is analytic in T**2 at low temperature, so E and Pi depend on T
+    only at O(T**2); parameterising by log T makes the Jacobian singular as
+    T -> 0, leaving the residual insensitive to the temperature and returning
+    whatever T the initial guess happened to carry. In w the Jacobian stays
+    regular down to w = 0, and w < 0 is the explicit statement that the
+    requested nK lies above its zero-temperature limit for this (E, Pi).
+    """
     if stats is not None:
         stats["local_state_calls"] = stats.get("local_state_calls", 0) + 1
     nK_target = float(nK_target)
@@ -1953,26 +1963,20 @@ def _solve_local_quark_state_from_nK_E_and_Pi(
     best = None
     best_norm = np.inf
 
-    def equations(vec):
-        muB_val = float(vec[0])
-        muK_val = float(vec[1])
-        logT_val = float(vec[2])
-        if muB_val <= 0.0 or (not np.isfinite(logT_val)) or abs(logT_val) > 700.0:
-            return np.full(3, 1.0e12, dtype=float)
-        T_val = float(np.exp(logT_val))
-        try:
-            thermo = _quark_thermo_state(
-                muB_val,
-                muK_val,
-                B_one_forth,
-                T_val,
-                jB,
-                ms=ms,
-                upB=upB,
-            )
-            E_val = float(thermo["h"] * thermo["u"] * _relativistic_gamma_from_u(thermo["u"]))
-        except Exception:
-            return np.full(3, 1.0e12, dtype=float)
+    w_slope_cache = {}
+
+    def residual_at(muB_val, muK_val, w_val):
+        thermo = _quark_thermo_state(
+            muB_val,
+            muK_val,
+            B_one_forth,
+            float(np.sqrt(max(w_val, 0.0))),
+            jB,
+            ms=ms,
+            upB=upB,
+            allow_zero_temperature=True,
+        )
+        E_val = float(thermo["h"] * thermo["u"] * _relativistic_gamma_from_u(thermo["u"]))
         return np.array(
             [
                 (thermo["Pi"] - Pi) / pi_scale,
@@ -1982,13 +1986,39 @@ def _solve_local_quark_state_from_nK_E_and_Pi(
             dtype=float,
         )
 
+    def w_slope_at_zero(muB_val, muK_val):
+        """dResidual/dw at w = 0, used to continue the residual to w < 0."""
+        key = (round(muB_val, 6), round(muK_val, 6))
+        if key not in w_slope_cache:
+            w_probe = 1.0e-4
+            w_slope_cache[key] = (
+                residual_at(muB_val, muK_val, w_probe)
+                - residual_at(muB_val, muK_val, 0.0)
+            ) / w_probe
+        return w_slope_cache[key]
+
+    def equations(vec):
+        muB_val = float(vec[0])
+        muK_val = float(vec[1])
+        w_val = float(vec[2])
+        if muB_val <= 0.0 or (not np.isfinite(w_val)) or abs(w_val) > 1.0e8:
+            return np.full(3, 1.0e12, dtype=float)
+        try:
+            if w_val >= 0.0:
+                return residual_at(muB_val, muK_val, w_val)
+            # Smooth linear continuation into w < 0 so the root finder can
+            # converge there and report the state as infeasible.
+            return residual_at(muB_val, muK_val, 0.0) + w_slope_at_zero(muB_val, muK_val) * w_val
+        except Exception:
+            return np.full(3, 1.0e12, dtype=float)
+
     for muB_guess, muK_guess, T_guess in guesses:
         try:
             if stats is not None:
                 stats["local_root_calls"] = stats.get("local_root_calls", 0) + 1
             sol = root(
                 equations,
-                np.array([muB_guess, muK_guess, np.log(T_guess)], dtype=float),
+                np.array([muB_guess, muK_guess, T_guess * T_guess], dtype=float),
                 method="hybr",
                 options={"maxfev": 240, "xtol": 1.0e-10},
             )
@@ -2007,14 +2037,23 @@ def _solve_local_quark_state_from_nK_E_and_Pi(
     if best is None or best_norm > 1.0e-7:
         raise RuntimeError(f"{best_message}; best scaled residual={best_norm:.3e}")
 
+    w_best = float(best[2])
+    if w_best < -1.0e-12 * max(float(T_ref) ** 2, 1.0):
+        raise RuntimeError(
+            "Absolute-nK energy closure has no solution: the requested "
+            f"nK={nK_target:.10g} lies above its zero-temperature limit at this "
+            f"(E, Pi), the closure converging to T^2={w_best:.3e} < 0"
+        )
+
     thermo = _quark_thermo_state(
         float(best[0]),
         float(best[1]),
         B_one_forth,
-        float(np.exp(float(best[2]))),
+        float(np.sqrt(max(w_best, 0.0))),
         jB,
         ms=ms,
         upB=upB,
+        allow_zero_temperature=True,
     )
     thermo["r_gamma"] = _relativistic_gamma_from_u(thermo["u"])
     thermo["E"] = float(thermo["h"] * thermo["u"] * thermo["r_gamma"])
