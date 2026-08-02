@@ -83,6 +83,89 @@ def _slow_front_enthalpy_gap(nuclear_state, B_one_forth):
     return float(muB_cold - h_over_nB_N), muB_cold
 
 
+def _analytic_A_from_isobar(
+    muB_Q,
+    P_Q,
+    B_one_forth,
+    ms=0.0,
+    upB=5000,
+    T_cold=1.0e-3,
+    return_muK=False,
+):
+    """
+    Return the interface-fraction ceiling A = nK/nB at the T -> 0 end of the
+    isobar, optionally together with its exact muK.
+
+    A is the composition reached when the constant-pressure trajectory through
+    the downstream state is extrapolated to zero temperature, defined by
+    P_QM(muB_Q, muK, T -> 0) = P_Q. It is evaluated directly from the quark EOS
+    (nK_QM / nB_QM) instead of a quadratic-expansion closed form: the EOS used
+    here enforces charge neutrality (2 n_u = n_d + n_s), whereas the closed
+    forms A = (3/2) sqrt(108 pi^2 (P+U) - muB^4)/muB^2 and its leading-order
+    cousin A = 9 pi T_Q / (sqrt(2) muB_Q) are both derived from the
+    non-neutral parametrization and overestimate A badly as A -> 1.
+
+    Charge neutrality together with n_s >= 0 caps the composition at A = 1,
+    attained when mu_s reaches zero. There n_u : n_d : n_s = 1 : 2 : 0, the
+    flavor content of neutron matter, and the composition is frozen for any
+    larger muK, so A = 1 is returned for pressures at or above that point.
+    """
+    muB_Q = float(muB_Q)
+    P_Q = float(P_Q)
+    B_one_forth = float(B_one_forth)
+    if (not np.isfinite(muB_Q)) or muB_Q <= 0.0:
+        raise RuntimeError("muB_Q must be positive and finite for the A solve")
+    if not np.isfinite(P_Q):
+        raise RuntimeError("P_Q must be finite for the A solve")
+    T_cold = float(T_cold)
+
+    def result(A_boundary, muK_boundary):
+        if return_muK:
+            return float(A_boundary), float(muK_boundary)
+        return float(A_boundary)
+
+    def mu_s_of(muK):
+        state = _quark_uds_state(muB_Q, float(muK), T_cold, ms=ms, upB=upB)
+        return float(state["chemical_potentials"]["mu_s"])
+
+    # muK at which mu_s vanishes: the saturation point beyond which n_s = 0.
+    muK_hi = 3.0 * muB_Q
+    if mu_s_of(0.0) <= 0.0:
+        return result(1.0, 0.0)
+    if mu_s_of(muK_hi) > 0.0:
+        raise RuntimeError("could not bracket the mu_s = 0 saturation point")
+    muK_sat = float(
+        root_scalar(
+            mu_s_of, bracket=(0.0, muK_hi), method="brentq", xtol=1.0e-8, rtol=1.0e-12
+        ).root
+    )
+
+    P_sat = float(PQM(muB_Q, muK_sat, B_one_forth, T_cold, ms=ms, upB=upB))
+    if P_Q >= P_sat:
+        return result(1.0, muK_sat)
+    P_zero = float(PQM(muB_Q, 0.0, B_one_forth, T_cold, ms=ms, upB=upB))
+    if P_Q <= P_zero:
+        return result(0.0, 0.0)
+
+    muK_A = float(
+        root_scalar(
+            lambda muK: float(PQM(muB_Q, muK, B_one_forth, T_cold, ms=ms, upB=upB)) - P_Q,
+            bracket=(0.0, muK_sat),
+            method="brentq",
+            xtol=1.0e-8,
+            rtol=1.0e-12,
+        ).root
+    )
+    nK = float(nK_QM(muB_Q, muK_A, B_one_forth, T_cold, ms=ms, upB=upB))
+    nB = float(nB_QM(muB_Q, muK_A, B_one_forth, T_cold, ms=ms, upB=upB))
+    if (not np.isfinite(nB)) or nB <= 0.0:
+        raise RuntimeError("nB_QM must be positive and finite for the A solve")
+    A_boundary = float(nK / nB)
+    if not np.isfinite(A_boundary):
+        raise RuntimeError("A_boundary from the exact EOS is non-finite")
+    return result(min(max(A_boundary, 0.0), 1.0), muK_A)
+
+
 def _raise_scan_failure(nuclear_state, B_one_forth, numerical_message):
     """
     Classify an eigenvalue-scan failure as physical or numerical.
@@ -595,6 +678,9 @@ def _solve_analytic_downstream_endpoint_for_uN(
         "endpoint_initial_guess": (muB_Q, T_Q),
         "h_over_nB_N": h_over_nB_N,
         "U_bag": float(B_one_forth) ** 4,
+        "B_one_forth": float(B_one_forth),
+        "ms": float(ms),
+        "upB": int(upB),
     }
 
 
@@ -636,20 +722,28 @@ def _analytic_velocity_formula_from_endpoint(
         raise RuntimeError("lambda_n must be positive and finite")
 
     # Interface-fraction ceiling A, the T = 0 endpoint of the constant-pressure
-    # isobar defined by P_QM(A, T = 0) = P_Q. Using the quadratic quark EoS with
-    # mu_K = 2 mu_B a / 9 this is the exact closed form
-    #   A = (3/2) sqrt(108 pi^2 (P_Q + U_bag) - mu_B^4) / mu_B^2 ,
-    # which matches the full-EoS root to <1%. The older leading-order form
-    # A = 9 pi T_Q / (sqrt(2) mu_B_Q) is 3/2 too small relative to the intended
-    # definition and is kept only as a fallback when U_bag is unavailable.
-    U_bag = endpoint.get("U_bag", None)
+    # isobar defined by P_QM(A, T = 0) = P_Q. Evaluated from the exact EOS as
+    # A = nK/nB; see _analytic_A_from_isobar. The quadratic-expansion closed
+    # forms are not used: they assume the non-neutral parametrization while the
+    # EOS here is charge-neutral, which makes them diverge from A = nK/nB by up
+    # to a factor of ~2 as A -> 1.
     P_Q = float(endpoint.get("P_Q", np.nan))
-    if U_bag is not None and np.isfinite(float(U_bag)) and np.isfinite(P_Q):
-        A_radicand = float(108.0 * np.pi**2 * (P_Q + float(U_bag)) - muB_Q**4)
-        A_boundary = float(1.5 * np.sqrt(max(A_radicand, 0.0)) / (muB_Q * muB_Q))
-    else:
-        A_boundary = float((9.0 * np.pi / np.sqrt(2.0)) * (T_Q / muB_Q))
-    muKstar_max = float(np.sqrt(2.0) * np.pi * T_Q)
+    B_one_forth_Q = endpoint.get("B_one_forth", None)
+    if B_one_forth_Q is None:
+        U_bag_Q = endpoint.get("U_bag", None)
+        B_one_forth_Q = float(U_bag_Q) ** 0.25 if U_bag_Q is not None else None
+    if B_one_forth_Q is None or not np.isfinite(P_Q):
+        raise RuntimeError(
+            "endpoint must carry B_one_forth (or U_bag) and P_Q to evaluate A"
+        )
+    A_boundary, muKstar_max = _analytic_A_from_isobar(
+        muB_Q,
+        P_Q,
+        float(B_one_forth_Q),
+        ms=float(endpoint.get("ms", 0.0)),
+        upB=int(endpoint.get("upB", 5000)),
+        return_muK=True,
+    )
     one_minus_A_boundary = float(1.0 - A_boundary)
     one_plus_xi_A_boundary = float(1.0 + xi * A_boundary)
     lambda_n_squared = float(lambda_n * lambda_n)
@@ -1738,6 +1832,14 @@ def _relativistic_gamma_from_u(u):
     return r_gamma
 
 
+def _default_energy_jB_guess(nB_N):
+    """Return the shared default shooting seed for energy-front solvers."""
+    nB_N = float(nB_N)
+    if (not np.isfinite(nB_N)) or nB_N <= 0.0:
+        raise RuntimeError("The default energy-front jB seed requires positive finite nB_N")
+    return float(max(1.0e-12, 1.0e-8 * nB_N))
+
+
 def _fixed_TQstar_E_residual(muB, muK, T_Qstar, E_target, Pi, jB, B_one_forth, ms=0.0, upB=5000):
     """
     Residual for the fixed-T_Qstar interface solve. The unknowns are
@@ -1942,8 +2044,8 @@ def _solve_local_quark_state_from_nK_E_and_Pi(
     guesses = []
     if initial_guess is not None:
         guess = np.asarray(initial_guess, dtype=float).ravel()
-        if guess.size < 3 or not np.all(np.isfinite(guess[:3])) or guess[2] <= 0.0:
-            raise RuntimeError("initial_guess must contain finite (muB, muK, T) with T > 0")
+        if guess.size < 3 or not np.all(np.isfinite(guess[:3])) or guess[2] < 0.0:
+            raise RuntimeError("initial_guess must contain finite (muB, muK, T) with T >= 0")
         guesses.append((float(guess[0]), float(guess[1]), float(guess[2])))
     if T_ref is None or (not np.isfinite(T_ref)) or T_ref <= 0.0:
         T_ref = 10.0
@@ -2664,14 +2766,22 @@ def _solve_interface_state_from_local_a_E_and_Pi(
     initial_guess=None,
     stats=None,
 ):
-    """Solve the interface EOS state at a local fraction nK/nB."""
+    """
+    Solve the interface EOS state at a local fraction nK/nB.
+
+    As in _solve_local_quark_state_from_nK_E_and_Pi, the temperature unknown is
+    w = T**2 rather than log T: E and Pi are analytic in T**2 and depend on T
+    only at O(T**2), so a log T parameterisation leaves the Jacobian singular
+    and the residual insensitive to T as the interface cools. w < 0 means the
+    requested a_target is unreachable at this (E, Pi).
+    """
     a_target = float(a_target)
     if not (0.0 < a_target < 1.0):
         raise RuntimeError("aQstar must satisfy 0 < aQstar < 1")
     guesses = []
     if initial_guess is not None:
         guess = np.asarray(initial_guess, dtype=float).ravel()
-        if guess.size >= 3 and np.all(np.isfinite(guess[:3])) and guess[2] > 0.0:
+        if guess.size >= 3 and np.all(np.isfinite(guess[:3])) and guess[2] >= 0.0:
             guesses.append((float(guess[0]), float(guess[1]), float(guess[2])))
     guesses.extend([(1200.0, 100.0, 10.0), (1500.0, 200.0, 20.0), (1000.0, 40.0, 5.0)])
     pi_scale = max(abs(float(Pi)), 1.0)
@@ -2680,29 +2790,50 @@ def _solve_interface_state_from_local_a_E_and_Pi(
     best_norm = np.inf
     best_message = "local-a interface closure did not converge"
 
+    w_slope_cache = {}
+
+    def residual_at(muB_val, muK_val, w_val):
+        thermo = _quark_thermo_state(
+            muB_val,
+            muK_val,
+            B_one_forth,
+            float(np.sqrt(max(w_val, 0.0))),
+            jB,
+            ms=ms,
+            upB=upB,
+            allow_zero_temperature=True,
+        )
+        E_val = thermo["h"] * thermo["u"] * _relativistic_gamma_from_u(thermo["u"])
+        return np.array(
+            [
+                (thermo["Pi"] - Pi) / pi_scale,
+                E_val / E_scale - E / E_scale,
+                thermo["nK"] / thermo["nB"] - a_target,
+            ],
+            dtype=float,
+        )
+
+    def w_slope_at_zero(muB_val, muK_val):
+        """dResidual/dw at w = 0, used to continue the residual to w < 0."""
+        key = (round(muB_val, 6), round(muK_val, 6))
+        if key not in w_slope_cache:
+            w_probe = 1.0e-4
+            w_slope_cache[key] = (
+                residual_at(muB_val, muK_val, w_probe)
+                - residual_at(muB_val, muK_val, 0.0)
+            ) / w_probe
+        return w_slope_cache[key]
+
     def equations(vec):
-        muB_val, muK_val, logT_val = map(float, vec)
-        if muB_val <= 0.0 or abs(logT_val) > 700.0:
+        muB_val, muK_val, w_val = map(float, vec)
+        if muB_val <= 0.0 or (not np.isfinite(w_val)) or abs(w_val) > 1.0e8:
             return np.full(3, 1.0e12, dtype=float)
         try:
-            thermo = _quark_thermo_state(
-                muB_val,
-                muK_val,
-                B_one_forth,
-                float(np.exp(logT_val)),
-                jB,
-                ms=ms,
-                upB=upB,
-            )
-            E_val = thermo["h"] * thermo["u"] * _relativistic_gamma_from_u(thermo["u"])
-            return np.array(
-                [
-                    (thermo["Pi"] - Pi) / pi_scale,
-                    E_val / E_scale - E / E_scale,
-                    thermo["nK"] / thermo["nB"] - a_target,
-                ],
-                dtype=float,
-            )
+            if w_val >= 0.0:
+                return residual_at(muB_val, muK_val, w_val)
+            # Smooth linear continuation into w < 0 so the root finder can
+            # converge there and report the state as unreachable.
+            return residual_at(muB_val, muK_val, 0.0) + w_slope_at_zero(muB_val, muK_val) * w_val
         except Exception:
             return np.full(3, 1.0e12, dtype=float)
 
@@ -2712,7 +2843,7 @@ def _solve_interface_state_from_local_a_E_and_Pi(
                 stats["qstar_root_calls"] = stats.get("qstar_root_calls", 0) + 1
             sol = root(
                 equations,
-                np.array([muB_guess, muK_guess, np.log(T_guess)], dtype=float),
+                np.array([muB_guess, muK_guess, T_guess * T_guess], dtype=float),
                 method="hybr",
                 options={"maxfev": 400, "xtol": 1.0e-10},
             )
@@ -2729,14 +2860,22 @@ def _solve_interface_state_from_local_a_E_and_Pi(
             best_message = str(exc)
     if best is None or best_norm > 1.0e-7:
         raise RuntimeError(f"{best_message}; best scaled residual={best_norm:.3e}")
+    w_best = float(best[2])
+    if w_best < -1.0e-12:
+        raise RuntimeError(
+            "Local-a interface closure has no solution: the requested "
+            f"aQstar={a_target:.10g} is unreachable at this (E, Pi), the closure "
+            f"converging to T^2={w_best:.3e} < 0"
+        )
     thermo = _quark_thermo_state(
         float(best[0]),
         float(best[1]),
         B_one_forth,
-        float(np.exp(float(best[2]))),
+        float(np.sqrt(max(w_best, 0.0))),
         jB,
         ms=ms,
         upB=upB,
+        allow_zero_temperature=True,
     )
     thermo["r_gamma"] = _relativistic_gamma_from_u(thermo["u"])
     thermo["E"] = float(thermo["h"] * thermo["u"] * thermo["r_gamma"])
@@ -2804,7 +2943,7 @@ def _solve_front_energy_conserving_nK_once(
         "T_N": T,
     }
     if jB_guess is None:
-        jB_guess = max(1.0e-12, 1.0e-8 * nB_N)
+        jB_guess = _default_energy_jB_guess(nB_N)
     jB_guess = float(jB_guess)
     if jB_guess <= 0.0:
         raise RuntimeError("jB_guess must be positive")
@@ -3302,7 +3441,12 @@ def _solve_front_energy_conserving_uNmax_once(
     verb=False,
     continuation_guess=None,
 ):
-    """Solve the fixed-TQstar energy front using absolute nK and physical jK."""
+    """
+    Solve the fixed-TQstar energy front using absolute nK and physical jK.
+
+    The prescribed interface temperature is not a root unknown. Interior local
+    states use the same T**2 closure as solve_front_energy_conserving_nK.
+    """
     T = float(T)
     nB_N = float(nB_N)
     TQstar = float(TQstar)
@@ -3330,7 +3474,7 @@ def _solve_front_energy_conserving_uNmax_once(
         "T_N": T,
     }
     if jB_guess is None:
-        jB_guess = float(max(1.0e-12, 1.0e-8 * nB_N, 1.0))
+        jB_guess = _default_energy_jB_guess(nB_N)
     jB_guess = float(jB_guess)
     if (not np.isfinite(jB_guess)) or jB_guess <= 0.0:
         raise RuntimeError("jB_guess must be positive")
@@ -3380,8 +3524,6 @@ def _solve_front_energy_conserving_uNmax_once(
             return float(jB_lo + (jB_hi - jB_lo) * sig)
         return float(np.exp(np.clip(float(theta), -700.0, 700.0)))
 
-    TQ_min = 1.0e-6
-
     stats = {
         "bvp_ode_calls": 0,
         "bvp_bc_calls": 0,
@@ -3419,7 +3561,7 @@ def _solve_front_energy_conserving_uNmax_once(
             qstar_initial_guess = (
                 continued_muB_Qstar,
                 continued_muK_Qstar,
-                max(continued_T_Qstar, TQ_min),
+                continued_T_Qstar,
             )
     qstar_guess_cache = {"value": qstar_initial_guess}
     exact_zero_left = bool(TQstar == 0.0)
@@ -3467,7 +3609,7 @@ def _solve_front_energy_conserving_uNmax_once(
             initial_guess=qstar_guess,
             stats=stats,
         )
-        qstar_guess_cache["value"] = (thermo_Qstar["muB"], thermo_Qstar["muK"], max(TQstar, TQ_min))
+        qstar_guess_cache["value"] = (thermo_Qstar["muB"], thermo_Qstar["muK"], TQstar)
         aQstar = float(thermo_Qstar["nK"] / thermo_Qstar["nB"])
         if not (0.0 < aQstar < 1.0):
             raise RuntimeError("fixed-TQstar interface requires 0 < nK_Qstar/nB_Qstar < 1")
@@ -3538,6 +3680,11 @@ def _solve_front_energy_conserving_uNmax_once(
             return None
 
     def local_state(nK_value, state, s_value=None, initial_guess=None):
+        # At the singular TQstar=0 endpoint invD vanishes. During collocation,
+        # trial profiles can temporarily overshoot the physical nK interval by
+        # many orders of magnitude; snap only those out-of-domain evaluations
+        # to the already solved endpoint states. Interior in-domain states use
+        # the shared T**2 closure below.
         if exact_zero_left and (
             (s_value is not None and abs(float(s_value)) <= 1.0e-14)
             or float(nK_value) >= float(state["thermo_Qstar"]["nK"])
@@ -3564,15 +3711,14 @@ def _solve_front_energy_conserving_uNmax_once(
         if state is None:
             return np.full_like(y, 1.0e12)
         dyds = np.empty_like(y)
-        interface_T_seed = max(TQstar, TQ_min) if exact_zero_left else max(TQstar, state["T_Q"])
+        interface_T_seed = TQstar
         guess = (state["thermo_Qstar"]["muB"], state["thermo_Qstar"]["muK"], interface_T_seed)
         for i in range(y.shape[1]):
             try:
                 nK_value = float(y[0, i]) * bvp_nK_scale
                 jK_value = float(y[1, i]) * bvp_jK_scale
                 thermo = local_state(nK_value, state, s_value=s_coord[i], initial_guess=guess)
-                if float(thermo["T"]) > 0.0:
-                    guess = (thermo["muB"], thermo["muK"], thermo["T"])
+                guess = (thermo["muB"], thermo["muK"], thermo["T"])
                 micro = _microphysics_from_quark_state_energy(
                     thermo["muB"],
                     thermo["T"],
@@ -3731,14 +3877,13 @@ def _solve_front_energy_conserving_uNmax_once(
     profile = {key: np.empty_like(s_profile) for key in (
         "nB", "u", "muB", "muK", "T", "P", "h", "r_gamma", "invD", "Gamma_K"
     )}
-    interface_T_seed = max(TQstar, TQ_min) if exact_zero_left else max(TQstar, state["T_Q"])
+    interface_T_seed = TQstar
     guess = (state["thermo_Qstar"]["muB"], state["thermo_Qstar"]["muK"], interface_T_seed)
     try:
         for i, nK_value in enumerate(nK_profile):
             stats["profile_state_calls"] += 1
             thermo = local_state(nK_value, state, s_value=s_profile[i], initial_guess=guess)
-            if float(thermo["T"]) > 0.0:
-                guess = (thermo["muB"], thermo["muK"], thermo["T"])
+            guess = (thermo["muB"], thermo["muK"], thermo["T"])
             micro = _microphysics_from_quark_state_energy(
                 thermo["muB"], thermo["T"], allow_zero_temperature=exact_zero_left and float(thermo["T"]) == 0.0
             )
@@ -3988,7 +4133,7 @@ def solve_front_energy_conserving_uNmax(
 
     direct_jB_guess = jB_guess
     if direct_jB_guess is None:
-        direct_jB_guess = float(max(1.0e-12, 1.0e-8 * float(nB_N), 1.0))
+        direct_jB_guess = _default_energy_jB_guess(nB_N)
 
     direct_result = _solve_front_energy_conserving_uNmax_once(
         T,
