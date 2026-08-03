@@ -20,7 +20,7 @@ from RMFsolver.SQMsolver import (
     _quark_uds_state,
     _solve_scalar_root,
 )
-from RMFsolver.Solver import RMFsolve, RMFsolve_mu, RMFpressureSYM, RMFpressurePNM, pressure_RMF
+from RMFsolver.Solver import RMFsolve, RMFsolve_mu, RMFpressureSYM, RMFpressurePNM, pressure_RMF, RMFsolvePNM_mu
 from RMFsolver.Solver import RMFedensPNM, RMFentropyPNM, RMFbaryon_densityPNM, RMFbaryon_densitySYM, RMFbaryon_density
 
 __all__ = [
@@ -38,6 +38,14 @@ _TRANSPORT_D_PREFACTOR = 24.0 * _TRANSPORT_ALPHA_S**2 / np.pi
 _TRANSPORT_H_CONST = 1.81317
 _FLOAT_TINY = np.finfo(float).tiny
 _ISOTHERMAL_RETRY_ACTIVE = 0
+# Continuation resolution for the conserved-(P, h/nB) conversion-layer sweep.
+# That system has multiple roots at low T, so the steps must stay fine enough
+# for the continuation to keep its branch; _LAYER_TRAJECTORY_MAX_DMUB guards it.
+# I2 converges at first order in this step count: measured against a 640-step
+# reference, 160 steps carry about 0.5% error in I2 (0.25% in u_N) and 320 steps
+# about 0.12% (0.06% in u_N).
+_LAYER_TRAJECTORY_STEPS = 320
+_LAYER_TRAJECTORY_MAX_DMUB = 0.05
 
 
 class SlowFrontNoSolution(RuntimeError):
@@ -166,6 +174,234 @@ def _analytic_A_from_isobar(
     return result(min(max(A_boundary, 0.0), 1.0), muK_A)
 
 
+def _normalize_velocity_closure(value):
+    """
+    Normalize the analytic velocity closure selector.
+
+    "closed_form" reproduces the published piecewise-constant result: A is read
+    off the isobar at fixed mu_B and I2 is the closed-form bracket of
+    Eq. (speed_modified). "numerical_I2" traces the conversion layer along the
+    conserved pair (P, h/nB) and integrates I2 numerically along it.
+    """
+    mode = str(value).strip().lower()
+    if mode in ("closed_form", "closed-form", "analytic", "eq30"):
+        return "closed_form"
+    if mode in ("numerical_i2", "numerical", "numeric_i2", "exact_i2"):
+        return "numerical_I2"
+    raise ValueError("velocity_closure must be 'closed_form' or 'numerical_I2'")
+
+
+def _analytic_layer_trajectory(
+    P_plus,
+    h_over_nB_plus,
+    muB_inf,
+    T_inf,
+    B_one_forth,
+    ms=0.0,
+    upB=5000,
+    n_steps=_LAYER_TRAJECTORY_STEPS,
+    T_cold=1.0e-3,
+):
+    """
+    Trace the conversion layer along the conserved pair (P, h/nB).
+
+    The steady-front conservation laws hold two combinations fixed across the
+    layer: the momentum flux, which for slow fronts reduces to P, and the
+    energy-per-baryon flux ratio E/J = h*gamma/nB -> h/nB. Constancy of mu_B is
+    an *additional* assumption; it is implied by the other two only in the
+    quadratic equation-of-state expansion, and with the exact charge-neutral
+    EOS it fails (mu_B drifts by tens of percent when the layer spans a wide
+    temperature range). This routine therefore holds (P, h/nB) fixed and lets
+    mu_B float.
+
+    For massless quarks h = 4*(P + U_bag) identically, so fixing P fixes h and
+    fixing h/nB then fixes nB: the baryon density really is constant along the
+    layer, which is the only constancy the I2 reduction requires.
+
+    The trajectory is followed by continuation in T from the equilibrated end
+    (muK = 0 at T_inf, where a = 0) down toward T_cold, each step seeded from
+    the previous one. The (P, h/nB) system admits more than one root at low T,
+    so a monotonicity guard rejects continuation steps that jump branches.
+
+    Returns a dict of arrays ordered by increasing a: "a", "muB", "muK", "T",
+    plus "nB_plus", "A_boundary" and "saturated" (True when the composition
+    reaches the n_s = 0 ceiling a = 1 before T reaches T_cold).
+    """
+    P_plus = float(P_plus)
+    h_over_nB_plus = float(h_over_nB_plus)
+    T_inf = float(T_inf)
+    T_cold = float(T_cold)
+    if (not np.isfinite(T_inf)) or T_inf <= T_cold:
+        raise RuntimeError("layer trajectory requires T_inf > T_cold")
+    if (not np.isfinite(h_over_nB_plus)) or h_over_nB_plus <= 0.0:
+        raise RuntimeError("layer trajectory requires a positive h/nB")
+
+    def quark_point(muB, muK, T):
+        P = float(PQM(muB, muK, B_one_forth, T, ms=ms, upB=upB))
+        e = float(
+            edensQM(muB, muK, B_one_forth, T, ms=ms, include_em=False, upB=upB)
+        )
+        nB = float(nB_QM(muB, muK, B_one_forth, T, ms=ms, upB=upB))
+        nK = float(nK_QM(muB, muK, B_one_forth, T, ms=ms, upB=upB))
+        if (not np.isfinite(nB)) or nB <= 0.0:
+            raise RuntimeError("layer trajectory hit a non-physical nB")
+        return P, (P + e) / nB, nB, nK / nB
+
+    def residual(vec, T):
+        muB, muK = float(vec[0]), float(vec[1])
+        if (not np.isfinite(muB)) or muB <= 0.0 or (not np.isfinite(muK)) or muK < 0.0:
+            return np.array([1.0e6, 1.0e6], dtype=float)
+        try:
+            P, h_over_nB, _, _ = quark_point(muB, muK, T)
+        except Exception:
+            return np.array([1.0e6, 1.0e6], dtype=float)
+        return np.array(
+            [
+                (P - P_plus) / max(abs(P_plus), _FLOAT_TINY),
+                (h_over_nB - h_over_nB_plus) / h_over_nB_plus,
+            ],
+            dtype=float,
+        )
+
+    # Sample uniformly in T^(1/3), not in T. The I2 integrand carries the
+    # D_K ~ T^(-5/3) divergence of the cold end, which is integrable but which a
+    # T-uniform grid resolves badly; in tau = T^(1/3) the integrand is regular
+    # (see _analytic_I2_numerical), so this spacing both tracks the branch and
+    # makes the quadrature converge.
+    temperatures = (
+        np.linspace(float(T_inf) ** (1.0 / 3.0), T_cold ** (1.0 / 3.0), int(n_steps))
+    ) ** 3
+    a_list, muB_list, muK_list, T_list = [], [], [], []
+    guess = np.array([float(muB_inf), 0.0], dtype=float)
+    nB_plus = np.nan
+    saturated = False
+
+    for index, T in enumerate(temperatures):
+        # muK = 0 is a degenerate seed: it sits on the muK >= 0 domain edge, so
+        # hybr can report success while never leaving it. Nudge it positive once
+        # the equilibrated end has been recorded, and retry perturbed seeds
+        # before declaring the step failed.
+        seeds = [guess]
+        if index > 0:
+            nudged = guess.copy()
+            nudged[1] = max(float(nudged[1]), 1.0)
+            if nudged[1] != guess[1]:
+                seeds.append(nudged)
+            for factor in (2.0, 0.5):
+                extra = nudged.copy()
+                extra[1] = max(float(nudged[1]) * factor, 1.0)
+                seeds.append(extra)
+        solution = None
+        for seed in seeds:
+            candidate = root(residual, seed, args=(float(T),), method="hybr")
+            if candidate.success and (
+                np.linalg.norm(residual(candidate.x, float(T)), ord=np.inf) <= 1.0e-8
+            ):
+                solution = candidate
+                break
+        if solution is None:
+            if index == 0:
+                raise RuntimeError("layer trajectory failed at the equilibrated end")
+            break
+        muB, muK = float(solution.x[0]), float(max(solution.x[1], 0.0))
+        _, _, nB, a = quark_point(muB, muK, float(T))
+        if index == 0:
+            nB_plus = nB
+        elif a < a_list[-1] - 1.0e-9 or abs(muB - muB_list[-1]) > _LAYER_TRAJECTORY_MAX_DMUB * max(
+            abs(muB_list[-1]), 1.0
+        ):
+            raise RuntimeError(
+                "layer trajectory lost its branch: the (P, h/nB) system has "
+                "multiple roots at low T and the continuation step was too "
+                "coarse; increase n_steps"
+            )
+        a_clamped = float(min(max(a, 0.0), 1.0))
+        a_list.append(a_clamped)
+        muB_list.append(muB)
+        muK_list.append(muK)
+        T_list.append(float(T))
+        guess = np.array([muB, muK], dtype=float)
+        if a >= 1.0 - 1.0e-9:
+            saturated = True
+            break
+
+    if len(a_list) < 2:
+        raise RuntimeError("layer trajectory produced too few points to integrate")
+
+    return {
+        "a": np.asarray(a_list, dtype=float),
+        "muB": np.asarray(muB_list, dtype=float),
+        "muK": np.asarray(muK_list, dtype=float),
+        "T": np.asarray(T_list, dtype=float),
+        "nB_plus": float(nB_plus),
+        "A_boundary": float(a_list[-1]),
+        "saturated": bool(saturated),
+    }
+
+
+def _analytic_I2_numerical(trajectory, a_interface, B_one_forth, ms=0.0, upB=5000):
+    """
+    Integrate I2 = (1/nB) * int_0^{a(0+)} D_K * Gamma_K da along the layer.
+
+    D_K and Gamma_K are evaluated on the states of the conserved-(P, h/nB)
+    trajectory, using the full diffusion coefficient (both the Landau-damped
+    and Debye-screened terms) and the exact non-leptonic rate, rather than the
+    Landau-only and cubic-rate approximations behind the closed form.
+    """
+    a_values = np.asarray(trajectory["a"], dtype=float)
+    muB_values = np.asarray(trajectory["muB"], dtype=float)
+    muK_values = np.asarray(trajectory["muK"], dtype=float)
+    T_values = np.asarray(trajectory["T"], dtype=float)
+    nB_plus = float(trajectory["nB_plus"])
+    a_interface = float(a_interface)
+    if (not np.isfinite(a_interface)) or a_interface <= 0.0:
+        raise RuntimeError("I2 integration requires a positive interface fraction")
+    if (not np.isfinite(nB_plus)) or nB_plus <= 0.0:
+        raise RuntimeError("I2 integration requires a positive nB")
+
+    integrand = np.empty(a_values.size, dtype=float)
+    for index in range(a_values.size):
+        if T_values[index] <= 0.0:
+            raise RuntimeError("I2 integration requires T > 0 along the trajectory")
+        micro = _microphysics_from_quark_state_energy(
+            muB_values[index], T_values[index], allow_zero_temperature=False
+        )
+        invD = float(micro["invD"])
+        if (not np.isfinite(invD)) or invD <= 0.0:
+            raise RuntimeError("I2 integration requires a positive 1/D_K")
+        Gamma_K = float(
+            _exact_kaon_transport_rate(
+                muB_values[index], muK_values[index], T_values[index], ms=ms, upB=upB
+            )["Gamma_K"]
+        )
+        integrand[index] = Gamma_K / invD
+    if not np.all(np.isfinite(integrand)):
+        raise RuntimeError("I2 integrand is non-finite along the layer trajectory")
+
+    # D_K ~ T^(-5/3) diverges at the cold end while da/dT ~ T there, so the
+    # integrand is ~T^(-2/3) in T: integrable, but singular. Substituting
+    # tau = T^(1/3) gives D_K*Gamma_K*(da/dtau) ~ const, so the trapezoid is
+    # applied in tau rather than in a or T.
+    tau = np.cbrt(T_values)
+    a_max = float(min(a_interface, a_values[-1]))
+    mask = a_values <= a_max + 1.0e-15
+    if int(np.count_nonzero(mask)) < 2:
+        raise RuntimeError("I2 integration needs at least two trajectory samples")
+    tau_sub = tau[mask]
+    a_sub = a_values[mask]
+    y_sub = integrand[mask]
+    if a_sub[-1] < a_max - 1.0e-12:
+        # Close the interval on a(0+) when it falls between two samples.
+        tau_sub = np.append(tau_sub, float(np.interp(a_max, a_values, tau)))
+        a_sub = np.append(a_sub, a_max)
+        y_sub = np.append(y_sub, float(np.interp(a_max, a_values, integrand)))
+    da_dtau = np.gradient(a_sub, tau_sub)
+    integral = float(abs(np.trapezoid(y_sub * da_dtau, tau_sub)))
+    if (not np.isfinite(integral)) or integral < 0.0:
+        raise RuntimeError("I2 integral is non-physical")
+    return float(integral / nB_plus)
+
+
 def _raise_scan_failure(nuclear_state, B_one_forth, numerical_message):
     """
     Classify an eigenvalue-scan failure as physical or numerical.
@@ -260,6 +496,93 @@ def sNM_n(nB, Temp, param = para.paraQMCRMF3, NM_type = "PNM"):
         electrons=False, neutrinos=False,
         )
     return float(np.asarray(entropy).item())
+
+def muB_from_nB_physical(
+    nB_target,
+    Temp,
+    param=para.paraQMCRMF3,
+    NM_type="PNM",
+    muB_lo=950.0,
+    muB_hi=2200.0,
+    rtol=1.0e-6,
+    scan_points=48,
+):
+    """
+    Invert nB -> muB on the physical mean-field branch.
+
+    nB_NM is not reliably single-valued in muB: the spurious sigma < 0 RMF root
+    makes it collapse to sub-saturation values at isolated muB, so a plain
+    bracketed solve can return a muB whose true density is far from the request.
+    This helper solves against the branch-validated density and then verifies
+    that the density at the answer reproduces nB_target to rtol, raising instead
+    of returning a silently wrong muB. The default rtol sits above the RMF
+    solver's own convergence floor (a few times 1e-8) and far below the
+    percent-level error the spurious branch produces.
+    """
+    nB_target = float(nB_target)
+    Temp = float(Temp)
+    if (not np.isfinite(nB_target)) or nB_target <= 0.0:
+        raise RuntimeError("nB_target must be positive and finite")
+
+    def density(muB):
+        if str(NM_type) == "PNM":
+            return _validated_pnm_state(float(muB), Temp, param)[2]
+        return float(nB_NM(float(muB), Temp, param=param, NM_type=NM_type))
+
+    def residual(muB):
+        return density(muB) - nB_target
+
+    # The physical branch does not extend over the whole window (below the
+    # nucleon mass there is no dense solution at all), so scan for a bracket
+    # between two muB where the validated solve actually succeeds rather than
+    # assuming the window endpoints are usable.
+    grid = np.linspace(float(muB_lo), float(muB_hi), int(scan_points))
+    samples = []
+    for muB in grid:
+        try:
+            samples.append((float(muB), residual(float(muB))))
+        except Exception:
+            continue
+    if len(samples) < 2:
+        raise RuntimeError(
+            f"no physical PNM branch found in [{muB_lo:.1f}, {muB_hi:.1f}] MeV "
+            f"at T={Temp:.4g}"
+        )
+    bracket = None
+    for (mu_a, f_a), (mu_b, f_b) in zip(samples[:-1], samples[1:]):
+        if f_a == 0.0:
+            bracket = (mu_a, mu_a)
+            break
+        if f_a * f_b < 0.0:
+            bracket = (mu_a, mu_b)
+            break
+    if bracket is None:
+        lo_val, hi_val = samples[0][1] + nB_target, samples[-1][1] + nB_target
+        raise RuntimeError(
+            f"nB={nB_target:.6e} is not bracketed on the physical branch: the scan "
+            f"spans nB in [{lo_val:.6e}, {hi_val:.6e}] at T={Temp:.4g}"
+        )
+    if bracket[0] == bracket[1]:
+        muB = float(bracket[0])
+    else:
+        muB = float(
+            root_scalar(
+                residual,
+                bracket=bracket,
+                method="brentq",
+                xtol=1.0e-10,
+                rtol=1.0e-12,
+            ).root
+        )
+    achieved = density(muB)
+    if abs(achieved - nB_target) > rtol * abs(nB_target):
+        raise RuntimeError(
+            f"nB -> muB inversion did not converge onto the physical branch: "
+            f"requested nB={nB_target:.6e}, muB={muB:.4f} gives nB={achieved:.6e} "
+            f"(relative error {abs(achieved - nB_target) / abs(nB_target):.3e})"
+        )
+    return muB
+
 
 def hNM(mu_B, Temp):
     """
@@ -437,14 +760,164 @@ def _analytic_aqstar_lte(A_boundary, u_N, lambda_n):
     }
 
 
+# Mean-field seeds for the PNM branch retry. The scalar gap equation is cubic in
+# sigma, so it admits a second root with sigma < 0 (effective mass above the
+# vacuum mass) carrying negative pressure at sub-saturation density. That root is
+# a real solution of the model but is unphysical: it lies inside the spinodal,
+# where uniform neutron matter is mechanically unstable and real matter breaks up
+# into crust. The default seed occasionally falls into its basin at isolated muB,
+# so these alternatives re-seed the solve near the physical (sigma > 0) root.
+_PNM_BRANCH_SEEDS = (
+    (30.0, 20.0, -3.0),
+    (70.0, 70.0, -3.0),
+    (90.0, 95.0, -3.0),
+    (50.0, 45.0, -3.0),
+    (110.0, 120.0, -3.0),
+)
+
+
+def _pnm_sigma_field(muB, T, param, seed):
+    """
+    Return the scalar mean field sigma for PNM at (muB, T) from a given seed.
+
+    sigma > 0 is the physical branch: it lowers the effective nucleon mass
+    M* = M - g_sigma*sigma below its vacuum value. sigma < 0 marks the spurious
+    root.
+    """
+    sigma_init, w0_init, r03_init = seed
+    solution = RMFsolvePNM_mu(
+        float(muB),
+        float(T),
+        param,
+        sigma_init=float(sigma_init),
+        w0_init=float(w0_init),
+        r03_init=float(r03_init),
+        verb=False,
+    )
+    return float(np.asarray(solution[0][0]).ravel()[0])
+
+
+def _pnm_state_at_seed(muB, T, param, seed):
+    """
+    Evaluate (P, e, nB, sigma) for PNM at (muB, T) from one mean-field seed.
+    """
+    sigma_init, w0_init, r03_init = seed
+    common = dict(
+        input_num=float(muB),
+        input_type="muB",
+        Trmf=float(T),
+        para=param,
+        sigma_init=float(sigma_init),
+        w0_init=float(w0_init),
+        r03_init=float(r03_init),
+        mub_init=990,
+        verb=False,
+    )
+    P = float(np.asarray(RMFpressurePNM(**common)).item())
+    e = float(np.asarray(RMFedensPNM(**common)).item())
+    nB = float(np.asarray(RMFbaryon_densityPNM(**common)).item())
+    sigma = _pnm_sigma_field(muB, T, param, seed)
+    return P, e, nB, sigma
+
+
+def _pnm_branch_rejection(P, e, nB, sigma):
+    """
+    Return a reason string when a PNM solve landed off the physical branch.
+
+    The tests are, in order of directness: sigma > 0 (the branch signature),
+    P > 0 (pure neutron matter has no self-bound state, so its pressure is
+    positive at every density, whereas the spurious root carries P < 0), and
+    ordinary finiteness/positivity of the density and enthalpy.
+    """
+    if not np.all(np.isfinite([P, e, nB, sigma])):
+        return "nuclear EOS returned non-finite values"
+    if sigma <= 0.0:
+        return (
+            f"scalar field sigma={sigma:.4f} <= 0, i.e. an effective nucleon mass "
+            "above the vacuum mass: the solve landed on the spurious RMF branch"
+        )
+    if P <= 0.0:
+        return f"pressure P={P:.6e} <= 0 is unphysical for pure neutron matter"
+    if nB <= 0.0:
+        return f"baryon density nB={nB:.6e} is not positive"
+    if P + e <= 0.0:
+        return "enthalpy density is not positive"
+    return ""
+
+
+def _pnm_state_is_off_branch(muB, T, param, P, e, nB):
+    """
+    Decide whether a PNM solve landed on the spurious sigma < 0 branch.
+
+    Observables alone are not enough: the spurious root usually carries a
+    negative pressure, but not always (near muB ~ 1670 MeV it comes out positive
+    while the density is still an order of magnitude too low). The scalar field
+    is the exact signature, so it is checked directly, with the cheap
+    finiteness/positivity screen kept as a first pass.
+
+    The scalar-field probe uses the same default seed as the PNM helpers, so it
+    reports the branch those helpers actually reached. If that probe cannot be
+    solved the state is accepted rather than rejected: an unconfirmed suspicion
+    should not turn a working call into a failure.
+
+    Only branch selection is treated here. Non-finite values, a non-positive
+    density or a non-positive enthalpy are not branch symptoms (the spurious
+    root is finite and has nB > 0); they are left for the caller's own domain
+    validation so that genuinely invalid input still raises its proper error
+    instead of being silently replaced by a re-solved state.
+    """
+    if not np.all(np.isfinite([P, e, nB])) or nB <= 0.0 or (P + e) <= 0.0:
+        return False
+    if P <= 0.0:
+        return True
+    try:
+        sigma = _pnm_sigma_field(muB, T, param, _PNM_BRANCH_SEEDS[0])
+    except Exception:
+        return False
+    return bool(np.isfinite(sigma) and sigma <= 0.0)
+
+
+def _validated_pnm_state(muB, T, param):
+    """
+    Solve PNM at (muB, T) on the physical mean-field branch.
+
+    Seeds are tried in turn and the first solve that passes
+    _pnm_branch_rejection is returned; if every seed lands off the physical
+    branch a RuntimeError is raised rather than a silently wrong state.
+    """
+    reasons = []
+    for seed in _PNM_BRANCH_SEEDS:
+        try:
+            P, e, nB, sigma = _pnm_state_at_seed(muB, T, param, seed)
+        except Exception as exc:
+            reasons.append(f"seed {seed}: solve failed ({str(exc)[:80]})")
+            continue
+        reason = _pnm_branch_rejection(P, e, nB, sigma)
+        if not reason:
+            return P, e, nB, sigma
+        reasons.append(f"seed {seed}: {reason}")
+    raise RuntimeError(
+        f"PNM solve at muB={float(muB):.4f}, T={float(T):.4g} could not reach the "
+        "physical mean-field branch from any seed: " + "; ".join(reasons)
+    )
+
+
 def _analytic_nuclear_state(muB_N, T_N, param=para.paraQMCRMF3, NM_type="PNM"):
     """
     Return the upstream nuclear state used by analytic_velocity_bound.
+
+    For PNM the solve is validated against the spurious sigma < 0 branch and
+    re-seeded when needed; see _validated_pnm_state.
     """
     P_N = float(PNM(muB_N, T_N, param=param, NM_type=NM_type))
     e_N = float(edensNM(muB_N, T_N, param=param))
-    h_N = float(P_N + e_N)
     nB_N = float(nB_NM(muB_N, T_N, param=param, NM_type=NM_type))
+    if str(NM_type) == "PNM" and _pnm_state_is_off_branch(muB_N, T_N, param, P_N, e_N, nB_N):
+        # The default mean-field seed occasionally lands on the sigma < 0 root,
+        # which shows up here as a negative pressure. Re-solve from other seeds
+        # and check the scalar field directly before accepting the state.
+        P_N, e_N, nB_N, _sigma_N = _validated_pnm_state(muB_N, T_N, param)
+    h_N = float(P_N + e_N)
     if (not np.isfinite(P_N)) or (not np.isfinite(e_N)) or (not np.isfinite(h_N)):
         raise RuntimeError("Nuclear EOS returned non-finite pressure or enthalpy")
     if (not np.isfinite(nB_N)) or nB_N <= 0.0:
@@ -690,10 +1163,25 @@ def _analytic_velocity_formula_from_endpoint(
     xi,
     aQstar_max_mode="LTE",
     interface_fraction_mode=None,
+    velocity_closure="closed_form",
 ):
     """
     Evaluate the selected analytic velocity formula from a hydro endpoint.
+
+    velocity_closure selects how A and I2 are obtained:
+
+    "closed_form"  reproduces the published piecewise-constant result. A is the
+                   T -> 0 end of the isobar taken at fixed mu_B, and I2 is the
+                   closed-form bracket of Eq. (speed_modified).
+
+    "numerical_I2" follows the layer along the conserved pair (P, h/nB), which
+                   is what the steady-front conservation laws actually fix, and
+                   integrates I2 numerically along that trajectory with the full
+                   diffusion coefficient and the exact weak rate. A is read off
+                   the cold end of the same trajectory, so A and I2 stay
+                   mutually consistent.
     """
+    velocity_closure = _normalize_velocity_closure(velocity_closure)
     xi = float(xi)
     if interface_fraction_mode is None:
         interface_fraction_mode = _normalize_interface_fraction_mode(
@@ -736,14 +1224,31 @@ def _analytic_velocity_formula_from_endpoint(
         raise RuntimeError(
             "endpoint must carry B_one_forth (or U_bag) and P_Q to evaluate A"
         )
-    A_boundary, muKstar_max = _analytic_A_from_isobar(
-        muB_Q,
-        P_Q,
-        float(B_one_forth_Q),
-        ms=float(endpoint.get("ms", 0.0)),
-        upB=int(endpoint.get("upB", 5000)),
-        return_muK=True,
-    )
+    ms_Q = float(endpoint.get("ms", 0.0))
+    upB_Q = int(endpoint.get("upB", 5000))
+    layer_trajectory = None
+    if velocity_closure == "numerical_I2":
+        # The conserved pair (P, h/nB) defines the layer; mu_B is free to drift.
+        layer_trajectory = _analytic_layer_trajectory(
+            P_Q,
+            float(endpoint["h_over_nB_Q"]),
+            muB_Q,
+            T_Q,
+            float(B_one_forth_Q),
+            ms=ms_Q,
+            upB=upB_Q,
+        )
+        A_boundary = float(layer_trajectory["A_boundary"])
+        muKstar_max = float(layer_trajectory["muK"][-1])
+    else:
+        A_boundary, muKstar_max = _analytic_A_from_isobar(
+            muB_Q,
+            P_Q,
+            float(B_one_forth_Q),
+            ms=ms_Q,
+            upB=upB_Q,
+            return_muK=True,
+        )
     one_minus_A_boundary = float(1.0 - A_boundary)
     one_plus_xi_A_boundary = float(1.0 + xi * A_boundary)
     lambda_n_squared = float(lambda_n * lambda_n)
@@ -829,10 +1334,39 @@ def _analytic_velocity_formula_from_endpoint(
             / denominator
         )
 
+    # The closed-form branch above supplies I2 through the published bracket.
+    # The numerical branch replaces it with the quadrature along the conserved
+    # trajectory, keeping the same structural closure
+    #   u^2 = 2 I2 / [lambda_n^2 (1 - a(0+)) (1 + xi a(0+))] ,
+    # which stays exact here because nB is constant along the layer.
+    I2_numerical = np.nan
+    if velocity_closure == "numerical_I2":
+        I2_numerical = _analytic_I2_numerical(
+            layer_trajectory,
+            a_interface,
+            float(B_one_forth_Q),
+            ms=ms_Q,
+            upB=upB_Q,
+        )
+        closure_denominator = float(
+            lambda_n_squared * one_minus_a_interface * one_plus_xi_a_interface
+        )
+        if (not np.isfinite(closure_denominator)) or closure_denominator <= 0.0:
+            raise RuntimeError("numerical-I2 velocity denominator is non-physical")
+        u_N_formula_squared = float(2.0 * I2_numerical / closure_denominator)
+
     if (not np.isfinite(u_N_formula_squared)) or u_N_formula_squared < 0.0:
         raise RuntimeError("Analytic velocity bound produced non-physical u_N^2")
     return {
         "u_N_formula_squared": u_N_formula_squared,
+        "velocity_closure": velocity_closure,
+        "I2_numerical": float(I2_numerical),
+        "layer_trajectory_saturated": bool(
+            layer_trajectory["saturated"] if layer_trajectory is not None else False
+        ),
+        "layer_trajectory_points": int(
+            layer_trajectory["a"].size if layer_trajectory is not None else 0
+        ),
         "mu_q": mu_q,
         "lambda_n": lambda_n,
         "lambda_n_squared": lambda_n_squared,
@@ -880,6 +1414,7 @@ def analytic_velocity_bound(
     initial_guess=None,
     aQstar_max="extreme_endothermic",
     interface_fraction_mode=None,
+    velocity_closure="closed_form",
 ):
     """
     Evaluate the hydro-consistent analytic upper bound for u_N.
@@ -894,6 +1429,13 @@ def analytic_velocity_bound(
     interface fraction. The legacy aQstar_max keyword still selects the mode
     when interface_fraction_mode is not supplied.
 
+    velocity_closure selects the closure used for A and I2.  "closed_form"
+    (default) reproduces the published piecewise-constant result: A from the
+    isobar at fixed mu_B, and I2 from the closed-form bracket.  "numerical_I2"
+    follows the layer along the conserved pair (P, h/nB), which is what the
+    conservation laws actually fix, and integrates I2 numerically along it.
+    The second is more accurate but markedly slower.
+
     Raises SlowFrontNoSolution when no steadily moving front exists (the
     small-metastability, finite-temperature gap): the message and its gap
     attribute report the enthalpy-per-baryon deficit that blocks the front.
@@ -902,6 +1444,7 @@ def analytic_velocity_bound(
     T_N = float(T_N)
     B_one_forth = float(B_one_forth)
     xi = float(xi)
+    velocity_closure = _normalize_velocity_closure(velocity_closure)
     if interface_fraction_mode is None:
         interface_fraction_mode = _normalize_interface_fraction_mode(
             aQstar_max,
@@ -952,6 +1495,7 @@ def analytic_velocity_bound(
             nuclear_state,
             xi,
             interface_fraction_mode=interface_fraction_mode,
+            velocity_closure=velocity_closure,
         )
         residual = float(formula["u_N_formula_squared"] - u_N * u_N)
         data = {**endpoint, **formula, "residual": residual, "theta": theta}
@@ -1105,6 +1649,12 @@ def analytic_velocity_bound(
         "tau_seconds": float(final_data["tau_seconds"]),
         "prefactor": float(final_data["prefactor"]),
         "analytic_denominator": float(final_data["analytic_denominator"]),
+        "velocity_closure": str(final_data.get("velocity_closure", velocity_closure)),
+        "I2_numerical": float(final_data.get("I2_numerical", np.nan)),
+        "layer_trajectory_saturated": bool(
+            final_data.get("layer_trajectory_saturated", False)
+        ),
+        "layer_trajectory_points": int(final_data.get("layer_trajectory_points", 0)),
         "xi": xi,
         "composition_definition": "a_local_equals_nK_over_nB",
         "density_ratio_definition": "lambda_n_equals_nB_N_over_nB_Q",
