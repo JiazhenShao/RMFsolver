@@ -289,16 +289,48 @@ def _analytic_layer_trajectory(
                 seeds.append(nudged)
             for factor in (2.0, 0.5):
                 extra = nudged.copy()
-                extra[1] = max(float(nudged[1]) * factor, 1.0)
+                extra[1] = max(float(nudged[1]) * factor, 0.1)
                 seeds.append(extra)
         solution = None
         for seed in seeds:
             candidate = root(residual, seed, args=(float(T),), method="hybr")
-            if candidate.success and (
-                np.linalg.norm(residual(candidate.x, float(T)), ord=np.inf) <= 1.0e-8
-            ):
+            if np.linalg.norm(residual(candidate.x, float(T)), ord=np.inf) <= 1.0e-8:
                 solution = candidate
                 break
+        if solution is None and index > 0:
+            # The unconstrained solve can step through muK = 0 and become
+            # trapped on the artificial negative-muK penalty. Retry in log(muK)
+            # so every trial remains on the physical positive-composition
+            # branch while retaining muB as an unconstrained root variable.
+            def positive_muK_residual(vec):
+                muB_trial, log_muK = float(vec[0]), float(vec[1])
+                if (not np.isfinite(log_muK)) or not (-50.0 < log_muK < 20.0):
+                    return np.array([1.0e6, 1.0e6], dtype=float)
+                return residual(
+                    np.array([muB_trial, float(np.exp(log_muK))], dtype=float),
+                    float(T),
+                )
+
+            base_muK = max(float(guess[1]), 1.0)
+            for muK_seed in (base_muK, 0.5 * base_muK, 2.0 * base_muK, 0.1, 5.0):
+                transformed = root(
+                    positive_muK_residual,
+                    np.array([float(guess[0]), np.log(muK_seed)], dtype=float),
+                    method="hybr",
+                )
+                if (
+                    (not np.isfinite(transformed.x[1]))
+                    or not (-50.0 < float(transformed.x[1]) < 20.0)
+                ):
+                    continue
+                mapped = np.array(
+                    [float(transformed.x[0]), float(np.exp(transformed.x[1]))],
+                    dtype=float,
+                )
+                if np.linalg.norm(residual(mapped, float(T)), ord=np.inf) <= 1.0e-8:
+                    transformed.x = mapped
+                    solution = transformed
+                    break
         if solution is None:
             if index == 0:
                 raise RuntimeError("layer trajectory failed at the equilibrated end")
