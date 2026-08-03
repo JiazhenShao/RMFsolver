@@ -538,6 +538,10 @@ def muB_from_nB_physical(
     muB_hi=2200.0,
     rtol=1.0e-6,
     scan_points=48,
+    auto_expand=False,
+    muB_floor=0.0,
+    muB_ceiling=5000.0,
+    max_expansions=6,
 ):
     """
     Invert nB -> muB on the physical mean-field branch.
@@ -547,14 +551,36 @@ def muB_from_nB_physical(
     bracketed solve can return a muB whose true density is far from the request.
     This helper solves against the branch-validated density and then verifies
     that the density at the answer reproduces nB_target to rtol, raising instead
-    of returning a silently wrong muB. The default rtol sits above the RMF
-    solver's own convergence floor (a few times 1e-8) and far below the
-    percent-level error the spurious branch produces.
+    of returning a silently wrong muB. When auto_expand is true, muB_lo and
+    muB_hi define the initial scan window: a window whose validated densities
+    all lie above (below) the target is expanded downward (upward) until a
+    bracket is found or the configured limit is reached. The default rtol sits
+    above the RMF solver's own convergence floor (a few times 1e-8) and far
+    below the percent-level error the spurious branch produces.
     """
     nB_target = float(nB_target)
     Temp = float(Temp)
     if (not np.isfinite(nB_target)) or nB_target <= 0.0:
         raise RuntimeError("nB_target must be positive and finite")
+    muB_lo = float(muB_lo)
+    muB_hi = float(muB_hi)
+    muB_floor = float(muB_floor)
+    muB_ceiling = float(muB_ceiling)
+    scan_points = int(scan_points)
+    max_expansions = int(max_expansions)
+    if not np.all(np.isfinite([muB_lo, muB_hi, muB_floor, muB_ceiling])):
+        raise RuntimeError("muB inversion bounds must be finite")
+    if muB_lo >= muB_hi:
+        raise RuntimeError("muB_lo must be smaller than muB_hi")
+    if scan_points < 2:
+        raise RuntimeError("scan_points must be at least 2")
+    if max_expansions < 0:
+        raise RuntimeError("max_expansions must be non-negative")
+    if bool(auto_expand) and (muB_floor > muB_lo or muB_ceiling < muB_hi):
+        raise RuntimeError(
+            "automatic muB expansion requires muB_floor <= muB_lo < muB_hi "
+            "<= muB_ceiling"
+        )
 
     def density(muB):
         if str(NM_type) == "PNM":
@@ -564,35 +590,78 @@ def muB_from_nB_physical(
     def residual(muB):
         return density(muB) - nB_target
 
-    # The physical branch does not extend over the whole window (below the
-    # nucleon mass there is no dense solution at all), so scan for a bracket
-    # between two muB where the validated solve actually succeeds rather than
-    # assuming the window endpoints are usable.
-    grid = np.linspace(float(muB_lo), float(muB_hi), int(scan_points))
-    samples = []
-    for muB in grid:
-        try:
-            samples.append((float(muB), residual(float(muB))))
-        except Exception:
-            continue
+    # Scan only states accepted by the physical-branch validator. At finite
+    # temperature the requested density can occur far below its cold-matter
+    # chemical potential, so optionally extend an initially inadequate window.
+    sample_cache = {}
+
+    def sample_interval(lower, upper):
+        for muB in np.linspace(float(lower), float(upper), scan_points):
+            coordinate = float(muB)
+            if coordinate in sample_cache:
+                continue
+            try:
+                sample_cache[coordinate] = float(residual(coordinate))
+            except Exception:
+                continue
+
+    def ordered_samples():
+        return sorted(sample_cache.items())
+
+    def find_bracket(samples):
+        for (mu_a, f_a), (mu_b, f_b) in zip(samples[:-1], samples[1:]):
+            if f_a == 0.0:
+                return mu_a, mu_a
+            if f_a * f_b < 0.0:
+                return mu_a, mu_b
+        if samples and samples[-1][1] == 0.0:
+            return samples[-1][0], samples[-1][0]
+        return None
+
+    current_lo = muB_lo
+    current_hi = muB_hi
+    sample_interval(current_lo, current_hi)
+    expansion_count = 0
+    bracket = find_bracket(ordered_samples())
+    while bracket is None and bool(auto_expand) and expansion_count < max_expansions:
+        samples = ordered_samples()
+        residuals = np.asarray([value for _, value in samples], dtype=float)
+        span = max(current_hi - current_lo, 1.0)
+        expanded = False
+        if residuals.size < 2 or np.all(residuals > 0.0):
+            new_lo = max(muB_floor, current_lo - span)
+            if new_lo < current_lo:
+                sample_interval(new_lo, current_lo)
+                current_lo = new_lo
+                expanded = True
+        if residuals.size < 2 or np.all(residuals < 0.0):
+            new_hi = min(muB_ceiling, current_hi + span)
+            if new_hi > current_hi:
+                sample_interval(current_hi, new_hi)
+                current_hi = new_hi
+                expanded = True
+        if not expanded:
+            break
+        expansion_count += 1
+        bracket = find_bracket(ordered_samples())
+
+    samples = ordered_samples()
     if len(samples) < 2:
         raise RuntimeError(
-            f"no physical PNM branch found in [{muB_lo:.1f}, {muB_hi:.1f}] MeV "
+            f"no physical PNM branch found in [{current_lo:.1f}, {current_hi:.1f}] "
+            f"MeV "
             f"at T={Temp:.4g}"
         )
-    bracket = None
-    for (mu_a, f_a), (mu_b, f_b) in zip(samples[:-1], samples[1:]):
-        if f_a == 0.0:
-            bracket = (mu_a, mu_a)
-            break
-        if f_a * f_b < 0.0:
-            bracket = (mu_a, mu_b)
-            break
     if bracket is None:
-        lo_val, hi_val = samples[0][1] + nB_target, samples[-1][1] + nB_target
+        densities = np.asarray(
+            [sample_residual + nB_target for _, sample_residual in samples],
+            dtype=float,
+        )
         raise RuntimeError(
             f"nB={nB_target:.6e} is not bracketed on the physical branch: the scan "
-            f"spans nB in [{lo_val:.6e}, {hi_val:.6e}] at T={Temp:.4g}"
+            f"window [{current_lo:.1f}, {current_hi:.1f}] MeV spans validated nB "
+            f"in [{densities.min():.6e}, {densities.max():.6e}] at T={Temp:.4g} "
+            f"after {expansion_count} expansion(s)"
         )
     if bracket[0] == bracket[1]:
         muB = float(bracket[0])
