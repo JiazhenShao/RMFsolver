@@ -3,6 +3,7 @@ import time
 import warnings
 from scipy.integrate import solve_bvp, solve_ivp
 from scipy.optimize import fsolve, root_scalar, root
+from scipy.interpolate import CubicSpline
 import RMFsolver.constants as const
 import RMFsolver.RMFparameter as para
 from RMFsolver.SQMsolver import (
@@ -28,6 +29,7 @@ __all__ = [
     "solve_front_isothermal",
     "solve_front_energy_conserving_nK",
     "solve_front_energy_conserving_uNmax",
+    "solve_front_thermal_conducting",
     "z_time_evolution",
 ]
 
@@ -4809,6 +4811,1845 @@ def solve_front_energy_conserving_uNmax(
     if return_profile:
         return result_out
     return _strip_energy_profile_fields(result_out)
+
+
+# ---------------------------------------------------------------------------
+# Thermal-conducting steady front
+#
+# The ideal-fluid solvers above carry the energy flux as an algebraic first
+# integral E = h*gamma*u, which lets them recover T pointwise from (nK, E, Pi).
+# Once Fourier conduction is present the conserved quantity is instead
+#
+#     F_E = h*gamma*u - kappa_th*dT/dx = const,
+#
+# which contains dT/dx and is therefore no longer an algebraic relation for T:
+# it *is* the ODE for T. So T is promoted from a reconstructed quantity to a
+# propagated field, and the local closure drops from 3x3 (muB, muK, T) to 2x2
+# (muB, muK) at prescribed T. Nothing in the ideal-fluid path is reused for the
+# energy constraint; only the muK=0 downstream endpoint solve is shared, and
+# that is exact because q_th(inf) = 0 makes h*gamma*u|_Q = F_E.
+# ---------------------------------------------------------------------------
+
+_THERMAL_ZETA3 = 1.2020569031595943
+# The FULL Heiselberg-Pethick collision integral (PRD 48, 2916 (1993) Eq. (59),
+# with the RPA susceptibilities of Eq. (7)) is implemented in
+# _ikappa_quadrature below and used by default; the Eq. (60) asymptotes are
+# kept only as validation targets. In the physical domain of this problem
+# (mu_q ~ 300-450 MeV, T <~ 55 MeV, so y = T/qD <~ 0.19) the full integral runs
+# up to ~16% ABOVE the low-y asymptote near y ~ 0.03, i.e. kappa_th is up to
+# ~16% smaller than the asymptote would give -- not a negligible correction.
+# Upper end of the tabulated I_kappa range. y = T/qD ~ 50 corresponds to
+# T ~ 14 GeV, far outside anything physical here, so exceeding it is an error
+# rather than something to extrapolate through.
+_THERMAL_Y_MAX = 50.0
+_THERMAL_LOW_Y_COEFF = 2.0 * _THERMAL_ZETA3
+# Below this the exact low-y limit is used. At y = 1e-6 the converged
+# quadrature exceeds 2*zeta(3)*y**2 by only 0.055%, so the seam is negligible;
+# the relative correction falls off as y**(2/3), matching the (T/qD)**(8/3)
+# term HP93 quotes below Eq. (60).
+_THERMAL_IKAPPA_Y_MIN = 1.0e-6
+_THERMAL_IKAPPA_TABLE_POINTS = 221
+_THERMAL_IKAPPA_QUAD_NX = 400
+_THERMAL_IKAPPA_QUAD_NT = 400
+_THERMAL_IKAPPA_CACHE = {}
+# Safety stop shared by the adaptive continuations in T_interface and tail_eps.
+# Failed temperature steps are bisected and failed tail steps are retried at a
+# geometric midpoint, so this bounds total BVP solves rather than waypoints.
+_THERMAL_MAX_CONTINUATION_ATTEMPTS = 40
+# Below this downstream gap, the deviation is at the accuracy floor of the
+# nonlinear EOS closure. Blend onto the downstream Jacobian used to formulate
+# the asymptotic boundary conditions, then validate against the full RHS.
+_THERMAL_LINEAR_TAIL_GAP = 1.0e-4
+
+
+def _thermal_compact_mesh(n_mesh, tail_eps):
+    """Return a fixed compact-s mesh resolving both the interface and tail."""
+    n_mesh = int(n_mesh)
+    tail_eps = float(tail_eps)
+    if n_mesh < 5:
+        raise RuntimeError("thermal compact mesh requires at least five points")
+    if not (0.0 < tail_eps < 1.0):
+        raise RuntimeError("thermal compact mesh requires 0 < tail_eps < 1")
+    s_end = 1.0 - tail_eps
+    if s_end <= 0.9:
+        return np.linspace(0.0, s_end, n_mesh)
+    n_tail = max(12, n_mesh // 3)
+    n_core = n_mesh - n_tail + 1
+    core_t = np.linspace(0.0, 1.0, n_core)
+    core = 0.9 * np.expm1(4.0 * core_t) / np.expm1(4.0)
+    tail = 1.0 - np.geomspace(0.1, tail_eps, n_tail)
+    mesh = np.unique(np.concatenate((core, tail)))
+    mesh[0] = 0.0
+    mesh[-1] = s_end
+    if np.any(np.diff(mesh) <= 0.0):
+        raise RuntimeError("thermal compact mesh is not strictly increasing")
+    return mesh
+
+
+def _thermal_tail_schedule(tail_eps):
+    """Continuation depths ending at the exact requested compact tail."""
+    tail_eps = float(tail_eps)
+    if not (0.0 < tail_eps < 1.0):
+        raise RuntimeError("thermal tail schedule requires 0 < tail_eps < 1")
+    first = max(tail_eps, 1.0e-4)
+    schedule = [float(first)]
+    while schedule[-1] > tail_eps:
+        next_eps = max(tail_eps, float(f"{schedule[-1] * 1.0e-2:.15g}"))
+        if next_eps == schedule[-1]:
+            break
+        schedule.append(float(next_eps))
+    return schedule
+
+
+def _thermal_interpolate_profile_guess(profile_guess, s_mesh, equilibrium_y, scales):
+    """Map a physical compact profile to a new mesh and extend its stable tail."""
+    previous_s = np.asarray(profile_guess["s"], dtype=float)
+    previous_y = np.asarray(profile_guess["physical_y"], dtype=float)
+    previous_eq = np.asarray(profile_guess["equilibrium_y"], dtype=float)
+    s_mesh = np.asarray(s_mesh, dtype=float)
+    equilibrium_y = np.asarray(equilibrium_y, dtype=float)
+    scales = np.asarray(scales, dtype=float)
+    if previous_s.ndim != 1 or previous_s.size < 2 or np.any(np.diff(previous_s) <= 0.0):
+        raise RuntimeError("thermal continuation profile has invalid compact coordinate")
+    if previous_y.shape != (3, previous_s.size):
+        raise RuntimeError("thermal continuation profile has invalid shape")
+    if previous_eq.shape != (3,) or equilibrium_y.shape != (3,) or scales.shape != (3,):
+        raise RuntimeError("thermal continuation equilibrium or scale has invalid shape")
+    if np.any(scales <= 0.0) or not np.all(np.isfinite(scales)):
+        raise RuntimeError("thermal continuation scales must be positive and finite")
+    old_end = float(previous_s[-1])
+    old_gap = max(1.0 - old_end, np.finfo(float).tiny)
+    physical_guess = np.empty((3, s_mesh.size), dtype=float)
+    for row in range(3):
+        old_delta = previous_y[row] - previous_eq[row]
+        inside = s_mesh <= old_end
+        physical_guess[row, inside] = equilibrium_y[row] + np.interp(
+            s_mesh[inside], previous_s, old_delta
+        )
+        outside = ~inside
+        physical_guess[row, outside] = equilibrium_y[row] + old_delta[-1] * (
+            (1.0 - s_mesh[outside]) / old_gap
+        )
+    return physical_guess / scales[:, None]
+
+
+def _ikappa_low_y(y):
+    """
+    Low-argument asymptote of the Heiselberg-Pethick thermal collision integral,
+    I_kappa(y) -> 2*zeta(3)*y**2 as y -> 0, with y = T/qD (HP93 Eq. (60)).
+    """
+    y = float(y)
+    if (not np.isfinite(y)) or y < 0.0:
+        raise RuntimeError("I_kappa requires a finite non-negative argument")
+    return float(_THERMAL_LOW_Y_COEFF * y * y)
+
+
+def _ikappa_high_y(y):
+    """High-argument asymptote of I_kappa, ln(y)/3 + 0.30 (HP93 Eq. (60))."""
+    y = float(y)
+    if (not np.isfinite(y)) or y <= 0.0:
+        raise RuntimeError("I_kappa high-y asymptote requires a positive argument")
+    return float(np.log(y) / 3.0 + 0.30)
+
+
+def _ikappa_chi(x):
+    """
+    RPA longitudinal/transverse susceptibilities, HP93 Eq. (7):
+
+        chi_l(x) = 1 - (x/2)*L(x)
+        chi_t(x) = x**2/2 + (x*(1 - x**2)/4)*L(x)
+
+    with x = omega/q and L(x) = ln((1+x)/(1-x)) + i*pi. The branch is fixed by
+    HP93 Eq. (8), which requires chi_l -> 1 + O(x) and chi_t -> i*(pi/4)*x;
+    the opposite branch flips the sign of Im(chi_t) and disagrees with the
+    paper's own small-x reduction in Appendix B.
+    """
+    L = np.log((1.0 + x) / (1.0 - x)) + 1j * np.pi
+    chi_l = 1.0 - 0.5 * x * L
+    chi_t = 0.5 * x * x + 0.25 * x * (1.0 - x * x) * L
+    return chi_l, chi_t
+
+
+def _ikappa_quadrature(y, nx=_THERMAL_IKAPPA_QUAD_NX, nt=_THERMAL_IKAPPA_QUAD_NT):
+    """
+    Full HP93 Eq. (59) thermal collision integral by two-dimensional quadrature.
+
+        I_k = Int_0^inf (dw/w) ((w/2T)/sinh(w/2T))**2 Int_0^1 dx
+              Int_0^2pi (dphi/2pi) x**2 (1 - x**2)(1 - cos phi)
+              * | A - B cos phi |**2
+
+        A = 1/(1 + (x*qD/w)**2 * chi_l(x))
+        B = 1/(1 + (x*qD/w)**2 * chi_t(x)/(1 - x**2))
+
+    The azimuthal average is done analytically. With <1> = 1, <cos> = 0,
+    <cos**2> = 1/2 and <cos**3> = 0,
+
+        <(1 - cos phi)|A - B cos phi|**2> = |A|**2 + |B|**2/2 + Re(A conj(B)),
+
+    which reduces to the momentum-relaxation integrand of Eq. (21) when the
+    (1 - cos phi) weight is dropped, as it must.
+
+    Substituting u = w/(2T) makes the integral a function of y = T/qD alone,
+    because (x*qD/w)**2 = x**2/(4*u**2*y**2) and dw/w = du/u. The u integral is
+    then done on a logarithmic grid, where dw/w = dt for u = exp(t).
+    """
+    y = float(y)
+    if (not np.isfinite(y)) or y <= 0.0:
+        raise RuntimeError("I_kappa quadrature requires y > 0")
+
+    key = (int(nx), int(nt))
+    if key not in _THERMAL_IKAPPA_CACHE:
+        gx, gw = np.polynomial.legendre.leggauss(int(nx))
+        x_nodes = np.clip(0.5 * (gx + 1.0), 1.0e-12, 1.0 - 1.0e-12)
+        x_weights = 0.5 * gw
+        chi_l, chi_t = _ikappa_chi(x_nodes)
+        t_lo, t_hi = -22.0, 5.0
+        gt, gwt = np.polynomial.legendre.leggauss(int(nt))
+        t_nodes = 0.5 * (t_hi - t_lo) * gt + 0.5 * (t_hi + t_lo)
+        t_weights = 0.5 * (t_hi - t_lo) * gwt
+        u_nodes = np.exp(t_nodes)
+        with np.errstate(over="ignore", invalid="ignore"):
+            bose = np.where(
+                u_nodes < 1.0e-8,
+                1.0,
+                (u_nodes / np.sinh(np.clip(u_nodes, 1.0e-300, 700.0))) ** 2,
+            )
+        bose = np.where(u_nodes > 700.0, 0.0, bose)
+        _THERMAL_IKAPPA_CACHE[key] = {
+            "x": x_nodes,
+            "wx": x_weights * x_nodes**2 * (1.0 - x_nodes**2),
+            "chi_l": chi_l,
+            "chi_t_over": chi_t / (1.0 - x_nodes**2),
+            "u2": u_nodes**2,
+            "wt_bose": t_weights * bose,
+        }
+    grid = _THERMAL_IKAPPA_CACHE[key]
+
+    # At small y and small omega the screening factor s is astronomically large,
+    # so A and B underflow to zero. That is the physically correct answer (the
+    # interaction is fully screened) but it generates spurious overflow/invalid
+    # warnings on the way; suppress them and reject any genuinely non-finite
+    # contribution instead.
+    with np.errstate(over="ignore", invalid="ignore", divide="ignore"):
+        s = (grid["x"][None, :] ** 2) / (4.0 * grid["u2"][:, None] * y * y)
+        A = 1.0 / (1.0 + s * grid["chi_l"][None, :])
+        B = 1.0 / (1.0 + s * grid["chi_t_over"][None, :])
+        phi_avg = np.abs(A) ** 2 + 0.5 * np.abs(B) ** 2 + np.real(A * np.conj(B))
+        phi_avg = np.where(np.isfinite(phi_avg), phi_avg, 0.0)
+        inner = phi_avg @ grid["wx"]
+        value = float(grid["wt_bose"] @ inner)
+    if (not np.isfinite(value)) or value <= 0.0:
+        raise RuntimeError(f"I_kappa quadrature returned a non-physical value at y={y:.6g}")
+    return value
+
+
+def _ikappa_table():
+    """Lazily built log-log interpolation table for the full Eq. (59) integral."""
+    if "table" not in _THERMAL_IKAPPA_CACHE:
+        log_y = np.linspace(
+            np.log(_THERMAL_IKAPPA_Y_MIN),
+            np.log(_THERMAL_Y_MAX),
+            int(_THERMAL_IKAPPA_TABLE_POINTS),
+        )
+        # Tabulate I_kappa / y**2: that ratio tends to the finite constant
+        # 2*zeta(3) as y -> 0, so the interpolation stays well conditioned and
+        # joins the analytic low-y limit smoothly.
+        ratio = np.array(
+            [_ikappa_quadrature(float(np.exp(v))) / float(np.exp(v)) ** 2 for v in log_y]
+        )
+        _THERMAL_IKAPPA_CACHE["table"] = CubicSpline(log_y, np.log(ratio))
+    return _THERMAL_IKAPPA_CACHE["table"]
+
+
+def _ikappa_full(y):
+    """
+    Full HP93 Eq. (59) I_kappa(y), interpolated from cached quadrature.
+
+    Below _THERMAL_IKAPPA_Y_MIN the exact low-y limit is used; there the
+    quadrature and the asymptote agree to better than 0.2%.
+    """
+    y = float(y)
+    if (not np.isfinite(y)) or y < 0.0:
+        raise RuntimeError("I_kappa requires a finite non-negative argument")
+    if y == 0.0:
+        return 0.0
+    if y <= _THERMAL_IKAPPA_Y_MIN:
+        return float(_THERMAL_LOW_Y_COEFF * y * y)
+    if y > _THERMAL_Y_MAX:
+        raise RuntimeError(
+            f"I_kappa argument y = {y:.6g} exceeds the tabulated range "
+            f"y_max = {_THERMAL_Y_MAX:.6g}"
+        )
+    spline = _ikappa_table()
+    value = float(np.exp(float(spline(np.log(y)))) * y * y)
+    if (not np.isfinite(value)) or value <= 0.0:
+        raise RuntimeError("I_kappa interpolation returned a non-physical value")
+    return value
+
+
+_THERMAL_DEFAULT_KAPPA_MODEL = {
+    "name": "HP93_full_Eq59",
+    "I_kappa": _ikappa_full,
+    "low_y_coeff": _THERMAL_LOW_Y_COEFF,
+    "y_max": _THERMAL_Y_MAX,
+}
+
+
+def _normalize_kappa_model(kappa_model):
+    """Validate and fill in a thermal-conductivity model description."""
+    if kappa_model is None:
+        return _THERMAL_DEFAULT_KAPPA_MODEL
+    if not isinstance(kappa_model, dict):
+        raise RuntimeError("kappa_model must be a dict or None")
+    model = dict(_THERMAL_DEFAULT_KAPPA_MODEL)
+    model.update(kappa_model)
+    if not callable(model.get("I_kappa")):
+        raise RuntimeError("kappa_model['I_kappa'] must be callable")
+    low_y = float(model.get("low_y_coeff", np.nan))
+    if (not np.isfinite(low_y)) or low_y <= 0.0:
+        raise RuntimeError(
+            "kappa_model['low_y_coeff'] must be positive: it is the coefficient C in "
+            "I_kappa(y) -> C*y**2, which supplies the exact T -> 0 limit and is the only "
+            "way to evaluate kappa_th at T = 0 without forming 0/0"
+        )
+    y_max = float(model.get("y_max", np.nan))
+    if (not np.isfinite(y_max)) or y_max <= 0.0:
+        raise RuntimeError("kappa_model['y_max'] must be positive")
+    model["low_y_coeff"] = low_y
+    model["y_max"] = y_max
+    return model
+
+
+def _thermal_conductivity(muB, T, kappa_model=None, v_F=1.0):
+    """
+    Quark thermal conductivity in natural MeV**2.
+
+        kappa_th = pi**3 * v_F**2 * T**2 / (24 * alpha_s**2 * I_kappa(T/qD))
+
+    At exactly T = 0 that expression is 0/0. It is never evaluated there:
+    with I_kappa(y) -> C*y**2 the limit is exact and finite,
+
+        kappa_th(0+) = pi**3 * v_F**2 * qD**2 / (24 * alpha_s**2 * C),
+
+    which for C = 2*zeta(3) is pi**3*v_F**2*qD**2/(48*zeta(3)*alpha_s**2).
+    kappa_th(0) is finite and positive, never zero.
+    """
+    model = _normalize_kappa_model(kappa_model)
+    T = float(T)
+    if (not np.isfinite(T)) or T < 0.0:
+        raise RuntimeError("Thermal conductivity requires finite T >= 0")
+    muQ = float(muB) / 3.0
+    if (not np.isfinite(muQ)) or muQ <= 0.0:
+        raise RuntimeError("Thermal conductivity requires muQ > 0")
+
+    qD = float(_TRANSPORT_QD_COEFF * muQ)
+    if (not np.isfinite(qD)) or qD <= 0.0:
+        raise RuntimeError("Thermal conductivity requires a positive screening scale")
+
+    y = float(T / qD)
+    if y > model["y_max"]:
+        raise RuntimeError(
+            f"Thermal conductivity argument y = T/qD = {y:.6g} exceeds the validated band "
+            f"y_max = {model['y_max']:.6g}. The full Heiselberg-Pethick collision integral "
+            "is not implemented (see _THERMAL_Y_MAX); refusing to extrapolate."
+        )
+
+    prefactor = np.pi**3 * float(v_F) ** 2 / (24.0 * _TRANSPORT_ALPHA_S**2)
+    if T == 0.0:
+        kappa = float(prefactor * qD * qD / model["low_y_coeff"])
+    else:
+        I_val = float(model["I_kappa"](y))
+        if (not np.isfinite(I_val)) or I_val <= 0.0:
+            raise RuntimeError("I_kappa returned a non-physical value")
+        kappa = float(prefactor * T * T / I_val)
+    if (not np.isfinite(kappa)) or kappa <= 0.0:
+        raise RuntimeError("Thermal conductivity is non-physical")
+
+    return {
+        "kappa_th": kappa,
+        "qD": qD,
+        "muQ": muQ,
+        "y": y,
+        "model": model["name"],
+        "y_max": model["y_max"],
+    }
+
+
+def _solve_local_quark_state_from_nK_T_and_Pi(
+    nK_target,
+    T,
+    Pi,
+    jB,
+    B_one_forth,
+    ms=0.0,
+    upB=5000,
+    initial_guess=None,
+    stats=None,
+):
+    """
+    Thermal-conducting local closure: solve (muB, muK) at a PRESCRIBED T.
+
+    Two unknowns, two equations:
+
+        nK_QM(muB, muK, T)                      = nK_target
+        P_QM(muB, muK, T) + h*u**2              = Pi,    u = jB / nB_QM(muB, muK, T)
+
+    T is an ODE variable here, not a root unknown. That is the whole point: the
+    ideal-fluid closure needs a w = T**2 reparameterisation because its Jacobian
+    degenerates in T as T -> 0, whereas this system stays regular at exactly
+    T = 0 and needs no such trick.
+    """
+    if stats is not None:
+        stats["thermal_local_state_calls"] = stats.get("thermal_local_state_calls", 0) + 1
+    nK_target = float(nK_target)
+    T = float(T)
+    Pi = float(Pi)
+    jB = float(jB)
+    if not np.all(np.isfinite([nK_target, T, Pi, jB])):
+        raise RuntimeError("Thermal local closure requires finite (nK, T, Pi, jB)")
+    if T < 0.0:
+        raise RuntimeError("Thermal local closure requires T >= 0")
+    if jB <= 0.0:
+        raise RuntimeError("Thermal local closure requires jB > 0")
+
+    allow_zero = bool(T == 0.0)
+    nK_scale = max(abs(nK_target), 1.0)
+    pi_scale = max(abs(Pi), 1.0)
+
+    guesses = []
+    if initial_guess is not None:
+        guess = np.asarray(initial_guess, dtype=float).ravel()
+        if guess.size >= 2 and np.all(np.isfinite(guess[:2])):
+            guesses.append((float(guess[0]), float(guess[1])))
+    guesses.extend([(1100.0, 20.0), (1300.0, 60.0), (950.0, 5.0), (1500.0, 150.0)])
+
+    def residual(vec):
+        muB_val = float(vec[0])
+        muK_val = float(vec[1])
+        if muB_val <= 0.0 or (not np.isfinite(muB_val)) or (not np.isfinite(muK_val)):
+            return np.array([1.0e12, 1.0e12], dtype=float)
+        try:
+            thermo = _quark_thermo_state(
+                muB_val,
+                muK_val,
+                B_one_forth,
+                T,
+                jB,
+                ms=ms,
+                upB=upB,
+                allow_zero_temperature=allow_zero,
+            )
+            return np.array(
+                [
+                    (thermo["nK"] - nK_target) / nK_scale,
+                    (thermo["Pi"] - Pi) / pi_scale,
+                ],
+                dtype=float,
+            )
+        except Exception:
+            return np.array([1.0e12, 1.0e12], dtype=float)
+
+    best = None
+    best_norm = np.inf
+    best_message = "Thermal local closure did not converge"
+    for muB_guess, muK_guess in guesses:
+        try:
+            if stats is not None:
+                stats["thermal_local_root_calls"] = stats.get("thermal_local_root_calls", 0) + 1
+            sol = root(
+                residual,
+                np.array([muB_guess, muK_guess], dtype=float),
+                method="hybr",
+                options={"maxfev": 300, "xtol": 1.0e-12},
+            )
+            if not np.all(np.isfinite(sol.x)):
+                continue
+            norm = float(np.linalg.norm(residual(sol.x), ord=np.inf))
+            if norm < best_norm:
+                best_norm = norm
+                best = sol.x.copy()
+            if sol.success and norm <= 1.0e-10:
+                break
+            best_message = str(sol.message)
+        except Exception as exc:
+            best_message = str(exc)
+
+    if best is None or best_norm > 1.0e-8:
+        raise RuntimeError(f"{best_message}; best scaled residual={best_norm:.3e}")
+
+    thermo = _quark_thermo_state(
+        float(best[0]),
+        float(best[1]),
+        B_one_forth,
+        T,
+        jB,
+        ms=ms,
+        upB=upB,
+        allow_zero_temperature=allow_zero,
+    )
+    thermo["r_gamma"] = _relativistic_gamma_from_u(thermo["u"])
+    thermo["E_flux"] = float(thermo["h"] * thermo["u"] * thermo["r_gamma"])
+    thermo["closure_residual"] = float(best_norm)
+    return thermo
+
+
+def _thermal_downstream_analysis(
+    jB,
+    nuclear_state,
+    B_one_forth,
+    ms=0.0,
+    upB=5000,
+    kappa_model=None,
+    endpoint_guess=None,
+):
+    """
+    Linearise the coupled [nK, jK, T] system about the muK=0 downstream state.
+
+    With a = invD*u, b = invD, c = dGamma_K/dnK, d = dGamma_K/dT,
+    e = dE_flux/dnK / kappa, f = dE_flux/dT / kappa,
+
+        J = [[ a, -b,  0],
+             [-c,  0, -d],
+             [ e,  0,  f]]      det J = b*(d*e - c*f),   trace J = a + f.
+
+    The boundary-condition count closes only when the stable manifold has
+    dimension 1, i.e. det J < 0 and trace J > 0 (equivalently c*f > d*e with
+    f > 0). The caller must check ``stable_dimension``; this helper reports it
+    rather than asserting, so the failure is visible instead of silent.
+
+    The partial derivatives are taken *through the same 2x2 closure* the ODE
+    uses, so the linearisation can never drift from the transported system.
+    """
+    jB = float(jB)
+    nB_N = float(nuclear_state["nB_N"])
+    u_N = float(jB / nB_N)
+    r_gamma_N = _relativistic_gamma_from_u(u_N)
+    Pi = float(nuclear_state["P_N"] + nuclear_state["h_N"] * u_N * u_N)
+    F_E = float(nuclear_state["h_N"] * u_N * r_gamma_N)
+
+    endpoint = _solve_analytic_downstream_endpoint_for_uN(
+        u_N, nuclear_state, B_one_forth, ms=ms, upB=upB, initial_guess=endpoint_guess
+    )
+    muB_Q = float(endpoint["muB_Q"])
+    T_Q = float(endpoint["T_Q"])
+    if (not np.isfinite(T_Q)) or T_Q <= 0.0:
+        raise RuntimeError("Thermal downstream endpoint returned a non-physical temperature")
+
+    thermo_Q = _quark_thermo_state(muB_Q, 0.0, B_one_forth, T_Q, jB, ms=ms, upB=upB)
+    nK_Q = float(thermo_Q["nK"])
+    u_Q = float(thermo_Q["u"])
+    micro_Q = _microphysics_from_quark_state_energy(muB_Q, T_Q)
+    invD_Q = float(micro_Q["invD"])
+    if invD_Q <= 0.0:
+        raise RuntimeError("Thermal downstream inverse diffusion coefficient must be positive")
+    kappa_info = _thermal_conductivity(muB_Q, T_Q, kappa_model=kappa_model)
+    kappa_Q = float(kappa_info["kappa_th"])
+
+    guess = (muB_Q, 1.0e-4)
+
+    def rate_and_flux(nK_value, T_value):
+        state = _solve_local_quark_state_from_nK_T_and_Pi(
+            nK_value, T_value, Pi, jB, B_one_forth, ms=ms, upB=upB, initial_guess=guess
+        )
+        rate = float(
+            _exact_kaon_transport_rate(
+                state["muB"], state["muK"], state["T"], ms=ms, upB=upB
+            )["Gamma_K"]
+        )
+        return rate, float(state["E_flux"])
+
+    d_nK = max(1.0e-6 * abs(nK_Q), 1.0e-4)
+    d_T = max(1.0e-6 * T_Q, 1.0e-6)
+    rate_p, flux_p = rate_and_flux(nK_Q + d_nK, T_Q)
+    rate_m, flux_m = rate_and_flux(nK_Q - d_nK, T_Q)
+    c_coeff = float((rate_p - rate_m) / (2.0 * d_nK))
+    e_coeff = float((flux_p - flux_m) / (2.0 * d_nK) / kappa_Q)
+    rate_p, flux_p = rate_and_flux(nK_Q, T_Q + d_T)
+    rate_m, flux_m = rate_and_flux(nK_Q, T_Q - d_T)
+    d_coeff = float((rate_p - rate_m) / (2.0 * d_T))
+    f_coeff = float((flux_p - flux_m) / (2.0 * d_T) / kappa_Q)
+
+    a_coeff = float(invD_Q * u_Q)
+    b_coeff = float(invD_Q)
+    jacobian = np.array(
+        [
+            [a_coeff, -b_coeff, 0.0],
+            [-c_coeff, 0.0, -d_coeff],
+            [e_coeff, 0.0, f_coeff],
+        ],
+        dtype=float,
+    )
+    if not np.all(np.isfinite(jacobian)):
+        raise RuntimeError("Thermal downstream Jacobian is non-finite")
+
+    eigenvalues, right_vectors = np.linalg.eig(jacobian)
+    stable_mask = eigenvalues.real < 0.0
+    stable_dimension = int(np.sum(stable_mask))
+
+    lambda_stable = np.nan
+    if stable_dimension >= 1:
+        lambda_stable = float(np.min(np.abs(eigenvalues.real[stable_mask])))
+
+    # Left eigenvectors (rows of inv(V)) are what project a deviation onto the
+    # eigen-directions: with J = V diag(lam) V^-1, the component along v_i is
+    # (V^-1 delta)_i. Killing the growing components is (V^-1 delta)_i = 0.
+    growing_left = np.zeros((0, 3), dtype=float)
+    try:
+        v_inverse = np.linalg.inv(right_vectors)
+        growing_rows = v_inverse[~stable_mask, :]
+        if growing_rows.shape[0] == 2:
+            if np.max(np.abs(growing_rows.imag)) > 1.0e-10 * max(
+                1.0, float(np.max(np.abs(growing_rows.real)))
+            ):
+                # Complex-conjugate growing pair: the two real conditions are the
+                # real and imaginary parts of a single complex projection.
+                growing_left = np.vstack([growing_rows[0].real, growing_rows[0].imag])
+            else:
+                growing_left = growing_rows.real.copy()
+    except np.linalg.LinAlgError:
+        growing_left = np.zeros((0, 3), dtype=float)
+
+    return {
+        "jB": jB,
+        "u_N": u_N,
+        "r_gamma_N": r_gamma_N,
+        "Pi": Pi,
+        "F_E": F_E,
+        "endpoint": endpoint,
+        "muB_Q": muB_Q,
+        "T_Q": T_Q,
+        "thermo_Q": thermo_Q,
+        "nK_Q": nK_Q,
+        "u_Q": u_Q,
+        "jK_Q": float(u_Q * nK_Q),
+        "invD_Q": invD_Q,
+        "kappa_Q": kappa_Q,
+        "kappa_info": kappa_info,
+        "a": a_coeff,
+        "b": b_coeff,
+        "c": c_coeff,
+        "d": d_coeff,
+        "e": e_coeff,
+        "f": f_coeff,
+        "cf_minus_de": float(c_coeff * f_coeff - d_coeff * e_coeff),
+        "jacobian": jacobian,
+        "eigenvalues": eigenvalues,
+        "determinant": float(np.linalg.det(jacobian)),
+        "trace": float(np.trace(jacobian)),
+        "stable_dimension": stable_dimension,
+        "lambda_stable": lambda_stable,
+        "growing_left_vectors": growing_left,
+        "lambda_n": float(nB_N / float(thermo_Q["nB"])),
+    }
+
+
+def _thermal_scaled_growing_projections(jacobian, scales, stable_mask_hint=None):
+    """
+    Growing-mode left projections in SCALED coordinates.
+
+    The three fields carry different units (nK ~ MeV**3, jK ~ MeV**3, T ~ MeV),
+    so projecting a physical deviation onto raw eigenvectors is badly
+    conditioned. Under y_i = phys_i / S_i the Jacobian maps to
+    diag(1/S) J diag(S), a similarity transform that leaves the eigenvalues
+    alone, and the projections then act on already-normalised deviations.
+    """
+    scales = np.asarray(scales, dtype=float)
+    if scales.shape != (3,) or np.any(scales <= 0.0) or not np.all(np.isfinite(scales)):
+        raise RuntimeError("Thermal BVP scales must be three positive finite numbers")
+    scaled = (jacobian * scales[None, :]) / scales[:, None]
+    eigenvalues, right_vectors = np.linalg.eig(scaled)
+    stable_mask = eigenvalues.real < 0.0
+    if int(np.sum(stable_mask)) != 1:
+        raise RuntimeError(
+            "Thermal downstream stable manifold must have dimension 1 for the boundary "
+            f"conditions to close; got {int(np.sum(stable_mask))} with eigenvalues "
+            f"{np.sort_complex(eigenvalues)!r}"
+        )
+    v_inverse = np.linalg.inv(right_vectors)
+    growing_rows = v_inverse[~stable_mask, :]
+    if growing_rows.shape[0] != 2:
+        raise RuntimeError("Expected exactly two growing downstream modes")
+    imag_scale = max(1.0, float(np.max(np.abs(growing_rows.real))))
+    if np.max(np.abs(growing_rows.imag)) > 1.0e-10 * imag_scale:
+        projections = np.vstack([growing_rows[0].real, growing_rows[0].imag])
+    else:
+        projections = growing_rows.real.copy()
+    lambda_stable = float(np.min(np.abs(eigenvalues.real[stable_mask])))
+    return np.ascontiguousarray(projections, dtype=float), lambda_stable
+
+
+def _thermal_seed_from_ideal_solver(
+    T, nB_N, B_one_forth, ms=0.0, param=para.paraQMCRMF3, NM_type="PNM", TQstar_seed=1.0
+):
+    """
+    INITIALISATION ONLY: borrow (jB, aQstar) from the ideal-fluid uNmax solver.
+
+    The ideal energy closure E = h*gamma*u is never used in the thermal solve;
+    this call only places the first Newton iterate in the right basin. It is
+    needed because _default_energy_jB_guess corresponds to u_N ~ 1e-8 while the
+    physical value is ~1e-6, and the thermal BVP diverges from that placeholder
+    rather than recovering from it.
+
+    Returns None if the ideal solver fails; the caller then falls back.
+    """
+    try:
+        seed = solve_front_energy_conserving_uNmax(
+            T, nB_N, B_one_forth, TQstar=float(TQstar_seed), ms=ms, param=param, NM_type=NM_type
+        )
+    except Exception:
+        return None
+    if not seed.get("success", False):
+        return None
+    jB_seed = seed.get("jB", None)
+    if jB_seed is None or (not np.isfinite(jB_seed)) or jB_seed <= 0.0:
+        return None
+    aQstar_seed = seed.get("aQstar", np.nan)
+    return {
+        "jB": float(jB_seed),
+        "aQstar": float(aQstar_seed) if np.isfinite(aQstar_seed) else np.nan,
+        "TQstar_seed": float(TQstar_seed),
+    }
+
+
+def _thermal_interface_Tprime_sign_scan(
+    jB, nuclear_state, B_one_forth, ms=0.0, upB=5000, kappa_model=None, a_values=None
+):
+    """
+    Scan T'(0+) versus the interface composition a(0+) at fixed jB.
+
+    T'(0+) = (h*gamma*u|_Q* - F_E)/kappa_th(0+) is positive only where the
+    freshly deconfined quark matter carries MORE enthalpy flux than the incoming
+    nuclear matter, which happens at large a(0+) (low strangeness). Starting the
+    BVP below that threshold drives T negative immediately, so the sign change
+    locates the physical branch. Reported, never imposed.
+    """
+    if a_values is None:
+        a_values = np.linspace(0.05, 0.95, 19)
+    info = _thermal_downstream_analysis(
+        jB, nuclear_state, B_one_forth, ms=ms, upB=upB, kappa_model=kappa_model
+    )
+    nB_Q = float(info["thermo_Q"]["nB"])
+    records = []
+    for a_value in a_values:
+        try:
+            state = _solve_local_quark_state_from_nK_T_and_Pi(
+                float(a_value) * nB_Q,
+                0.0,
+                info["Pi"],
+                float(jB),
+                B_one_forth,
+                ms=ms,
+                upB=upB,
+                initial_guess=(info["muB_Q"], 50.0),
+            )
+            kappa = float(_thermal_conductivity(state["muB"], 0.0, kappa_model=kappa_model)["kappa_th"])
+            records.append((float(a_value), float((state["E_flux"] - info["F_E"]) / kappa)))
+        except Exception:
+            records.append((float(a_value), np.nan))
+    a_threshold = np.nan
+    for (a_lo, t_lo), (a_hi, t_hi) in zip(records[:-1], records[1:]):
+        if np.isfinite(t_lo) and np.isfinite(t_hi) and t_lo <= 0.0 < t_hi:
+            a_threshold = float(a_lo + (a_hi - a_lo) * (-t_lo) / (t_hi - t_lo))
+            break
+    return {
+        "a_values": np.array([r[0] for r in records], dtype=float),
+        "Tprime_values": np.array([r[1] for r in records], dtype=float),
+        "a_threshold": a_threshold,
+        "downstream": info,
+    }
+
+
+def _thermal_upstream_nuclear_state(T, nB_N, param, NM_type):
+    """Construct the fixed upstream state once for a thermal continuation run."""
+    P_N = float(PNM_n(nB_N, T, param=param, NM_type=NM_type))
+    e_N = float(edensNM_n(nB_N, T, param=param))
+    h_N = float(P_N + e_N)
+    return {
+        "P_N": P_N,
+        "e_N": e_N,
+        "h_N": h_N,
+        "nB_N": float(nB_N),
+        "h_over_nB_N": float(h_N / nB_N),
+        "T_N": float(T),
+    }
+
+
+def _solve_front_thermal_conducting_once(
+    T,
+    nB_N,
+    B_one_forth,
+    T_interface=0.0,
+    ms=0.0,
+    param=para.paraQMCRMF3,
+    NM_type="PNM",
+    tail_eps=1e-8,
+    n_mesh=200,
+    tol_bvp=1e-4,
+    max_nodes=10000,
+    jB_guess=None,
+    jB_bounds=None,
+    kappa_model=None,
+    aQstar_guess=0.5,
+    profile_guess=None,
+    return_profile=False,
+    verb=False,
+    _nuclear_state=None,
+):
+    """
+    One thermal-conducting front solve at a fixed interface temperature.
+
+    Propagated fields: y = [nK, jK, T] (scaled). Scalar eigenvalue: jB.
+    Four boundary conditions: T(0) = T_interface, jK(0) = jB, and two
+    downstream projections killing the growing modes. nK(0) is NOT prescribed;
+    it is selected by the global problem, which is what removes the free
+    interface composition of the ideal-fluid formulation.
+    """
+    T = float(T)
+    nB_N = float(nB_N)
+    T_interface = float(T_interface)
+    if NM_type != "PNM":
+        raise RuntimeError("solve_front_thermal_conducting currently requires NM_type='PNM'")
+    if (not np.isfinite(T)) or T <= 0.0 or (not np.isfinite(nB_N)) or nB_N <= 0.0:
+        raise RuntimeError("solve_front_thermal_conducting requires positive T and nB_N")
+    if (not np.isfinite(T_interface)) or T_interface < 0.0:
+        raise RuntimeError("T_interface must be non-negative")
+    if not (0.0 < float(tail_eps) < 1.0):
+        raise RuntimeError("tail_eps must satisfy 0 < tail_eps < 1")
+    if int(n_mesh) < 5 or int(max_nodes) <= int(n_mesh) or float(tol_bvp) <= 0.0:
+        raise RuntimeError("invalid BVP mesh or tolerance settings")
+
+    upB = 5000
+    kappa_model = _normalize_kappa_model(kappa_model)
+    if _nuclear_state is None:
+        nuclear_state = _thermal_upstream_nuclear_state(T, nB_N, param, NM_type)
+    else:
+        nuclear_state = dict(_nuclear_state)
+
+    if jB_guess is None:
+        jB_guess = _default_energy_jB_guess(nB_N)
+    jB_guess = float(jB_guess)
+    if (not np.isfinite(jB_guess)) or jB_guess <= 0.0:
+        raise RuntimeError("jB_guess must be positive")
+
+    bounded_jB = jB_bounds is not None
+    if bounded_jB:
+        if len(jB_bounds) != 2:
+            raise RuntimeError("jB_bounds must be a 2-tuple")
+        jB_lo, jB_hi = map(float, jB_bounds)
+        if not (0.0 < jB_lo < jB_hi):
+            raise RuntimeError("jB_bounds must satisfy 0 < lower < upper")
+        jB_guess = float(np.clip(jB_guess, jB_lo * (1.0 + 1.0e-8), jB_hi * (1.0 - 1.0e-8)))
+    else:
+        jB_lo, jB_hi = 0.0, np.inf
+
+    def param_from_jB(value):
+        if bounded_jB:
+            frac = np.clip((float(value) - jB_lo) / (jB_hi - jB_lo), 1.0e-12, 1.0 - 1.0e-12)
+            return float(np.log(frac / (1.0 - frac)))
+        return float(np.log(float(value)))
+
+    def jB_from_param(theta):
+        if bounded_jB:
+            sig = 1.0 / (1.0 + np.exp(-np.clip(float(theta), -60.0, 60.0)))
+            return float(jB_lo + (jB_hi - jB_lo) * sig)
+        return float(np.exp(np.clip(float(theta), -700.0, 700.0)))
+
+    stats = {
+        "bvp_ode_calls": 0,
+        "bvp_bc_calls": 0,
+        "thermal_local_state_calls": 0,
+        "thermal_local_root_calls": 0,
+        "thermal_local_cache_hits": 0,
+        "linear_tail_ode_points": 0,
+        "global_state_builds": 0,
+        "global_state_failures": 0,
+        "local_state_rejections": 0,
+        "negative_temperature_rejections": 0,
+        "closure_failure_rejections": 0,
+        "conductivity_rejections": 0,
+    }
+    physical_state_cache = {}
+    local_closure_cache = {}
+    last_failure = {"message": ""}
+    endpoint_guess_cache = {"value": None}
+
+    def build_physical_state(theta):
+        key = round(float(theta), 12)
+        if key in physical_state_cache:
+            return physical_state_cache[key]
+        stats["global_state_builds"] += 1
+        jB = jB_from_param(theta)
+        info = _thermal_downstream_analysis(
+            jB,
+            nuclear_state,
+            B_one_forth,
+            ms=ms,
+            upB=upB,
+            kappa_model=kappa_model,
+            endpoint_guess=endpoint_guess_cache["value"],
+        )
+        endpoint_guess_cache["value"] = info["endpoint"].get(
+            "endpoint_initial_guess", (info["muB_Q"], info["T_Q"])
+        )
+        if int(info["stable_dimension"]) != 1:
+            raise RuntimeError(
+                "Thermal downstream stable manifold has dimension "
+                f"{info['stable_dimension']}, expected 1 (c*f - d*e = {info['cf_minus_de']:.6e})"
+            )
+        lambda_compact = float(info["lambda_stable"])
+        if (not np.isfinite(lambda_compact)) or lambda_compact <= 0.0:
+            raise RuntimeError("Thermal compactification rate must be positive")
+        info = dict(info)
+        info["lambda_compact"] = lambda_compact
+        info["lambda_growing_max"] = float(np.max(info["eigenvalues"].real))
+        info["nB_Q"] = float(info["thermo_Q"]["nB"])
+        physical_state_cache[key] = info
+        return info
+
+    theta0 = param_from_jB(jB_guess)
+    if isinstance(profile_guess, dict) and np.isfinite(profile_guess.get("theta", np.nan)):
+        theta0 = float(profile_guess["theta"])
+    try:
+        physical_state0 = build_physical_state(theta0)
+    except Exception as exc:
+        stats["global_state_failures"] += 1
+        return {
+            "success": False,
+            "message": f"Initial thermal-conducting state construction failed: {exc}",
+            "T_interface": T_interface,
+            "tail_eps": float(tail_eps),
+            "tol_bvp": float(tol_bvp),
+            "s_end": float(1.0 - tail_eps),
+            "coordinate": "s=1-exp(-lambda_compact*x)",
+            "solver_variant": "thermal_conducting_nK_jK_T",
+            "stats": stats,
+        }
+
+    nB_Q0 = float(physical_state0["thermo_Q"]["nB"])
+    bvp_scales = np.array(
+        [
+            max(abs(float(physical_state0["nK_Q"])), nB_Q0, 1.0),
+            max(
+                abs(float(physical_state0["jB"])),
+                abs(float(physical_state0["jK_Q"])),
+                1.0,
+            ),
+            max(float(physical_state0["T_Q"]), 1.0),
+        ],
+        dtype=float,
+    )
+    state_cache = {}
+
+    def build_state(theta):
+        key = round(float(theta), 12)
+        if key in state_cache:
+            return state_cache[key]
+        info = dict(build_physical_state(theta))
+        projections, lambda_stable = _thermal_scaled_growing_projections(
+            info["jacobian"], bvp_scales
+        )
+        info["scales"] = bvp_scales
+        info["growing_projections"] = projections
+        info["lambda_compact"] = float(lambda_stable)
+        state_cache[key] = info
+        return info
+
+    def state_or_none(theta):
+        try:
+            return build_state(theta)
+        except Exception as exc:
+            stats["global_state_failures"] += 1
+            last_failure["message"] = str(exc)
+            return None
+
+    def pointwise(nK_value, T_value, state, guess):
+        """Local closure + full reconstruction. Raises on any invalid state."""
+        if T_value < 0.0:
+            stats["negative_temperature_rejections"] += 1
+            raise RuntimeError(f"negative trial temperature T={T_value:.6e}")
+        cache_key = (float(state["jB"]), float(nK_value), float(T_value))
+        cached = local_closure_cache.get(cache_key)
+        if cached is not None:
+            stats["thermal_local_cache_hits"] += 1
+            return cached
+        thermo = _solve_local_quark_state_from_nK_T_and_Pi(
+            nK_value,
+            T_value,
+            state["Pi"],
+            state["jB"],
+            B_one_forth,
+            ms=ms,
+            upB=upB,
+            initial_guess=guess,
+            stats=stats,
+        )
+        micro = _microphysics_from_quark_state_energy(
+            thermo["muB"], thermo["T"], allow_zero_temperature=bool(thermo["T"] == 0.0)
+        )
+        kappa_info = _thermal_conductivity(thermo["muB"], thermo["T"], kappa_model=kappa_model)
+        rate = float(
+            _exact_kaon_transport_rate(
+                thermo["muB"], thermo["muK"], thermo["T"], ms=ms, upB=upB
+            )["Gamma_K"]
+        )
+        kappa = float(kappa_info["kappa_th"])
+        E_flux = float(thermo["E_flux"])
+        thermo["invD"] = float(micro["invD"])
+        thermo["kappa_th"] = kappa
+        thermo["kappa_y"] = float(kappa_info["y"])
+        thermo["Gamma_K"] = rate
+        thermo["T_prime"] = float((E_flux - state["F_E"]) / kappa)
+        thermo["q_th"] = float(state["F_E"] - E_flux)
+        if len(local_closure_cache) >= 50000:
+            local_closure_cache.clear()
+        local_closure_cache[cache_key] = thermo
+        return thermo
+
+    def ode(s_coord, y, p):
+        stats["bvp_ode_calls"] += 1
+        state = state_or_none(float(p[0]))
+        if state is None:
+            return np.full_like(y, 1.0e12)
+        S = state["scales"]
+        dyds = np.empty_like(y)
+        guess = (state["muB_Q"], 1.0e-3)
+        for i in range(y.shape[1]):
+            try:
+                nK_value = float(y[0, i]) * S[0]
+                jK_value = float(y[1, i]) * S[1]
+                T_value = float(y[2, i]) * S[2]
+                if not np.all(np.isfinite([nK_value, jK_value, T_value])):
+                    raise RuntimeError("non-finite thermal BVP trial state")
+                if T_value < 0.0:
+                    stats["negative_temperature_rejections"] += 1
+                    raise RuntimeError(f"negative trial temperature T={T_value:.6e}")
+                one_minus_s = max(1.0 - float(s_coord[i]), np.finfo(float).tiny)
+                dx_ds = 1.0 / (state["lambda_compact"] * one_minus_s)
+                linear_weight = 0.0
+                if linear_tail_enabled:
+                    if one_minus_s <= _THERMAL_LINEAR_TAIL_GAP:
+                        linear_weight = 1.0
+                    elif one_minus_s < 2.0 * _THERMAL_LINEAR_TAIL_GAP:
+                        blend = (
+                            2.0 * _THERMAL_LINEAR_TAIL_GAP - one_minus_s
+                        ) / _THERMAL_LINEAR_TAIL_GAP
+                        linear_weight = blend * blend * (3.0 - 2.0 * blend)
+                if linear_weight > 0.0:
+                    delta = np.array(
+                        [
+                            nK_value - state["nK_Q"],
+                            jK_value - state["jK_Q"],
+                            T_value - state["T_Q"],
+                        ],
+                        dtype=float,
+                    )
+                    linear_rhs = state["jacobian"] @ delta
+                if linear_weight >= 1.0:
+                    dyds[:, i] = linear_rhs * dx_ds / S
+                    stats["linear_tail_ode_points"] += 1
+                    continue
+                thermo = pointwise(nK_value, T_value, state, guess)
+                guess = (thermo["muB"], thermo["muK"])
+                physical_rhs = np.array(
+                    [
+                        (thermo["u"] * nK_value - jK_value) * thermo["invD"],
+                        -thermo["Gamma_K"],
+                        thermo["T_prime"],
+                    ],
+                    dtype=float,
+                )
+                if linear_weight > 0.0:
+                    physical_rhs = (
+                        (1.0 - linear_weight) * physical_rhs
+                        + linear_weight * linear_rhs
+                    )
+                    stats["linear_tail_ode_points"] += 1
+                dyds[:, i] = physical_rhs * dx_ds / S
+            except Exception as exc:
+                stats["local_state_rejections"] += 1
+                last_failure["message"] = str(exc)
+                dyds[:, i] = 1.0e12
+        return dyds
+
+    def bc(ya, yb, p):
+        stats["bvp_bc_calls"] += 1
+        state = state_or_none(float(p[0]))
+        if state is None:
+            return np.full(4, 1.0e12, dtype=float)
+        S = state["scales"]
+        W = state["growing_projections"]
+        delta = np.array(
+            [
+                float(yb[0]) - state["nK_Q"] / S[0],
+                float(yb[1]) - state["jK_Q"] / S[1],
+                float(yb[2]) - state["T_Q"] / S[2],
+            ],
+            dtype=float,
+        )
+        return np.array(
+            [
+                float(ya[2]) - T_interface / S[2],
+                float(ya[1]) - state["jB"] / S[1],
+                float(W[0] @ delta),
+                float(W[1] @ delta),
+            ],
+            dtype=float,
+        )
+
+    state0 = state_or_none(theta0)
+    if state0 is None:
+        return {
+            "success": False,
+            "message": f"Initial thermal-conducting state construction failed: {last_failure['message']}",
+            "T_interface": T_interface,
+            "tail_eps": float(tail_eps),
+            "tol_bvp": float(tol_bvp),
+            "s_end": float(1.0 - tail_eps),
+            "coordinate": "s=1-exp(-lambda_compact*x)",
+            "solver_variant": "thermal_conducting_nK_jK_T",
+            "stats": stats,
+        }
+
+    S0 = state0["scales"]
+    s_end = float(1.0 - tail_eps)
+    linear_tail_enabled = bool(float(tail_eps) < 0.1 * _THERMAL_LINEAR_TAIL_GAP)
+    s_mesh = _thermal_compact_mesh(n_mesh, tail_eps)
+    equilibrium0 = np.array(
+        [state0["nK_Q"], state0["jK_Q"], state0["T_Q"]], dtype=float
+    )
+    if profile_guess is not None:
+        y_guess = _thermal_interpolate_profile_guess(
+            profile_guess, s_mesh, equilibrium0, S0
+        )
+        left_shape = (1.0 - s_mesh) / max(1.0 - s_mesh[0], np.finfo(float).tiny)
+        y_guess[1] += (state0["jB"] / S0[1] - y_guess[1, 0]) * left_shape
+        y_guess[2] += (T_interface / S0[2] - y_guess[2, 0]) * left_shape
+        y_guess[1, 0] = state0["jB"] / S0[1]
+        y_guess[2, 0] = T_interface / S0[2]
+    else:
+        nK0_guess = float(aQstar_guess) * state0["nB_Q"]
+        stable_shape = 1.0 - s_mesh
+        nK_line = state0["nK_Q"] + (nK0_guess - state0["nK_Q"]) * stable_shape
+        jK_line = state0["jK_Q"] + (state0["jB"] - state0["jK_Q"]) * stable_shape
+        T_line = state0["T_Q"] + (T_interface - state0["T_Q"]) * stable_shape
+        y_guess = np.vstack([nK_line / S0[0], jK_line / S0[1], T_line / S0[2]])
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", RuntimeWarning)
+        sol = solve_bvp(
+            ode,
+            bc,
+            s_mesh,
+            y_guess,
+            p=np.array([theta0], dtype=float),
+            tol=float(tol_bvp),
+            max_nodes=int(max_nodes),
+            verbose=2 if verb else 0,
+        )
+
+    jB_final = jB_from_param(float(sol.p[0]))
+    state_final = state_or_none(float(sol.p[0]))
+    base = {
+        "T_interface": T_interface,
+        "tail_eps": float(tail_eps),
+        "tol_bvp": float(tol_bvp),
+        "s_end": s_end,
+        "coordinate": "s=1-exp(-lambda_compact*x)",
+        "compact_tail_e_folds": float(-np.log(tail_eps)),
+        "linear_tail_gap": float(_THERMAL_LINEAR_TAIL_GAP),
+        "linear_tail_enabled": linear_tail_enabled,
+        "tail_ode_model": "full nonlinear with downstream-Jacobian asymptotic tail",
+        "bvp_scales": np.asarray(bvp_scales, dtype=float),
+        "solver_variant": "thermal_conducting_nK_jK_T",
+        "rate_model": "exact_nonleptonic",
+        "conductivity_model": kappa_model["name"],
+        "conductivity_y_max": float(kappa_model["y_max"]),
+        "energy_closure": "F_E = h*gamma*u - kappa_th*dT/dx",
+        "bvp_status": int(sol.status),
+        "bvp_message": str(sol.message),
+        "bvp_iterations": int(getattr(sol, "niter", -1)),
+        "bvp_nodes": int(np.asarray(sol.x).size),
+        "stats": stats,
+    }
+    if state_final is None or sol.status != 0:
+        base.update(
+            {
+                "success": False,
+                "message": (
+                    f"thermal-conducting BVP did not converge: {sol.message}"
+                    + (f"; last local failure: {last_failure['message']}" if last_failure["message"] else "")
+                ),
+                "jB": jB_final,
+                "uN": float(jB_final / nB_N),
+            }
+        )
+        return base
+
+    # ---- post-solve reconstruction on a dense compact grid
+    S = state_final["scales"]
+    lam = float(state_final["lambda_compact"])
+    s_dense = _thermal_compact_mesh(max(600, int(n_mesh) * 3), tail_eps)
+    y_dense = sol.sol(s_dense)
+    x_dense = -np.log1p(-s_dense) / lam
+    x_end = float(-np.log(tail_eps) / lam)
+
+    fields = {
+        key: np.empty(s_dense.size)
+        for key in (
+            "nK",
+            "jK",
+            "T",
+            "muB",
+            "muK",
+            "nB",
+            "u",
+            "kappa_th",
+            "q_th",
+            "q_th_closure",
+            "Gamma_K",
+            "invD",
+            "T_prime",
+            "T_prime_closure",
+            "E_advective",
+            "flux_B",
+            "flux_Pi",
+            "flux_E",
+            "closure_residual",
+            "kappa_y",
+        )
+    }
+    rhs_nK = np.empty(s_dense.size)
+    rhs_jK = np.empty(s_dense.size)
+    rhs_T = np.empty(s_dense.size)
+    guess = (state_final["muB_Q"], 1.0e-3)
+    reconstruction_failures = 0
+    for i in range(s_dense.size):
+        nK_value = float(y_dense[0, i]) * S[0]
+        jK_value = float(y_dense[1, i]) * S[1]
+        T_value = float(y_dense[2, i]) * S[2]
+        try:
+            if T_value < 0.0:
+                raise RuntimeError(f"negative reconstructed temperature T={T_value:.6e}")
+            th = pointwise(nK_value, T_value, state_final, guess)
+            guess = (th["muB"], th["muK"])
+            fields["nK"][i] = nK_value
+            fields["jK"][i] = jK_value
+            fields["T"][i] = th["T"]
+            fields["muB"][i] = th["muB"]
+            fields["muK"][i] = th["muK"]
+            fields["nB"][i] = th["nB"]
+            fields["u"][i] = th["u"]
+            fields["kappa_th"][i] = th["kappa_th"]
+            fields["kappa_y"][i] = th["kappa_y"]
+            fields["q_th_closure"][i] = th["q_th"]
+            fields["Gamma_K"][i] = th["Gamma_K"]
+            fields["invD"][i] = th["invD"]
+            fields["T_prime_closure"][i] = th["T_prime"]
+            fields["E_advective"][i] = th["E_flux"]
+            fields["flux_B"][i] = th["nB"] * th["u"]
+            fields["flux_Pi"][i] = th["Pi"]
+            fields["closure_residual"][i] = th["closure_residual"]
+            rhs_nK[i] = (th["u"] * nK_value - jK_value) * th["invD"]
+            rhs_jK[i] = -th["Gamma_K"]
+            rhs_T[i] = (th["E_flux"] - state_final["F_E"]) / th["kappa_th"]
+        except Exception:
+            reconstruction_failures += 1
+            for key in fields:
+                fields[key][i] = np.nan
+            rhs_nK[i] = np.nan
+            rhs_jK[i] = np.nan
+            rhs_T[i] = np.nan
+
+    try:
+        dy_ds_scaled = _bvp_dense_derivative(sol, s_dense)
+        dy_ds_physical = dy_ds_scaled * S[:, None]
+        dx_ds = 1.0 / (lam * np.maximum(1.0 - s_dense, np.finfo(float).tiny))
+        dy_dx_physical = dy_ds_physical / dx_ds[None, :]
+        dnK_dx_spline = np.asarray(dy_dx_physical[0], dtype=float)
+        djK_dx_spline = np.asarray(dy_dx_physical[1], dtype=float)
+        dT_dx_spline = np.asarray(dy_dx_physical[2], dtype=float)
+    except Exception as exc:
+        reconstruction_failures += 1
+        last_failure["message"] = f"compact spline derivative reconstruction failed: {exc}"
+        dnK_dx_spline = np.full(s_dense.size, np.nan)
+        djK_dx_spline = np.full(s_dense.size, np.nan)
+        dT_dx_spline = np.full(s_dense.size, np.nan)
+
+    fields["T_prime"] = dT_dx_spline
+    fields["q_th"] = -fields["kappa_th"] * dT_dx_spline
+    fields["flux_E"] = fields["E_advective"] + fields["q_th"]
+
+    def mean_relative_residual(lhs, rhs):
+        lhs = np.asarray(lhs, dtype=float)
+        rhs = np.asarray(rhs, dtype=float)
+        finite = np.isfinite(lhs) & np.isfinite(rhs)
+        if not np.any(finite):
+            return np.nan
+        scale = max(float(np.mean(np.abs(rhs[finite]))), _FLOAT_TINY)
+        return float(np.mean(np.abs(lhs[finite] - rhs[finite])) / scale)
+
+    nK_ode_residual_norm = mean_relative_residual(dnK_dx_spline, rhs_nK)
+    jK_ode_residual_norm = mean_relative_residual(djK_dx_spline, rhs_jK)
+    T_ode_residual_norm = mean_relative_residual(dT_dx_spline, rhs_T)
+    q_th_consistency_norm = mean_relative_residual(fields["q_th"], fields["q_th_closure"])
+
+    def rel_error(arr, ref):
+        finite = np.isfinite(arr)
+        if not np.any(finite) or abs(ref) <= 0.0:
+            return np.nan
+        return float(np.max(np.abs(arr[finite] / ref - 1.0)))
+
+    jB_error = rel_error(fields["flux_B"], jB_final)
+    Pi_error = rel_error(fields["flux_Pi"], state_final["Pi"])
+    FE_error = rel_error(fields["flux_E"], state_final["F_E"])
+    bc_residual = bc(y_dense[:, 0], y_dense[:, -1], np.array([float(sol.p[0])]))
+
+    T_prime_interface = float(fields["T_prime"][0])
+    q_th_interface = float(fields["q_th"][0])
+    nK_interface = float(fields["nK"][0])
+    nB_interface = float(fields["nB"][0])
+    aQstar = float(nK_interface / nB_interface) if nB_interface > 0.0 else np.nan
+    closure_max = float(np.nanmax(fields["closure_residual"])) if s_dense.size else np.nan
+    y_max_seen = float(np.nanmax(fields["kappa_y"])) if s_dense.size else np.nan
+    equilibrium_y = np.array(
+        [state_final["nK_Q"], state_final["jK_Q"], state_final["T_Q"]], dtype=float
+    )
+    tail_delta_scaled = (
+        np.array([fields["nK"][-1], fields["jK"][-1], fields["T"][-1]])
+        - equilibrium_y
+    ) / S
+    tail_state_residual_norm = float(np.max(np.abs(tail_delta_scaled)))
+    tail_muK_residual_norm = float(
+        abs(fields["muK"][-1]) / max(abs(state_final["muB_Q"]), 1.0)
+    )
+    tail_q_residual_norm = float(
+        abs(fields["q_th"][-1]) / max(abs(state_final["F_E"]), 1.0)
+    )
+
+    warnings_list = []
+    if reconstruction_failures:
+        warnings_list.append(f"{reconstruction_failures} dense-grid reconstruction failures")
+    if stats["local_state_rejections"]:
+        warnings_list.append(
+            f"{stats['local_state_rejections']} collocation states rejected during the solve"
+        )
+    if not (T_prime_interface > 0.0):
+        warnings_list.append(
+            f"T'(0+) = {T_prime_interface:.6e} is not positive: the interface is not heating "
+            "downstream, so this branch may be unphysical"
+        )
+    if not (q_th_interface < 0.0):
+        warnings_list.append(f"q_th(0+) = {q_th_interface:.6e} is not negative")
+    if np.isfinite(y_max_seen) and y_max_seen > 0.5 * kappa_model["y_max"]:
+        warnings_list.append(
+            f"max T/qD = {y_max_seen:.4f} approaches the validated conductivity band "
+            f"y_max = {kappa_model['y_max']:.2f}; the low-y collision integral is being "
+            "used near its edge"
+        )
+    # Knudsen / LTE diagnostic from the transport model actually in use
+    with np.errstate(divide="ignore", invalid="ignore"):
+        mfp = 3.0 / np.where(fields["invD"] > 0.0, fields["invD"], np.nan)
+        grad_scale = np.where(
+            np.abs(fields["T_prime"]) > 0.0, fields["T"] / np.abs(fields["T_prime"]), np.inf
+        )
+        knudsen = mfp / grad_scale
+    knudsen_max = float(np.nanmax(knudsen)) if np.any(np.isfinite(knudsen)) else np.nan
+    if np.isfinite(knudsen_max) and knudsen_max > 1.0:
+        warnings_list.append(
+            f"max Knudsen number {knudsen_max:.3e} > 1: Fourier conduction is outside local "
+            "thermal equilibrium somewhere in the layer"
+        )
+
+    ode_limit = 10.0 * float(tol_bvp)
+    tail_limit = max(10.0 * float(tol_bvp), 100.0 * float(tail_eps))
+    success = bool(
+        sol.status == 0
+        and reconstruction_failures == 0
+        and np.isfinite(jB_error)
+        and np.isfinite(Pi_error)
+        and np.isfinite(FE_error)
+        and max(jB_error, Pi_error, FE_error) < 1.0e-4
+        and float(np.max(np.abs(bc_residual))) < 1.0e-4
+        and np.isfinite(closure_max)
+        and closure_max < 1.0e-7
+        and np.all(
+            np.isfinite(
+                [
+                    nK_ode_residual_norm,
+                    jK_ode_residual_norm,
+                    T_ode_residual_norm,
+                    q_th_consistency_norm,
+                ]
+            )
+        )
+        and max(nK_ode_residual_norm, jK_ode_residual_norm, T_ode_residual_norm)
+        <= ode_limit
+        and q_th_consistency_norm <= ode_limit
+        and np.all(
+            np.isfinite(
+                [
+                    tail_state_residual_norm,
+                    tail_muK_residual_norm,
+                    tail_q_residual_norm,
+                ]
+            )
+        )
+        and tail_state_residual_norm <= tail_limit
+        and tail_muK_residual_norm <= tail_limit
+        and tail_q_residual_norm <= tail_limit
+    )
+    message = "converged" if success else "post-validation failed"
+    if not success:
+        detail = []
+        if sol.status != 0:
+            detail.append(f"bvp status {sol.status}")
+        if reconstruction_failures:
+            detail.append(f"{reconstruction_failures} reconstruction failures")
+        for label, value in (("jB", jB_error), ("Pi", Pi_error), ("F_E", FE_error)):
+            if not np.isfinite(value) or value >= 1.0e-4:
+                detail.append(f"{label} flux error {value:.3e}")
+        bc_worst = float(np.max(np.abs(bc_residual)))
+        if bc_worst >= 1.0e-4:
+            detail.append(f"max BC residual {bc_worst:.3e}")
+        if not np.isfinite(closure_max) or closure_max >= 1.0e-7:
+            detail.append(f"max closure residual {closure_max:.3e}")
+        for label, value in (
+            ("nK ODE", nK_ode_residual_norm),
+            ("jK ODE", jK_ode_residual_norm),
+            ("T ODE", T_ode_residual_norm),
+            ("heat-flux consistency", q_th_consistency_norm),
+        ):
+            if not np.isfinite(value) or value > ode_limit:
+                detail.append(f"{label} residual {value:.3e}")
+        for label, value in (
+            ("tail state", tail_state_residual_norm),
+            ("tail muK", tail_muK_residual_norm),
+            ("tail heat flux", tail_q_residual_norm),
+        ):
+            if not np.isfinite(value) or value > tail_limit:
+                detail.append(f"{label} residual {value:.3e}")
+        message = "post-validation failed: " + "; ".join(detail)
+
+    base.update(
+        {
+            "success": success,
+            "message": message,
+            "jB": jB_final,
+            "uN": float(jB_final / nB_N),
+            "Pi": float(state_final["Pi"]),
+            "F_E": float(state_final["F_E"]),
+            "T_Q": float(state_final["T_Q"]),
+            "muB_Q": float(state_final["muB_Q"]),
+            "nB_Q": float(state_final["nB_Q"]),
+            "nK_Q": float(state_final["nK_Q"]),
+            "jK_Q": float(state_final["jK_Q"]),
+            "lambda_n": float(state_final["lambda_n"]),
+            "lambda_compact": float(lam),
+            "aQstar": aQstar,
+            "nK_Qstar": nK_interface,
+            "Tprime_Qstar": T_prime_interface,
+            "q_th_Qstar": q_th_interface,
+            "downstream_stable_dimension": int(state_final["stable_dimension"]),
+            "downstream_cf_minus_de": float(state_final["cf_minus_de"]),
+            "downstream_eigenvalues": np.asarray(state_final["eigenvalues"]),
+            "bc_residuals": np.asarray(bc_residual, dtype=float),
+            "max_closure_residual": closure_max,
+            "max_flux_error_jB": jB_error,
+            "max_flux_error_Pi": Pi_error,
+            "max_flux_error_F_E": FE_error,
+            "nK_ode_residual_norm": nK_ode_residual_norm,
+            "jK_ode_residual_norm": jK_ode_residual_norm,
+            "T_ode_residual_norm": T_ode_residual_norm,
+            "q_th_consistency_norm": q_th_consistency_norm,
+            "tail_state_residual_norm": tail_state_residual_norm,
+            "tail_muK_residual_norm": tail_muK_residual_norm,
+            "tail_q_residual_norm": tail_q_residual_norm,
+            "max_knudsen": knudsen_max,
+            "max_kappa_y": y_max_seen,
+            "warnings": warnings_list,
+            "s_end": s_end,
+            "x_end": x_end,
+            "L_domain": x_end,
+            "domain_limited_by": "tail_eps",
+            "lambda_growing_max": float(state_final["lambda_growing_max"]),
+            "bvp_scales": np.asarray(S, dtype=float),
+            "_continuation_state": {
+                "s": np.asarray(sol.x, dtype=float),
+                "physical_y": np.asarray(sol.sol(sol.x), dtype=float) * S[:, None],
+                "equilibrium_y": equilibrium_y,
+                "theta": float(sol.p[0]),
+                "tail_eps": float(tail_eps),
+            },
+        }
+    )
+    if return_profile:
+        base["s"] = s_dense
+        base["x"] = x_dense
+        for key, arr in fields.items():
+            base[f"{key}_profile"] = arr
+    return base
+
+
+def solve_front_thermal_conducting(
+    T,
+    nB_N,
+    B_one_forth,
+    T_interface=0.0,
+    ms=0.0,
+    param=para.paraQMCRMF3,
+    NM_type="PNM",
+    tail_eps=1e-8,
+    n_mesh=200,
+    tol_bvp=1e-4,
+    max_nodes=10000,
+    jB_guess=None,
+    jB_bounds=None,
+    kappa_model=None,
+    aQstar_guess=None,
+    continuation_schedule=None,
+    seed_from_ideal=True,
+    return_profile=False,
+    verb=False,
+):
+    """
+    Steady conversion front including Fourier heat conduction in the quark phase.
+
+    Solves
+
+        d/dx(nB*u)                      = 0
+        d/dx(P + h*u**2)                = 0
+        d/dx(h*gamma*u - kappa_th*T')   = 0        (Q_nu = 0)
+        d/dx(nK*u - D_K*nK')            = -Gamma_K
+
+    as a boundary-value problem in the propagated fields [nK, jK, T] with the
+    single scalar eigenvalue jB. The energy equation is no longer an algebraic
+    closure for T, so T is transported rather than reconstructed, and the local
+    EOS closure is a 2x2 solve for (muB, muK) at prescribed T.
+
+    Boundary conditions (four, matching three ODEs plus one parameter):
+        T(0) = T_interface (default exactly 0), jK(0) = jB, and two downstream
+        conditions killing the growing modes of the linearised system.
+
+    Neither nK(0) nor T'(0+) is imposed: both are selected by the global
+    problem. T'(0+) = (h*gamma*u|_Q* - F_E)/kappa_th(0+), so T(0) = 0 does not
+    force T'(0+) = 0, and the interface is Lipschitz.
+
+    The exact T(0) = 0 problem is reached by continuation in the interface
+    temperature. That is a continuation waypoint only; the final solve uses the
+    exact boundary condition and no temperature floor is introduced anywhere.
+    At the first temperature waypoint, a separate compact-tail continuation
+    deepens the domain to the exact requested tail_eps before T_interface is
+    continued. The numerically unresolved final tail is matched smoothly to
+    the linear downstream system and independently checked against the full
+    nonlinear RHS during reconstruction.
+    """
+    T = float(T)
+    nB_N = float(nB_N)
+    T_interface = float(T_interface)
+    if (not np.isfinite(T_interface)) or T_interface < 0.0:
+        raise RuntimeError("T_interface must be non-negative")
+    if NM_type != "PNM":
+        raise RuntimeError("solve_front_thermal_conducting currently requires NM_type='PNM'")
+    if (not np.isfinite(T)) or T <= 0.0 or (not np.isfinite(nB_N)) or nB_N <= 0.0:
+        raise RuntimeError("solve_front_thermal_conducting requires positive T and nB_N")
+    if not (0.0 < float(tail_eps) < 1.0):
+        raise RuntimeError("tail_eps must satisfy 0 < tail_eps < 1")
+    if int(n_mesh) < 5 or int(max_nodes) <= int(n_mesh) or float(tol_bvp) <= 0.0:
+        raise RuntimeError("invalid BVP mesh or tolerance settings")
+    nuclear_state = _thermal_upstream_nuclear_state(T, nB_N, param, NM_type)
+
+    if continuation_schedule is None:
+        if T_interface == 0.0:
+            # Geometric decrements. The measured choke point is a large first
+            # drop (2.0 -> 0.5 MeV failed for most perturbed inputs); the
+            # adaptive bisection below can recover from it, but each recovery
+            # costs a wasted BVP solve, so the default path steps gently.
+            schedule = [2.0, 1.0, 0.5, 0.25, 0.1, 0.04, 0.01, 0.0]
+        else:
+            schedule = [T_interface]
+    else:
+        schedule = [float(v) for v in continuation_schedule]
+        if not schedule:
+            raise RuntimeError("continuation_schedule must be non-empty")
+        if abs(schedule[-1] - T_interface) > 1.0e-12:
+            schedule = schedule + [T_interface]
+    if any((not np.isfinite(v)) or v < 0.0 for v in schedule):
+        raise RuntimeError("continuation_schedule entries must be finite and non-negative")
+
+    # Seeding. The physical jB sits orders of magnitude away from
+    # _default_energy_jB_guess, and T'(0+) is positive only above a threshold
+    # interface composition, so an unseeded start diverges. Both seeds are
+    # initialisation only; neither enters the thermal closure.
+    seed_info = None
+    if jB_guess is None and seed_from_ideal:
+        seed_info = _thermal_seed_from_ideal_solver(
+            T, nB_N, B_one_forth, ms=ms, param=param, NM_type=NM_type
+        )
+        if seed_info is not None:
+            jB_guess = seed_info["jB"]
+            if verb:
+                print(
+                    f"[thermal_conducting] seeded from ideal solver: jB={jB_guess:.6e} "
+                    f"aQstar={seed_info['aQstar']:.4f}",
+                    flush=True,
+                )
+    if aQstar_guess is None:
+        # Start on the heating side of the T'(0+) sign change. Below the
+        # threshold the interface cools into T < 0 and the solve cannot start.
+        aQstar_guess = 0.85
+        if seed_info is not None and np.isfinite(seed_info.get("aQstar", np.nan)):
+            aQstar_guess = float(min(0.95, max(0.85, seed_info["aQstar"] + 0.30)))
+    if jB_bounds is None and jB_guess is not None and np.isfinite(jB_guess) and jB_guess > 0.0:
+        # Bounded logit parameterisation: without it the Newton step on
+        # theta = log(jB) is unconstrained and can run away to overflow.
+        jB_bounds = (float(jB_guess) / 100.0, float(jB_guess) * 100.0)
+
+    tail_schedule = _thermal_tail_schedule(tail_eps)
+    profile_guess = None
+    jB_running = jB_guess
+    history = []
+    tail_history = []
+    result = None
+    attempts = 0
+
+    def continuation_failure(message):
+        failure = dict(result) if isinstance(result, dict) else {"success": False}
+        failure["success"] = False
+        failure["message"] = message
+        failure["continuation_history"] = history
+        failure["continuation_schedule"] = schedule
+        failure["tail_continuation_history"] = tail_history
+        failure["tail_continuation_schedule"] = tail_schedule
+        failure["seed_info"] = seed_info
+        return failure
+
+    # Find the branch at the first temperature on a moderately truncated tail,
+    # then deepen that same physical profile. This avoids asking a cold-start
+    # Newton solve to resolve all -log(tail_eps) asymptotic e-folds at once.
+    first_T = float(schedule[0])
+    tail_queue = list(tail_schedule)
+    last_good_eps = None
+    while tail_queue:
+        attempts += 1
+        if attempts > _THERMAL_MAX_CONTINUATION_ATTEMPTS:
+            return continuation_failure(
+                "continuation exceeded "
+                f"{_THERMAL_MAX_CONTINUATION_ATTEMPTS} attempts before reaching "
+                f"tail_eps={tail_eps:g} at T_interface={first_T:g} MeV"
+            )
+
+        eps_step = float(tail_queue[0])
+        if profile_guess is None:
+            seed_candidates = [float(aQstar_guess)]
+            for extra in (0.85, 0.92, 0.75, 0.95, 0.65):
+                if all(abs(extra - existing) > 1.0e-9 for existing in seed_candidates):
+                    seed_candidates.append(float(extra))
+        else:
+            seed_candidates = [float(aQstar_guess)]
+
+        result = None
+        for seed_attempt, seed_value in enumerate(seed_candidates):
+            result = _solve_front_thermal_conducting_once(
+                T,
+                nB_N,
+                B_one_forth,
+                T_interface=first_T,
+                ms=ms,
+                param=param,
+                NM_type=NM_type,
+                tail_eps=eps_step,
+                n_mesh=n_mesh,
+                tol_bvp=tol_bvp,
+                max_nodes=max_nodes,
+                jB_guess=jB_running,
+                jB_bounds=jB_bounds,
+                kappa_model=kappa_model,
+                aQstar_guess=seed_value,
+                profile_guess=profile_guess,
+                return_profile=(
+                    return_profile
+                    and len(schedule) == 1
+                    and eps_step == float(tail_eps)
+                ),
+                verb=verb,
+                _nuclear_state=nuclear_state,
+            )
+            if result.get("success", False):
+                if verb and seed_attempt:
+                    print(
+                        f"[thermal_conducting] cold start recovered with "
+                        f"aQstar_guess={seed_value:g}",
+                        flush=True,
+                    )
+                break
+
+        succeeded = bool(result.get("success", False))
+        tail_history.append(
+            {
+                "tail_eps": eps_step,
+                "success": succeeded,
+                "uN": result.get("uN", np.nan),
+                "jB": result.get("jB", np.nan),
+                "aQstar": result.get("aQstar", np.nan),
+                "tail_state_residual_norm": result.get(
+                    "tail_state_residual_norm", np.nan
+                ),
+                "message": result.get("message", ""),
+            }
+        )
+        if verb:
+            print(
+                f"[thermal_conducting] tail_eps={eps_step:g} at "
+                f"T_interface={first_T:g} MeV -> success={succeeded} "
+                f"uN={result.get('uN', float('nan')):.6e} "
+                f"aQstar={result.get('aQstar', float('nan')):.6f}",
+                flush=True,
+            )
+
+        if succeeded:
+            tail_queue.pop(0)
+            last_good_eps = eps_step
+            profile_guess = result.get("_continuation_state")
+            jB_running = result.get("jB", jB_running)
+            continue
+
+        if last_good_eps is None:
+            return continuation_failure(
+                f"tail continuation failed at its first step "
+                f"(tail_eps={eps_step:g}, T_interface={first_T:g} MeV) after "
+                f"{len(seed_candidates)} interface-composition seeds: "
+                f"{result.get('message', '')}"
+            )
+
+        midpoint = float(np.sqrt(last_good_eps * eps_step))
+        if (
+            not np.isfinite(midpoint)
+            or midpoint >= last_good_eps * (1.0 - 1.0e-10)
+            or midpoint <= eps_step * (1.0 + 1.0e-10)
+        ):
+            return continuation_failure(
+                f"tail continuation stalled between the last converged "
+                f"tail_eps={last_good_eps:.10g} and target {eps_step:.10g}; "
+                f"last solver message: {result.get('message', '')}"
+            )
+        if verb:
+            print(
+                f"[thermal_conducting] refining tail {last_good_eps:g} -> "
+                f"{eps_step:g} via {midpoint:g}",
+                flush=True,
+            )
+        tail_queue.insert(0, midpoint)
+
+    history.append(
+        {
+            "T_interface": first_T,
+            "success": True,
+            "uN": result.get("uN", np.nan),
+            "jB": result.get("jB", np.nan),
+            "aQstar": result.get("aQstar", np.nan),
+            "message": result.get("message", ""),
+        }
+    )
+
+    # With the deepest tail fixed, continue the left temperature boundary. A
+    # failed decrement is retried through the arithmetic midpoint, preserving
+    # the previously converged compact profile as the initial guess.
+    queue = list(schedule[1:])
+    last_good_T = first_T
+    while queue:
+        attempts += 1
+        if attempts > _THERMAL_MAX_CONTINUATION_ATTEMPTS:
+            return continuation_failure(
+                "continuation exceeded "
+                f"{_THERMAL_MAX_CONTINUATION_ATTEMPTS} attempts before reaching "
+                f"T_interface={T_interface:g} MeV"
+            )
+
+        T_step = float(queue[0])
+        is_final = bool(len(queue) == 1)
+        result = _solve_front_thermal_conducting_once(
+            T,
+            nB_N,
+            B_one_forth,
+            T_interface=T_step,
+            ms=ms,
+            param=param,
+            NM_type=NM_type,
+            tail_eps=tail_eps,
+            n_mesh=n_mesh,
+            tol_bvp=tol_bvp,
+            max_nodes=max_nodes,
+            jB_guess=jB_running,
+            jB_bounds=jB_bounds,
+            kappa_model=kappa_model,
+            aQstar_guess=aQstar_guess,
+            profile_guess=profile_guess,
+            return_profile=return_profile and is_final,
+            verb=verb,
+            _nuclear_state=nuclear_state,
+        )
+
+        succeeded = bool(result.get("success", False))
+        history.append(
+            {
+                "T_interface": T_step,
+                "success": succeeded,
+                "uN": result.get("uN", np.nan),
+                "jB": result.get("jB", np.nan),
+                "aQstar": result.get("aQstar", np.nan),
+                "message": result.get("message", ""),
+            }
+        )
+        if verb:
+            print(
+                f"[thermal_conducting] T_interface={T_step:g} MeV -> "
+                f"success={succeeded} uN={result.get('uN', float('nan')):.6e} "
+                f"aQstar={result.get('aQstar', float('nan')):.6f}",
+                flush=True,
+            )
+
+        if succeeded:
+            queue.pop(0)
+            last_good_T = T_step
+            profile_guess = result.get("_continuation_state")
+            jB_running = result.get("jB", jB_running)
+            continue
+
+        midpoint = 0.5 * (last_good_T + T_step)
+        if not np.isfinite(midpoint) or (last_good_T - midpoint) <= 1.0e-9 * max(
+            abs(last_good_T), 1.0
+        ):
+            return continuation_failure(
+                f"continuation stalled: repeated bisection from the last converged "
+                f"T_interface={last_good_T:.10g} MeV could not reach the next target "
+                f"(stuck at {T_step:.10g} MeV, remaining schedule {queue[1:]!r}); "
+                f"last solver message: {result.get('message', '')}"
+            )
+        if verb:
+            print(
+                f"[thermal_conducting] refining step {last_good_T:g} -> {T_step:g} MeV "
+                f"via {midpoint:g} MeV",
+                flush=True,
+            )
+        queue.insert(0, midpoint)
+
+    result = dict(result)
+    reached_requested_endpoint = bool(
+        result.get("success", False)
+        and float(result.get("T_interface", np.nan)) == T_interface
+        and float(result.get("tail_eps", np.nan)) == float(tail_eps)
+    )
+    if not reached_requested_endpoint:
+        return continuation_failure(
+            "continuation terminated without reaching both the requested "
+            f"T_interface={T_interface:g} MeV and tail_eps={tail_eps:g}"
+        )
+    result["continuation_history"] = history
+    result["continuation_schedule"] = schedule
+    result["tail_continuation_history"] = tail_history
+    result["tail_continuation_schedule"] = tail_schedule
+    result["seed_info"] = seed_info
+    return result
 
 
 def _piecewise_linear_travel_time(z_samples, velocity_samples):
