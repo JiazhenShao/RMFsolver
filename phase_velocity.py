@@ -176,6 +176,70 @@ def _analytic_A_from_isobar(
     return result(min(max(A_boundary, 0.0), 1.0), muK_A)
 
 
+def _analytic_fixed_muB_interface_state(
+    muB_inf,
+    P_inf,
+    T_0plus,
+    B_one_forth,
+    ms=0.0,
+    upB=5000,
+):
+    """Return the exact fixed-muB isobar state at the prescribed T(0+)."""
+    muB_inf = float(muB_inf)
+    P_inf = float(P_inf)
+    T_0plus = float(T_0plus)
+    B_one_forth = float(B_one_forth)
+    if (not np.isfinite(T_0plus)) or T_0plus < 0.0:
+        raise RuntimeError("T_0plus must be finite and non-negative")
+
+    A_boundary, muK_0plus_max = _analytic_A_from_isobar(
+        muB_inf,
+        P_inf,
+        B_one_forth,
+        ms=ms,
+        upB=upB,
+        return_muK=True,
+    )
+    a_0plus, muK_0plus = _analytic_A_from_isobar(
+        muB_inf,
+        P_inf,
+        B_one_forth,
+        ms=ms,
+        upB=upB,
+        T_cold=T_0plus,
+        return_muK=True,
+    )
+    nB_0plus = float(
+        nB_QM(muB_inf, muK_0plus, B_one_forth, T_0plus, ms=ms, upB=upB)
+    )
+    nK_0plus = float(
+        nK_QM(muB_inf, muK_0plus, B_one_forth, T_0plus, ms=ms, upB=upB)
+    )
+    if (not np.isfinite(nB_0plus)) or nB_0plus <= 0.0:
+        raise RuntimeError("fixed-muB interface state has non-physical nB_0plus")
+    a_from_definition = float(nK_0plus / nB_0plus)
+    if not np.isclose(a_from_definition, a_0plus, rtol=1.0e-10, atol=1.0e-12):
+        raise RuntimeError("fixed-muB interface composition is inconsistent with nK/nB")
+    if (not np.isfinite(a_from_definition)) or a_from_definition <= 0.0:
+        raise RuntimeError(
+            "prescribed T_0plus does not produce a positive interface fraction"
+        )
+    if a_from_definition >= 1.0:
+        raise RuntimeError("a_0plus must satisfy 0 < a_0plus < 1")
+    if a_from_definition > A_boundary + 1.0e-8:
+        raise RuntimeError("exact a_0plus exceeds the cold A_boundary")
+    return {
+        "T_0plus": T_0plus,
+        "muB_0plus": muB_inf,
+        "muK_0plus": float(muK_0plus),
+        "nB_0plus": nB_0plus,
+        "nK_0plus": nK_0plus,
+        "a_0plus": a_from_definition,
+        "A_boundary": float(A_boundary),
+        "muK_0plus_max": float(muK_0plus_max),
+    }
+
+
 def _normalize_velocity_closure(value):
     """
     Normalize the analytic velocity closure selector.
@@ -367,9 +431,99 @@ def _analytic_layer_trajectory(
         "muB": np.asarray(muB_list, dtype=float),
         "muK": np.asarray(muK_list, dtype=float),
         "T": np.asarray(T_list, dtype=float),
+        "P_plus": P_plus,
+        "h_over_nB_plus": h_over_nB_plus,
+        "B_one_forth": float(B_one_forth),
+        "ms": float(ms),
+        "upB": int(upB),
         "nB_plus": float(nB_plus),
         "A_boundary": float(a_list[-1]),
         "saturated": bool(saturated),
+    }
+
+
+def _analytic_trajectory_interface_state(trajectory, T_0plus):
+    """Solve the conserved-layer state at a prescribed interface temperature."""
+    T_0plus = float(T_0plus)
+    if (not np.isfinite(T_0plus)) or T_0plus < 0.0:
+        raise RuntimeError("T_0plus must be finite and non-negative")
+
+    T_values = np.asarray(trajectory["T"], dtype=float)
+    muB_values = np.asarray(trajectory["muB"], dtype=float)
+    muK_values = np.asarray(trajectory["muK"], dtype=float)
+    if T_0plus > T_values[0] + 1.0e-10:
+        raise RuntimeError("T_0plus must not exceed the equilibrated T_inf")
+    if T_0plus < T_values[-1] - 1.0e-10:
+        raise RuntimeError(
+            "T_0plus lies below the resolved conserved-layer trajectory"
+        )
+
+    muB_seed = float(np.interp(T_0plus, T_values[::-1], muB_values[::-1]))
+    muK_seed = float(np.interp(T_0plus, T_values[::-1], muK_values[::-1]))
+    P_plus = float(trajectory["P_plus"])
+    h_over_nB_plus = float(trajectory["h_over_nB_plus"])
+    B_one_forth = float(trajectory["B_one_forth"])
+    ms = float(trajectory["ms"])
+    upB = int(trajectory["upB"])
+
+    def residual(vec):
+        muB, muK = float(vec[0]), float(vec[1])
+        if (not np.isfinite(muB)) or muB <= 0.0 or (not np.isfinite(muK)) or muK < 0.0:
+            return np.array([1.0e6, 1.0e6], dtype=float)
+        P = float(PQM(muB, muK, B_one_forth, T_0plus, ms=ms, upB=upB))
+        e = float(
+            edensQM(
+                muB,
+                muK,
+                B_one_forth,
+                T_0plus,
+                ms=ms,
+                include_em=False,
+                upB=upB,
+            )
+        )
+        nB = float(nB_QM(muB, muK, B_one_forth, T_0plus, ms=ms, upB=upB))
+        if (not np.isfinite(nB)) or nB <= 0.0:
+            return np.array([1.0e6, 1.0e6], dtype=float)
+        return np.array(
+            [
+                (P - P_plus) / max(abs(P_plus), _FLOAT_TINY),
+                ((P + e) / nB - h_over_nB_plus) / h_over_nB_plus,
+            ],
+            dtype=float,
+        )
+
+    solution = root(residual, np.array([muB_seed, muK_seed]), method="hybr")
+    residual_norm = float(np.linalg.norm(residual(solution.x), ord=np.inf))
+    if residual_norm > 1.0e-8:
+        raise RuntimeError(
+            "conserved-layer interface solve failed at prescribed T_0plus"
+        )
+    muB_0plus, muK_0plus = float(solution.x[0]), float(solution.x[1])
+    nB_0plus = float(
+        nB_QM(muB_0plus, muK_0plus, B_one_forth, T_0plus, ms=ms, upB=upB)
+    )
+    nK_0plus = float(
+        nK_QM(muB_0plus, muK_0plus, B_one_forth, T_0plus, ms=ms, upB=upB)
+    )
+    if (not np.isfinite(nB_0plus)) or nB_0plus <= 0.0:
+        raise RuntimeError("conserved-layer interface state has non-physical nB_0plus")
+    a_0plus = float(nK_0plus / nB_0plus)
+    A_boundary = float(trajectory["A_boundary"])
+    if (not np.isfinite(a_0plus)) or not (0.0 < a_0plus < 1.0):
+        raise RuntimeError("a_0plus must satisfy 0 < a_0plus < 1")
+    if a_0plus > A_boundary + 1.0e-8:
+        raise RuntimeError("exact a_0plus exceeds the trajectory A_boundary")
+    return {
+        "T_0plus": T_0plus,
+        "muB_0plus": muB_0plus,
+        "muK_0plus": muK_0plus,
+        "nB_0plus": nB_0plus,
+        "nK_0plus": nK_0plus,
+        "a_0plus": a_0plus,
+        "A_boundary": A_boundary,
+        "muK_0plus_max": float(muK_values[-1]),
+        "interface_scaled_residual": residual_norm,
     }
 
 
@@ -803,18 +957,6 @@ def _exact_kaon_transport_rate(muB, muK, T, ms=0.0, upB=5000):
         "mu_d": mu_d,
         "mu_s": mu_s,
     }
-
-
-def _normalize_interface_fraction_mode(mode_value, parameter_name="interface_fraction_mode"):
-    """
-    Normalize the analytic interface-fraction mode.
-    """
-    mode = str(mode_value).strip().lower()
-    if mode == "lte":
-        return "LTE"
-    if mode == "extreme_endothermic":
-        return "extreme_endothermic"
-    raise ValueError(f"{parameter_name} must be 'LTE' or 'extreme_endothermic'")
 
 
 def _analytic_a_0plus_lte(A_boundary, u_0minus, lambda_n):
@@ -1263,38 +1405,17 @@ def _analytic_velocity_formula_from_endpoint(
     endpoint,
     nuclear_state,
     xi,
-    a_0plus_max_mode="LTE",
-    interface_fraction_mode=None,
+    T_0plus=None,
+    interface_control="fixed_T_0plus",
     velocity_closure="closed_form",
 ):
-    """
-    Evaluate the selected analytic velocity formula from a hydro endpoint.
-
-    velocity_closure selects how A and I2 are obtained:
-
-    "closed_form"  reproduces the published piecewise-constant result. A is the
-                   T -> 0 end of the isobar taken at fixed mu_B, and I2 is the
-                   closed-form bracket of Eq. (speed_modified).
-
-    "numerical_I2" follows the layer along the conserved pair (P, h/nB), which
-                   is what the steady-front conservation laws actually fix, and
-                   integrates I2 numerically along that trajectory with the full
-                   diffusion coefficient and the exact weak rate. A is read off
-                   the cold end of the same trajectory, so A and I2 stay
-                   mutually consistent.
-    """
+    """Evaluate a fixed-temperature or LTE analytic closure at one endpoint."""
     velocity_closure = _normalize_velocity_closure(velocity_closure)
     xi = float(xi)
-    if interface_fraction_mode is None:
-        interface_fraction_mode = _normalize_interface_fraction_mode(
-            a_0plus_max_mode,
-            parameter_name="a_0plus_max",
-        )
-    else:
-        interface_fraction_mode = _normalize_interface_fraction_mode(
-            interface_fraction_mode,
-            parameter_name="interface_fraction_mode",
-        )
+    if interface_control not in ("fixed_T_0plus", "LTE"):
+        raise ValueError("interface_control must be 'fixed_T_0plus' or 'LTE'")
+    if interface_control == "fixed_T_0plus":
+        T_0plus = float(T_0plus)
     muB_inf = float(endpoint["muB_inf"])
     T_inf = float(endpoint["T_inf"])
     nB_inf = float(endpoint["nB_inf"])
@@ -1311,12 +1432,6 @@ def _analytic_velocity_formula_from_endpoint(
     if (not np.isfinite(lambda_n)) or lambda_n <= 0.0:
         raise RuntimeError("lambda_n must be positive and finite")
 
-    # Interface-fraction ceiling A, the T = 0 endpoint of the constant-pressure
-    # isobar defined by P_QM(A, T = 0) = P_inf. Evaluated from the exact EOS as
-    # A = nK/nB; see _analytic_A_from_isobar. The quadratic-expansion closed
-    # forms are not used: they assume the non-neutral parametrization while the
-    # EOS here is charge-neutral, which makes them diverge from A = nK/nB by up
-    # to a factor of ~2 as A -> 1.
     P_inf = float(endpoint.get("P_inf", np.nan))
     B_one_forth_inf = endpoint.get("B_one_forth", None)
     if B_one_forth_inf is None:
@@ -1330,7 +1445,6 @@ def _analytic_velocity_formula_from_endpoint(
     upB_inf = int(endpoint.get("upB", 5000))
     layer_trajectory = None
     if velocity_closure == "numerical_I2":
-        # The conserved pair (P, h/nB) defines the layer; mu_B is free to drift.
         layer_trajectory = _analytic_layer_trajectory(
             P_inf,
             float(endpoint["h_over_nB_inf"]),
@@ -1342,6 +1456,11 @@ def _analytic_velocity_formula_from_endpoint(
         )
         A_boundary = float(layer_trajectory["A_boundary"])
         muK_0plus_max = float(layer_trajectory["muK"][-1])
+        if interface_control == "fixed_T_0plus":
+            interface_state = _analytic_trajectory_interface_state(
+                layer_trajectory,
+                T_0plus,
+            )
     else:
         A_boundary, muK_0plus_max = _analytic_A_from_isobar(
             muB_inf,
@@ -1351,6 +1470,15 @@ def _analytic_velocity_formula_from_endpoint(
             upB=upB_inf,
             return_muK=True,
         )
+        if interface_control == "fixed_T_0plus":
+            interface_state = _analytic_fixed_muB_interface_state(
+                muB_inf,
+                P_inf,
+                T_0plus,
+                float(B_one_forth_inf),
+                ms=ms_inf,
+                upB=upB_inf,
+            )
     one_minus_A_boundary = float(1.0 - A_boundary)
     one_plus_xi_A_boundary = float(1.0 + xi * A_boundary)
     lambda_n_squared = float(lambda_n * lambda_n)
@@ -1363,30 +1491,7 @@ def _analytic_velocity_formula_from_endpoint(
     a_0plus_LTE = np.nan
     lte_correction = np.nan
 
-    if interface_fraction_mode == "extreme_endothermic":
-        if A_boundary >= 1.0:
-            raise RuntimeError("A_boundary must satisfy 0 < A_boundary < 1")
-        if (not np.isfinite(one_plus_xi_A_boundary)) or one_plus_xi_A_boundary <= 0.0:
-            raise RuntimeError("1 + xi*A_boundary must be positive")
-        a_0plus = A_boundary
-        one_minus_a_0plus = one_minus_A_boundary
-        one_plus_xi_a_0plus = one_plus_xi_A_boundary
-        denominator = float(
-            muB_inf
-            * lambda_n_squared
-            * one_minus_a_0plus
-            * one_plus_xi_a_0plus
-        )
-        if (not np.isfinite(denominator)) or denominator <= 0.0:
-            raise RuntimeError("Analytic velocity denominator is non-physical")
-        prefactor = float(
-            (54.0 * np.pi ** (7.0 / 3.0) * gamma)
-            / (7.0 * np.sqrt(2.0) * h_D * alpha_s ** (5.0 / 3.0))
-        )
-        u_0minus_formula_squared = float(
-            prefactor * A_boundary ** (7.0 / 3.0) / denominator
-        )
-    else:
+    if interface_control == "LTE":
         lte_data = _analytic_a_0plus_lte(A_boundary, u_0minus, lambda_n)
         beta_LTE = float(lte_data["beta_LTE"])
         a_0plus_LTE = float(lte_data["a_0plus_LTE"])
@@ -1395,46 +1500,52 @@ def _analytic_velocity_formula_from_endpoint(
                 "a_0plus_LTE must satisfy 0 < a_0plus_LTE < 1"
             )
         a_0plus = a_0plus_LTE
-        one_minus_a_0plus = float(1.0 - a_0plus)
-        one_plus_xi_a_0plus = float(1.0 + xi * a_0plus)
-        if (
-            (not np.isfinite(one_minus_a_0plus))
-            or one_minus_a_0plus <= 0.0
-            or (not np.isfinite(one_plus_xi_a_0plus))
-            or one_plus_xi_a_0plus <= 0.0
-        ):
-            raise RuntimeError("LTE analytic velocity denominator is non-physical")
+        T_0plus_result = np.nan
+        muB_0plus = np.nan
+        muK_0plus = np.nan
+        nB_0plus = np.nan
+        nK_0plus = np.nan
+    else:
+        a_0plus = float(interface_state["a_0plus"])
+        T_0plus_result = float(interface_state["T_0plus"])
+        muB_0plus = float(interface_state["muB_0plus"])
+        muK_0plus = float(interface_state["muK_0plus"])
+        nB_0plus = float(interface_state["nB_0plus"])
+        nK_0plus = float(interface_state["nK_0plus"])
 
-        z_raw = float(1.0 - (a_0plus_LTE / A_boundary) ** 2)
-        if z_raw < -1.0e-12 or z_raw > 1.0 + 1.0e-12:
-            raise RuntimeError("LTE correction argument must satisfy 0 <= z <= 1")
-        z = float(np.clip(z_raw, 0.0, 1.0))
-        lte_correction = float(
-            24.0 / 7.0
-            - 3.0 * z ** (1.0 / 6.0)
-            - (3.0 / 7.0) * z ** (7.0 / 6.0)
-        )
-        if (not np.isfinite(lte_correction)) or lte_correction < 0.0:
-            raise RuntimeError("LTE velocity correction is non-physical")
+    if not (0.0 < a_0plus < min(A_boundary + 1.0e-10, 1.0)):
+        raise RuntimeError("a_0plus must satisfy 0 < a_0plus <= A_boundary < 1")
+    if A_boundary >= 1.0:
+        raise RuntimeError("A_boundary must satisfy 0 < A_boundary < 1")
+    one_minus_a_0plus = float(1.0 - a_0plus)
+    one_plus_xi_a_0plus = float(1.0 + xi * a_0plus)
+    if one_minus_a_0plus <= 0.0 or one_plus_xi_a_0plus <= 0.0:
+        raise RuntimeError("analytic velocity denominator is non-physical")
 
-        denominator = float(
-            muB_inf
-            * lambda_n_squared
-            * one_minus_a_0plus
-            * one_plus_xi_a_0plus
-        )
-        if (not np.isfinite(denominator)) or denominator <= 0.0:
-            raise RuntimeError("LTE analytic velocity denominator is non-physical")
-        prefactor = float(
-            (9.0 * np.pi ** (7.0 / 3.0) * gamma)
-            / (4.0 * np.sqrt(2.0) * h_D * alpha_s ** (5.0 / 3.0))
-        )
-        u_0minus_formula_squared = float(
-            prefactor
-            * A_boundary ** (7.0 / 3.0)
-            * lte_correction
-            / denominator
-        )
+    # This bracket is the closed-form I2 approximation. Its derivation uses the
+    # quadratic relation between T^2 and A^2-a^2, but the physical a(0+) above
+    # is always evaluated from its exact EOS definition nK/nB.
+    z_raw = float(1.0 - (a_0plus / A_boundary) ** 2)
+    if z_raw < -1.0e-12 or z_raw > 1.0 + 1.0e-12:
+        raise RuntimeError("closed-form I2 argument must satisfy 0 <= z <= 1")
+    z = float(np.clip(z_raw, 0.0, 1.0))
+    lte_correction = float(
+        24.0 / 7.0
+        - 3.0 * z ** (1.0 / 6.0)
+        - (3.0 / 7.0) * z ** (7.0 / 6.0)
+    )
+    if (not np.isfinite(lte_correction)) or lte_correction < 0.0:
+        raise RuntimeError("closed-form I2 correction is non-physical")
+    denominator = float(
+        muB_inf * lambda_n_squared * one_minus_a_0plus * one_plus_xi_a_0plus
+    )
+    prefactor = float(
+        (9.0 * np.pi ** (7.0 / 3.0) * gamma)
+        / (4.0 * np.sqrt(2.0) * h_D * alpha_s ** (5.0 / 3.0))
+    )
+    u_0minus_formula_squared = float(
+        prefactor * A_boundary ** (7.0 / 3.0) * lte_correction / denominator
+    )
 
     # The closed-form branch above supplies I2 through the published bracket.
     # The numerical branch replaces it with the quadrature along the conserved
@@ -1475,13 +1586,20 @@ def _analytic_velocity_formula_from_endpoint(
         "A_boundary": A_boundary,
         "a_0plus": a_0plus,
         "a_0plus_LTE": a_0plus_LTE,
-        "interface_fraction_mode": interface_fraction_mode,
+        "T_0plus": float(T_0plus_result),
+        "muB_0plus": float(muB_0plus),
+        "muK_0plus": float(muK_0plus),
+        "nB_0plus": float(nB_0plus),
+        "nK_0plus": float(nK_0plus),
+        "interface_control": interface_control,
+        "interface_fraction_mode": interface_control,
         "a_0plus_max": A_boundary,
-        "a_0plus_max_mode": interface_fraction_mode,
+        "a_0plus_max_mode": interface_control,
         "A_extreme_endothermic": A_boundary,
         "a_0plus_used": a_0plus,
         "beta_LTE": beta_LTE,
         "lte_correction": lte_correction,
+        "closed_form_I2_correction": lte_correction,
         "muK_0plus_max": muK_0plus_max,
         "one_minus_A_boundary": one_minus_A_boundary,
         "one_plus_xi_A_boundary": one_plus_xi_A_boundary,
@@ -1499,59 +1617,28 @@ def _analytic_velocity_formula_from_endpoint(
     }
 
 
-def analytic_velocity_bound(
+def _solve_analytic_velocity_bound(
     muB_0minus,
     T_0minus,
     B_one_forth,
-    xi=0.0,
+    T_0plus,
+    xi,
+    velocity_closure,
+    interface_control,
     ms=0.0,
     param=para.paraQMCRMF3,
     NM_type="PNM",
     upB=5000,
     initial_guess=None,
-    a_0plus_max="extreme_endothermic",
-    interface_fraction_mode=None,
-    velocity_closure="closed_form",
 ):
-    """
-    Evaluate the hydro-consistent analytic upper bound for u_0minus.
-
-    The nuclear state is read from the EOS at (muB_0minus, T_0minus). The downstream
-    quark endpoint is solved at muK = 0 from exact energy and momentum flux
-    jumps for each trial u_0minus, with jB = nB_0minus*u_0minus derived internally. Equation
-    51 then supplies a scalar eigenvalue condition for u_0minus. The default
-    extreme_endothermic mode sets the interface fraction to its ceiling
-    a(0+) = A, giving the maximum-speed bound directly; pass
-    interface_fraction_mode="LTE" (or a_0plus_max="LTE") for the LTE-limited
-    interface fraction. The legacy a_0plus_max keyword still selects the mode
-    when interface_fraction_mode is not supplied.
-
-    velocity_closure selects the closure used for A and I2.  "closed_form"
-    (default) reproduces the published piecewise-constant result: A from the
-    isobar at fixed mu_B, and I2 from the closed-form bracket.  "numerical_I2"
-    follows the layer along the conserved pair (P, h/nB), which is what the
-    conservation laws actually fix, and integrates I2 numerically along it.
-    The second is more accurate but markedly slower.
-
-    Raises SlowFrontNoSolution when no steadily moving front exists (the
-    small-metastability, finite-temperature gap): the message and its gap
-    attribute report the enthalpy-per-baryon deficit that blocks the front.
-    """
+    """Shared scalar eigenvalue solve for the public analytical methods."""
     muB_0minus = float(muB_0minus)
     T_0minus = float(T_0minus)
     B_one_forth = float(B_one_forth)
     xi = float(xi)
     velocity_closure = _normalize_velocity_closure(velocity_closure)
-    if interface_fraction_mode is None:
-        interface_fraction_mode = _normalize_interface_fraction_mode(
-            a_0plus_max,
-            parameter_name="a_0plus_max",
-        )
-    else:
-        interface_fraction_mode = _normalize_interface_fraction_mode(
-            interface_fraction_mode,
-            parameter_name="interface_fraction_mode",
-        )
+    if interface_control == "fixed_T_0plus":
+        T_0plus = float(T_0plus)
 
     if (not np.isfinite(muB_0minus)) or muB_0minus <= 0.0:
         raise RuntimeError("muB_0minus must be positive and finite")
@@ -1561,6 +1648,10 @@ def analytic_velocity_bound(
         raise RuntimeError("B_one_forth must be positive and finite")
     if (not np.isfinite(xi)) or not (-1.0 < xi < 1.0):
         raise RuntimeError("xi must satisfy -1 < xi < 1")
+    if interface_control == "fixed_T_0plus" and (
+        (not np.isfinite(T_0plus)) or T_0plus < 0.0
+    ):
+        raise RuntimeError("T_0plus must be finite and non-negative")
 
     nuclear_state = _analytic_nuclear_state(muB_0minus, T_0minus, param=param, NM_type=NM_type)
     nuclear_state["muB_0minus"] = muB_0minus
@@ -1591,7 +1682,8 @@ def analytic_velocity_bound(
             endpoint,
             nuclear_state,
             xi,
-            interface_fraction_mode=interface_fraction_mode,
+            T_0plus=T_0plus,
+            interface_control=interface_control,
             velocity_closure=velocity_closure,
         )
         residual = float(formula["u_0minus_formula_squared"] - u_0minus * u_0minus)
@@ -1611,6 +1703,7 @@ def analytic_velocity_bound(
             best_eval["message"] = message
             if (
                 "a_0plus_LTE must satisfy 0 < a_0plus_LTE < 1" in message
+                or "a_0plus must satisfy 0 < a_0plus" in message
                 or "A_boundary must satisfy 0 < A_boundary < 1" in message
             ):
                 best_eval["endpoint_domain_message"] = message
@@ -1718,8 +1811,14 @@ def analytic_velocity_bound(
         "lambda_n": float(final_data["lambda_n"]),
         "lambda_n_squared": float(final_data["lambda_n_squared"]),
         "A_boundary": float(final_data["A_boundary"]),
+        "T_0plus": float(final_data["T_0plus"]),
+        "muB_0plus": float(final_data["muB_0plus"]),
+        "muK_0plus": float(final_data["muK_0plus"]),
+        "nB_0plus": float(final_data["nB_0plus"]),
+        "nK_0plus": float(final_data["nK_0plus"]),
         "a_0plus": float(final_data["a_0plus"]),
         "a_0plus_LTE": float(final_data["a_0plus_LTE"]),
+        "interface_control": str(final_data["interface_control"]),
         "interface_fraction_mode": str(final_data["interface_fraction_mode"]),
         "a_0plus_max": float(final_data["a_0plus_max"]),
         "a_0plus_max_mode": str(final_data["a_0plus_max_mode"]),
@@ -1727,6 +1826,7 @@ def analytic_velocity_bound(
         "a_0plus_used": float(final_data["a_0plus_used"]),
         "beta_LTE": float(final_data["beta_LTE"]),
         "lte_correction": float(final_data["lte_correction"]),
+        "closed_form_I2_correction": float(final_data["closed_form_I2_correction"]),
         "muK_0plus_max": float(final_data["muK_0plus_max"]),
         "one_minus_A_boundary": float(final_data["one_minus_A_boundary"]),
         "one_plus_xi_A_boundary": float(final_data["one_plus_xi_A_boundary"]),
@@ -1753,6 +1853,115 @@ def analytic_velocity_bound(
         "analytic_formula_variant": "piecewise_constant_lambda_n",
         "slow_front_consistent": bool(u_0minus_max < 1.0),
     }
+
+
+def analytic_velocity_bound(
+    muB_0minus,
+    T_0minus,
+    B_one_forth,
+    *,
+    T_0plus,
+    xi=0.0,
+    ms=0.0,
+    param=para.paraQMCRMF3,
+    NM_type="PNM",
+    upB=5000,
+    initial_guess=None,
+):
+    """Return the full analytical velocity using a prescribed T(0+).
+
+    The interface follows the fixed-muB isobar used by the closed-form model.
+    Its composition is evaluated from the exact EOS definition a = nK/nB at
+    T(0+). The closed-form I2 bracket retains the quadratic temperature relation
+    used in its derivation; that approximation is not used to determine a(0+).
+    """
+    result = _solve_analytic_velocity_bound(
+        muB_0minus,
+        T_0minus,
+        B_one_forth,
+        T_0plus,
+        xi,
+        "closed_form",
+        "fixed_T_0plus",
+        ms=ms,
+        param=param,
+        NM_type=NM_type,
+        upB=upB,
+        initial_guess=initial_guess,
+    )
+    result["velocity_method"] = "full_analytic_closed_form_I2"
+    result["analytic_formula_variant"] = "piecewise_constant_fixed_T_0plus"
+    return result
+
+
+def semi_analytic_velocity_bound(
+    muB_0minus,
+    T_0minus,
+    B_one_forth,
+    *,
+    T_0plus,
+    xi=0.0,
+    ms=0.0,
+    param=para.paraQMCRMF3,
+    NM_type="PNM",
+    upB=5000,
+    initial_guess=None,
+):
+    """Return the semi-analytical velocity using a prescribed T(0+).
+
+    The conversion layer follows the conserved (P, h/nB) trajectory. The exact
+    EOS supplies a(0+) = nK/nB at the requested temperature, and I2 is integrated
+    numerically with the full diffusion coefficient and exact weak rate.
+    """
+    result = _solve_analytic_velocity_bound(
+        muB_0minus,
+        T_0minus,
+        B_one_forth,
+        T_0plus,
+        xi,
+        "numerical_I2",
+        "fixed_T_0plus",
+        ms=ms,
+        param=param,
+        NM_type=NM_type,
+        upB=upB,
+        initial_guess=initial_guess,
+    )
+    result["velocity_method"] = "semi_analytic_numerical_I2"
+    result["analytic_formula_variant"] = "conserved_layer_fixed_T_0plus"
+    return result
+
+
+def analytic_velocity_bound_lte(
+    muB_0minus,
+    T_0minus,
+    B_one_forth,
+    *,
+    xi=0.0,
+    ms=0.0,
+    param=para.paraQMCRMF3,
+    NM_type="PNM",
+    upB=5000,
+    initial_guess=None,
+):
+    """Return the preserved LTE-limited closed-form analytical velocity."""
+    result = _solve_analytic_velocity_bound(
+        muB_0minus,
+        T_0minus,
+        B_one_forth,
+        None,
+        xi,
+        "closed_form",
+        "LTE",
+        ms=ms,
+        param=param,
+        NM_type=NM_type,
+        upB=upB,
+        initial_guess=initial_guess,
+    )
+    result["velocity_method"] = "full_analytic_LTE"
+    result["analytic_formula_variant"] = "piecewise_constant_lambda_n_LTE"
+    return result
 
 
 def Pi_NM(mu_B, Temp, j_B):
