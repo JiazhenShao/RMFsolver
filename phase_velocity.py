@@ -44,8 +44,8 @@ _ISOTHERMAL_RETRY_ACTIVE = 0
 # That system has multiple roots at low T, so the steps must stay fine enough
 # for the continuation to keep its branch; _LAYER_TRAJECTORY_MAX_DMUB guards it.
 # I2 converges at first order in this step count: measured against a 640-step
-# reference, 160 steps carry about 0.5% error in I2 (0.25% in u_N) and 320 steps
-# about 0.12% (0.06% in u_N).
+# reference, 160 steps carry about 0.5% error in I2 (0.25% in u_0minus) and 320 steps
+# about 0.12% (0.06% in u_0minus).
 _LAYER_TRAJECTORY_STEPS = 320
 _LAYER_TRAJECTORY_MAX_DMUB = 0.05
 
@@ -56,20 +56,20 @@ class SlowFrontNoSolution(RuntimeError):
 
     Raised by analytic_velocity_bound when the metastable neutron matter has a
     lower enthalpy per baryon than the coldest equilibrated (mu_K = 0) quark
-    matter reachable on the isobar P = P_N. Energy-plus-baryon flux conservation
-    then forces h_Q/n_Q = h_N/n_N with no root, so a finite-speed front cannot
-    bridge the gap even though the static u_N = 0 coexistence still exists. This
+    matter reachable on the isobar P = P_0minus. Energy-plus-baryon flux conservation
+    then forces h_inf/n_inf = h_0minus/n_0minus with no root, so a finite-speed front cannot
+    bridge the gap even though the static u_0minus = 0 coexistence still exists. This
     is a physical outcome (typically at small metastability and finite
     temperature), not a numerical failure. Callers can inspect ``status``,
-    ``gap``, ``muB_cold``, and ``h_over_nB_N``.
+    ``gap``, ``muB_cold``, and ``h_over_nB_0minus``.
     """
 
-    def __init__(self, message, *, gap, muB_cold, h_over_nB_N):
+    def __init__(self, message, *, gap, muB_cold, h_over_nB_0minus):
         super().__init__(message)
         self.status = "no_slow_front_solution"
         self.gap = float(gap)
         self.muB_cold = float(muB_cold)
-        self.h_over_nB_N = float(h_over_nB_N)
+        self.h_over_nB_0minus = float(h_over_nB_0minus)
 
 
 def _slow_front_enthalpy_gap(nuclear_state, B_one_forth):
@@ -77,25 +77,25 @@ def _slow_front_enthalpy_gap(nuclear_state, B_one_forth):
     Enthalpy-per-baryon gap that blocks a slow conversion front.
 
     Returns (gap, muB_cold) where muB_cold is the baryon chemical potential of
-    cold (T = 0) equilibrated quark matter at pressure P_N, and
-    gap = muB_cold - h_N/n_B,N. The cold state minimizes h_Q/n_B,Q along the
-    P = P_N isobar (there h_Q/n_B,Q = mu_B), so gap > 0 means no equilibrated
+    cold (T = 0) equilibrated quark matter at pressure P_0minus, and
+    gap = muB_cold - h_0minus/n_B,N. The cold state minimizes h_inf/n_B,Q along the
+    P = P_0minus isobar (there h_inf/n_B,Q = mu_B), so gap > 0 means no equilibrated
     downstream state satisfies energy-per-baryon continuity and no moving front
     exists.
     """
-    P_N = float(nuclear_state["P_N"])
-    h_over_nB_N = float(nuclear_state["h_over_nB_N"])
+    P_0minus = float(nuclear_state["P_0minus"])
+    h_over_nB_0minus = float(nuclear_state["h_over_nB_0minus"])
     U_bag = float(B_one_forth) ** 4
-    radicand = 108.0 * np.pi**2 * (P_N + U_bag)
+    radicand = 108.0 * np.pi**2 * (P_0minus + U_bag)
     if (not np.isfinite(radicand)) or radicand <= 0.0:
         return float("nan"), float("nan")
     muB_cold = float(radicand**0.25)
-    return float(muB_cold - h_over_nB_N), muB_cold
+    return float(muB_cold - h_over_nB_0minus), muB_cold
 
 
 def _analytic_A_from_isobar(
-    muB_Q,
-    P_Q,
+    muB_inf,
+    P_inf,
     B_one_forth,
     ms=0.0,
     upB=5000,
@@ -108,11 +108,11 @@ def _analytic_A_from_isobar(
 
     A is the composition reached when the constant-pressure trajectory through
     the downstream state is extrapolated to zero temperature, defined by
-    P_QM(muB_Q, muK, T -> 0) = P_Q. It is evaluated directly from the quark EOS
+    P_QM(muB_inf, muK, T -> 0) = P_inf. It is evaluated directly from the quark EOS
     (nK_QM / nB_QM) instead of a quadratic-expansion closed form: the EOS used
     here enforces charge neutrality (2 n_u = n_d + n_s), whereas the closed
     forms A = (3/2) sqrt(108 pi^2 (P+U) - muB^4)/muB^2 and its leading-order
-    cousin A = 9 pi T_Q / (sqrt(2) muB_Q) are both derived from the
+    cousin A = 9 pi T_inf / (sqrt(2) muB_inf) are both derived from the
     non-neutral parametrization and overestimate A badly as A -> 1.
 
     Charge neutrality together with n_s >= 0 caps the composition at A = 1,
@@ -120,13 +120,13 @@ def _analytic_A_from_isobar(
     flavor content of neutron matter, and the composition is frozen for any
     larger muK, so A = 1 is returned for pressures at or above that point.
     """
-    muB_Q = float(muB_Q)
-    P_Q = float(P_Q)
+    muB_inf = float(muB_inf)
+    P_inf = float(P_inf)
     B_one_forth = float(B_one_forth)
-    if (not np.isfinite(muB_Q)) or muB_Q <= 0.0:
-        raise RuntimeError("muB_Q must be positive and finite for the A solve")
-    if not np.isfinite(P_Q):
-        raise RuntimeError("P_Q must be finite for the A solve")
+    if (not np.isfinite(muB_inf)) or muB_inf <= 0.0:
+        raise RuntimeError("muB_inf must be positive and finite for the A solve")
+    if not np.isfinite(P_inf):
+        raise RuntimeError("P_inf must be finite for the A solve")
     T_cold = float(T_cold)
 
     def result(A_boundary, muK_boundary):
@@ -135,11 +135,11 @@ def _analytic_A_from_isobar(
         return float(A_boundary)
 
     def mu_s_of(muK):
-        state = _quark_uds_state(muB_Q, float(muK), T_cold, ms=ms, upB=upB)
+        state = _quark_uds_state(muB_inf, float(muK), T_cold, ms=ms, upB=upB)
         return float(state["chemical_potentials"]["mu_s"])
 
     # muK at which mu_s vanishes: the saturation point beyond which n_s = 0.
-    muK_hi = 3.0 * muB_Q
+    muK_hi = 3.0 * muB_inf
     if mu_s_of(0.0) <= 0.0:
         return result(1.0, 0.0)
     if mu_s_of(muK_hi) > 0.0:
@@ -150,24 +150,24 @@ def _analytic_A_from_isobar(
         ).root
     )
 
-    P_sat = float(PQM(muB_Q, muK_sat, B_one_forth, T_cold, ms=ms, upB=upB))
-    if P_Q >= P_sat:
+    P_sat = float(PQM(muB_inf, muK_sat, B_one_forth, T_cold, ms=ms, upB=upB))
+    if P_inf >= P_sat:
         return result(1.0, muK_sat)
-    P_zero = float(PQM(muB_Q, 0.0, B_one_forth, T_cold, ms=ms, upB=upB))
-    if P_Q <= P_zero:
+    P_zero = float(PQM(muB_inf, 0.0, B_one_forth, T_cold, ms=ms, upB=upB))
+    if P_inf <= P_zero:
         return result(0.0, 0.0)
 
     muK_A = float(
         root_scalar(
-            lambda muK: float(PQM(muB_Q, muK, B_one_forth, T_cold, ms=ms, upB=upB)) - P_Q,
+            lambda muK: float(PQM(muB_inf, muK, B_one_forth, T_cold, ms=ms, upB=upB)) - P_inf,
             bracket=(0.0, muK_sat),
             method="brentq",
             xtol=1.0e-8,
             rtol=1.0e-12,
         ).root
     )
-    nK = float(nK_QM(muB_Q, muK_A, B_one_forth, T_cold, ms=ms, upB=upB))
-    nB = float(nB_QM(muB_Q, muK_A, B_one_forth, T_cold, ms=ms, upB=upB))
+    nK = float(nK_QM(muB_inf, muK_A, B_one_forth, T_cold, ms=ms, upB=upB))
+    nB = float(nB_QM(muB_inf, muK_A, B_one_forth, T_cold, ms=ms, upB=upB))
     if (not np.isfinite(nB)) or nB <= 0.0:
         raise RuntimeError("nB_QM must be positive and finite for the A solve")
     A_boundary = float(nK / nB)
@@ -373,7 +373,7 @@ def _analytic_layer_trajectory(
     }
 
 
-def _analytic_I2_numerical(trajectory, a_interface, B_one_forth, ms=0.0, upB=5000):
+def _analytic_I2_numerical(trajectory, a_0plus, B_one_forth, ms=0.0, upB=5000):
     """
     Integrate I2 = (1/nB) * int_0^{a(0+)} D_K * Gamma_K da along the layer.
 
@@ -387,8 +387,8 @@ def _analytic_I2_numerical(trajectory, a_interface, B_one_forth, ms=0.0, upB=500
     muK_values = np.asarray(trajectory["muK"], dtype=float)
     T_values = np.asarray(trajectory["T"], dtype=float)
     nB_plus = float(trajectory["nB_plus"])
-    a_interface = float(a_interface)
-    if (not np.isfinite(a_interface)) or a_interface <= 0.0:
+    a_0plus = float(a_0plus)
+    if (not np.isfinite(a_0plus)) or a_0plus <= 0.0:
         raise RuntimeError("I2 integration requires a positive interface fraction")
     if (not np.isfinite(nB_plus)) or nB_plus <= 0.0:
         raise RuntimeError("I2 integration requires a positive nB")
@@ -417,7 +417,7 @@ def _analytic_I2_numerical(trajectory, a_interface, B_one_forth, ms=0.0, upB=500
     # tau = T^(1/3) gives D_K*Gamma_K*(da/dtau) ~ const, so the trapezoid is
     # applied in tau rather than in a or T.
     tau = np.cbrt(T_values)
-    a_max = float(min(a_interface, a_values[-1]))
+    a_max = float(min(a_0plus, a_values[-1]))
     mask = a_values <= a_max + 1.0e-15
     if int(np.count_nonzero(mask)) < 2:
         raise RuntimeError("I2 integration needs at least two trajectory samples")
@@ -447,19 +447,19 @@ def _raise_scan_failure(nuclear_state, B_one_forth, numerical_message):
     """
     gap, muB_cold = _slow_front_enthalpy_gap(nuclear_state, B_one_forth)
     if np.isfinite(gap) and gap > 0.0:
-        h_over_nB_N = float(nuclear_state["h_over_nB_N"])
+        h_over_nB_0minus = float(nuclear_state["h_over_nB_0minus"])
         raise SlowFrontNoSolution(
             (
                 "No steadily moving conversion front exists: the metastable neutron "
-                f"matter has enthalpy per baryon {h_over_nB_N:.4f} MeV, below the "
-                f"coldest equilibrated quark matter on the P_N isobar at "
+                f"matter has enthalpy per baryon {h_over_nB_0minus:.4f} MeV, below the "
+                f"coldest equilibrated quark matter on the P_0minus isobar at "
                 f"{muB_cold:.4f} MeV (gap {gap:.4f} MeV). Energy-plus-baryon flux "
-                "conservation has no root, so only the static u_N = 0 coexistence "
+                "conservation has no root, so only the static u_0minus = 0 coexistence "
                 "exists at this metastability and temperature."
             ),
             gap=gap,
             muB_cold=muB_cold,
-            h_over_nB_N=h_over_nB_N,
+            h_over_nB_0minus=h_over_nB_0minus,
         )
     raise RuntimeError(numerical_message)
 
@@ -817,21 +817,21 @@ def _normalize_interface_fraction_mode(mode_value, parameter_name="interface_fra
     raise ValueError(f"{parameter_name} must be 'LTE' or 'extreme_endothermic'")
 
 
-def _analytic_aqstar_lte(A_boundary, u_N, lambda_n):
+def _analytic_a_0plus_lte(A_boundary, u_0minus, lambda_n):
     """
     Return the exact LTE-limited interface fraction and its quadratic diagnostics.
     """
     A_boundary = float(A_boundary)
-    u_N = float(u_N)
+    u_0minus = float(u_0minus)
     lambda_n = float(lambda_n)
     if (not np.isfinite(A_boundary)) or A_boundary <= 0.0:
         raise RuntimeError("A_boundary must be positive and finite")
-    if (not np.isfinite(u_N)) or u_N < 0.0:
-        raise RuntimeError("LTE a_interface requires finite u_N >= 0")
+    if (not np.isfinite(u_0minus)) or u_0minus < 0.0:
+        raise RuntimeError("LTE a_0plus requires finite u_0minus >= 0")
     if (not np.isfinite(lambda_n)) or lambda_n <= 0.0:
-        raise RuntimeError("LTE a_interface requires finite lambda_n > 0")
+        raise RuntimeError("LTE a_0plus requires finite lambda_n > 0")
 
-    beta = float(5.0 * u_N * lambda_n)
+    beta = float(5.0 * u_0minus * lambda_n)
     discriminant = float(
         beta * beta + 4.0 * (1.0 - beta) * A_boundary * A_boundary
     )
@@ -841,22 +841,21 @@ def _analytic_aqstar_lte(A_boundary, u_N, lambda_n):
         1.0,
     )
     if discriminant < -1.0e-14 * discriminant_scale:
-        raise RuntimeError("LTE a_interface discriminant is negative")
+        raise RuntimeError("LTE a_0plus discriminant is negative")
     discriminant = max(discriminant, 0.0)
     stable_denominator = float(np.sqrt(discriminant) + beta)
     if (not np.isfinite(stable_denominator)) or stable_denominator <= 0.0:
-        raise RuntimeError("LTE a_interface denominator is non-physical")
+        raise RuntimeError("LTE a_0plus denominator is non-physical")
 
-    a_interface_LTE = float(
+    a_0plus_LTE = float(
         2.0 * A_boundary * A_boundary / stable_denominator
     )
-    if (not np.isfinite(a_interface_LTE)) or a_interface_LTE <= 0.0:
-        raise RuntimeError("a_interface_LTE must be positive and finite")
+    if (not np.isfinite(a_0plus_LTE)) or a_0plus_LTE <= 0.0:
+        raise RuntimeError("a_0plus_LTE must be positive and finite")
 
     return {
         "A_boundary": A_boundary,
-        "a_interface_LTE": a_interface_LTE,
-        "aQstar_LTE": a_interface_LTE,
+        "a_0plus_LTE": a_0plus_LTE,
         "lambda_n": lambda_n,
         "beta_LTE": beta,
         "lte_discriminant": discriminant,
@@ -1005,37 +1004,37 @@ def _validated_pnm_state(muB, T, param):
     )
 
 
-def _analytic_nuclear_state(muB_N, T_N, param=para.paraQMCRMF3, NM_type="PNM"):
+def _analytic_nuclear_state(muB_0minus, T_0minus, param=para.paraQMCRMF3, NM_type="PNM"):
     """
     Return the upstream nuclear state used by analytic_velocity_bound.
 
     For PNM the solve is validated against the spurious sigma < 0 branch and
     re-seeded when needed; see _validated_pnm_state.
     """
-    P_N = float(PNM(muB_N, T_N, param=param, NM_type=NM_type))
-    e_N = float(edensNM(muB_N, T_N, param=param))
-    nB_N = float(nB_NM(muB_N, T_N, param=param, NM_type=NM_type))
-    if str(NM_type) == "PNM" and _pnm_state_is_off_branch(muB_N, T_N, param, P_N, e_N, nB_N):
+    P_0minus = float(PNM(muB_0minus, T_0minus, param=param, NM_type=NM_type))
+    e_0minus = float(edensNM(muB_0minus, T_0minus, param=param))
+    nB_0minus = float(nB_NM(muB_0minus, T_0minus, param=param, NM_type=NM_type))
+    if str(NM_type) == "PNM" and _pnm_state_is_off_branch(muB_0minus, T_0minus, param, P_0minus, e_0minus, nB_0minus):
         # The default mean-field seed occasionally lands on the sigma < 0 root,
         # which shows up here as a negative pressure. Re-solve from other seeds
         # and check the scalar field directly before accepting the state.
-        P_N, e_N, nB_N, _sigma_N = _validated_pnm_state(muB_N, T_N, param)
-    h_N = float(P_N + e_N)
-    if (not np.isfinite(P_N)) or (not np.isfinite(e_N)) or (not np.isfinite(h_N)):
+        P_0minus, e_0minus, nB_0minus, _sigma_0minus = _validated_pnm_state(muB_0minus, T_0minus, param)
+    h_0minus = float(P_0minus + e_0minus)
+    if (not np.isfinite(P_0minus)) or (not np.isfinite(e_0minus)) or (not np.isfinite(h_0minus)):
         raise RuntimeError("Nuclear EOS returned non-finite pressure or enthalpy")
-    if (not np.isfinite(nB_N)) or nB_N <= 0.0:
-        raise RuntimeError("nB_N must be positive and finite")
-    if h_N <= 0.0:
-        raise RuntimeError("h_N must be positive")
-    h_over_nB_N = float(h_N / nB_N)
-    if (not np.isfinite(h_over_nB_N)) or h_over_nB_N <= 0.0:
-        raise RuntimeError("Nuclear h_N/nB_N must be positive and finite")
+    if (not np.isfinite(nB_0minus)) or nB_0minus <= 0.0:
+        raise RuntimeError("nB_0minus must be positive and finite")
+    if h_0minus <= 0.0:
+        raise RuntimeError("h_0minus must be positive")
+    h_over_nB_0minus = float(h_0minus / nB_0minus)
+    if (not np.isfinite(h_over_nB_0minus)) or h_over_nB_0minus <= 0.0:
+        raise RuntimeError("Nuclear h_0minus/nB_0minus must be positive and finite")
     return {
-        "P_N": P_N,
-        "e_N": e_N,
-        "h_N": h_N,
-        "nB_N": nB_N,
-        "h_over_nB_N": h_over_nB_N,
+        "P_0minus": P_0minus,
+        "e_0minus": e_0minus,
+        "h_0minus": h_0minus,
+        "nB_0minus": nB_0minus,
+        "h_over_nB_0minus": h_over_nB_0minus,
     }
 
 
@@ -1056,8 +1055,8 @@ def _append_analytic_endpoint_guess(guesses, muB_guess, T_guess):
             guesses.append(candidate)
 
 
-def _solve_analytic_downstream_endpoint_for_uN(
-    u_N,
+def _solve_analytic_inf_endpoint_for_u_0minus(
+    u_0minus,
     nuclear_state,
     B_one_forth,
     ms=0.0,
@@ -1067,19 +1066,19 @@ def _solve_analytic_downstream_endpoint_for_uN(
     """
     Solve the muK=0 downstream quark endpoint from exact hydro jump conditions.
     """
-    u_N = float(u_N)
-    if (not np.isfinite(u_N)) or u_N <= 0.0:
-        raise RuntimeError("Trial u_N must be positive and finite")
+    u_0minus = float(u_0minus)
+    if (not np.isfinite(u_0minus)) or u_0minus <= 0.0:
+        raise RuntimeError("Trial u_0minus must be positive and finite")
 
-    P_N = float(nuclear_state["P_N"])
-    h_N = float(nuclear_state["h_N"])
-    nB_N = float(nuclear_state["nB_N"])
-    h_over_nB_N = float(nuclear_state["h_over_nB_N"])
-    jB = float(nB_N * u_N)
-    gamma_N = float(np.sqrt(1.0 + u_N * u_N))
-    energy_flux_N = float(h_N * u_N * gamma_N)
-    momentum_flux_N = float(P_N + h_N * u_N * u_N)
-    energy_target = float(h_over_nB_N * gamma_N)
+    P_0minus = float(nuclear_state["P_0minus"])
+    h_0minus = float(nuclear_state["h_0minus"])
+    nB_0minus = float(nuclear_state["nB_0minus"])
+    h_over_nB_0minus = float(nuclear_state["h_over_nB_0minus"])
+    jB = float(nB_0minus * u_0minus)
+    gamma_0minus = float(np.sqrt(1.0 + u_0minus * u_0minus))
+    energy_flux_0minus = float(h_0minus * u_0minus * gamma_0minus)
+    momentum_flux_0minus = float(P_0minus + h_0minus * u_0minus * u_0minus)
+    energy_target = float(h_over_nB_0minus * gamma_0minus)
 
     guesses = []
     if initial_guess is not None:
@@ -1087,7 +1086,7 @@ def _solve_analytic_downstream_endpoint_for_uN(
         if guess_arr.size >= 2:
             _append_analytic_endpoint_guess(guesses, guess_arr[0], guess_arr[1])
     for muB_guess in (
-        float(nuclear_state.get("muB_N", 0.0)),
+        float(nuclear_state.get("muB_0minus", 0.0)),
         900.0,
         1100.0,
         1300.0,
@@ -1095,8 +1094,8 @@ def _solve_analytic_downstream_endpoint_for_uN(
         700.0,
     ):
         for T_guess in (
-            float(nuclear_state.get("T_N", 0.0)),
-            max(float(nuclear_state.get("T_N", 0.0)), 1.0),
+            float(nuclear_state.get("T_0minus", 0.0)),
+            max(float(nuclear_state.get("T_0minus", 0.0)), 1.0),
             10.0,
             30.0,
             60.0,
@@ -1114,51 +1113,51 @@ def _solve_analytic_downstream_endpoint_for_uN(
             or abs(logT) > 700.0
         ):
             return np.array([1.0e30, 1.0e30], dtype=float)
-        T_Q = float(np.exp(logT))
+        T_inf = float(np.exp(logT))
         try:
-            P_Q = float(PQM(muB, 0.0, B_one_forth, T_Q, ms=ms, upB=upB))
-            e_Q = float(
+            P_inf = float(PQM(muB, 0.0, B_one_forth, T_inf, ms=ms, upB=upB))
+            e_inf = float(
                 edensQM(
                     muB,
                     0.0,
                     B_one_forth,
-                    T_Q,
+                    T_inf,
                     ms=ms,
                     include_em=False,
                     upB=upB,
                 )
             )
-            nB_Q = float(nB_QM(muB, 0.0, B_one_forth, T_Q, ms=ms, upB=upB))
+            nB_inf = float(nB_QM(muB, 0.0, B_one_forth, T_inf, ms=ms, upB=upB))
         except Exception:
             return np.array([1.0e30, 1.0e30], dtype=float)
         if (
-            (not np.isfinite(P_Q))
-            or (not np.isfinite(e_Q))
-            or (not np.isfinite(nB_Q))
-            or nB_Q <= 0.0
+            (not np.isfinite(P_inf))
+            or (not np.isfinite(e_inf))
+            or (not np.isfinite(nB_inf))
+            or nB_inf <= 0.0
         ):
             return np.array([1.0e30, 1.0e30], dtype=float)
-        h_Q = float(P_Q + e_Q)
-        u_Q = float(jB / nB_Q)
-        gamma_Q = float(np.sqrt(1.0 + u_Q * u_Q))
-        energy_flux_Q = float(h_Q * u_Q * gamma_Q)
-        momentum_flux_Q = float(P_Q + h_Q * u_Q * u_Q)
+        h_inf = float(P_inf + e_inf)
+        u_inf = float(jB / nB_inf)
+        gamma_inf = float(np.sqrt(1.0 + u_inf * u_inf))
+        energy_flux_inf = float(h_inf * u_inf * gamma_inf)
+        momentum_flux_inf = float(P_inf + h_inf * u_inf * u_inf)
         if (
-            (not np.isfinite(h_Q))
-            or h_Q <= 0.0
-            or (not np.isfinite(energy_flux_Q))
-            or (not np.isfinite(momentum_flux_Q))
+            (not np.isfinite(h_inf))
+            or h_inf <= 0.0
+            or (not np.isfinite(energy_flux_inf))
+            or (not np.isfinite(momentum_flux_inf))
         ):
             return np.array([1.0e30, 1.0e30], dtype=float)
-        energy_residual = float(h_Q * gamma_Q / nB_Q - energy_target)
-        pressure_jump = float(P_Q - P_N)
-        pressure_jump_balance = float(h_N * u_N * u_N - h_Q * u_Q * u_Q)
+        energy_residual = float(h_inf * gamma_inf / nB_inf - energy_target)
+        pressure_jump = float(P_inf - P_0minus)
+        pressure_jump_balance = float(h_0minus * u_0minus * u_0minus - h_inf * u_inf * u_inf)
         # Scale the momentum residual by the pressure, not by the momentum flux
         # h*u^2. For slow fronts h*u^2 -> 0 and flooring at 1.0 left this
         # residual as an absolute value in MeV^4 (~1e7), mis-scaled against the
         # relative energy residual, which stalled the hybr solve. The pressure
         # scale keeps both residuals relative and comparable.
-        momentum_scale = max(abs(P_N), abs(P_Q), 1.0)
+        momentum_scale = max(abs(P_0minus), abs(P_inf), 1.0)
         return np.array(
             [
                 energy_residual / max(abs(energy_target), _FLOAT_TINY),
@@ -1190,69 +1189,69 @@ def _solve_analytic_downstream_endpoint_for_uN(
     if best is None or best_norm > 1.0e-6:
         raise RuntimeError(f"{best_message}; best scaled residual={best_norm:.3e}")
 
-    muB_Q = float(best[0])
-    T_Q = float(np.exp(float(best[1])))
-    if (not np.isfinite(muB_Q)) or muB_Q <= 0.0 or (not np.isfinite(T_Q)) or T_Q <= 0.0:
+    muB_inf = float(best[0])
+    T_inf = float(np.exp(float(best[1])))
+    if (not np.isfinite(muB_inf)) or muB_inf <= 0.0 or (not np.isfinite(T_inf)) or T_inf <= 0.0:
         raise RuntimeError("Analytic hydro endpoint solve returned a non-physical root")
 
-    P_Q = float(PQM(muB_Q, 0.0, B_one_forth, T_Q, ms=ms, upB=upB))
-    e_Q = float(
+    P_inf = float(PQM(muB_inf, 0.0, B_one_forth, T_inf, ms=ms, upB=upB))
+    e_inf = float(
         edensQM(
-            muB_Q,
+            muB_inf,
             0.0,
             B_one_forth,
-            T_Q,
+            T_inf,
             ms=ms,
             include_em=False,
             upB=upB,
         )
     )
-    h_Q = float(P_Q + e_Q)
-    nB_Q = float(nB_QM(muB_Q, 0.0, B_one_forth, T_Q, ms=ms, upB=upB))
+    h_inf = float(P_inf + e_inf)
+    nB_inf = float(nB_QM(muB_inf, 0.0, B_one_forth, T_inf, ms=ms, upB=upB))
     if (
-        (not np.isfinite(P_Q))
-        or (not np.isfinite(e_Q))
-        or (not np.isfinite(h_Q))
-        or h_Q <= 0.0
-        or (not np.isfinite(nB_Q))
-        or nB_Q <= 0.0
+        (not np.isfinite(P_inf))
+        or (not np.isfinite(e_inf))
+        or (not np.isfinite(h_inf))
+        or h_inf <= 0.0
+        or (not np.isfinite(nB_inf))
+        or nB_inf <= 0.0
     ):
         raise RuntimeError("Hydro endpoint quark EOS returned non-physical quantities")
 
-    u_Q = float(jB / nB_Q)
-    gamma_Q = float(np.sqrt(1.0 + u_Q * u_Q))
-    energy_flux_Q = float(h_Q * u_Q * gamma_Q)
-    momentum_flux_Q = float(P_Q + h_Q * u_Q * u_Q)
-    energy_flux_residual = float(energy_flux_Q - energy_flux_N)
-    momentum_flux_residual = float(momentum_flux_Q - momentum_flux_N)
-    pressure_jump = float(P_Q - P_N)
-    pressure_jump_balance = float(h_N * u_N * u_N - h_Q * u_Q * u_Q)
+    u_inf = float(jB / nB_inf)
+    gamma_inf = float(np.sqrt(1.0 + u_inf * u_inf))
+    energy_flux_inf = float(h_inf * u_inf * gamma_inf)
+    momentum_flux_inf = float(P_inf + h_inf * u_inf * u_inf)
+    energy_flux_residual = float(energy_flux_inf - energy_flux_0minus)
+    momentum_flux_residual = float(momentum_flux_inf - momentum_flux_0minus)
+    pressure_jump = float(P_inf - P_0minus)
+    pressure_jump_balance = float(h_0minus * u_0minus * u_0minus - h_inf * u_inf * u_inf)
 
     return {
-        "muB_Q": muB_Q,
-        "T_Q": T_Q,
-        "P_Q": P_Q,
-        "e_Q": e_Q,
-        "h_Q": h_Q,
-        "nB_Q": nB_Q,
-        "h_over_nB_Q": float(h_Q / nB_Q),
-        "u_N": u_N,
-        "u_Q": u_Q,
+        "muB_inf": muB_inf,
+        "T_inf": T_inf,
+        "P_inf": P_inf,
+        "e_inf": e_inf,
+        "h_inf": h_inf,
+        "nB_inf": nB_inf,
+        "h_over_nB_inf": float(h_inf / nB_inf),
+        "u_0minus": u_0minus,
+        "u_inf": u_inf,
         "jB": jB,
-        "gamma_N": gamma_N,
-        "gamma_Q": gamma_Q,
-        "energy_flux_N": energy_flux_N,
-        "energy_flux_Q": energy_flux_Q,
-        "momentum_flux_N": momentum_flux_N,
-        "momentum_flux_Q": momentum_flux_Q,
+        "gamma_0minus": gamma_0minus,
+        "gamma_inf": gamma_inf,
+        "energy_flux_0minus": energy_flux_0minus,
+        "energy_flux_inf": energy_flux_inf,
+        "momentum_flux_0minus": momentum_flux_0minus,
+        "momentum_flux_inf": momentum_flux_inf,
         "energy_flux_residual": energy_flux_residual,
         "momentum_flux_residual": momentum_flux_residual,
         "pressure_jump": pressure_jump,
         "pressure_jump_balance": pressure_jump_balance,
         "pressure_jump_residual": float(pressure_jump - pressure_jump_balance),
         "endpoint_scaled_residual": best_norm,
-        "endpoint_initial_guess": (muB_Q, T_Q),
-        "h_over_nB_N": h_over_nB_N,
+        "endpoint_initial_guess": (muB_inf, T_inf),
+        "h_over_nB_0minus": h_over_nB_0minus,
         "U_bag": float(B_one_forth) ** 4,
         "B_one_forth": float(B_one_forth),
         "ms": float(ms),
@@ -1264,7 +1263,7 @@ def _analytic_velocity_formula_from_endpoint(
     endpoint,
     nuclear_state,
     xi,
-    aQstar_max_mode="LTE",
+    a_0plus_max_mode="LTE",
     interface_fraction_mode=None,
     velocity_closure="closed_form",
 ):
@@ -1288,68 +1287,68 @@ def _analytic_velocity_formula_from_endpoint(
     xi = float(xi)
     if interface_fraction_mode is None:
         interface_fraction_mode = _normalize_interface_fraction_mode(
-            aQstar_max_mode,
-            parameter_name="aQstar_max",
+            a_0plus_max_mode,
+            parameter_name="a_0plus_max",
         )
     else:
         interface_fraction_mode = _normalize_interface_fraction_mode(
             interface_fraction_mode,
             parameter_name="interface_fraction_mode",
         )
-    muB_Q = float(endpoint["muB_Q"])
-    T_Q = float(endpoint["T_Q"])
-    nB_Q = float(endpoint["nB_Q"])
-    u_N = float(endpoint["u_N"])
-    nB_N = float(nuclear_state["nB_N"])
+    muB_inf = float(endpoint["muB_inf"])
+    T_inf = float(endpoint["T_inf"])
+    nB_inf = float(endpoint["nB_inf"])
+    u_0minus = float(endpoint["u_0minus"])
+    nB_0minus = float(nuclear_state["nB_0minus"])
 
-    mu_q = float(muB_Q / 3.0)
+    mu_q = float(muB_inf / 3.0)
     weak_rate = _analytic_weak_rate_from_mu_q(mu_q)
     gamma = float(weak_rate["gamma"])
     tau = float(weak_rate["tau"])
     tau_seconds = float(weak_rate["tau_seconds"])
 
-    lambda_n = float(nB_N / nB_Q)
+    lambda_n = float(nB_0minus / nB_inf)
     if (not np.isfinite(lambda_n)) or lambda_n <= 0.0:
         raise RuntimeError("lambda_n must be positive and finite")
 
     # Interface-fraction ceiling A, the T = 0 endpoint of the constant-pressure
-    # isobar defined by P_QM(A, T = 0) = P_Q. Evaluated from the exact EOS as
+    # isobar defined by P_QM(A, T = 0) = P_inf. Evaluated from the exact EOS as
     # A = nK/nB; see _analytic_A_from_isobar. The quadratic-expansion closed
     # forms are not used: they assume the non-neutral parametrization while the
     # EOS here is charge-neutral, which makes them diverge from A = nK/nB by up
     # to a factor of ~2 as A -> 1.
-    P_Q = float(endpoint.get("P_Q", np.nan))
-    B_one_forth_Q = endpoint.get("B_one_forth", None)
-    if B_one_forth_Q is None:
-        U_bag_Q = endpoint.get("U_bag", None)
-        B_one_forth_Q = float(U_bag_Q) ** 0.25 if U_bag_Q is not None else None
-    if B_one_forth_Q is None or not np.isfinite(P_Q):
+    P_inf = float(endpoint.get("P_inf", np.nan))
+    B_one_forth_inf = endpoint.get("B_one_forth", None)
+    if B_one_forth_inf is None:
+        U_bag_inf = endpoint.get("U_bag", None)
+        B_one_forth_inf = float(U_bag_inf) ** 0.25 if U_bag_inf is not None else None
+    if B_one_forth_inf is None or not np.isfinite(P_inf):
         raise RuntimeError(
-            "endpoint must carry B_one_forth (or U_bag) and P_Q to evaluate A"
+            "endpoint must carry B_one_forth (or U_bag) and P_inf to evaluate A"
         )
-    ms_Q = float(endpoint.get("ms", 0.0))
-    upB_Q = int(endpoint.get("upB", 5000))
+    ms_inf = float(endpoint.get("ms", 0.0))
+    upB_inf = int(endpoint.get("upB", 5000))
     layer_trajectory = None
     if velocity_closure == "numerical_I2":
         # The conserved pair (P, h/nB) defines the layer; mu_B is free to drift.
         layer_trajectory = _analytic_layer_trajectory(
-            P_Q,
-            float(endpoint["h_over_nB_Q"]),
-            muB_Q,
-            T_Q,
-            float(B_one_forth_Q),
-            ms=ms_Q,
-            upB=upB_Q,
+            P_inf,
+            float(endpoint["h_over_nB_inf"]),
+            muB_inf,
+            T_inf,
+            float(B_one_forth_inf),
+            ms=ms_inf,
+            upB=upB_inf,
         )
         A_boundary = float(layer_trajectory["A_boundary"])
-        muKstar_max = float(layer_trajectory["muK"][-1])
+        muK_0plus_max = float(layer_trajectory["muK"][-1])
     else:
-        A_boundary, muKstar_max = _analytic_A_from_isobar(
-            muB_Q,
-            P_Q,
-            float(B_one_forth_Q),
-            ms=ms_Q,
-            upB=upB_Q,
+        A_boundary, muK_0plus_max = _analytic_A_from_isobar(
+            muB_inf,
+            P_inf,
+            float(B_one_forth_inf),
+            ms=ms_inf,
+            upB=upB_inf,
             return_muK=True,
         )
     one_minus_A_boundary = float(1.0 - A_boundary)
@@ -1361,7 +1360,7 @@ def _analytic_velocity_formula_from_endpoint(
     alpha_s = float(_TRANSPORT_ALPHA_S)
     h_D = float(_TRANSPORT_H_CONST)
     beta_LTE = np.nan
-    a_interface_LTE = np.nan
+    a_0plus_LTE = np.nan
     lte_correction = np.nan
 
     if interface_fraction_mode == "extreme_endothermic":
@@ -1369,14 +1368,14 @@ def _analytic_velocity_formula_from_endpoint(
             raise RuntimeError("A_boundary must satisfy 0 < A_boundary < 1")
         if (not np.isfinite(one_plus_xi_A_boundary)) or one_plus_xi_A_boundary <= 0.0:
             raise RuntimeError("1 + xi*A_boundary must be positive")
-        a_interface = A_boundary
-        one_minus_a_interface = one_minus_A_boundary
-        one_plus_xi_a_interface = one_plus_xi_A_boundary
+        a_0plus = A_boundary
+        one_minus_a_0plus = one_minus_A_boundary
+        one_plus_xi_a_0plus = one_plus_xi_A_boundary
         denominator = float(
-            muB_Q
+            muB_inf
             * lambda_n_squared
-            * one_minus_a_interface
-            * one_plus_xi_a_interface
+            * one_minus_a_0plus
+            * one_plus_xi_a_0plus
         )
         if (not np.isfinite(denominator)) or denominator <= 0.0:
             raise RuntimeError("Analytic velocity denominator is non-physical")
@@ -1384,29 +1383,29 @@ def _analytic_velocity_formula_from_endpoint(
             (54.0 * np.pi ** (7.0 / 3.0) * gamma)
             / (7.0 * np.sqrt(2.0) * h_D * alpha_s ** (5.0 / 3.0))
         )
-        u_N_formula_squared = float(
+        u_0minus_formula_squared = float(
             prefactor * A_boundary ** (7.0 / 3.0) / denominator
         )
     else:
-        lte_data = _analytic_aqstar_lte(A_boundary, u_N, lambda_n)
+        lte_data = _analytic_a_0plus_lte(A_boundary, u_0minus, lambda_n)
         beta_LTE = float(lte_data["beta_LTE"])
-        a_interface_LTE = float(lte_data["a_interface_LTE"])
-        if a_interface_LTE >= 1.0:
+        a_0plus_LTE = float(lte_data["a_0plus_LTE"])
+        if a_0plus_LTE >= 1.0:
             raise RuntimeError(
-                "a_interface_LTE must satisfy 0 < a_interface_LTE < 1"
+                "a_0plus_LTE must satisfy 0 < a_0plus_LTE < 1"
             )
-        a_interface = a_interface_LTE
-        one_minus_a_interface = float(1.0 - a_interface)
-        one_plus_xi_a_interface = float(1.0 + xi * a_interface)
+        a_0plus = a_0plus_LTE
+        one_minus_a_0plus = float(1.0 - a_0plus)
+        one_plus_xi_a_0plus = float(1.0 + xi * a_0plus)
         if (
-            (not np.isfinite(one_minus_a_interface))
-            or one_minus_a_interface <= 0.0
-            or (not np.isfinite(one_plus_xi_a_interface))
-            or one_plus_xi_a_interface <= 0.0
+            (not np.isfinite(one_minus_a_0plus))
+            or one_minus_a_0plus <= 0.0
+            or (not np.isfinite(one_plus_xi_a_0plus))
+            or one_plus_xi_a_0plus <= 0.0
         ):
             raise RuntimeError("LTE analytic velocity denominator is non-physical")
 
-        z_raw = float(1.0 - (a_interface_LTE / A_boundary) ** 2)
+        z_raw = float(1.0 - (a_0plus_LTE / A_boundary) ** 2)
         if z_raw < -1.0e-12 or z_raw > 1.0 + 1.0e-12:
             raise RuntimeError("LTE correction argument must satisfy 0 <= z <= 1")
         z = float(np.clip(z_raw, 0.0, 1.0))
@@ -1419,10 +1418,10 @@ def _analytic_velocity_formula_from_endpoint(
             raise RuntimeError("LTE velocity correction is non-physical")
 
         denominator = float(
-            muB_Q
+            muB_inf
             * lambda_n_squared
-            * one_minus_a_interface
-            * one_plus_xi_a_interface
+            * one_minus_a_0plus
+            * one_plus_xi_a_0plus
         )
         if (not np.isfinite(denominator)) or denominator <= 0.0:
             raise RuntimeError("LTE analytic velocity denominator is non-physical")
@@ -1430,7 +1429,7 @@ def _analytic_velocity_formula_from_endpoint(
             (9.0 * np.pi ** (7.0 / 3.0) * gamma)
             / (4.0 * np.sqrt(2.0) * h_D * alpha_s ** (5.0 / 3.0))
         )
-        u_N_formula_squared = float(
+        u_0minus_formula_squared = float(
             prefactor
             * A_boundary ** (7.0 / 3.0)
             * lte_correction
@@ -1446,22 +1445,22 @@ def _analytic_velocity_formula_from_endpoint(
     if velocity_closure == "numerical_I2":
         I2_numerical = _analytic_I2_numerical(
             layer_trajectory,
-            a_interface,
-            float(B_one_forth_Q),
-            ms=ms_Q,
-            upB=upB_Q,
+            a_0plus,
+            float(B_one_forth_inf),
+            ms=ms_inf,
+            upB=upB_inf,
         )
         closure_denominator = float(
-            lambda_n_squared * one_minus_a_interface * one_plus_xi_a_interface
+            lambda_n_squared * one_minus_a_0plus * one_plus_xi_a_0plus
         )
         if (not np.isfinite(closure_denominator)) or closure_denominator <= 0.0:
             raise RuntimeError("numerical-I2 velocity denominator is non-physical")
-        u_N_formula_squared = float(2.0 * I2_numerical / closure_denominator)
+        u_0minus_formula_squared = float(2.0 * I2_numerical / closure_denominator)
 
-    if (not np.isfinite(u_N_formula_squared)) or u_N_formula_squared < 0.0:
-        raise RuntimeError("Analytic velocity bound produced non-physical u_N^2")
+    if (not np.isfinite(u_0minus_formula_squared)) or u_0minus_formula_squared < 0.0:
+        raise RuntimeError("Analytic velocity bound produced non-physical u_0minus^2")
     return {
-        "u_N_formula_squared": u_N_formula_squared,
+        "u_0minus_formula_squared": u_0minus_formula_squared,
         "velocity_closure": velocity_closure,
         "I2_numerical": float(I2_numerical),
         "layer_trajectory_saturated": bool(
@@ -1474,27 +1473,22 @@ def _analytic_velocity_formula_from_endpoint(
         "lambda_n": lambda_n,
         "lambda_n_squared": lambda_n_squared,
         "A_boundary": A_boundary,
-        "a_interface": a_interface,
-        "a_interface_LTE": a_interface_LTE,
+        "a_0plus": a_0plus,
+        "a_0plus_LTE": a_0plus_LTE,
         "interface_fraction_mode": interface_fraction_mode,
-        "a_N": lambda_n,
-        "aQstar_max": A_boundary,
-        "aQstar_max_mode": interface_fraction_mode,
+        "a_0plus_max": A_boundary,
+        "a_0plus_max_mode": interface_fraction_mode,
         "A_extreme_endothermic": A_boundary,
-        "aQstar_LTE": a_interface_LTE,
-        "aQstar_used": a_interface,
+        "a_0plus_used": a_0plus,
         "beta_LTE": beta_LTE,
         "lte_correction": lte_correction,
-        "muKstar_max": muKstar_max,
+        "muK_0plus_max": muK_0plus_max,
         "one_minus_A_boundary": one_minus_A_boundary,
         "one_plus_xi_A_boundary": one_plus_xi_A_boundary,
-        "one_minus_a_interface": one_minus_a_interface,
-        "one_plus_xi_a_interface": one_plus_xi_a_interface,
-        "one_minus_aQstar": one_minus_A_boundary,
-        "one_plus_xi_aQstar": one_plus_xi_A_boundary,
-        "one_minus_aQstar_used": one_minus_a_interface,
-        "one_plus_xi_aQstar_used": one_plus_xi_a_interface,
-        "a_N_squared": lambda_n_squared,
+        "one_minus_a_0plus": one_minus_a_0plus,
+        "one_plus_xi_a_0plus": one_plus_xi_a_0plus,
+        "one_minus_a_0plus_used": one_minus_a_0plus,
+        "one_plus_xi_a_0plus_used": one_plus_xi_a_0plus,
         "alpha_s": alpha_s,
         "h_D": h_D,
         "gamma": gamma,
@@ -1506,8 +1500,8 @@ def _analytic_velocity_formula_from_endpoint(
 
 
 def analytic_velocity_bound(
-    muB_N,
-    T_N,
+    muB_0minus,
+    T_0minus,
     B_one_forth,
     xi=0.0,
     ms=0.0,
@@ -1515,21 +1509,21 @@ def analytic_velocity_bound(
     NM_type="PNM",
     upB=5000,
     initial_guess=None,
-    aQstar_max="extreme_endothermic",
+    a_0plus_max="extreme_endothermic",
     interface_fraction_mode=None,
     velocity_closure="closed_form",
 ):
     """
-    Evaluate the hydro-consistent analytic upper bound for u_N.
+    Evaluate the hydro-consistent analytic upper bound for u_0minus.
 
-    The nuclear state is read from the EOS at (muB_N, T_N). The downstream
+    The nuclear state is read from the EOS at (muB_0minus, T_0minus). The downstream
     quark endpoint is solved at muK = 0 from exact energy and momentum flux
-    jumps for each trial u_N, with jB = nB_N*u_N derived internally. Equation
-    51 then supplies a scalar eigenvalue condition for u_N. The default
+    jumps for each trial u_0minus, with jB = nB_0minus*u_0minus derived internally. Equation
+    51 then supplies a scalar eigenvalue condition for u_0minus. The default
     extreme_endothermic mode sets the interface fraction to its ceiling
     a(0+) = A, giving the maximum-speed bound directly; pass
-    interface_fraction_mode="LTE" (or aQstar_max="LTE") for the LTE-limited
-    interface fraction. The legacy aQstar_max keyword still selects the mode
+    interface_fraction_mode="LTE" (or a_0plus_max="LTE") for the LTE-limited
+    interface fraction. The legacy a_0plus_max keyword still selects the mode
     when interface_fraction_mode is not supplied.
 
     velocity_closure selects the closure used for A and I2.  "closed_form"
@@ -1543,15 +1537,15 @@ def analytic_velocity_bound(
     small-metastability, finite-temperature gap): the message and its gap
     attribute report the enthalpy-per-baryon deficit that blocks the front.
     """
-    muB_N = float(muB_N)
-    T_N = float(T_N)
+    muB_0minus = float(muB_0minus)
+    T_0minus = float(T_0minus)
     B_one_forth = float(B_one_forth)
     xi = float(xi)
     velocity_closure = _normalize_velocity_closure(velocity_closure)
     if interface_fraction_mode is None:
         interface_fraction_mode = _normalize_interface_fraction_mode(
-            aQstar_max,
-            parameter_name="aQstar_max",
+            a_0plus_max,
+            parameter_name="a_0plus_max",
         )
     else:
         interface_fraction_mode = _normalize_interface_fraction_mode(
@@ -1559,18 +1553,18 @@ def analytic_velocity_bound(
             parameter_name="interface_fraction_mode",
         )
 
-    if (not np.isfinite(muB_N)) or muB_N <= 0.0:
-        raise RuntimeError("muB_N must be positive and finite")
-    if (not np.isfinite(T_N)) or T_N <= 0.0:
-        raise RuntimeError("T_N must be positive and finite")
+    if (not np.isfinite(muB_0minus)) or muB_0minus <= 0.0:
+        raise RuntimeError("muB_0minus must be positive and finite")
+    if (not np.isfinite(T_0minus)) or T_0minus <= 0.0:
+        raise RuntimeError("T_0minus must be positive and finite")
     if (not np.isfinite(B_one_forth)) or B_one_forth <= 0.0:
         raise RuntimeError("B_one_forth must be positive and finite")
     if (not np.isfinite(xi)) or not (-1.0 < xi < 1.0):
         raise RuntimeError("xi must satisfy -1 < xi < 1")
 
-    nuclear_state = _analytic_nuclear_state(muB_N, T_N, param=param, NM_type=NM_type)
-    nuclear_state["muB_N"] = muB_N
-    nuclear_state["T_N"] = T_N
+    nuclear_state = _analytic_nuclear_state(muB_0minus, T_0minus, param=param, NM_type=NM_type)
+    nuclear_state["muB_0minus"] = muB_0minus
+    nuclear_state["T_0minus"] = T_0minus
 
     endpoint_guess_cache = {"value": initial_guess}
     best_eval = {
@@ -1583,9 +1577,9 @@ def analytic_velocity_bound(
 
     def evaluate_log_u(theta):
         theta = float(theta)
-        u_N = float(np.exp(np.clip(theta, -700.0, np.log(0.999999))))
-        endpoint = _solve_analytic_downstream_endpoint_for_uN(
-            u_N,
+        u_0minus = float(np.exp(np.clip(theta, -700.0, np.log(0.999999))))
+        endpoint = _solve_analytic_inf_endpoint_for_u_0minus(
+            u_0minus,
             nuclear_state,
             B_one_forth,
             ms=ms,
@@ -1600,7 +1594,7 @@ def analytic_velocity_bound(
             interface_fraction_mode=interface_fraction_mode,
             velocity_closure=velocity_closure,
         )
-        residual = float(formula["u_N_formula_squared"] - u_N * u_N)
+        residual = float(formula["u_0minus_formula_squared"] - u_0minus * u_0minus)
         data = {**endpoint, **formula, "residual": residual, "theta": theta}
         abs_residual = abs(residual)
         if abs_residual < abs(float(best_eval["residual"])):
@@ -1616,7 +1610,7 @@ def analytic_velocity_bound(
             message = str(exc)
             best_eval["message"] = message
             if (
-                "a_interface_LTE must satisfy 0 < a_interface_LTE < 1" in message
+                "a_0plus_LTE must satisfy 0 < a_0plus_LTE < 1" in message
                 or "A_boundary must satisfy 0 < A_boundary < 1" in message
             ):
                 best_eval["endpoint_domain_message"] = message
@@ -1676,44 +1670,44 @@ def analytic_velocity_bound(
             f"Analytic velocity eigenvalue solve found no sign change{best_msg}",
         )
 
-    u_N_max = float(final_data["u_N"])
-    u_N_squared = float(u_N_max * u_N_max)
-    formula_residual = float(final_data["u_N_formula_squared"] - u_N_squared)
-    formula_scale = max(abs(float(final_data["u_N_formula_squared"])), abs(u_N_squared), 1.0)
+    u_0minus_max = float(final_data["u_0minus"])
+    u_0minus_squared = float(u_0minus_max * u_0minus_max)
+    formula_residual = float(final_data["u_0minus_formula_squared"] - u_0minus_squared)
+    formula_scale = max(abs(float(final_data["u_0minus_formula_squared"])), abs(u_0minus_squared), 1.0)
     if abs(formula_residual) > 1.0e-8 * formula_scale:
         raise RuntimeError(f"Analytic velocity closure residual is too large: {formula_residual:.6e}")
 
     return {
         "success": True,
         "message": "hydro-consistent analytic velocity bound evaluated",
-        "u_N_max": u_N_max,
-        "u_N": u_N_max,
-        "u_N_squared": u_N_squared,
-        "u_N_formula_squared": float(final_data["u_N_formula_squared"]),
+        "u_0minus_max": u_0minus_max,
+        "u_0minus": u_0minus_max,
+        "u_0minus_squared": u_0minus_squared,
+        "u_0minus_formula_squared": float(final_data["u_0minus_formula_squared"]),
         "analytic_velocity_residual": formula_residual,
         "jB": float(final_data["jB"]),
-        "muB_N": muB_N,
-        "T_N": T_N,
-        "P_N": float(nuclear_state["P_N"]),
-        "e_N": float(nuclear_state["e_N"]),
-        "h_N": float(nuclear_state["h_N"]),
-        "nB_N": float(nuclear_state["nB_N"]),
-        "h_over_nB_N": float(nuclear_state["h_over_nB_N"]),
-        "muB_bar": float(final_data["muB_Q"]),
-        "muB_Q": float(final_data["muB_Q"]),
-        "T_Q": float(final_data["T_Q"]),
-        "P_Q": float(final_data["P_Q"]),
-        "e_Q": float(final_data["e_Q"]),
-        "h_Q": float(final_data["h_Q"]),
-        "nB_Q": float(final_data["nB_Q"]),
-        "h_over_nB_Q": float(final_data["h_over_nB_Q"]),
-        "u_Q": float(final_data["u_Q"]),
-        "gamma_N": float(final_data["gamma_N"]),
-        "gamma_Q": float(final_data["gamma_Q"]),
-        "energy_flux_N": float(final_data["energy_flux_N"]),
-        "energy_flux_Q": float(final_data["energy_flux_Q"]),
-        "momentum_flux_N": float(final_data["momentum_flux_N"]),
-        "momentum_flux_Q": float(final_data["momentum_flux_Q"]),
+        "muB_0minus": muB_0minus,
+        "T_0minus": T_0minus,
+        "P_0minus": float(nuclear_state["P_0minus"]),
+        "e_0minus": float(nuclear_state["e_0minus"]),
+        "h_0minus": float(nuclear_state["h_0minus"]),
+        "nB_0minus": float(nuclear_state["nB_0minus"]),
+        "h_over_nB_0minus": float(nuclear_state["h_over_nB_0minus"]),
+        "muB_bar": float(final_data["muB_inf"]),
+        "muB_inf": float(final_data["muB_inf"]),
+        "T_inf": float(final_data["T_inf"]),
+        "P_inf": float(final_data["P_inf"]),
+        "e_inf": float(final_data["e_inf"]),
+        "h_inf": float(final_data["h_inf"]),
+        "nB_inf": float(final_data["nB_inf"]),
+        "h_over_nB_inf": float(final_data["h_over_nB_inf"]),
+        "u_inf": float(final_data["u_inf"]),
+        "gamma_0minus": float(final_data["gamma_0minus"]),
+        "gamma_inf": float(final_data["gamma_inf"]),
+        "energy_flux_0minus": float(final_data["energy_flux_0minus"]),
+        "energy_flux_inf": float(final_data["energy_flux_inf"]),
+        "momentum_flux_0minus": float(final_data["momentum_flux_0minus"]),
+        "momentum_flux_inf": float(final_data["momentum_flux_inf"]),
         "energy_flux_residual": float(final_data["energy_flux_residual"]),
         "momentum_flux_residual": float(final_data["momentum_flux_residual"]),
         "pressure_jump": float(final_data["pressure_jump"]),
@@ -1724,27 +1718,22 @@ def analytic_velocity_bound(
         "lambda_n": float(final_data["lambda_n"]),
         "lambda_n_squared": float(final_data["lambda_n_squared"]),
         "A_boundary": float(final_data["A_boundary"]),
-        "a_interface": float(final_data["a_interface"]),
-        "a_interface_LTE": float(final_data["a_interface_LTE"]),
+        "a_0plus": float(final_data["a_0plus"]),
+        "a_0plus_LTE": float(final_data["a_0plus_LTE"]),
         "interface_fraction_mode": str(final_data["interface_fraction_mode"]),
-        "a_N": float(final_data["a_N"]),
-        "aQstar_max": float(final_data["aQstar_max"]),
-        "aQstar_max_mode": str(final_data["aQstar_max_mode"]),
+        "a_0plus_max": float(final_data["a_0plus_max"]),
+        "a_0plus_max_mode": str(final_data["a_0plus_max_mode"]),
         "A_extreme_endothermic": float(final_data["A_extreme_endothermic"]),
-        "aQstar_LTE": float(final_data["aQstar_LTE"]),
-        "aQstar_used": float(final_data["aQstar_used"]),
+        "a_0plus_used": float(final_data["a_0plus_used"]),
         "beta_LTE": float(final_data["beta_LTE"]),
         "lte_correction": float(final_data["lte_correction"]),
-        "muKstar_max": float(final_data["muKstar_max"]),
+        "muK_0plus_max": float(final_data["muK_0plus_max"]),
         "one_minus_A_boundary": float(final_data["one_minus_A_boundary"]),
         "one_plus_xi_A_boundary": float(final_data["one_plus_xi_A_boundary"]),
-        "one_minus_a_interface": float(final_data["one_minus_a_interface"]),
-        "one_plus_xi_a_interface": float(final_data["one_plus_xi_a_interface"]),
-        "one_minus_aQstar": float(final_data["one_minus_aQstar"]),
-        "one_plus_xi_aQstar": float(final_data["one_plus_xi_aQstar"]),
-        "one_minus_aQstar_used": float(final_data["one_minus_aQstar_used"]),
-        "one_plus_xi_aQstar_used": float(final_data["one_plus_xi_aQstar_used"]),
-        "a_N_squared": float(final_data["a_N_squared"]),
+        "one_minus_a_0plus": float(final_data["one_minus_a_0plus"]),
+        "one_plus_xi_a_0plus": float(final_data["one_plus_xi_a_0plus"]),
+        "one_minus_a_0plus_used": float(final_data["one_minus_a_0plus_used"]),
+        "one_plus_xi_a_0plus_used": float(final_data["one_plus_xi_a_0plus_used"]),
         "alpha_s": float(final_data["alpha_s"]),
         "h_D": float(final_data["h_D"]),
         "gamma": float(final_data["gamma"]),
@@ -1760,9 +1749,9 @@ def analytic_velocity_bound(
         "layer_trajectory_points": int(final_data.get("layer_trajectory_points", 0)),
         "xi": xi,
         "composition_definition": "a_local_equals_nK_over_nB",
-        "density_ratio_definition": "lambda_n_equals_nB_N_over_nB_Q",
+        "density_ratio_definition": "lambda_n_equals_nB_0minus_over_nB_inf",
         "analytic_formula_variant": "piecewise_constant_lambda_n",
-        "slow_front_consistent": bool(u_N_max < 1.0),
+        "slow_front_consistent": bool(u_0minus_max < 1.0),
     }
 
 
@@ -1773,8 +1762,8 @@ def Pi_NM(mu_B, Temp, j_B):
     nB = nB_NM(mu_B, Temp)
     if nB <= 0:
         return np.nan
-    uN = j_B / nB
-    return hNM(mu_B, Temp) * uN * uN + PNM(mu_B, Temp)
+    u_0minus = j_B / nB
+    return hNM(mu_B, Temp) * u_0minus * u_0minus + PNM(mu_B, Temp)
     
 def hQM(muB, muK, B_one_forth, Temp, ms=0.0, upB=5000):
     """
@@ -1833,7 +1822,7 @@ def _solve_muB_inf_at_muK0_from_nB(nB_inf, B_one_forth, T, ms=0, upB=5000):
     return float(sol.root)
 
 
-def uN(T, nB_N, Delta_n, B_one_forth, param=para.paraQMCRMF3, ms=0, upB=5000, return_more=False):
+def u_0minus(T, nB_0minus, Delta_n, B_one_forth, param=para.paraQMCRMF3, ms=0, upB=5000, return_more=False):
     """
     Compute the phase-boundary flux data from endpoint states.
 
@@ -1841,10 +1830,10 @@ def uN(T, nB_N, Delta_n, B_one_forth, param=para.paraQMCRMF3, ms=0, upB=5000, re
     ----------
     T : float
         Temperature.
-    nB_N : float
+    nB_0minus : float
         Upstream nuclear baryon density n_B(0^-).
     Delta_n : float
-        Density jump defined by n_B(infty) = nB_N + Delta_n.
+        Density jump defined by n_B(infty) = nB_0minus + Delta_n.
     B_one_forth : float
         Bag constant parameter B^(1/4) for the quark EOS.
     param : sequence, optional
@@ -1859,18 +1848,18 @@ def uN(T, nB_N, Delta_n, B_one_forth, param=para.paraQMCRMF3, ms=0, upB=5000, re
     Notes
     -----
     - The far-right quark endpoint is assumed fully equilibrated: muK = 0.
-    - The returned values are Pi, jB, uN, where uN is in natural units.
+    - The returned values are Pi, jB, u_0minus, where u_0minus is in natural units.
     """
-    if nB_N <= 0.0:
-        raise RuntimeError("nB_N must be positive")
+    if nB_0minus <= 0.0:
+        raise RuntimeError("nB_0minus must be positive")
 
-    nB_inf = nB_N + Delta_n
+    nB_inf = nB_0minus + Delta_n
     if nB_inf <= 0.0:
-        raise RuntimeError("nB_inf = nB_N + Delta_n must be positive")
+        raise RuntimeError("nB_inf = nB_0minus + Delta_n must be positive")
 
-    # Upstream nuclear endpoint from (T, nB_N).
-    P_N = float(PNM_n(nB_N, T, param=param, NM_type="PNM"))
-    h_N = float(P_N + edensNM_n(nB_N, T, param=param))
+    # Upstream nuclear endpoint from (T, nB_0minus).
+    P_0minus = float(PNM_n(nB_0minus, T, param=param, NM_type="PNM"))
+    h_0minus = float(P_0minus + edensNM_n(nB_0minus, T, param=param))
 
     # Fully equilibrated QM endpoint at muK = 0 and nB_inf.
     muB_inf = _solve_muB_inf_at_muK0_from_nB(nB_inf, B_one_forth, T, ms=ms, upB=upB)
@@ -1881,45 +1870,45 @@ def uN(T, nB_N, Delta_n, B_one_forth, param=para.paraQMCRMF3, ms=0, upB=5000, re
     )
 
     # Momentum-flux matching fixes jB from the two endpoint states.
-    term_N = h_N / (nB_N * nB_N)
+    term_0minus = h_0minus / (nB_0minus * nB_0minus)
     term_inf = h_inf / (nB_inf * nB_inf)
-    denom = term_N - term_inf
-    denom_scale = max(abs(term_N), abs(term_inf), 1.0)
+    denom = term_0minus - term_inf
+    denom_scale = max(abs(term_0minus), abs(term_inf), 1.0)
     if abs(denom) <= 1.0e-12 * denom_scale:
         raise RuntimeError("Endpoint momentum-flux denominator is too close to zero")
 
-    jB_sq = (P_inf - P_N) / denom
+    jB_sq = (P_inf - P_0minus) / denom
     if (not np.isfinite(jB_sq)) or jB_sq <= 0.0:
         raise RuntimeError(f"Endpoint matching gives non-physical jB^2={jB_sq}")
 
     jB = float(np.sqrt(jB_sq))
-    uN = float(jB / nB_N)
-    Pi = float(h_N * uN * uN + P_N)
+    u_0minus = float(jB / nB_0minus)
+    Pi = float(h_0minus * u_0minus * u_0minus + P_0minus)
 
     # Numerical consistency check on the equilibrated QM endpoint.
-    uQ_inf = float(jB / nB_inf)
-    Pi_inf = float(h_inf * uQ_inf * uQ_inf + P_inf)
+    u_inf = float(jB / nB_inf)
+    Pi_inf = float(h_inf * u_inf * u_inf + P_inf)
     Pi_scale = max(abs(Pi), abs(Pi_inf), 1.0)
     if not np.isclose(Pi, Pi_inf, rtol=1.0e-8, atol=1.0e-10 * Pi_scale):
         raise RuntimeError(
-            f"Endpoint momentum-flux mismatch: Pi_N={Pi:.12g}, Pi_inf={Pi_inf:.12g}"
+            f"Endpoint momentum-flux mismatch: Pi_0minus={Pi:.12g}, Pi_inf={Pi_inf:.12g}"
         )
 
     if return_more:
         return {
             "Pi": Pi,
             "jB": jB,
-            "uN": uN,
+            "u_0minus": u_0minus,
             "nB_inf": float(nB_inf),
-            "P_N": P_N,
-            "h_N": h_N,
+            "P_0minus": P_0minus,
+            "h_0minus": h_0minus,
             "P_inf": P_inf,
             "h_inf": h_inf,
             "muB_inf": muB_inf,
-            "uQ_inf": uQ_inf,
+            "u_inf": u_inf,
         }
 
-    return Pi, jB, uN
+    return Pi, jB, u_0minus
 
 
 # Shared quark-state helpers
@@ -1990,11 +1979,11 @@ def _quark_thermo_state(muB, muK, B_one_forth, T, jB, ms=0.0, upB=5000, allow_ze
     }
 
 
-def _solve_muB_Q_at_muK0_for_given_Pi(Pi, jB, B_one_forth, T, ms=0.0, upB=5000, stats=None):
+def _solve_muB_inf_at_muK0_for_given_Pi(Pi, jB, B_one_forth, T, ms=0.0, upB=5000, stats=None):
     """
-    Solve for the equilibrated QM endpoint muB_Q at muK=0 for a given Pi.
+    Solve for the equilibrated QM endpoint muB_inf at muK=0 for a given Pi.
     """
-    return _solve_muB_Q_at_muK0_for_given_Pi_ms(
+    return _solve_muB_inf_at_muK0_for_given_Pi_ms(
         Pi,
         jB,
         B_one_forth,
@@ -2005,7 +1994,7 @@ def _solve_muB_Q_at_muK0_for_given_Pi(Pi, jB, B_one_forth, T, ms=0.0, upB=5000, 
     )
 
 
-def _solve_muB_Q_at_muK0_for_given_Pi_ms(
+def _solve_muB_inf_at_muK0_for_given_Pi_ms(
     Pi,
     jB,
     B_one_forth,
@@ -2017,7 +2006,7 @@ def _solve_muB_Q_at_muK0_for_given_Pi_ms(
     initial_guess=None,
 ):
     """
-    Solve for the equilibrated QM endpoint muB_Q at muK=0 using the ms-aware
+    Solve for the equilibrated QM endpoint muB_inf at muK=0 using the ms-aware
     quark momentum-flux helper throughout.
     """
     if stats is not None:
@@ -2047,18 +2036,18 @@ def _solve_muB_Q_at_muK0_for_given_Pi_ms(
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", RuntimeWarning)
                 muB_arr, info, ier, mesg = fsolve(equation, muB_guess, full_output=True)
-            muB_Q = float(np.atleast_1d(muB_arr)[0])
-            Pi_residual = float(_Pi_QM_state(muB_Q, 0.0, B_one_forth, T, jB, ms=ms, upB=upB) - Pi)
-            nB = float(nB_QM(muB_Q, 0.0, B_one_forth, T, ms=ms, upB=upB))
-            if (not np.isfinite(muB_Q)) or (not np.isfinite(Pi_residual)) or (not np.isfinite(nB)) or nB <= 0.0:
-                last_error = "Solved muB_Q lies on a non-physical density branch"
+            muB_inf = float(np.atleast_1d(muB_arr)[0])
+            Pi_residual = float(_Pi_QM_state(muB_inf, 0.0, B_one_forth, T, jB, ms=ms, upB=upB) - Pi)
+            nB = float(nB_QM(muB_inf, 0.0, B_one_forth, T, ms=ms, upB=upB))
+            if (not np.isfinite(muB_inf)) or (not np.isfinite(Pi_residual)) or (not np.isfinite(nB)) or nB <= 0.0:
+                last_error = "Solved muB_inf lies on a non-physical density branch"
                 continue
             metric = abs(Pi_residual)
             if metric < best_metric:
                 best_metric = metric
-                best_muB = muB_Q
+                best_muB = muB_inf
             if ier == 1 and metric <= tol:
-                return muB_Q
+                return muB_inf
             last_error = str(mesg)
         except Exception as exc:
             last_error = str(exc)
@@ -2076,14 +2065,14 @@ def _branch_muK_seed(a_like):
     return float(max(1.0, 20.0, 250.0 * abs(float(a_like))))
 
 
-def _quark_state_residual(muB, muK, a_target, Pi, jB, nB_Q, nK_Q, B_one_forth, T, ms=0.0, upB=5000):
+def _quark_state_residual(muB, muK, a_target, Pi, jB, nB_inf, nK_inf, B_one_forth, T, ms=0.0, upB=5000):
     """
     Return the local quark-state residuals at fixed (a_target, Pi, jB).
     """
     return np.array(
         [
             _Pi_QM_state(muB, muK, B_one_forth, T, jB, ms=ms, upB=upB) - Pi,
-            (nK_QM(muB, muK, B_one_forth, T, ms=ms, upB=upB) - nK_Q) / nB_Q - a_target,
+            (nK_QM(muB, muK, B_one_forth, T, ms=ms, upB=upB) - nK_inf) / nB_inf - a_target,
         ],
         dtype=float,
     )
@@ -2100,15 +2089,15 @@ def _quark_state_residual_ok(residual, Pi, a_target):
     return bool(abs(float(residual[0])) <= pi_tol and abs(float(residual[1])) <= a_tol)
 
 
-def _solve_quark_state_once_from_guess(a_target, Pi, jB, nB_Q, nK_Q, B_one_forth, T, ms=0.0, upB=5000, initial_guess=None, stats=None, stats_key="quark_state_root_calls"):
+def _solve_quark_state_once_from_guess(a_target, Pi, jB, nB_inf, nK_inf, B_one_forth, T, ms=0.0, upB=5000, initial_guess=None, stats=None, stats_key="quark_state_root_calls"):
     """
     Try one local quark-state root solve from a single continuation guess.
     This is the fast path used during IVP integration.
     """
     if initial_guess is None:
         raise RuntimeError("initial_guess is required for single-guess quark-state solve")
-    if nB_Q <= 0.0:
-        raise RuntimeError("nB_Q must be positive when solving for a quark state")
+    if nB_inf <= 0.0:
+        raise RuntimeError("nB_inf must be positive when solving for a quark state")
 
     guess = np.asarray(initial_guess, dtype=float)
     if guess.shape[0] != 2 or not np.all(np.isfinite(guess)):
@@ -2122,8 +2111,8 @@ def _solve_quark_state_once_from_guess(a_target, Pi, jB, nB_Q, nK_Q, B_one_forth
             a_target,
             Pi,
             jB,
-            nB_Q,
-            nK_Q,
+            nB_inf,
+            nK_inf,
             B_one_forth,
             T,
             ms=ms,
@@ -2149,8 +2138,8 @@ def _solve_quark_state_once_from_guess(a_target, Pi, jB, nB_Q, nK_Q, B_one_forth
         a_target,
         Pi,
         jB,
-        nB_Q,
-        nK_Q,
+        nB_inf,
+        nK_inf,
         B_one_forth,
         T,
         ms=ms,
@@ -2168,16 +2157,16 @@ def _solve_quark_state_once_from_guess(a_target, Pi, jB, nB_Q, nK_Q, B_one_forth
     return muB, muK
 
 
-def _solve_interface_Qstar_from_aQstar_and_Pi(aQstar, Pi, jB, nB_Q, nK_Q, B_one_forth, T, ms=0.0, upB=5000, initial_guess=None, stats=None, stats_key="qstar_root_calls"):
+def _solve_interface_0plus_from_a_0plus_and_Pi(a_0plus, Pi, jB, nB_inf, nK_inf, B_one_forth, T, ms=0.0, upB=5000, initial_guess=None, stats=None, stats_key="interface_0plus_root_calls"):
     """
-    Solve for the interface state Qstar from Pi and aQstar.
+    Solve for the interface state at x = 0+ from Pi and a_0plus.
     """
-    if nB_Q <= 0.0:
-        raise RuntimeError("nB_Q must be positive when solving for Qstar")
+    if nB_inf <= 0.0:
+        raise RuntimeError("nB_inf must be positive when solving the x = 0+ state")
 
     guesses = []
-    muK_seed = _branch_muK_seed(aQstar)
-    muK_seed_strong = float(max(muK_seed, 400.0 * abs(float(aQstar))))
+    muK_seed = _branch_muK_seed(a_0plus)
+    muK_seed_strong = float(max(muK_seed, 400.0 * abs(float(a_0plus))))
     if initial_guess is not None:
         guess0 = np.asarray(initial_guess, dtype=float)
         guesses.append(guess0)
@@ -2187,7 +2176,7 @@ def _solve_interface_Qstar_from_aQstar_and_Pi(aQstar, Pi, jB, nB_Q, nK_Q, B_one_
 
     guesses.append(np.array([muB_seed, muK_seed], dtype=float))
     guesses.append(np.array([1200.0, muK_seed], dtype=float))
-    guesses.append(np.array([1500.0, max(muK_seed, 100.0 * abs(float(aQstar)))], dtype=float))
+    guesses.append(np.array([1500.0, max(muK_seed, 100.0 * abs(float(a_0plus)))], dtype=float))
     guesses.append(np.array([muB_seed, muK_seed_strong], dtype=float))
     guesses.append(np.array([1500.0, muK_seed_strong], dtype=float))
 
@@ -2196,18 +2185,18 @@ def _solve_interface_Qstar_from_aQstar_and_Pi(aQstar, Pi, jB, nB_Q, nK_Q, B_one_
         return _quark_state_residual(
             muB,
             muK,
-            aQstar,
+            a_0plus,
             Pi,
             jB,
-            nB_Q,
-            nK_Q,
+            nB_inf,
+            nK_inf,
             B_one_forth,
             T,
             ms=ms,
             upB=upB,
         )
 
-    best_message = "Qstar solve did not converge"
+    best_message = "x = 0+ state solve did not converge"
     candidates = []
     candidate_tol = 1.0e-8
     nonneg_tol = 1.0e-8
@@ -2216,35 +2205,35 @@ def _solve_interface_Qstar_from_aQstar_and_Pi(aQstar, Pi, jB, nB_Q, nK_Q, B_one_
             stats[stats_key] = stats.get(stats_key, 0) + 1
         sol = root(equations, guess, method="hybr", options={"maxfev": 6000, "xtol": 1.0e-10})
         if sol.success and np.all(np.isfinite(sol.x)):
-            muB_Qstar = float(sol.x[0])
-            muK_Qstar = float(sol.x[1])
+            muB_0plus = float(sol.x[0])
+            muK_0plus = float(sol.x[1])
             residual = _quark_state_residual(
-                muB_Qstar,
-                max(muK_Qstar, 0.0),
-                aQstar,
+                muB_0plus,
+                max(muK_0plus, 0.0),
+                a_0plus,
                 Pi,
                 jB,
-                nB_Q,
-                nK_Q,
+                nB_inf,
+                nK_inf,
                 B_one_forth,
                 T,
                 ms=ms,
                 upB=upB,
             )
-            nB_Qstar = nB_QM(muB_Qstar, muK_Qstar, B_one_forth, T, ms=ms, upB=upB)
-            if nB_Qstar > 0.0 and muK_Qstar >= -nonneg_tol and _quark_state_residual_ok(residual, Pi, aQstar):
-                if muK_Qstar < 0.0:
-                    muK_Qstar = 0.0
+            nB_0plus = nB_QM(muB_0plus, muK_0plus, B_one_forth, T, ms=ms, upB=upB)
+            if nB_0plus > 0.0 and muK_0plus >= -nonneg_tol and _quark_state_residual_ok(residual, Pi, a_0plus):
+                if muK_0plus < 0.0:
+                    muK_0plus = 0.0
                 is_new = True
                 for cand in candidates:
                     if (
-                        abs(muB_Qstar - cand["muB"]) <= candidate_tol * max(1.0, abs(cand["muB"]))
-                        and abs(muK_Qstar - cand["muK"]) <= candidate_tol * max(1.0, abs(cand["muK"]), 1.0)
+                        abs(muB_0plus - cand["muB"]) <= candidate_tol * max(1.0, abs(cand["muB"]))
+                        and abs(muK_0plus - cand["muK"]) <= candidate_tol * max(1.0, abs(cand["muK"]), 1.0)
                     ):
                         is_new = False
                         break
                 if is_new:
-                    candidates.append({"muB": muB_Qstar, "muK": muK_Qstar})
+                    candidates.append({"muB": muB_0plus, "muK": muK_0plus})
         best_message = sol.message
 
     if candidates:
@@ -2265,10 +2254,10 @@ def _solve_interface_Qstar_from_aQstar_and_Pi(aQstar, Pi, jB, nB_Q, nK_Q, B_one_
         )
         return candidates[0]["muB"], candidates[0]["muK"]
 
-    raise RuntimeError(f"Qstar state solve failed: {best_message}")
+    raise RuntimeError(f"x = 0+ state solve failed: {best_message}")
 
 
-def _solve_local_quark_state_from_a_and_Pi(a, Pi, jB, nB_Q, nK_Q, B_one_forth, T, ms=0.0, upB=5000, initial_guess=None, stats=None):
+def _solve_local_quark_state_from_a_and_Pi(a, Pi, jB, nB_inf, nK_inf, B_one_forth, T, ms=0.0, upB=5000, initial_guess=None, stats=None):
     """
     Solve the local quark state (muB, muK, nB, u) at fixed a, Pi, jB.
     """
@@ -2281,8 +2270,8 @@ def _solve_local_quark_state_from_a_and_Pi(a, Pi, jB, nB_Q, nK_Q, B_one_forth, T
                 a,
                 Pi,
                 jB,
-                nB_Q,
-                nK_Q,
+                nB_inf,
+                nK_inf,
                 B_one_forth,
                 T,
                 ms=ms,
@@ -2302,12 +2291,12 @@ def _solve_local_quark_state_from_a_and_Pi(a, Pi, jB, nB_Q, nK_Q, B_one_forth, T
             if stats is not None:
                 stats["local_fast_failures"] = stats.get("local_fast_failures", 0) + 1
 
-    muB, muK = _solve_interface_Qstar_from_aQstar_and_Pi(
+    muB, muK = _solve_interface_0plus_from_a_0plus_and_Pi(
         a,
         Pi,
         jB,
-        nB_Q,
-        nK_Q,
+        nB_inf,
+        nK_inf,
         B_one_forth,
         T,
         ms=ms,
@@ -2326,11 +2315,11 @@ def _solve_local_quark_state_from_a_and_Pi(a, Pi, jB, nB_Q, nK_Q, B_one_forth, T
 # Shared transport and microphysics helpers
 
 
-def _microphysics_at_Qstar_isothermal_baseline(muB_Qstar, T):
+def _microphysics_at_0plus_isothermal_baseline(muB_0plus, T):
     """
     Isothermal BVP microphysics that matches the baseline steady-front solver.
     """
-    return _microphysics_from_quark_state_isothermal_baseline(muB_Qstar, T)
+    return _microphysics_from_quark_state_isothermal_baseline(muB_0plus, T)
 
 
 def _microphysics_from_quark_state_energy(muB, T, allow_zero_temperature=False):
@@ -2485,30 +2474,30 @@ def _relativistic_gamma_from_u(u):
     return r_gamma
 
 
-def _default_energy_jB_guess(nB_N):
+def _default_energy_jB_guess(nB_0minus):
     """Return the shared default shooting seed for energy-front solvers."""
-    nB_N = float(nB_N)
-    if (not np.isfinite(nB_N)) or nB_N <= 0.0:
-        raise RuntimeError("The default energy-front jB seed requires positive finite nB_N")
-    return float(max(1.0e-12, 1.0e-8 * nB_N))
+    nB_0minus = float(nB_0minus)
+    if (not np.isfinite(nB_0minus)) or nB_0minus <= 0.0:
+        raise RuntimeError("The default energy-front jB seed requires positive finite nB_0minus")
+    return float(max(1.0e-12, 1.0e-8 * nB_0minus))
 
 
-def _fixed_TQstar_E_residual(muB, muK, T_Qstar, E_target, Pi, jB, B_one_forth, ms=0.0, upB=5000):
+def _fixed_T_0plus_E_residual(muB, muK, T_0plus, E_target, Pi, jB, B_one_forth, ms=0.0, upB=5000):
     """
-    Residual for the fixed-T_Qstar interface solve. The unknowns are
-    (muB_Qstar, muK_Qstar); the temperature is prescribed.
+    Residual for the fixed-T_0plus interface solve. The unknowns are
+    (muB_0plus, muK_0plus); the temperature is prescribed.
     """
     if E_target <= 0.0:
-        raise RuntimeError("Fixed-T_Qstar interface closure requires E = h*u*r_gamma > 0")
-    T_Qstar = float(T_Qstar)
-    if (not np.isfinite(T_Qstar)) or T_Qstar < 0.0:
-        raise RuntimeError("Fixed-T_Qstar interface closure requires T_Qstar >= 0")
+        raise RuntimeError("Fixed-T_0plus interface closure requires E = h*u*r_gamma > 0")
+    T_0plus = float(T_0plus)
+    if (not np.isfinite(T_0plus)) or T_0plus < 0.0:
+        raise RuntimeError("Fixed-T_0plus interface closure requires T_0plus >= 0")
     try:
         thermo = _quark_thermo_state(
             muB,
             muK,
             B_one_forth,
-            T_Qstar,
+            T_0plus,
             jB,
             ms=ms,
             upB=upB,
@@ -2520,7 +2509,7 @@ def _fixed_TQstar_E_residual(muB, muK, T_Qstar, E_target, Pi, jB, B_one_forth, m
     return np.array([thermo["Pi"] - Pi, E_loc - E_target], dtype=float)
 
 
-def _fixed_TQstar_E_residual_ok(residual, Pi, E_target):
+def _fixed_T_0plus_E_residual_ok(residual, Pi, E_target):
     if not np.all(np.isfinite(residual)):
         return False
     pi_tol = 1.0e-8 * max(abs(Pi), 1.0)
@@ -2528,35 +2517,35 @@ def _fixed_TQstar_E_residual_ok(residual, Pi, E_target):
     return bool(abs(float(residual[0])) <= pi_tol and abs(float(residual[1])) <= E_tol)
 
 
-def _solve_interface_Qstar_from_TQstar_E_and_Pi(
-    T_Qstar,
+def _solve_interface_0plus_from_T_0plus_E_and_Pi(
+    T_0plus,
     E_target,
     Pi,
     jB,
-    nB_Q,
-    nK_Q,
+    nB_inf,
+    nK_inf,
     B_one_forth,
     ms=0.0,
     upB=5000,
     initial_guess=None,
     stats=None,
-    stats_key="qstar_root_calls",
+    stats_key="interface_0plus_root_calls",
 ):
     """
-    Solve the Qstar interface state at prescribed T_Qstar.
+    Solve the x = 0+ interface state at prescribed T_0plus.
 
-    The two unknowns are (muB_Qstar, muK_Qstar). The constraints are momentum
+    The two unknowns are (muB_0plus, muK_0plus). The constraints are momentum
     flux conservation and relativistic enthalpy-flux conservation. The
-    interface composition aQstar is derived after the thermodynamic state is
+    interface composition a_0plus is derived after the thermodynamic state is
     found.
     """
-    T_Qstar = float(T_Qstar)
-    if (not np.isfinite(T_Qstar)) or T_Qstar < 0.0:
-        raise RuntimeError("Fixed-T_Qstar interface solve requires T_Qstar >= 0")
+    T_0plus = float(T_0plus)
+    if (not np.isfinite(T_0plus)) or T_0plus < 0.0:
+        raise RuntimeError("Fixed-T_0plus interface solve requires T_0plus >= 0")
     if E_target <= 0.0:
-        raise RuntimeError("Fixed-T_Qstar interface solve requires E = h*u*r_gamma > 0")
-    if nB_Q <= 0.0:
-        raise RuntimeError("nB_Q must be positive when deriving aQstar")
+        raise RuntimeError("Fixed-T_0plus interface solve requires E = h*u*r_gamma > 0")
+    if nB_inf <= 0.0:
+        raise RuntimeError("nB_inf must be positive when deriving a_0plus")
 
     guesses = []
     if initial_guess is not None:
@@ -2577,10 +2566,10 @@ def _solve_interface_Qstar_from_TQstar_E_and_Pi(
     E_scale = max(abs(E_target), 1.0)
 
     def equations(vec):
-        residual = _fixed_TQstar_E_residual(
+        residual = _fixed_T_0plus_E_residual(
             float(vec[0]),
             float(vec[1]),
-            T_Qstar,
+            T_0plus,
             E_target,
             Pi,
             jB,
@@ -2590,7 +2579,7 @@ def _solve_interface_Qstar_from_TQstar_E_and_Pi(
         )
         return np.array([residual[0] / pi_scale, residual[1] / E_scale], dtype=float)
 
-    best_message = "Fixed-T_Qstar interface solve did not converge"
+    best_message = "Fixed-T_0plus interface solve did not converge"
     candidates = []
     nonneg_tol = 1.0e-8
     for guess in guesses:
@@ -2604,14 +2593,14 @@ def _solve_interface_Qstar_from_TQstar_E_and_Pi(
             muB = float(sol.x[0])
             muK = float(sol.x[1])
             if muK < -nonneg_tol or muB <= 0.0:
-                best_message = "Fixed-T_Qstar interface solve returned a non-physical chemical potential"
+                best_message = "Fixed-T_0plus interface solve returned a non-physical chemical potential"
                 continue
             if muK < 0.0:
                 muK = 0.0
-            residual = _fixed_TQstar_E_residual(
+            residual = _fixed_T_0plus_E_residual(
                 muB,
                 muK,
-                T_Qstar,
+                T_0plus,
                 E_target,
                 Pi,
                 jB,
@@ -2619,9 +2608,9 @@ def _solve_interface_Qstar_from_TQstar_E_and_Pi(
                 ms=ms,
                 upB=upB,
             )
-            if not _fixed_TQstar_E_residual_ok(residual, Pi, E_target):
+            if not _fixed_T_0plus_E_residual_ok(residual, Pi, E_target):
                 best_message = (
-                    "Fixed-T_Qstar interface solve returned an unacceptable residual "
+                    "Fixed-T_0plus interface solve returned an unacceptable residual "
                     f"({residual[0]:.3e}, {residual[1]:.3e})"
                 )
                 continue
@@ -2629,7 +2618,7 @@ def _solve_interface_Qstar_from_TQstar_E_and_Pi(
                 muB,
                 muK,
                 B_one_forth,
-                T_Qstar,
+                T_0plus,
                 jB,
                 ms=ms,
                 upB=upB,
@@ -2637,19 +2626,19 @@ def _solve_interface_Qstar_from_TQstar_E_and_Pi(
             )
             r_gamma = _relativistic_gamma_from_u(thermo["u"])
             E_loc = float(thermo["h"] * thermo["u"] * r_gamma)
-            aQstar = float((thermo["nK"] - nK_Q) / nB_Q)
-            if thermo["h"] <= 0.0 or E_loc <= 0.0 or not np.isfinite(aQstar):
-                best_message = "Fixed-T_Qstar interface solve returned a non-physical state"
+            a_0plus = float((thermo["nK"] - nK_inf) / nB_inf)
+            if thermo["h"] <= 0.0 or E_loc <= 0.0 or not np.isfinite(a_0plus):
+                best_message = "Fixed-T_0plus interface solve returned a non-physical state"
                 continue
             thermo["r_gamma"] = r_gamma
             thermo["E"] = E_loc
-            thermo["aQstar"] = aQstar
+            thermo["a_0plus"] = a_0plus
             candidates.append(thermo)
         except Exception as exc:
             best_message = str(exc)
 
     if not candidates:
-        raise RuntimeError(f"Fixed-T_Qstar interface solve failed: {best_message}")
+        raise RuntimeError(f"Fixed-T_0plus interface solve failed: {best_message}")
 
     if initial_guess is not None:
         guess0 = np.asarray(initial_guess, dtype=float)
@@ -2818,9 +2807,9 @@ def _solve_local_quark_state_from_nK_E_and_Pi(
 # Public isothermal front solver
 def solve_front_isothermal(
     T,
-    nB_N,
+    nB_0minus,
     B_one_forth,
-    aQstar,
+    a_0plus,
     ms=0.0,
     param=para.paraQMCRMF3,
     NM_type="PNM",
@@ -2835,7 +2824,7 @@ def solve_front_isothermal(
     verb=False,
 ):
     """
-    Solve the fixed-aQstar steady-front problem as a compact-coordinate BVP.
+    Solve the fixed-a_0plus steady-front problem as a compact-coordinate BVP.
 
     This solver keeps the same hydro + diffusion + reaction equations as the
     1D IVP shooting solvers, but uses solve_bvp with jB as an unknown BVP
@@ -2843,8 +2832,8 @@ def solve_front_isothermal(
     s in [0, 1 - tail_eps]. The endpoint truncation is controlled only by
     tail_eps; no compact_tail_lengths cutoff is used in this BVP path.
     """
-    if nB_N <= 0.0:
-        raise RuntimeError("nB_N must be positive")
+    if nB_0minus <= 0.0:
+        raise RuntimeError("nB_0minus must be positive")
     if tail_eps <= 0.0 or tail_eps >= 1.0:
         raise RuntimeError("tail_eps must satisfy 0 < tail_eps < 1")
     if int(n_mesh) < 5:
@@ -2871,7 +2860,7 @@ def solve_front_isothermal(
             print(f"[steady_front_bvp +{dt:8.2f}s] {msg}", flush=True)
 
     if jB_guess is None:
-        jB_guess = 1.0e-6 * nB_N
+        jB_guess = 1.0e-6 * nB_0minus
     jB_guess = float(jB_guess)
     if jB_guess <= 0.0:
         raise RuntimeError("jB_guess must be positive")
@@ -2910,7 +2899,7 @@ def solve_front_isothermal(
         "bvp_ode_calls": 0,
         "bvp_bc_calls": 0,
         "q_root_calls": 0,
-        "qstar_root_calls": 0,
+        "interface_0plus_root_calls": 0,
         "local_state_calls": 0,
         "local_root_calls": 0,
         "local_fast_failures": 0,
@@ -2932,81 +2921,81 @@ def solve_front_isothermal(
         stats["global_state_builds"] += 1
 
         # Upstream nuclear state N at x = 0^-.
-        P_N = float(PNM_n(nB_N, T, param=param, NM_type=NM_type))
-        e_N = float(edensNM_n(nB_N, T, param=param))
-        h_N = float(P_N + e_N)
-        u_N = float(jB / nB_N)
-        Pi = float(h_N * u_N * u_N + P_N)
+        P_0minus = float(PNM_n(nB_0minus, T, param=param, NM_type=NM_type))
+        e_0minus = float(edensNM_n(nB_0minus, T, param=param))
+        h_0minus = float(P_0minus + e_0minus)
+        u_0minus = float(jB / nB_0minus)
+        Pi = float(h_0minus * u_0minus * u_0minus + P_0minus)
 
         # Far-right equilibrated quark state Q with muK = 0.
-        muB_Q = _solve_muB_Q_at_muK0_for_given_Pi(Pi, jB, B_one_forth, T, ms=ms, upB=upB, stats=stats)
-        nB_Q = float(nB_QM(muB_Q, 0.0, B_one_forth, T, ms=ms, upB=upB))
-        if nB_Q <= 0.0:
+        muB_inf = _solve_muB_inf_at_muK0_for_given_Pi(Pi, jB, B_one_forth, T, ms=ms, upB=upB, stats=stats)
+        nB_inf = float(nB_QM(muB_inf, 0.0, B_one_forth, T, ms=ms, upB=upB))
+        if nB_inf <= 0.0:
             raise RuntimeError("Equilibrated Q state has non-positive density")
         if abs(ms) <= 1.0e-12:
-            nK_Q = 0.0
+            nK_inf = 0.0
         else:
-            nK_Q = float(nK_QM(muB_Q, 0.0, B_one_forth, T, ms=ms, upB=upB))
+            nK_inf = float(nK_QM(muB_inf, 0.0, B_one_forth, T, ms=ms, upB=upB))
 
-        # Pure neutron matter implies nK_N = nB_N.
-        a_N = float((nB_N - nK_Q) / nB_Q)
+        # Pure neutron matter implies nK(0-) = nB_0minus.
+        a_0minus = float((nB_0minus - nK_inf) / nB_inf)
 
-        # Interface state Qstar at x = 0+.
-        muK_Qstar_seed = _branch_muK_seed(aQstar)
-        muB_Qstar, muK_Qstar = _solve_interface_Qstar_from_aQstar_and_Pi(
-            aQstar,
+        # Interface state at x = 0+.
+        muK_0plus_seed = _branch_muK_seed(a_0plus)
+        muB_0plus, muK_0plus = _solve_interface_0plus_from_a_0plus_and_Pi(
+            a_0plus,
             Pi,
             jB,
-            nB_Q,
-            nK_Q,
+            nB_inf,
+            nK_inf,
             B_one_forth,
             T,
             ms=ms,
             upB=upB,
-            initial_guess=(muB_Q, muK_Qstar_seed),
+            initial_guess=(muB_inf, muK_0plus_seed),
             stats=stats,
-            stats_key="qstar_root_calls",
+            stats_key="interface_0plus_root_calls",
         )
-        nB_Qstar = float(nB_QM(muB_Qstar, muK_Qstar, B_one_forth, T, ms=ms, upB=upB))
-        if nB_Qstar <= 0.0:
-            raise RuntimeError("Qstar state has non-positive density")
+        nB_0plus = float(nB_QM(muB_0plus, muK_0plus, B_one_forth, T, ms=ms, upB=upB))
+        if nB_0plus <= 0.0:
+            raise RuntimeError("x = 0+ state has non-positive density")
 
-        micro = _microphysics_at_Qstar_isothermal_baseline(muB_Qstar, T)
+        micro = _microphysics_at_0plus_isothermal_baseline(muB_0plus, T)
         D = float(micro["D"])
         eta = float(micro["eta"])
         gamma = float(micro["gamma"])
         tau = float(micro["tau"])
 
-        u_Q = float(jB / nB_Q)
-        disc = float(u_Q * u_Q + 4.0 * D * gamma * eta)
+        u_inf = float(jB / nB_inf)
+        disc = float(u_inf * u_inf + 4.0 * D * gamma * eta)
         if (not np.isfinite(disc)) or disc <= 0.0:
             raise RuntimeError("Tail discriminant is non-positive")
-        lam = float((-u_Q + np.sqrt(disc)) / (2.0 * D))
+        lam = float((-u_inf + np.sqrt(disc)) / (2.0 * D))
         if (not np.isfinite(lam)) or lam <= 0.0:
             raise RuntimeError("Tail decay lambda must be positive")
-        q0 = float(-a_N * u_N)
+        q0 = float(-a_0minus * u_0minus)
         x_end = float(-float(kappa_factor) * np.log1p(-s_end) / lam)
-        tail_coeff = float(D * lam + u_Q)
+        tail_coeff = float(D * lam + u_inf)
         state = {
             "jB": jB,
-            "P_N": P_N,
-            "e_N": e_N,
-            "h_N": h_N,
-            "u_N": u_N,
+            "P_0minus": P_0minus,
+            "e_0minus": e_0minus,
+            "h_0minus": h_0minus,
+            "u_0minus": u_0minus,
             "Pi": Pi,
-            "muB_Q": float(muB_Q),
-            "nB_Q": nB_Q,
-            "nK_Q": float(nK_Q),
-            "a_N": a_N,
-            "muB_Qstar": float(muB_Qstar),
-            "muK_Qstar": float(muK_Qstar),
-            "nB_Qstar": nB_Qstar,
+            "muB_inf": float(muB_inf),
+            "nB_inf": nB_inf,
+            "nK_inf": float(nK_inf),
+            "a_0minus": a_0minus,
+            "muB_0plus": float(muB_0plus),
+            "muK_0plus": float(muK_0plus),
+            "nB_0plus": nB_0plus,
             "D": D,
             "eta": eta,
             "gamma": gamma,
             "tau": tau,
             "lambda": lam,
-            "u_Q": u_Q,
+            "u_inf": u_inf,
             "q0": q0,
             "tail_coeff": tail_coeff,
             "x_end": x_end,
@@ -3029,7 +3018,7 @@ def solve_front_isothermal(
             return np.zeros_like(y) + 1.0e12
 
         dyds = np.empty_like(y)
-        guess = (state["muB_Qstar"], state["muK_Qstar"])
+        guess = (state["muB_0plus"], state["muK_0plus"])
         for i in range(y.shape[1]):
             a_val = float(y[0, i])
             q_val = float(y[1, i])
@@ -3042,8 +3031,8 @@ def solve_front_isothermal(
                     a_val,
                     state["Pi"],
                     state["jB"],
-                    state["nB_Q"],
-                    state["nK_Q"],
+                    state["nB_inf"],
+                    state["nK_inf"],
                     B_one_forth,
                     T,
                     ms=ms,
@@ -3069,7 +3058,7 @@ def solve_front_isothermal(
             return np.array([1.0e12, 1.0e12, 1.0e12], dtype=float)
         return np.array(
             [
-                ya[0] - float(aQstar),
+                ya[0] - float(a_0plus),
                 ya[1] - state["q0"],
                 yb[1] + state["tail_coeff"] * yb[0],
             ],
@@ -3080,14 +3069,14 @@ def solve_front_isothermal(
     state0 = _build_global_state(theta_guess)
     s_mesh = np.linspace(0.0, s_end, int(n_mesh))
     tail_shape = np.maximum(1.0 - s_mesh, tail_eps) ** max(float(kappa_factor), 1.0e-12)
-    a_guess = float(aQstar) * tail_shape
+    a_guess = float(a_0plus) * tail_shape
     q_tail_guess = -state0["tail_coeff"] * a_guess
     blend = s_mesh / max(s_end, np.finfo(float).tiny)
     q_guess = (1.0 - blend) * state0["q0"] + blend * q_tail_guess
     y_guess = np.vstack((a_guess, q_guess))
 
     _diag(
-        f"starting compact BVP with jB_guess={jB_guess:.6g}, aQstar={aQstar:.6g}, "
+        f"starting compact BVP with jB_guess={jB_guess:.6g}, a_0plus={a_0plus:.6g}, "
         f"tail_eps={tail_eps:.3g}, branch=muK-rich"
     )
 
@@ -3106,7 +3095,7 @@ def solve_front_isothermal(
         return {
             "success": False,
             "message": f"solve_bvp raised: {exc}; last failure: {last_failure['message']}",
-            "aQstar": float(aQstar),
+            "a_0plus": float(a_0plus),
             "jB": np.nan,
             "branch_label": "muK-rich",
             "tail_residual": np.nan,
@@ -3123,7 +3112,7 @@ def solve_front_isothermal(
         return {
             "success": False,
             "message": f"BVP final state construction failed: {last_failure['message']}",
-            "aQstar": float(aQstar),
+            "a_0plus": float(a_0plus),
             "jB": np.nan,
             "branch_label": "muK-rich",
             "tail_residual": np.nan,
@@ -3146,21 +3135,21 @@ def solve_front_isothermal(
         "success": success,
         "message": "Compact BVP steady-front solve converged" if success else f"{sol.message}; last failure: {last_failure['message']}",
         "jB": float(state["jB"]),
-        "aQstar": float(aQstar),
+        "a_0plus": float(a_0plus),
         "branch_label": "muK-rich",
         "coordinate": "BVP: s in [0, 1-tail_eps], s=1-exp(-lambda*x/kappa_factor)",
         "tail_eps": float(tail_eps),
         "kappa_factor": float(kappa_factor),
-        "u_N": float(state["u_N"]),
-        "u_Q": float(state["u_Q"]),
-        "a_N": float(state["a_N"]),
+        "u_0minus": float(state["u_0minus"]),
+        "u_inf": float(state["u_inf"]),
+        "a_0minus": float(state["a_0minus"]),
         "Pi": float(state["Pi"]),
-        "muB_Qstar": float(state["muB_Qstar"]),
-        "muK_Qstar": float(state["muK_Qstar"]),
-        "nB_Qstar": float(state["nB_Qstar"]),
-        "muB_Q": float(state["muB_Q"]),
-        "nB_Q": float(state["nB_Q"]),
-        "nK_Q": float(state["nK_Q"]),
+        "muB_0plus": float(state["muB_0plus"]),
+        "muK_0plus": float(state["muK_0plus"]),
+        "nB_0plus": float(state["nB_0plus"]),
+        "muB_inf": float(state["muB_inf"]),
+        "nB_inf": float(state["nB_inf"]),
+        "nK_inf": float(state["nK_inf"]),
         "D": float(state["D"]),
         "eta": float(state["eta"]),
         "gamma": float(state["gamma"]),
@@ -3200,15 +3189,15 @@ def solve_front_isothermal(
             muK_prof = np.empty_like(s_prof)
             nB_prof = np.empty_like(s_prof)
             u_prof = np.empty_like(s_prof)
-            guess = (state["muB_Qstar"], state["muK_Qstar"])
+            guess = (state["muB_0plus"], state["muK_0plus"])
             for i, a_val in enumerate(a_prof):
                 stats["profile_state_calls"] += 1
                 muB_loc, muK_loc, nB_loc, u_loc = _solve_local_quark_state_from_a_and_Pi(
                     float(a_val),
                     state["Pi"],
                     state["jB"],
-                    state["nB_Q"],
-                    state["nK_Q"],
+                    state["nB_inf"],
+                    state["nK_inf"],
                     B_one_forth,
                     T,
                     ms=ms,
@@ -3224,8 +3213,8 @@ def solve_front_isothermal(
             closure_prof = np.abs(
                 np.array(
                     [
-                        (nK_QM(float(muB_prof[i]), float(muK_prof[i]), B_one_forth, T, ms=ms, upB=upB) - state["nK_Q"])
-                        / state["nB_Q"]
+                        (nK_QM(float(muB_prof[i]), float(muK_prof[i]), B_one_forth, T, ms=ms, upB=upB) - state["nK_inf"])
+                        / state["nB_inf"]
                         - a_prof[i]
                         for i in range(len(a_prof))
                     ],
@@ -3258,9 +3247,9 @@ def solve_front_isothermal(
                 try:
                     coarse_profile = solve_front_isothermal(
                         T=T,
-                        nB_N=nB_N,
+                        nB_0minus=nB_0minus,
                         B_one_forth=B_one_forth,
-                        aQstar=aQstar,
+                        a_0plus=a_0plus,
                         ms=ms,
                         param=param,
                         NM_type=NM_type,
@@ -3301,9 +3290,9 @@ def solve_front_isothermal(
         try:
             coarse_result = solve_front_isothermal(
                 T=T,
-                nB_N=nB_N,
+                nB_0minus=nB_0minus,
                 B_one_forth=B_one_forth,
-                aQstar=aQstar,
+                a_0plus=a_0plus,
                 ms=ms,
                 param=param,
                 NM_type=NM_type,
@@ -3321,9 +3310,9 @@ def solve_front_isothermal(
             if bool(coarse_result.get("success")) and np.isfinite(coarse_jB) and coarse_jB > 0.0:
                 refined_result = solve_front_isothermal(
                     T=T,
-                    nB_N=nB_N,
+                    nB_0minus=nB_0minus,
                     B_one_forth=B_one_forth,
-                    aQstar=aQstar,
+                    a_0plus=a_0plus,
                     ms=ms,
                     param=param,
                     NM_type=NM_type,
@@ -3350,7 +3339,7 @@ def solve_front_isothermal(
 
     if simple_diag:
         print(
-            f"bvp jB={result['jB']:.6g}, aQstar={aQstar:.6g}, "
+            f"bvp jB={result['jB']:.6g}, a_0plus={a_0plus:.6g}, "
             f"tail_norm={tail_residual_norm:.6g}, status={sol.status}, success={success}"
         )
     return result
@@ -3430,7 +3419,7 @@ def _solve_interface_state_from_local_a_E_and_Pi(
     """
     a_target = float(a_target)
     if not (0.0 < a_target < 1.0):
-        raise RuntimeError("aQstar must satisfy 0 < aQstar < 1")
+        raise RuntimeError("a_0plus must satisfy 0 < a_0plus < 1")
     guesses = []
     if initial_guess is not None:
         guess = np.asarray(initial_guess, dtype=float).ravel()
@@ -3493,7 +3482,7 @@ def _solve_interface_state_from_local_a_E_and_Pi(
     for muB_guess, muK_guess, T_guess in guesses:
         try:
             if stats is not None:
-                stats["qstar_root_calls"] = stats.get("qstar_root_calls", 0) + 1
+                stats["interface_0plus_root_calls"] = stats.get("interface_0plus_root_calls", 0) + 1
             sol = root(
                 equations,
                 np.array([muB_guess, muK_guess, T_guess * T_guess], dtype=float),
@@ -3517,7 +3506,7 @@ def _solve_interface_state_from_local_a_E_and_Pi(
     if w_best < -1.0e-12:
         raise RuntimeError(
             "Local-a interface closure has no solution: the requested "
-            f"aQstar={a_target:.10g} is unreachable at this (E, Pi), the closure "
+            f"a_0plus={a_target:.10g} is unreachable at this (E, Pi), the closure "
             f"converging to T^2={w_best:.3e} < 0"
         )
     thermo = _quark_thermo_state(
@@ -3547,10 +3536,10 @@ def _nK_tail_residual(yb, target):
 
 
 def _solve_front_energy_conserving_nK_once(
-    T,
-    nB_N,
+    T_0minus,
+    nB_0minus,
     B_one_forth,
-    aQstar,
+    a_0plus,
     ms=0.0,
     param=para.paraQMCRMF3,
     NM_type="PNM",
@@ -3567,15 +3556,15 @@ def _solve_front_energy_conserving_nK_once(
     profile_guess=None,
 ):
     """Solve the energy-conserving front using absolute nK and the exact rate."""
-    T = float(T)
-    nB_N = float(nB_N)
-    aQstar = float(aQstar)
+    T_0minus = float(T_0minus)
+    nB_0minus = float(nB_0minus)
+    a_0plus = float(a_0plus)
     if NM_type != "PNM":
         raise RuntimeError("solve_front_energy_conserving_nK currently requires NM_type='PNM'")
-    if T <= 0.0 or nB_N <= 0.0:
-        raise RuntimeError("T and nB_N must be positive")
-    if not (0.0 < aQstar < 1.0):
-        raise RuntimeError("aQstar must satisfy 0 < aQstar < 1")
+    if T_0minus <= 0.0 or nB_0minus <= 0.0:
+        raise RuntimeError("T and nB_0minus must be positive")
+    if not (0.0 < a_0plus < 1.0):
+        raise RuntimeError("a_0plus must satisfy 0 < a_0plus < 1")
     if not (0.0 < float(tail_eps) < 1.0):
         raise RuntimeError("tail_eps must satisfy 0 < tail_eps < 1")
     if int(n_mesh) < 5 or int(max_nodes) <= int(n_mesh) or float(tol_bvp) <= 0.0:
@@ -3584,19 +3573,19 @@ def _solve_front_energy_conserving_nK_once(
         raise RuntimeError("compact_scale must be positive and finite")
 
     upB = 5000
-    P_N = float(PNM_n(nB_N, T, param=param, NM_type=NM_type))
-    e_N = float(edensNM_n(nB_N, T, param=param))
-    h_N = float(P_N + e_N)
+    P_0minus = float(PNM_n(nB_0minus, T_0minus, param=param, NM_type=NM_type))
+    e_0minus = float(edensNM_n(nB_0minus, T_0minus, param=param))
+    h_0minus = float(P_0minus + e_0minus)
     nuclear_state = {
-        "P_N": P_N,
-        "e_N": e_N,
-        "h_N": h_N,
-        "nB_N": nB_N,
-        "h_over_nB_N": float(h_N / nB_N),
-        "T_N": T,
+        "P_0minus": P_0minus,
+        "e_0minus": e_0minus,
+        "h_0minus": h_0minus,
+        "nB_0minus": nB_0minus,
+        "h_over_nB_0minus": float(h_0minus / nB_0minus),
+        "T_0minus": T_0minus,
     }
     if jB_guess is None:
-        jB_guess = _default_energy_jB_guess(nB_N)
+        jB_guess = _default_energy_jB_guess(nB_0minus)
     jB_guess = float(jB_guess)
     if jB_guess <= 0.0:
         raise RuntimeError("jB_guess must be positive")
@@ -3629,7 +3618,7 @@ def _solve_front_energy_conserving_nK_once(
         "bvp_bc_calls": 0,
         "local_state_calls": 0,
         "local_root_calls": 0,
-        "qstar_root_calls": 0,
+        "interface_0plus_root_calls": 0,
         "downstream_root_calls": 0,
     }
     state_cache = {}
@@ -3641,14 +3630,14 @@ def _solve_front_energy_conserving_nK_once(
         if key in state_cache:
             return state_cache[key]
         jB = jB_from_param(theta)
-        u_N = float(jB / nB_N)
-        r_gamma_N = _relativistic_gamma_from_u(u_N)
+        u_0minus = float(jB / nB_0minus)
+        r_gamma_0minus = _relativistic_gamma_from_u(u_0minus)
         state = {
             "jB": jB,
-            "u_N": u_N,
-            "r_gamma_N": r_gamma_N,
-            "Pi": float(h_N * u_N * u_N + P_N),
-            "E": float(h_N * u_N * r_gamma_N),
+            "u_0minus": u_0minus,
+            "r_gamma_0minus": r_gamma_0minus,
+            "Pi": float(h_0minus * u_0minus * u_0minus + P_0minus),
+            "E": float(h_0minus * u_0minus * r_gamma_0minus),
         }
         state_cache[key] = state
         return state
@@ -3659,18 +3648,18 @@ def _solve_front_energy_conserving_nK_once(
             return downstream_cache[key]
         state = build_state(theta)
         stats["downstream_root_calls"] += 1
-        endpoint = _solve_analytic_downstream_endpoint_for_uN(
-            state["u_N"],
+        endpoint = _solve_analytic_inf_endpoint_for_u_0minus(
+            state["u_0minus"],
             nuclear_state,
             B_one_forth,
             ms=ms,
             upB=upB,
         )
         thermo = _quark_thermo_state(
-            endpoint["muB_Q"],
+            endpoint["muB_inf"],
             0.0,
             B_one_forth,
-            endpoint["T_Q"],
+            endpoint["T_inf"],
             state["jB"],
             ms=ms,
             upB=upB,
@@ -3678,7 +3667,7 @@ def _solve_front_energy_conserving_nK_once(
         micro = _microphysics_from_quark_state_energy(thermo["muB"], thermo["T"])
         if micro["invD"] <= 0.0:
             raise RuntimeError("downstream inverse diffusion coefficient must be positive")
-        D_Q = float(1.0 / micro["invD"])
+        D_inf = float(1.0 / micro["invD"])
         delta_nK = float(max(1.0e-5 * max(abs(thermo["nK"]), thermo["nB"]), 1.0e-2))
         probe = _solve_local_quark_state_from_nK_E_and_Pi(
             thermo["nK"] + delta_nK,
@@ -3698,15 +3687,15 @@ def _solve_front_energy_conserving_nK_once(
         rate_slope = float(rate_probe / delta_nK)
         if (not np.isfinite(rate_slope)) or rate_slope <= 0.0:
             raise RuntimeError("downstream exact-rate slope must be positive")
-        u_Q = float(thermo["u"])
-        lam = float((-u_Q + np.sqrt(u_Q * u_Q + 4.0 * D_Q * rate_slope)) / (2.0 * D_Q))
+        u_inf = float(thermo["u"])
+        lam = float((-u_inf + np.sqrt(u_inf * u_inf + 4.0 * D_inf * rate_slope)) / (2.0 * D_inf))
         target = {
             **thermo,
-            "D": D_Q,
+            "D": D_inf,
             "invD": float(micro["invD"]),
             "rate_slope": rate_slope,
             "lambda": lam,
-            "jK": float(u_Q * thermo["nK"]),
+            "jK": float(u_inf * thermo["nK"]),
             "a": float(thermo["nK"] / thermo["nB"]),
         }
         downstream_cache[key] = target
@@ -3714,24 +3703,24 @@ def _solve_front_energy_conserving_nK_once(
 
     theta0 = param_from_jB(jB_guess)
     state0 = build_state(theta0)
-    qstar0 = _solve_interface_state_from_local_a_E_and_Pi(
-        aQstar,
+    state_0plus = _solve_interface_state_from_local_a_E_and_Pi(
+        a_0plus,
         state0["E"],
         state0["Pi"],
         state0["jB"],
         B_one_forth,
         ms=ms,
         upB=upB,
-        initial_guess=(1200.0, max(40.0, 300.0 * aQstar), T),
+        initial_guess=(1200.0, max(40.0, 300.0 * a_0plus), T_0minus),
         stats=stats,
     )
-    micro_qstar0 = _microphysics_from_quark_state_energy(qstar0["muB"], qstar0["T"])
-    rate_qstar0 = _exact_kaon_transport_rate(
-        qstar0["muB"], qstar0["muK"], qstar0["T"], ms=ms, upB=upB
+    micro_0plus = _microphysics_from_quark_state_energy(state_0plus["muB"], state_0plus["T"])
+    rate_0plus = _exact_kaon_transport_rate(
+        state_0plus["muB"], state_0plus["muK"], state_0plus["T"], ms=ms, upB=upB
     )["Gamma_K"]
     if compact_scale is None:
-        D_qstar0 = 1.0 / micro_qstar0["invD"]
-        compact_scale_used = float(np.sqrt(D_qstar0 * max(abs(qstar0["nK"]), 1.0) / max(abs(rate_qstar0), _FLOAT_TINY)))
+        D_0plus = 1.0 / micro_0plus["invD"]
+        compact_scale_used = float(np.sqrt(D_0plus * max(abs(state_0plus["nK"]), 1.0) / max(abs(rate_0plus), _FLOAT_TINY)))
     else:
         compact_scale_used = float(compact_scale)
     if (not np.isfinite(compact_scale_used)) or compact_scale_used <= 0.0:
@@ -3741,24 +3730,24 @@ def _solve_front_energy_conserving_nK_once(
     s_mesh = np.linspace(0.0, s_end, int(n_mesh))
     blend = s_mesh / s_end
     tail_shape = np.maximum(1.0 - blend, 0.0)
-    nK_guess = qstar0["nK"] * tail_shape
+    nK_guess = state_0plus["nK"] * tail_shape
     jK_guess_profile = state0["jB"] * tail_shape
     if isinstance(profile_guess, dict):
         try:
             prev_s = np.asarray(profile_guess["s_coord"], dtype=float)
             prev_nK = np.asarray(profile_guess["nK"], dtype=float)
             prev_jK = np.asarray(profile_guess["jK"], dtype=float)
-            prev_nK_Q = float(profile_guess.get("nK_Q", 0.0))
+            prev_nK_inf = float(profile_guess.get("nK_inf", 0.0))
             if prev_s.ndim == 1 and prev_nK.shape == prev_s.shape and prev_jK.shape == prev_s.shape:
-                prev_delta0 = float(prev_nK[0] - prev_nK_Q)
-                scale = float((qstar0["nK"] - prev_nK_Q) / prev_delta0) if abs(prev_delta0) > 1.0e-12 else 1.0
-                nK_guess = prev_nK_Q + scale * np.interp(s_mesh, prev_s, prev_nK - prev_nK_Q)
+                prev_delta0 = float(prev_nK[0] - prev_nK_inf)
+                scale = float((state_0plus["nK"] - prev_nK_inf) / prev_delta0) if abs(prev_delta0) > 1.0e-12 else 1.0
+                nK_guess = prev_nK_inf + scale * np.interp(s_mesh, prev_s, prev_nK - prev_nK_inf)
                 jK_guess_profile = np.interp(s_mesh, prev_s, prev_jK)
                 jK_guess_profile += (state0["jB"] - jK_guess_profile[0]) * (1.0 - blend)
-                nK_guess[0] = qstar0["nK"]
+                nK_guess[0] = state_0plus["nK"]
                 jK_guess_profile[0] = state0["jB"]
         except Exception:
-            nK_guess = qstar0["nK"] * tail_shape
+            nK_guess = state_0plus["nK"] * tail_shape
             jK_guess_profile = state0["jB"] * tail_shape
     y_guess = np.vstack((nK_guess, jK_guess_profile))
 
@@ -3766,7 +3755,7 @@ def _solve_front_energy_conserving_nK_once(
         stats["bvp_ode_calls"] += 1
         state = build_state(float(p[0]))
         dyds = np.empty_like(y)
-        guess = (qstar0["muB"], qstar0["muK"], qstar0["T"])
+        guess = (state_0plus["muB"], state_0plus["muK"], state_0plus["T"])
         for i in range(y.shape[1]):
             try:
                 thermo = _solve_local_quark_state_from_nK_E_and_Pi(
@@ -3778,7 +3767,7 @@ def _solve_front_energy_conserving_nK_once(
                     ms=ms,
                     upB=upB,
                     initial_guess=guess,
-                    T_ref=T,
+                    T_ref=T_0minus,
                     stats=stats,
                 )
                 guess = (thermo["muB"], thermo["muK"], thermo["T"])
@@ -3806,8 +3795,8 @@ def _solve_front_energy_conserving_nK_once(
                 B_one_forth,
                 ms=ms,
                 upB=upB,
-                initial_guess=(qstar0["muB"], qstar0["muK"], qstar0["T"]),
-                T_ref=qstar0["T"],
+                initial_guess=(state_0plus["muB"], state_0plus["muK"], state_0plus["T"]),
+                T_ref=state_0plus["T"],
                 stats=stats,
             )
             target = downstream_target(float(p[0]))
@@ -3816,7 +3805,7 @@ def _solve_front_energy_conserving_nK_once(
             nK_scale = max(abs(left["nK"]), abs(target["nK"]), 1.0)
             return np.array(
                 [
-                    (left["nK"] / left["nB"] - aQstar) / max(abs(aQstar), 1.0e-6),
+                    (left["nK"] / left["nB"] - a_0plus) / max(abs(a_0plus), 1.0e-6),
                     (float(ya[1]) - state["jB"]) / j_scale,
                     tail / max(j_scale, (target["D"] * target["lambda"] + abs(target["u"])) * nK_scale),
                 ],
@@ -3845,7 +3834,7 @@ def _solve_front_energy_conserving_nK_once(
         return {
             "success": False,
             "message": f"absolute-nK energy BVP failed: {exc}; last failure: {last_failure['message']}",
-            "aQstar": aQstar,
+            "a_0plus": a_0plus,
             "rate_model": "exact_nonleptonic",
             "composition_definition": "nK_over_local_nB",
             "current_definition": "u_nK_minus_D_dnK_dx",
@@ -3858,7 +3847,7 @@ def _solve_front_energy_conserving_nK_once(
     profile = {key: np.empty_like(s_profile) for key in (
         "nB", "u", "muB", "muK", "T", "P", "h", "r_gamma", "invD", "mu_u", "mu_d", "mu_s", "Gamma_K"
     )}
-    guess = (qstar0["muB"], qstar0["muK"], qstar0["T"])
+    guess = (state_0plus["muB"], state_0plus["muK"], state_0plus["T"])
     for i, nK_val in enumerate(y_profile[0]):
         thermo = _solve_local_quark_state_from_nK_E_and_Pi(
             float(nK_val),
@@ -3904,17 +3893,17 @@ def _solve_front_energy_conserving_nK_once(
     result = {
         "success": success,
         "message": "Absolute-nK energy-conserving BVP converged" if success else f"{sol.message}; last failure: {last_failure['message']}",
-        "aQstar": aQstar,
-        "aQstar_derived": float(a_profile[0]),
+        "a_0plus": a_0plus,
+        "a_0plus_derived": float(a_profile[0]),
         "jB": float(state["jB"]),
-        "u_N": float(state["u_N"]),
+        "u_0minus": float(state["u_0minus"]),
         "Pi": float(state["Pi"]),
         "E": float(state["E"]),
-        "T_Q": float(target["T"]),
-        "nB_Q": float(target["nB"]),
-        "nK_Q": float(target["nK"]),
-        "a_Q": float(target["a"]),
-        "lambda_Q": float(target["lambda"]),
+        "T_inf": float(target["T"]),
+        "nB_inf": float(target["nB"]),
+        "nK_inf": float(target["nK"]),
+        "a_inf": float(target["a"]),
+        "lambda_inf": float(target["lambda"]),
         "compact_scale": compact_scale_used,
         "tail_eps": float(tail_eps),
         "boundary_residuals": np.asarray(bc_residual, dtype=float),
@@ -3981,10 +3970,10 @@ def _solve_front_energy_conserving_nK_once(
 
 
 def solve_front_energy_conserving_nK(
-    T,
-    nB_N,
+    T_0minus,
+    nB_0minus,
     B_one_forth,
-    aQstar,
+    a_0plus,
     ms=0.0,
     param=para.paraQMCRMF3,
     NM_type="PNM",
@@ -3999,12 +3988,12 @@ def solve_front_energy_conserving_nK(
     return_raw_bvp_grid=False,
     verb=False,
 ):
-    """Public absolute-nK solver with staged aQstar continuation fallback."""
+    """Public absolute-nK solver with staged a_0plus continuation fallback."""
     direct = _solve_front_energy_conserving_nK_once(
-        T,
-        nB_N,
+        T_0minus,
+        nB_0minus,
         B_one_forth,
-        aQstar,
+        a_0plus,
         ms=ms,
         param=param,
         NM_type=NM_type,
@@ -4019,17 +4008,17 @@ def solve_front_energy_conserving_nK(
         return_raw_bvp_grid=return_raw_bvp_grid,
         verb=verb,
     )
-    if bool(direct.get("success")) or float(aQstar) <= 2.0e-2:
+    if bool(direct.get("success")) or float(a_0plus) <= 2.0e-2:
         direct["continuation_used"] = False
         direct["continuation_steps"] = 0
         return direct
 
-    stage_targets = np.linspace(2.0e-2, float(aQstar), int(np.ceil((float(aQstar) - 2.0e-2) / 2.0e-2)) + 1)
+    stage_targets = np.linspace(2.0e-2, float(a_0plus), int(np.ceil((float(a_0plus) - 2.0e-2) / 2.0e-2)) + 1)
     current = None
     for index, stage_a in enumerate(stage_targets):
         stage = _solve_front_energy_conserving_nK_once(
-            T,
-            nB_N,
+            T_0minus,
+            nB_0minus,
             B_one_forth,
             float(stage_a),
             ms=ms,
@@ -4049,7 +4038,7 @@ def solve_front_energy_conserving_nK(
         )
         if not bool(stage.get("success")):
             failed = dict(stage)
-            failed["message"] = f"{direct.get('message')}; continuation failed at aQstar={stage_a:.6g}: {stage.get('message')}"
+            failed["message"] = f"{direct.get('message')}; continuation failed at a_0plus={stage_a:.6g}: {stage.get('message')}"
             failed["continuation_used"] = True
             failed["continuation_steps"] = index
             return failed
@@ -4068,7 +4057,7 @@ def solve_front_energy_conserving_nK(
     return current
 
 
-def _uNmax_collocation_status_is_acceptable(
+def _u0minus_max_collocation_status_is_acceptable(
     *, solver_success, solver_status, exact_zero_left
 ):
     """Require SciPy's collocation solve itself to have converged."""
@@ -4076,10 +4065,10 @@ def _uNmax_collocation_status_is_acceptable(
 
 
 def _solve_front_energy_conserving_uNmax_once(
-    T,
-    nB_N,
+    T_0minus,
+    nB_0minus,
     B_one_forth,
-    TQstar,
+    T_0plus,
     ms=0.0,
     param=para.paraQMCRMF3,
     NM_type="PNM",
@@ -4088,71 +4077,71 @@ def _solve_front_energy_conserving_uNmax_once(
     tol_bvp=1e-4,
     max_nodes=10000,
     jB_guess=None,
-    TQ_guess=None,
+    T_inf_guess=None,
     jB_bounds=None,
     return_profile=False,
     verb=False,
     continuation_guess=None,
 ):
     """
-    Solve the fixed-TQstar energy front using absolute nK and physical jK.
+    Solve the fixed-T_0plus energy front using absolute nK and physical jK.
 
     The prescribed interface temperature is not a root unknown. Interior local
     states use the same T**2 closure as solve_front_energy_conserving_nK.
     """
-    T = float(T)
-    nB_N = float(nB_N)
-    TQstar = float(TQstar)
+    T_0minus = float(T_0minus)
+    nB_0minus = float(nB_0minus)
+    T_0plus = float(T_0plus)
     if NM_type != "PNM":
         raise RuntimeError("solve_front_energy_conserving_uNmax currently requires NM_type='PNM'")
-    if (not np.isfinite(T)) or T <= 0.0 or (not np.isfinite(nB_N)) or nB_N <= 0.0:
-        raise RuntimeError("solve_front_energy_conserving_uNmax requires positive T and nB_N")
-    if (not np.isfinite(TQstar)) or TQstar < 0.0:
-        raise RuntimeError("TQstar must be non-negative")
+    if (not np.isfinite(T_0minus)) or T_0minus <= 0.0 or (not np.isfinite(nB_0minus)) or nB_0minus <= 0.0:
+        raise RuntimeError("solve_front_energy_conserving_uNmax requires positive T and nB_0minus")
+    if (not np.isfinite(T_0plus)) or T_0plus < 0.0:
+        raise RuntimeError("T_0plus must be non-negative")
     if not (0.0 < float(tail_eps) < 1.0):
         raise RuntimeError("tail_eps must satisfy 0 < tail_eps < 1")
     if int(n_mesh) < 5 or int(max_nodes) <= int(n_mesh) or float(tol_bvp) <= 0.0:
         raise RuntimeError("invalid BVP mesh or tolerance settings")
 
     upB = 5000
-    P_N = float(PNM_n(nB_N, T, param=param, NM_type=NM_type))
-    e_N = float(edensNM_n(nB_N, T, param=param))
-    h_N = float(P_N + e_N)
+    P_0minus = float(PNM_n(nB_0minus, T_0minus, param=param, NM_type=NM_type))
+    e_0minus = float(edensNM_n(nB_0minus, T_0minus, param=param))
+    h_0minus = float(P_0minus + e_0minus)
     nuclear_state = {
-        "P_N": P_N,
-        "e_N": e_N,
-        "h_N": h_N,
-        "nB_N": nB_N,
-        "h_over_nB_N": float(h_N / nB_N),
-        "T_N": T,
+        "P_0minus": P_0minus,
+        "e_0minus": e_0minus,
+        "h_0minus": h_0minus,
+        "nB_0minus": nB_0minus,
+        "h_over_nB_0minus": float(h_0minus / nB_0minus),
+        "T_0minus": T_0minus,
     }
     if jB_guess is None:
-        jB_guess = _default_energy_jB_guess(nB_N)
+        jB_guess = _default_energy_jB_guess(nB_0minus)
     jB_guess = float(jB_guess)
     if (not np.isfinite(jB_guess)) or jB_guess <= 0.0:
         raise RuntimeError("jB_guess must be positive")
     endpoint_initial_guess = None
     if isinstance(continuation_guess, dict):
         try:
-            continued_muB_Q = float(continuation_guess.get("muB_Q", np.nan))
-            continued_T_Q = float(continuation_guess.get("T_Q", np.nan))
+            continued_muB_inf = float(continuation_guess.get("muB_inf", np.nan))
+            continued_T_inf = float(continuation_guess.get("T_inf", np.nan))
         except Exception:
-            continued_muB_Q = np.nan
-            continued_T_Q = np.nan
+            continued_muB_inf = np.nan
+            continued_T_inf = np.nan
         if (
-            np.isfinite(continued_muB_Q)
-            and continued_muB_Q > 0.0
-            and np.isfinite(continued_T_Q)
-            and continued_T_Q > 0.0
+            np.isfinite(continued_muB_inf)
+            and continued_muB_inf > 0.0
+            and np.isfinite(continued_T_inf)
+            and continued_T_inf > 0.0
         ):
-            endpoint_initial_guess = (continued_muB_Q, continued_T_Q)
-    if endpoint_initial_guess is None and TQ_guess is not None:
+            endpoint_initial_guess = (continued_muB_inf, continued_T_inf)
+    if endpoint_initial_guess is None and T_inf_guess is not None:
         try:
-            TQ_guess_value = float(TQ_guess)
+            T_inf_guess_value = float(T_inf_guess)
         except Exception:
-            TQ_guess_value = np.nan
-        if np.isfinite(TQ_guess_value) and TQ_guess_value > 0.0:
-            endpoint_initial_guess = (1100.0, TQ_guess_value)
+            T_inf_guess_value = np.nan
+        if np.isfinite(T_inf_guess_value) and T_inf_guess_value > 0.0:
+            endpoint_initial_guess = (1100.0, T_inf_guess_value)
 
     bounded_jB = jB_bounds is not None
     if bounded_jB:
@@ -4181,7 +4170,7 @@ def _solve_front_energy_conserving_uNmax_once(
         "bvp_ode_calls": 0,
         "bvp_bc_calls": 0,
         "q_root_calls": 0,
-        "qstar_root_calls": 0,
+        "interface_0plus_root_calls": 0,
         "downstream_root_calls": 0,
         "local_state_calls": 0,
         "local_root_calls": 0,
@@ -4193,31 +4182,31 @@ def _solve_front_energy_conserving_uNmax_once(
     state_cache = {}
     last_failure = {"message": ""}
     endpoint_guess_cache = {"value": endpoint_initial_guess}
-    qstar_initial_guess = None
+    state_0plus_initial_guess = None
     if isinstance(continuation_guess, dict):
         try:
-            continued_muB_Qstar = float(continuation_guess.get("muB_Qstar", np.nan))
-            continued_muK_Qstar = float(continuation_guess.get("muK_Qstar", np.nan))
-            continued_T_Qstar = float(continuation_guess.get("T_Qstar", TQstar))
+            continued_muB_0plus = float(continuation_guess.get("muB_0plus", np.nan))
+            continued_muK_0plus = float(continuation_guess.get("muK_0plus", np.nan))
+            continued_T_0plus = float(continuation_guess.get("T_0plus", T_0plus))
         except Exception:
-            continued_muB_Qstar = np.nan
-            continued_muK_Qstar = np.nan
-            continued_T_Qstar = np.nan
+            continued_muB_0plus = np.nan
+            continued_muK_0plus = np.nan
+            continued_T_0plus = np.nan
         if (
-            np.isfinite(continued_muB_Qstar)
-            and continued_muB_Qstar > 0.0
-            and np.isfinite(continued_muK_Qstar)
-            and continued_muK_Qstar >= 0.0
-            and np.isfinite(continued_T_Qstar)
-            and continued_T_Qstar >= 0.0
+            np.isfinite(continued_muB_0plus)
+            and continued_muB_0plus > 0.0
+            and np.isfinite(continued_muK_0plus)
+            and continued_muK_0plus >= 0.0
+            and np.isfinite(continued_T_0plus)
+            and continued_T_0plus >= 0.0
         ):
-            qstar_initial_guess = (
-                continued_muB_Qstar,
-                continued_muK_Qstar,
-                continued_T_Qstar,
+            state_0plus_initial_guess = (
+                continued_muB_0plus,
+                continued_muK_0plus,
+                continued_T_0plus,
             )
-    qstar_guess_cache = {"value": qstar_initial_guess}
-    exact_zero_left = bool(TQstar == 0.0)
+    state_0plus_guess_cache = {"value": state_0plus_initial_guess}
+    exact_zero_left = bool(T_0plus == 0.0)
     s_end = float(1.0 - tail_eps)
 
     def build_state(theta):
@@ -4226,62 +4215,62 @@ def _solve_front_energy_conserving_uNmax_once(
             return state_cache[key]
         stats["global_state_builds"] += 1
         jB = jB_from_param(theta)
-        u_N = float(jB / nB_N)
-        r_gamma_N = _relativistic_gamma_from_u(u_N)
-        E = float(h_N * u_N * r_gamma_N)
-        Pi = float(h_N * u_N * u_N + P_N)
+        u_0minus = float(jB / nB_0minus)
+        r_gamma_0minus = _relativistic_gamma_from_u(u_0minus)
+        E = float(h_0minus * u_0minus * r_gamma_0minus)
+        Pi = float(h_0minus * u_0minus * u_0minus + P_0minus)
 
         stats["downstream_root_calls"] += 1
-        endpoint = _solve_analytic_downstream_endpoint_for_uN(
-            u_N,
+        endpoint = _solve_analytic_inf_endpoint_for_u_0minus(
+            u_0minus,
             nuclear_state,
             B_one_forth,
             ms=ms,
             upB=upB,
             initial_guess=endpoint_guess_cache["value"],
         )
-        endpoint_guess_cache["value"] = endpoint.get("endpoint_initial_guess", (endpoint["muB_Q"], endpoint["T_Q"]))
-        T_Q = float(endpoint["T_Q"])
-        thermo_Q = _quark_thermo_state(endpoint["muB_Q"], 0.0, B_one_forth, T_Q, jB, ms=ms, upB=upB)
-        E_Q = float(thermo_Q["h"] * thermo_Q["u"] * _relativistic_gamma_from_u(thermo_Q["u"]))
-        Pi_Q = float(thermo_Q["h"] * thermo_Q["u"] * thermo_Q["u"] + thermo_Q["P"])
+        endpoint_guess_cache["value"] = endpoint.get("endpoint_initial_guess", (endpoint["muB_inf"], endpoint["T_inf"]))
+        T_inf = float(endpoint["T_inf"])
+        thermo_inf = _quark_thermo_state(endpoint["muB_inf"], 0.0, B_one_forth, T_inf, jB, ms=ms, upB=upB)
+        E_inf = float(thermo_inf["h"] * thermo_inf["u"] * _relativistic_gamma_from_u(thermo_inf["u"]))
+        Pi_inf = float(thermo_inf["h"] * thermo_inf["u"] * thermo_inf["u"] + thermo_inf["P"])
 
-        qstar_guess = qstar_guess_cache["value"]
-        if qstar_guess is None:
-            qstar_guess = (endpoint["muB_Q"], _branch_muK_seed((nB_N - thermo_Q["nK"]) / thermo_Q["nB"]), max(TQstar, T_Q))
-        thermo_Qstar = _solve_interface_Qstar_from_TQstar_E_and_Pi(
-            TQstar,
+        state_0plus_guess = state_0plus_guess_cache["value"]
+        if state_0plus_guess is None:
+            state_0plus_guess = (endpoint["muB_inf"], _branch_muK_seed((nB_0minus - thermo_inf["nK"]) / thermo_inf["nB"]), max(T_0plus, T_inf))
+        thermo_0plus = _solve_interface_0plus_from_T_0plus_E_and_Pi(
+            T_0plus,
             E,
             Pi,
             jB,
-            thermo_Q["nB"],
-            thermo_Q["nK"],
+            thermo_inf["nB"],
+            thermo_inf["nK"],
             B_one_forth,
             ms=ms,
             upB=upB,
-            initial_guess=qstar_guess,
+            initial_guess=state_0plus_guess,
             stats=stats,
         )
-        qstar_guess_cache["value"] = (thermo_Qstar["muB"], thermo_Qstar["muK"], TQstar)
-        aQstar = float(thermo_Qstar["nK"] / thermo_Qstar["nB"])
-        if not (0.0 < aQstar < 1.0):
-            raise RuntimeError("fixed-TQstar interface requires 0 < nK_Qstar/nB_Qstar < 1")
+        state_0plus_guess_cache["value"] = (thermo_0plus["muB"], thermo_0plus["muK"], T_0plus)
+        a_0plus = float(thermo_0plus["nK"] / thermo_0plus["nB"])
+        if not (0.0 < a_0plus < 1.0):
+            raise RuntimeError("fixed-T_0plus interface requires 0 < nK_0plus/nB_0plus < 1")
 
-        micro_Q = _microphysics_from_quark_state_energy(thermo_Q["muB"], thermo_Q["T"])
-        if micro_Q["invD"] <= 0.0:
+        micro_inf = _microphysics_from_quark_state_energy(thermo_inf["muB"], thermo_inf["T"])
+        if micro_inf["invD"] <= 0.0:
             raise RuntimeError("uNmax downstream inverse diffusion coefficient must be positive")
-        D_Q = float(1.0 / micro_Q["invD"])
-        delta_nK = float(max(1.0e-5 * max(abs(thermo_Q["nK"]), thermo_Q["nB"]), 1.0e-2))
+        D_inf = float(1.0 / micro_inf["invD"])
+        delta_nK = float(max(1.0e-5 * max(abs(thermo_inf["nK"]), thermo_inf["nB"]), 1.0e-2))
         probe = _solve_local_quark_state_from_nK_E_and_Pi(
-            thermo_Q["nK"] + delta_nK,
+            thermo_inf["nK"] + delta_nK,
             E,
             Pi,
             jB,
             B_one_forth,
             ms=ms,
             upB=upB,
-            initial_guess=(thermo_Q["muB"], 1.0e-3, thermo_Q["T"]),
-            T_ref=thermo_Q["T"],
+            initial_guess=(thermo_inf["muB"], 1.0e-3, thermo_inf["T"]),
+            T_ref=thermo_inf["T"],
             stats=stats,
         )
         rate_probe = _exact_kaon_transport_rate(
@@ -4290,35 +4279,35 @@ def _solve_front_energy_conserving_uNmax_once(
         rate_slope = float(rate_probe / delta_nK)
         if (not np.isfinite(rate_slope)) or rate_slope <= 0.0:
             raise RuntimeError("uNmax downstream exact-rate slope must be positive")
-        u_Q = float(thermo_Q["u"])
-        lam = float((-u_Q + np.sqrt(u_Q * u_Q + 4.0 * D_Q * rate_slope)) / (2.0 * D_Q))
+        u_inf = float(thermo_inf["u"])
+        lam = float((-u_inf + np.sqrt(u_inf * u_inf + 4.0 * D_inf * rate_slope)) / (2.0 * D_inf))
         if (not np.isfinite(lam)) or lam <= 0.0:
             raise RuntimeError("uNmax downstream tail decay must be positive")
 
         state = {
             "jB": jB,
-            "u_N": u_N,
-            "r_gamma_N": r_gamma_N,
+            "u_0minus": u_0minus,
+            "r_gamma_0minus": r_gamma_0minus,
             "E": E,
             "Pi": Pi,
-            "T_Q": T_Q,
-            "P_N": P_N,
-            "e_N": e_N,
-            "h_N": h_N,
-            "h_over_nB_N": float(h_N / nB_N),
-            "E_N": E,
-            "thermo_Q": thermo_Q,
-            "thermo_Qstar": thermo_Qstar,
-            "E_Q": E_Q,
-            "Pi_Q": Pi_Q,
+            "T_inf": T_inf,
+            "P_0minus": P_0minus,
+            "e_0minus": e_0minus,
+            "h_0minus": h_0minus,
+            "h_over_nB_0minus": float(h_0minus / nB_0minus),
+            "E_0minus": E,
+            "thermo_inf": thermo_inf,
+            "thermo_0plus": thermo_0plus,
+            "E_inf": E_inf,
+            "Pi_inf": Pi_inf,
             "endpoint": endpoint,
-            "lambda_n": float(nB_N / thermo_Q["nB"]),
-            "aQstar": aQstar,
-            "D_Q": D_Q,
-            "invD_Q": float(micro_Q["invD"]),
-            "rate_slope_Q": rate_slope,
+            "lambda_n": float(nB_0minus / thermo_inf["nB"]),
+            "a_0plus": a_0plus,
+            "D_inf": D_inf,
+            "invD_inf": float(micro_inf["invD"]),
+            "rate_slope_inf": rate_slope,
             "lambda": lam,
-            "jK_Q": float(u_Q * thermo_Q["nK"]),
+            "jK_inf": float(u_inf * thermo_inf["nK"]),
             "x_end": float(-np.log1p(-s_end) / lam),
         }
         state_cache[key] = state
@@ -4333,18 +4322,18 @@ def _solve_front_energy_conserving_uNmax_once(
             return None
 
     def local_state(nK_value, state, s_value=None, initial_guess=None):
-        # At the singular TQstar=0 endpoint invD vanishes. During collocation,
+        # At the singular T_0plus=0 endpoint invD vanishes. During collocation,
         # trial profiles can temporarily overshoot the physical nK interval by
         # many orders of magnitude; snap only those out-of-domain evaluations
         # to the already solved endpoint states. Interior in-domain states use
         # the shared T**2 closure below.
         if exact_zero_left and (
             (s_value is not None and abs(float(s_value)) <= 1.0e-14)
-            or float(nK_value) >= float(state["thermo_Qstar"]["nK"])
+            or float(nK_value) >= float(state["thermo_0plus"]["nK"])
         ):
-            return state["thermo_Qstar"]
-        if exact_zero_left and float(nK_value) <= float(state["thermo_Q"]["nK"]):
-            return state["thermo_Q"]
+            return state["thermo_0plus"]
+        if exact_zero_left and float(nK_value) <= float(state["thermo_inf"]["nK"]):
+            return state["thermo_inf"]
         return _solve_local_quark_state_from_nK_E_and_Pi(
             float(nK_value),
             state["E"],
@@ -4354,7 +4343,7 @@ def _solve_front_energy_conserving_uNmax_once(
             ms=ms,
             upB=upB,
             initial_guess=initial_guess,
-            T_ref=state["T_Q"],
+            T_ref=state["T_inf"],
             stats=stats,
         )
 
@@ -4364,8 +4353,8 @@ def _solve_front_energy_conserving_uNmax_once(
         if state is None:
             return np.full_like(y, 1.0e12)
         dyds = np.empty_like(y)
-        interface_T_seed = TQstar
-        guess = (state["thermo_Qstar"]["muB"], state["thermo_Qstar"]["muK"], interface_T_seed)
+        T_0plus_seed = T_0plus
+        guess = (state["thermo_0plus"]["muB"], state["thermo_0plus"]["muK"], T_0plus_seed)
         for i in range(y.shape[1]):
             try:
                 nK_value = float(y[0, i]) * bvp_nK_scale
@@ -4394,23 +4383,23 @@ def _solve_front_energy_conserving_uNmax_once(
         state = state_or_none(float(p[0]))
         if state is None:
             return np.full(3, 1.0e12, dtype=float)
-        qstar = state["thermo_Qstar"]
-        target = state["thermo_Q"]
+        state_0plus = state["thermo_0plus"]
+        target = state["thermo_inf"]
         ya_physical = np.array([float(ya[0]) * bvp_nK_scale, float(ya[1]) * bvp_jK_scale])
         yb_physical = np.array([float(yb[0]) * bvp_nK_scale, float(yb[1]) * bvp_jK_scale])
-        nK_scale = max(abs(qstar["nK"]), abs(target["nK"]), 1.0)
-        jK_scale = max(abs(state["jB"]), abs(state["jK_Q"]), 1.0)
-        tail_scale = max(jK_scale, (state["D_Q"] * state["lambda"] + abs(target["u"])) * nK_scale)
+        nK_scale = max(abs(state_0plus["nK"]), abs(target["nK"]), 1.0)
+        jK_scale = max(abs(state["jB"]), abs(state["jK_inf"]), 1.0)
+        tail_scale = max(jK_scale, (state["D_inf"] * state["lambda"] + abs(target["u"])) * nK_scale)
         return np.array(
             [
-                (float(ya_physical[0]) - qstar["nK"]) / nK_scale,
+                (float(ya_physical[0]) - state_0plus["nK"]) / nK_scale,
                 (float(ya_physical[1]) - state["jB"]) / jK_scale,
                 _nK_tail_residual(
                     yb_physical,
                     {
                         "nK": target["nK"],
-                        "jK": state["jK_Q"],
-                        "D": state["D_Q"],
+                        "jK": state["jK_inf"],
+                        "D": state["D_inf"],
                         "lambda": state["lambda"],
                         "u": target["u"],
                     },
@@ -4426,17 +4415,17 @@ def _solve_front_energy_conserving_uNmax_once(
         return {
             "success": False,
             "message": f"Initial uNmax nK state construction failed: {last_failure['message']}",
-            "T_Qstar": TQstar,
-            "solver_variant": "uNmax_direct_TQstar_nK",
+            "T_0plus": T_0plus,
+            "solver_variant": "u0minus_max_direct_T0plus_nK",
             "rate_model": "exact_nonleptonic",
             "composition_definition": "nK_over_local_nB",
             "current_definition": "u_nK_minus_D_dnK_dx",
-            "density_ratio_definition": "lambda_n_equals_nB_N_over_nB_Q",
-            "_root_method": "solve_bvp_uNmax_nK_parameter_1d",
+            "density_ratio_definition": "lambda_n_equals_nB_0minus_over_nB_inf",
+            "_root_method": "solve_bvp_u0minus_max_nK_parameter_1d",
         }
 
-    bvp_nK_scale = max(abs(state0["thermo_Qstar"]["nK"]), abs(state0["thermo_Q"]["nK"]), 1.0)
-    bvp_jK_scale = max(abs(state0["jB"]), abs(state0["jK_Q"]), 1.0)
+    bvp_nK_scale = max(abs(state0["thermo_0plus"]["nK"]), abs(state0["thermo_inf"]["nK"]), 1.0)
+    bvp_jK_scale = max(abs(state0["jB"]), abs(state0["jK_inf"]), 1.0)
 
     continuation_profile = None
     if isinstance(continuation_guess, dict):
@@ -4444,7 +4433,7 @@ def _solve_front_energy_conserving_uNmax_once(
             previous_s = np.asarray(continuation_guess["s_coord"], dtype=float)
             previous_nK = np.asarray(continuation_guess["nK"], dtype=float)
             previous_jK = np.asarray(continuation_guess["jK"], dtype=float)
-            previous_nK_Q = float(continuation_guess["nK_Q"])
+            previous_nK_inf = float(continuation_guess["nK_inf"])
             if (
                 previous_s.ndim == 1
                 and previous_s.size >= 2
@@ -4458,7 +4447,7 @@ def _solve_front_energy_conserving_uNmax_once(
                     previous_s,
                     previous_nK,
                     previous_jK,
-                    previous_nK_Q,
+                    previous_nK_inf,
                 )
         except Exception:
             continuation_profile = None
@@ -4469,18 +4458,18 @@ def _solve_front_energy_conserving_uNmax_once(
         tail_weight = tail_eps + (1.0 - tail_eps) * (1.0 - 3.0 * blend**2 + 2.0 * blend**3)
     else:
         tail_weight = np.maximum(1.0 - s_mesh, tail_eps)
-    qstar0 = state0["thermo_Qstar"]
-    target0 = state0["thermo_Q"]
-    nK_guess = target0["nK"] + (qstar0["nK"] - target0["nK"]) * tail_weight
+    state_0plus = state0["thermo_0plus"]
+    target0 = state0["thermo_inf"]
+    nK_guess = target0["nK"] + (state_0plus["nK"] - target0["nK"]) * tail_weight
     jK_tail_weight = np.maximum(1.0 - s_mesh, tail_eps)
-    jK_guess = state0["jK_Q"] + (state0["jB"] - state0["jK_Q"]) * jK_tail_weight
-    nK_guess[0] = qstar0["nK"]
+    jK_guess = state0["jK_inf"] + (state0["jB"] - state0["jK_inf"]) * jK_tail_weight
+    nK_guess[0] = state_0plus["nK"]
     jK_guess[0] = state0["jB"]
     if continuation_profile is not None:
-        previous_s, previous_nK, previous_jK, previous_nK_Q = continuation_profile
-        previous_delta = previous_nK - previous_nK_Q
+        previous_s, previous_nK, previous_jK, previous_nK_inf = continuation_profile
+        previous_delta = previous_nK - previous_nK_inf
         previous_left_delta = float(previous_delta[0])
-        new_left_delta = float(qstar0["nK"] - target0["nK"])
+        new_left_delta = float(state_0plus["nK"] - target0["nK"])
         profile_scale = (
             new_left_delta / previous_left_delta
             if abs(previous_left_delta) > 1.0e-12
@@ -4493,7 +4482,7 @@ def _solve_front_energy_conserving_uNmax_once(
         )
         jK_guess = np.interp(s_mesh, previous_s, previous_jK)
         jK_guess += (state0["jB"] - jK_guess[0]) * (1.0 - blend)
-        nK_guess[0] = qstar0["nK"]
+        nK_guess[0] = state_0plus["nK"]
         jK_guess[0] = state0["jB"]
 
     try:
@@ -4514,13 +4503,13 @@ def _solve_front_energy_conserving_uNmax_once(
         return {
             "success": False,
             "message": f"absolute-nK uNmax BVP failed: {exc}; last failure: {last_failure['message']}",
-            "T_Qstar": TQstar,
-            "solver_variant": "uNmax_direct_TQstar_nK",
+            "T_0plus": T_0plus,
+            "solver_variant": "u0minus_max_direct_T0plus_nK",
             "rate_model": "exact_nonleptonic",
             "composition_definition": "nK_over_local_nB",
             "current_definition": "u_nK_minus_D_dnK_dx",
-            "density_ratio_definition": "lambda_n_equals_nB_N_over_nB_Q",
-            "_root_method": "solve_bvp_uNmax_nK_parameter_1d",
+            "density_ratio_definition": "lambda_n_equals_nB_0minus_over_nB_inf",
+            "_root_method": "solve_bvp_u0minus_max_nK_parameter_1d",
         }
 
     s_profile = np.asarray(sol.x, dtype=float)
@@ -4530,8 +4519,8 @@ def _solve_front_energy_conserving_uNmax_once(
     profile = {key: np.empty_like(s_profile) for key in (
         "nB", "u", "muB", "muK", "T", "P", "h", "r_gamma", "invD", "Gamma_K"
     )}
-    interface_T_seed = TQstar
-    guess = (state["thermo_Qstar"]["muB"], state["thermo_Qstar"]["muK"], interface_T_seed)
+    T_0plus_seed = T_0plus
+    guess = (state["thermo_0plus"]["muB"], state["thermo_0plus"]["muK"], T_0plus_seed)
     try:
         for i, nK_value in enumerate(nK_profile):
             stats["profile_state_calls"] += 1
@@ -4555,13 +4544,13 @@ def _solve_front_energy_conserving_uNmax_once(
         return {
             "success": False,
             "message": f"uNmax nK profile reconstruction failed: {exc}",
-            "T_Qstar": TQstar,
-            "solver_variant": "uNmax_direct_TQstar_nK",
+            "T_0plus": T_0plus,
+            "solver_variant": "u0minus_max_direct_T0plus_nK",
             "rate_model": "exact_nonleptonic",
             "composition_definition": "nK_over_local_nB",
             "current_definition": "u_nK_minus_D_dnK_dx",
-            "density_ratio_definition": "lambda_n_equals_nB_N_over_nB_Q",
-            "_root_method": "solve_bvp_uNmax_nK_parameter_1d",
+            "density_ratio_definition": "lambda_n_equals_nB_0minus_over_nB_inf",
+            "_root_method": "solve_bvp_u0minus_max_nK_parameter_1d",
         }
 
     dy_ds = _bvp_dense_derivative(sol, s_profile)
@@ -4575,12 +4564,12 @@ def _solve_front_energy_conserving_uNmax_once(
     momentum_profile = profile["h"] * profile["u"] ** 2 + profile["P"]
     energy_residual_norm = float(np.max(np.abs(energy_profile - state["E"])) / max(abs(state["E"]), 1.0))
     momentum_residual_norm = float(np.max(np.abs(momentum_profile - state["Pi"])) / max(abs(state["Pi"]), 1.0))
-    TQstar_residual = float(state["thermo_Qstar"]["T"] - TQstar)
-    E_right_residual = float(state["E_Q"] - state["E"])
-    E_right_residual_norm = float(E_right_residual / max(abs(state["E"]), abs(state["E_Q"]), 1.0))
-    Pi_right_residual = float(state["Pi_Q"] - state["Pi"])
-    Pi_right_residual_norm = float(Pi_right_residual / max(abs(state["Pi"]), abs(state["Pi_Q"]), 1.0))
-    collocation_status_acceptable = _uNmax_collocation_status_is_acceptable(
+    T_0plus_residual = float(state["thermo_0plus"]["T"] - T_0plus)
+    E_right_residual = float(state["E_inf"] - state["E"])
+    E_right_residual_norm = float(E_right_residual / max(abs(state["E"]), abs(state["E_inf"]), 1.0))
+    Pi_right_residual = float(state["Pi_inf"] - state["Pi"])
+    Pi_right_residual_norm = float(Pi_right_residual / max(abs(state["Pi"]), abs(state["Pi_inf"]), 1.0))
+    collocation_status_acceptable = _u0minus_max_collocation_status_is_acceptable(
         solver_success=sol.success,
         solver_status=sol.status,
         exact_zero_left=exact_zero_left,
@@ -4591,19 +4580,19 @@ def _solve_front_energy_conserving_uNmax_once(
         and kaon_residual_norm <= 5.0 * float(tol_bvp)
         and abs(E_right_residual_norm) <= max(float(tol_bvp), 1.0e-8)
         and abs(Pi_right_residual_norm) <= max(float(tol_bvp), 1.0e-8)
-        and abs(TQstar_residual) <= max(1.0e-10, 1.0e-8 * max(1.0, abs(TQstar)))
+        and abs(T_0plus_residual) <= max(1.0e-10, 1.0e-8 * max(1.0, abs(T_0plus)))
     )
 
-    target = state["thermo_Q"]
-    qstar = state["thermo_Qstar"]
+    target = state["thermo_inf"]
+    state_0plus = state["thermo_0plus"]
     jK_left_residual = float(jK_profile[0] - state["jB"])
-    jK_left_scale = max(abs(state["jB"]), abs(state["jK_Q"]), 1.0)
+    jK_left_scale = max(abs(state["jB"]), abs(state["jK_inf"]), 1.0)
     tail_residual = _nK_tail_residual(
         np.array([nK_profile[-1], jK_profile[-1]], dtype=float),
         {
             "nK": target["nK"],
-            "jK": state["jK_Q"],
-            "D": state["D_Q"],
+            "jK": state["jK_inf"],
+            "D": state["D_inf"],
             "lambda": state["lambda"],
             "u": target["u"],
         },
@@ -4611,7 +4600,7 @@ def _solve_front_energy_conserving_uNmax_once(
     accepted_max_nodes = bool(success and not sol.success and int(sol.status) == 1)
     if success and accepted_max_nodes:
         result_message = (
-            "Absolute-nK uNmax BVP reached max_nodes at the exact TQstar=0 "
+            "Absolute-nK uNmax BVP reached max_nodes at the exact T_0plus=0 "
             "endpoint and passed all physical residual checks"
         )
     elif success:
@@ -4622,45 +4611,47 @@ def _solve_front_energy_conserving_uNmax_once(
         "success": success,
         "message": result_message,
         "jB": float(state["jB"]),
-        "u_N": float(state["u_N"]),
-        "u_N_max_candidate": float(state["u_N"]),
-        "T_N": T,
-        "T_Q": float(state["T_Q"]),
-        "T_Qstar": float(qstar["T"]),
-        "T_Qstar_target": TQstar,
-        "T_Qstar_residual": TQstar_residual,
+        "u_0minus": float(state["u_0minus"]),
+        "u_0minus_max_candidate": float(state["u_0minus"]),
+        "T_0minus": T_0minus,
+        "T_inf": float(state["T_inf"]),
+        "T_0plus": float(state_0plus["T"]),
+        "T_0plus_target": T_0plus,
+        "T_0plus_residual": T_0plus_residual,
         "E": float(state["E"]),
         "Pi": float(state["Pi"]),
-        "E_N": float(state["E_N"]),
-        "E_Q": float(state["E_Q"]),
-        "E_Qstar": float(qstar["E"]),
+        "E_0minus": float(state["E_0minus"]),
+        "E_inf": float(state["E_inf"]),
+        "E_0plus": float(state_0plus["E"]),
         "E_right_residual": E_right_residual,
         "E_right_residual_norm": E_right_residual_norm,
-        "Pi_Q": float(state["Pi_Q"]),
+        "Pi_inf": float(state["Pi_inf"]),
         "Pi_right_residual": Pi_right_residual,
         "Pi_right_residual_norm": Pi_right_residual_norm,
-        "aQstar": float(a_profile[0]),
-        "aQstar_derived": float(a_profile[0]),
+        "a_0plus": float(a_profile[0]),
+        "a_0plus_derived": float(a_profile[0]),
         "lambda_n": float(state["lambda_n"]),
-        "u_Q": float(target["u"]),
-        "r_gamma_N": float(state["r_gamma_N"]),
-        "r_gamma_Q": float(_relativistic_gamma_from_u(target["u"])),
-        "r_gamma_Qstar": float(_relativistic_gamma_from_u(qstar["u"])),
-        "muB_Q": float(target["muB"]),
-        "nB_Q": float(target["nB"]),
-        "nK_Q": float(target["nK"]),
-        "muB_Qstar": float(qstar["muB"]),
-        "muK_Qstar": float(qstar["muK"]),
-        "nB_Qstar": float(qstar["nB"]),
-        "nK_Qstar": float(qstar["nK"]),
-        "h_N": h_N,
-        "h_Q": float(target["h"]),
-        "h_Qstar": float(qstar["h"]),
-        "h_over_nB_N": float(h_N / nB_N),
-        "h_over_nB_Qstar": float(qstar["h"] / qstar["nB"]),
-        "h_over_nB_jump_residual": float(qstar["h"] / qstar["nB"] - h_N / nB_N),
-        "invD_Q": float(state["invD_Q"]),
-        "rate_slope_Q": float(state["rate_slope_Q"]),
+        "u_inf": float(target["u"]),
+        "r_gamma_0minus": float(state["r_gamma_0minus"]),
+        "r_gamma_inf": float(_relativistic_gamma_from_u(target["u"])),
+        "r_gamma_0plus": float(_relativistic_gamma_from_u(state_0plus["u"])),
+        "muB_inf": float(target["muB"]),
+        "nB_inf": float(target["nB"]),
+        "nK_inf": float(target["nK"]),
+        "muB_0plus": float(state_0plus["muB"]),
+        "muK_0plus": float(state_0plus["muK"]),
+        "nB_0plus": float(state_0plus["nB"]),
+        "nK_0plus": float(state_0plus["nK"]),
+        "h_0minus": h_0minus,
+        "h_inf": float(target["h"]),
+        "h_0plus": float(state_0plus["h"]),
+        "h_over_nB_0minus": float(h_0minus / nB_0minus),
+        "h_over_nB_0plus": float(state_0plus["h"] / state_0plus["nB"]),
+        "h_over_nB_jump_residual": float(
+            state_0plus["h"] / state_0plus["nB"] - h_0minus / nB_0minus
+        ),
+        "invD_inf": float(state["invD_inf"]),
+        "rate_slope_inf": float(state["rate_slope_inf"]),
         "lambda": float(state["lambda"]),
         "kappa": float(1.0 / state["lambda"]),
         "s_end": s_end,
@@ -4682,11 +4673,11 @@ def _solve_front_energy_conserving_uNmax_once(
         "rate_model": "exact_nonleptonic",
         "composition_definition": "nK_over_local_nB",
         "current_definition": "u_nK_minus_D_dnK_dx",
-        "density_ratio_definition": "lambda_n_equals_nB_N_over_nB_Q",
-        "solver_variant": "uNmax_direct_TQstar_nK",
+        "density_ratio_definition": "lambda_n_equals_nB_0minus_over_nB_inf",
+        "solver_variant": "u0minus_max_direct_T0plus_nK",
         "coordinate": "BVP: s_coord in [0, 1-tail_eps], s_coord=1-exp(-lambda*x)",
         "tail_eps": float(tail_eps),
-        "_root_method": "solve_bvp_uNmax_nK_parameter_1d",
+        "_root_method": "solve_bvp_u0minus_max_nK_parameter_1d",
         "bvp_status": int(sol.status),
         "bvp_message": str(sol.message),
         "bvp_collocation_converged": bool(sol.success),
@@ -4723,8 +4714,8 @@ def _solve_front_energy_conserving_uNmax_once(
         )
     if verb:
         print(
-            f"uNmax-nK jB={result['jB']:.6g}, T_Q={result['T_Q']:.6g}, "
-            f"TQstar={TQstar:.6g}, aQstar={result['aQstar']:.6g}, "
+            f"uNmax-nK jB={result['jB']:.6g}, T_inf={result['T_inf']:.6g}, "
+            f"T_0plus={T_0plus:.6g}, a_0plus={result['a_0plus']:.6g}, "
             f"tail_norm={result['tail_residual_norm']:.6g}, "
             f"kaon_eq_norm={kaon_residual_norm:.6g}, status={sol.status}, success={success}"
         )
@@ -4733,30 +4724,30 @@ def _solve_front_energy_conserving_uNmax_once(
 
 def _annotate_energy_uNmax_result(
     result,
-    TQstar_target,
+    T_0plus_target,
 ):
     out = dict(result)
-    TQstar_target = float(TQstar_target)
-    T_Qstar = float(out.get("T_Qstar", np.nan))
-    aQstar_out = float(out.get("aQstar", np.nan))
-    u_N_out = float(out.get("u_N", np.nan))
-    out["solver_variant"] = "uNmax_direct_TQstar_nK"
-    out["T_Qstar_target"] = TQstar_target
-    out["T_Qstar_residual"] = (
-        float(T_Qstar - TQstar_target)
-        if np.isfinite(T_Qstar) and np.isfinite(TQstar_target)
+    T_0plus_target = float(T_0plus_target)
+    T_0plus = float(out.get("T_0plus", np.nan))
+    a_0plus_out = float(out.get("a_0plus", np.nan))
+    u_0minus_out = float(out.get("u_0minus", np.nan))
+    out["solver_variant"] = "u0minus_max_direct_T0plus_nK"
+    out["T_0plus_target"] = T_0plus_target
+    out["T_0plus_residual"] = (
+        float(T_0plus - T_0plus_target)
+        if np.isfinite(T_0plus) and np.isfinite(T_0plus_target)
         else np.nan
     )
-    out["aQstar_derived"] = aQstar_out
-    out["u_N_max_candidate"] = u_N_out
+    out["a_0plus_derived"] = a_0plus_out
+    out["u_0minus_max_candidate"] = u_0minus_out
     return out
 
 
 def solve_front_energy_conserving_uNmax(
-    T,
-    nB_N,
+    T_0minus,
+    nB_0minus,
     B_one_forth,
-    TQstar=0.5,
+    T_0plus=0.5,
     ms=0.0,
     param=para.paraQMCRMF3,
     NM_type="PNM",
@@ -4765,7 +4756,7 @@ def solve_front_energy_conserving_uNmax(
     tol_bvp=1e-4,
     max_nodes=10000,
     jB_guess=None,
-    TQ_guess=None,
+    T_inf_guess=None,
     jB_bounds=None,
     return_profile=False,
     verb=False,
@@ -4774,25 +4765,25 @@ def solve_front_energy_conserving_uNmax(
     """
     Solve the energy-conserving front with the interface temperature fixed.
 
-    This variant treats T_Qstar as the input and derives a_Qstar from the
+    This variant treats T_0plus as the input and derives a_0plus from the
     quark EOS, which is useful for probing the upper end of the branch where
-    T_Qstar approaches zero. It is not a separate optimizer: the returned
-    u_N_max_candidate is the upstream velocity for the requested fixed
-    T_Qstar.
+    T_0plus approaches zero. It is not a separate optimizer: the returned
+    u_0minus_max_candidate is the upstream velocity for the requested fixed
+    T_0plus.
     """
-    TQstar = float(TQstar)
-    if (not np.isfinite(TQstar)) or TQstar < 0.0:
-        raise RuntimeError("TQstar must be non-negative")
+    T_0plus = float(T_0plus)
+    if (not np.isfinite(T_0plus)) or T_0plus < 0.0:
+        raise RuntimeError("T_0plus must be non-negative")
 
     direct_jB_guess = jB_guess
     if direct_jB_guess is None:
-        direct_jB_guess = _default_energy_jB_guess(nB_N)
+        direct_jB_guess = _default_energy_jB_guess(nB_0minus)
 
     direct_result = _solve_front_energy_conserving_uNmax_once(
-        T,
-        nB_N,
+        T_0minus,
+        nB_0minus,
         B_one_forth,
-        TQstar,
+        T_0plus,
         ms=ms,
         param=param,
         NM_type=NM_type,
@@ -4801,13 +4792,13 @@ def solve_front_energy_conserving_uNmax(
         tol_bvp=tol_bvp,
         max_nodes=max_nodes,
         jB_guess=direct_jB_guess,
-        TQ_guess=TQ_guess,
+        T_inf_guess=T_inf_guess,
         jB_bounds=jB_bounds,
         return_profile=return_profile,
         verb=verb,
         continuation_guess=continuation_guess,
     )
-    result_out = _annotate_energy_uNmax_result(direct_result, TQstar)
+    result_out = _annotate_energy_uNmax_result(direct_result, T_0plus)
     if return_profile:
         return result_out
     return _strip_energy_profile_fields(result_out)
@@ -4852,7 +4843,7 @@ _THERMAL_IKAPPA_TABLE_POINTS = 221
 _THERMAL_IKAPPA_QUAD_NX = 400
 _THERMAL_IKAPPA_QUAD_NT = 400
 _THERMAL_IKAPPA_CACHE = {}
-# Safety stop shared by the adaptive continuations in T_interface and tail_eps.
+# Safety stop shared by the adaptive continuations in T_0plus and tail_eps.
 # Failed temperature steps are bisected and failed tail steps are retried at a
 # geometric midpoint, so this bounds total BVP solves rather than waypoints.
 _THERMAL_MAX_CONTINUATION_ATTEMPTS = 40
@@ -5321,31 +5312,31 @@ def _thermal_downstream_analysis(
     uses, so the linearisation can never drift from the transported system.
     """
     jB = float(jB)
-    nB_N = float(nuclear_state["nB_N"])
-    u_N = float(jB / nB_N)
-    r_gamma_N = _relativistic_gamma_from_u(u_N)
-    Pi = float(nuclear_state["P_N"] + nuclear_state["h_N"] * u_N * u_N)
-    F_E = float(nuclear_state["h_N"] * u_N * r_gamma_N)
+    nB_0minus = float(nuclear_state["nB_0minus"])
+    u_0minus = float(jB / nB_0minus)
+    r_gamma_0minus = _relativistic_gamma_from_u(u_0minus)
+    Pi = float(nuclear_state["P_0minus"] + nuclear_state["h_0minus"] * u_0minus * u_0minus)
+    F_E = float(nuclear_state["h_0minus"] * u_0minus * r_gamma_0minus)
 
-    endpoint = _solve_analytic_downstream_endpoint_for_uN(
-        u_N, nuclear_state, B_one_forth, ms=ms, upB=upB, initial_guess=endpoint_guess
+    endpoint = _solve_analytic_inf_endpoint_for_u_0minus(
+        u_0minus, nuclear_state, B_one_forth, ms=ms, upB=upB, initial_guess=endpoint_guess
     )
-    muB_Q = float(endpoint["muB_Q"])
-    T_Q = float(endpoint["T_Q"])
-    if (not np.isfinite(T_Q)) or T_Q <= 0.0:
+    muB_inf = float(endpoint["muB_inf"])
+    T_inf = float(endpoint["T_inf"])
+    if (not np.isfinite(T_inf)) or T_inf <= 0.0:
         raise RuntimeError("Thermal downstream endpoint returned a non-physical temperature")
 
-    thermo_Q = _quark_thermo_state(muB_Q, 0.0, B_one_forth, T_Q, jB, ms=ms, upB=upB)
-    nK_Q = float(thermo_Q["nK"])
-    u_Q = float(thermo_Q["u"])
-    micro_Q = _microphysics_from_quark_state_energy(muB_Q, T_Q)
-    invD_Q = float(micro_Q["invD"])
-    if invD_Q <= 0.0:
+    thermo_inf = _quark_thermo_state(muB_inf, 0.0, B_one_forth, T_inf, jB, ms=ms, upB=upB)
+    nK_inf = float(thermo_inf["nK"])
+    u_inf = float(thermo_inf["u"])
+    micro_inf = _microphysics_from_quark_state_energy(muB_inf, T_inf)
+    invD_inf = float(micro_inf["invD"])
+    if invD_inf <= 0.0:
         raise RuntimeError("Thermal downstream inverse diffusion coefficient must be positive")
-    kappa_info = _thermal_conductivity(muB_Q, T_Q, kappa_model=kappa_model)
-    kappa_Q = float(kappa_info["kappa_th"])
+    kappa_info = _thermal_conductivity(muB_inf, T_inf, kappa_model=kappa_model)
+    kappa_inf = float(kappa_info["kappa_th"])
 
-    guess = (muB_Q, 1.0e-4)
+    guess = (muB_inf, 1.0e-4)
 
     def rate_and_flux(nK_value, T_value):
         state = _solve_local_quark_state_from_nK_T_and_Pi(
@@ -5358,19 +5349,19 @@ def _thermal_downstream_analysis(
         )
         return rate, float(state["E_flux"])
 
-    d_nK = max(1.0e-6 * abs(nK_Q), 1.0e-4)
-    d_T = max(1.0e-6 * T_Q, 1.0e-6)
-    rate_p, flux_p = rate_and_flux(nK_Q + d_nK, T_Q)
-    rate_m, flux_m = rate_and_flux(nK_Q - d_nK, T_Q)
+    d_nK = max(1.0e-6 * abs(nK_inf), 1.0e-4)
+    d_T = max(1.0e-6 * T_inf, 1.0e-6)
+    rate_p, flux_p = rate_and_flux(nK_inf + d_nK, T_inf)
+    rate_m, flux_m = rate_and_flux(nK_inf - d_nK, T_inf)
     c_coeff = float((rate_p - rate_m) / (2.0 * d_nK))
-    e_coeff = float((flux_p - flux_m) / (2.0 * d_nK) / kappa_Q)
-    rate_p, flux_p = rate_and_flux(nK_Q, T_Q + d_T)
-    rate_m, flux_m = rate_and_flux(nK_Q, T_Q - d_T)
+    e_coeff = float((flux_p - flux_m) / (2.0 * d_nK) / kappa_inf)
+    rate_p, flux_p = rate_and_flux(nK_inf, T_inf + d_T)
+    rate_m, flux_m = rate_and_flux(nK_inf, T_inf - d_T)
     d_coeff = float((rate_p - rate_m) / (2.0 * d_T))
-    f_coeff = float((flux_p - flux_m) / (2.0 * d_T) / kappa_Q)
+    f_coeff = float((flux_p - flux_m) / (2.0 * d_T) / kappa_inf)
 
-    a_coeff = float(invD_Q * u_Q)
-    b_coeff = float(invD_Q)
+    a_coeff = float(invD_inf * u_inf)
+    b_coeff = float(invD_inf)
     jacobian = np.array(
         [
             [a_coeff, -b_coeff, 0.0],
@@ -5411,19 +5402,19 @@ def _thermal_downstream_analysis(
 
     return {
         "jB": jB,
-        "u_N": u_N,
-        "r_gamma_N": r_gamma_N,
+        "u_0minus": u_0minus,
+        "r_gamma_0minus": r_gamma_0minus,
         "Pi": Pi,
         "F_E": F_E,
         "endpoint": endpoint,
-        "muB_Q": muB_Q,
-        "T_Q": T_Q,
-        "thermo_Q": thermo_Q,
-        "nK_Q": nK_Q,
-        "u_Q": u_Q,
-        "jK_Q": float(u_Q * nK_Q),
-        "invD_Q": invD_Q,
-        "kappa_Q": kappa_Q,
+        "muB_inf": muB_inf,
+        "T_inf": T_inf,
+        "thermo_inf": thermo_inf,
+        "nK_inf": nK_inf,
+        "u_inf": u_inf,
+        "jK_inf": float(u_inf * nK_inf),
+        "invD_inf": invD_inf,
+        "kappa_inf": kappa_inf,
         "kappa_info": kappa_info,
         "a": a_coeff,
         "b": b_coeff,
@@ -5439,7 +5430,7 @@ def _thermal_downstream_analysis(
         "stable_dimension": stable_dimension,
         "lambda_stable": lambda_stable,
         "growing_left_vectors": growing_left,
-        "lambda_n": float(nB_N / float(thermo_Q["nB"])),
+        "lambda_n": float(nB_0minus / float(thermo_inf["nB"])),
     }
 
 
@@ -5479,14 +5470,14 @@ def _thermal_scaled_growing_projections(jacobian, scales, stable_mask_hint=None)
 
 
 def _thermal_seed_from_ideal_solver(
-    T, nB_N, B_one_forth, ms=0.0, param=para.paraQMCRMF3, NM_type="PNM", TQstar_seed=1.0
+    T, nB_0minus, B_one_forth, ms=0.0, param=para.paraQMCRMF3, NM_type="PNM", T_0plus_seed=1.0
 ):
     """
-    INITIALISATION ONLY: borrow (jB, aQstar) from the ideal-fluid uNmax solver.
+    INITIALISATION ONLY: borrow (jB, a_0plus) from the ideal-fluid uNmax solver.
 
     The ideal energy closure E = h*gamma*u is never used in the thermal solve;
     this call only places the first Newton iterate in the right basin. It is
-    needed because _default_energy_jB_guess corresponds to u_N ~ 1e-8 while the
+    needed because _default_energy_jB_guess corresponds to u_0minus ~ 1e-8 while the
     physical value is ~1e-6, and the thermal BVP diverges from that placeholder
     rather than recovering from it.
 
@@ -5494,7 +5485,7 @@ def _thermal_seed_from_ideal_solver(
     """
     try:
         seed = solve_front_energy_conserving_uNmax(
-            T, nB_N, B_one_forth, TQstar=float(TQstar_seed), ms=ms, param=param, NM_type=NM_type
+            T, nB_0minus, B_one_forth, T_0plus=float(T_0plus_seed), ms=ms, param=param, NM_type=NM_type
         )
     except Exception:
         return None
@@ -5503,11 +5494,11 @@ def _thermal_seed_from_ideal_solver(
     jB_seed = seed.get("jB", None)
     if jB_seed is None or (not np.isfinite(jB_seed)) or jB_seed <= 0.0:
         return None
-    aQstar_seed = seed.get("aQstar", np.nan)
+    a_0plus_seed = seed.get("a_0plus", np.nan)
     return {
         "jB": float(jB_seed),
-        "aQstar": float(aQstar_seed) if np.isfinite(aQstar_seed) else np.nan,
-        "TQstar_seed": float(TQstar_seed),
+        "a_0plus": float(a_0plus_seed) if np.isfinite(a_0plus_seed) else np.nan,
+        "T_0plus_seed": float(T_0plus_seed),
     }
 
 
@@ -5528,19 +5519,19 @@ def _thermal_interface_Tprime_sign_scan(
     info = _thermal_downstream_analysis(
         jB, nuclear_state, B_one_forth, ms=ms, upB=upB, kappa_model=kappa_model
     )
-    nB_Q = float(info["thermo_Q"]["nB"])
+    nB_inf = float(info["thermo_inf"]["nB"])
     records = []
     for a_value in a_values:
         try:
             state = _solve_local_quark_state_from_nK_T_and_Pi(
-                float(a_value) * nB_Q,
+                float(a_value) * nB_inf,
                 0.0,
                 info["Pi"],
                 float(jB),
                 B_one_forth,
                 ms=ms,
                 upB=upB,
-                initial_guess=(info["muB_Q"], 50.0),
+                initial_guess=(info["muB_inf"], 50.0),
             )
             kappa = float(_thermal_conductivity(state["muB"], 0.0, kappa_model=kappa_model)["kappa_th"])
             records.append((float(a_value), float((state["E_flux"] - info["F_E"]) / kappa)))
@@ -5559,26 +5550,26 @@ def _thermal_interface_Tprime_sign_scan(
     }
 
 
-def _thermal_upstream_nuclear_state(T, nB_N, param, NM_type):
+def _thermal_upstream_nuclear_state(T_0minus, nB_0minus, param, NM_type):
     """Construct the fixed upstream state once for a thermal continuation run."""
-    P_N = float(PNM_n(nB_N, T, param=param, NM_type=NM_type))
-    e_N = float(edensNM_n(nB_N, T, param=param))
-    h_N = float(P_N + e_N)
+    P_0minus = float(PNM_n(nB_0minus, T_0minus, param=param, NM_type=NM_type))
+    e_0minus = float(edensNM_n(nB_0minus, T_0minus, param=param))
+    h_0minus = float(P_0minus + e_0minus)
     return {
-        "P_N": P_N,
-        "e_N": e_N,
-        "h_N": h_N,
-        "nB_N": float(nB_N),
-        "h_over_nB_N": float(h_N / nB_N),
-        "T_N": float(T),
+        "P_0minus": P_0minus,
+        "e_0minus": e_0minus,
+        "h_0minus": h_0minus,
+        "nB_0minus": float(nB_0minus),
+        "h_over_nB_0minus": float(h_0minus / nB_0minus),
+        "T_0minus": float(T_0minus),
     }
 
 
 def _solve_front_thermal_conducting_once(
-    T,
-    nB_N,
+    T_0minus,
+    nB_0minus,
     B_one_forth,
-    T_interface=0.0,
+    T_0plus=0.0,
     ms=0.0,
     param=para.paraQMCRMF3,
     NM_type="PNM",
@@ -5589,7 +5580,7 @@ def _solve_front_thermal_conducting_once(
     jB_guess=None,
     jB_bounds=None,
     kappa_model=None,
-    aQstar_guess=0.5,
+    a_0plus_guess=0.5,
     profile_guess=None,
     return_profile=False,
     verb=False,
@@ -5599,20 +5590,20 @@ def _solve_front_thermal_conducting_once(
     One thermal-conducting front solve at a fixed interface temperature.
 
     Propagated fields: y = [nK, jK, T] (scaled). Scalar eigenvalue: jB.
-    Four boundary conditions: T(0) = T_interface, jK(0) = jB, and two
+    Four boundary conditions: T(0) = T_0plus, jK(0) = jB, and two
     downstream projections killing the growing modes. nK(0) is NOT prescribed;
     it is selected by the global problem, which is what removes the free
     interface composition of the ideal-fluid formulation.
     """
-    T = float(T)
-    nB_N = float(nB_N)
-    T_interface = float(T_interface)
+    T_0minus = float(T_0minus)
+    nB_0minus = float(nB_0minus)
+    T_0plus = float(T_0plus)
     if NM_type != "PNM":
         raise RuntimeError("solve_front_thermal_conducting currently requires NM_type='PNM'")
-    if (not np.isfinite(T)) or T <= 0.0 or (not np.isfinite(nB_N)) or nB_N <= 0.0:
-        raise RuntimeError("solve_front_thermal_conducting requires positive T and nB_N")
-    if (not np.isfinite(T_interface)) or T_interface < 0.0:
-        raise RuntimeError("T_interface must be non-negative")
+    if (not np.isfinite(T_0minus)) or T_0minus <= 0.0 or (not np.isfinite(nB_0minus)) or nB_0minus <= 0.0:
+        raise RuntimeError("solve_front_thermal_conducting requires positive T and nB_0minus")
+    if (not np.isfinite(T_0plus)) or T_0plus < 0.0:
+        raise RuntimeError("T_0plus must be non-negative")
     if not (0.0 < float(tail_eps) < 1.0):
         raise RuntimeError("tail_eps must satisfy 0 < tail_eps < 1")
     if int(n_mesh) < 5 or int(max_nodes) <= int(n_mesh) or float(tol_bvp) <= 0.0:
@@ -5621,12 +5612,12 @@ def _solve_front_thermal_conducting_once(
     upB = 5000
     kappa_model = _normalize_kappa_model(kappa_model)
     if _nuclear_state is None:
-        nuclear_state = _thermal_upstream_nuclear_state(T, nB_N, param, NM_type)
+        nuclear_state = _thermal_upstream_nuclear_state(T_0minus, nB_0minus, param, NM_type)
     else:
         nuclear_state = dict(_nuclear_state)
 
     if jB_guess is None:
-        jB_guess = _default_energy_jB_guess(nB_N)
+        jB_guess = _default_energy_jB_guess(nB_0minus)
     jB_guess = float(jB_guess)
     if (not np.isfinite(jB_guess)) or jB_guess <= 0.0:
         raise RuntimeError("jB_guess must be positive")
@@ -5689,7 +5680,7 @@ def _solve_front_thermal_conducting_once(
             endpoint_guess=endpoint_guess_cache["value"],
         )
         endpoint_guess_cache["value"] = info["endpoint"].get(
-            "endpoint_initial_guess", (info["muB_Q"], info["T_Q"])
+            "endpoint_initial_guess", (info["muB_inf"], info["T_inf"])
         )
         if int(info["stable_dimension"]) != 1:
             raise RuntimeError(
@@ -5702,7 +5693,7 @@ def _solve_front_thermal_conducting_once(
         info = dict(info)
         info["lambda_compact"] = lambda_compact
         info["lambda_growing_max"] = float(np.max(info["eigenvalues"].real))
-        info["nB_Q"] = float(info["thermo_Q"]["nB"])
+        info["nB_inf"] = float(info["thermo_inf"]["nB"])
         physical_state_cache[key] = info
         return info
 
@@ -5716,7 +5707,7 @@ def _solve_front_thermal_conducting_once(
         return {
             "success": False,
             "message": f"Initial thermal-conducting state construction failed: {exc}",
-            "T_interface": T_interface,
+            "T_0plus": T_0plus,
             "tail_eps": float(tail_eps),
             "tol_bvp": float(tol_bvp),
             "s_end": float(1.0 - tail_eps),
@@ -5725,16 +5716,16 @@ def _solve_front_thermal_conducting_once(
             "stats": stats,
         }
 
-    nB_Q0 = float(physical_state0["thermo_Q"]["nB"])
+    nB_Q0 = float(physical_state0["thermo_inf"]["nB"])
     bvp_scales = np.array(
         [
-            max(abs(float(physical_state0["nK_Q"])), nB_Q0, 1.0),
+            max(abs(float(physical_state0["nK_inf"])), nB_Q0, 1.0),
             max(
                 abs(float(physical_state0["jB"])),
-                abs(float(physical_state0["jK_Q"])),
+                abs(float(physical_state0["jK_inf"])),
                 1.0,
             ),
-            max(float(physical_state0["T_Q"]), 1.0),
+            max(float(physical_state0["T_inf"]), 1.0),
         ],
         dtype=float,
     )
@@ -5812,7 +5803,7 @@ def _solve_front_thermal_conducting_once(
             return np.full_like(y, 1.0e12)
         S = state["scales"]
         dyds = np.empty_like(y)
-        guess = (state["muB_Q"], 1.0e-3)
+        guess = (state["muB_inf"], 1.0e-3)
         for i in range(y.shape[1]):
             try:
                 nK_value = float(y[0, i]) * S[0]
@@ -5837,9 +5828,9 @@ def _solve_front_thermal_conducting_once(
                 if linear_weight > 0.0:
                     delta = np.array(
                         [
-                            nK_value - state["nK_Q"],
-                            jK_value - state["jK_Q"],
-                            T_value - state["T_Q"],
+                            nK_value - state["nK_inf"],
+                            jK_value - state["jK_inf"],
+                            T_value - state["T_inf"],
                         ],
                         dtype=float,
                     )
@@ -5880,15 +5871,15 @@ def _solve_front_thermal_conducting_once(
         W = state["growing_projections"]
         delta = np.array(
             [
-                float(yb[0]) - state["nK_Q"] / S[0],
-                float(yb[1]) - state["jK_Q"] / S[1],
-                float(yb[2]) - state["T_Q"] / S[2],
+                float(yb[0]) - state["nK_inf"] / S[0],
+                float(yb[1]) - state["jK_inf"] / S[1],
+                float(yb[2]) - state["T_inf"] / S[2],
             ],
             dtype=float,
         )
         return np.array(
             [
-                float(ya[2]) - T_interface / S[2],
+                float(ya[2]) - T_0plus / S[2],
                 float(ya[1]) - state["jB"] / S[1],
                 float(W[0] @ delta),
                 float(W[1] @ delta),
@@ -5901,7 +5892,7 @@ def _solve_front_thermal_conducting_once(
         return {
             "success": False,
             "message": f"Initial thermal-conducting state construction failed: {last_failure['message']}",
-            "T_interface": T_interface,
+            "T_0plus": T_0plus,
             "tail_eps": float(tail_eps),
             "tol_bvp": float(tol_bvp),
             "s_end": float(1.0 - tail_eps),
@@ -5915,7 +5906,7 @@ def _solve_front_thermal_conducting_once(
     linear_tail_enabled = bool(float(tail_eps) < 0.1 * _THERMAL_LINEAR_TAIL_GAP)
     s_mesh = _thermal_compact_mesh(n_mesh, tail_eps)
     equilibrium0 = np.array(
-        [state0["nK_Q"], state0["jK_Q"], state0["T_Q"]], dtype=float
+        [state0["nK_inf"], state0["jK_inf"], state0["T_inf"]], dtype=float
     )
     if profile_guess is not None:
         y_guess = _thermal_interpolate_profile_guess(
@@ -5923,15 +5914,15 @@ def _solve_front_thermal_conducting_once(
         )
         left_shape = (1.0 - s_mesh) / max(1.0 - s_mesh[0], np.finfo(float).tiny)
         y_guess[1] += (state0["jB"] / S0[1] - y_guess[1, 0]) * left_shape
-        y_guess[2] += (T_interface / S0[2] - y_guess[2, 0]) * left_shape
+        y_guess[2] += (T_0plus / S0[2] - y_guess[2, 0]) * left_shape
         y_guess[1, 0] = state0["jB"] / S0[1]
-        y_guess[2, 0] = T_interface / S0[2]
+        y_guess[2, 0] = T_0plus / S0[2]
     else:
-        nK0_guess = float(aQstar_guess) * state0["nB_Q"]
+        nK0_guess = float(a_0plus_guess) * state0["nB_inf"]
         stable_shape = 1.0 - s_mesh
-        nK_line = state0["nK_Q"] + (nK0_guess - state0["nK_Q"]) * stable_shape
-        jK_line = state0["jK_Q"] + (state0["jB"] - state0["jK_Q"]) * stable_shape
-        T_line = state0["T_Q"] + (T_interface - state0["T_Q"]) * stable_shape
+        nK_line = state0["nK_inf"] + (nK0_guess - state0["nK_inf"]) * stable_shape
+        jK_line = state0["jK_inf"] + (state0["jB"] - state0["jK_inf"]) * stable_shape
+        T_line = state0["T_inf"] + (T_0plus - state0["T_inf"]) * stable_shape
         y_guess = np.vstack([nK_line / S0[0], jK_line / S0[1], T_line / S0[2]])
 
     with warnings.catch_warnings():
@@ -5950,7 +5941,7 @@ def _solve_front_thermal_conducting_once(
     jB_final = jB_from_param(float(sol.p[0]))
     state_final = state_or_none(float(sol.p[0]))
     base = {
-        "T_interface": T_interface,
+        "T_0plus": T_0plus,
         "tail_eps": float(tail_eps),
         "tol_bvp": float(tol_bvp),
         "s_end": s_end,
@@ -5980,7 +5971,7 @@ def _solve_front_thermal_conducting_once(
                     + (f"; last local failure: {last_failure['message']}" if last_failure["message"] else "")
                 ),
                 "jB": jB_final,
-                "uN": float(jB_final / nB_N),
+                "u_0minus": float(jB_final / nB_0minus),
             }
         )
         return base
@@ -6021,7 +6012,7 @@ def _solve_front_thermal_conducting_once(
     rhs_nK = np.empty(s_dense.size)
     rhs_jK = np.empty(s_dense.size)
     rhs_T = np.empty(s_dense.size)
-    guess = (state_final["muB_Q"], 1.0e-3)
+    guess = (state_final["muB_inf"], 1.0e-3)
     reconstruction_failures = 0
     for i in range(s_dense.size):
         nK_value = float(y_dense[0, i]) * S[0]
@@ -6104,15 +6095,15 @@ def _solve_front_thermal_conducting_once(
     FE_error = rel_error(fields["flux_E"], state_final["F_E"])
     bc_residual = bc(y_dense[:, 0], y_dense[:, -1], np.array([float(sol.p[0])]))
 
-    T_prime_interface = float(fields["T_prime"][0])
-    q_th_interface = float(fields["q_th"][0])
-    nK_interface = float(fields["nK"][0])
-    nB_interface = float(fields["nB"][0])
-    aQstar = float(nK_interface / nB_interface) if nB_interface > 0.0 else np.nan
+    Tprime_0plus = float(fields["T_prime"][0])
+    q_th_0plus = float(fields["q_th"][0])
+    nK_0plus = float(fields["nK"][0])
+    nB_0plus = float(fields["nB"][0])
+    a_0plus = float(nK_0plus / nB_0plus) if nB_0plus > 0.0 else np.nan
     closure_max = float(np.nanmax(fields["closure_residual"])) if s_dense.size else np.nan
     y_max_seen = float(np.nanmax(fields["kappa_y"])) if s_dense.size else np.nan
     equilibrium_y = np.array(
-        [state_final["nK_Q"], state_final["jK_Q"], state_final["T_Q"]], dtype=float
+        [state_final["nK_inf"], state_final["jK_inf"], state_final["T_inf"]], dtype=float
     )
     tail_delta_scaled = (
         np.array([fields["nK"][-1], fields["jK"][-1], fields["T"][-1]])
@@ -6120,7 +6111,7 @@ def _solve_front_thermal_conducting_once(
     ) / S
     tail_state_residual_norm = float(np.max(np.abs(tail_delta_scaled)))
     tail_muK_residual_norm = float(
-        abs(fields["muK"][-1]) / max(abs(state_final["muB_Q"]), 1.0)
+        abs(fields["muK"][-1]) / max(abs(state_final["muB_inf"]), 1.0)
     )
     tail_q_residual_norm = float(
         abs(fields["q_th"][-1]) / max(abs(state_final["F_E"]), 1.0)
@@ -6133,13 +6124,13 @@ def _solve_front_thermal_conducting_once(
         warnings_list.append(
             f"{stats['local_state_rejections']} collocation states rejected during the solve"
         )
-    if not (T_prime_interface > 0.0):
+    if not (Tprime_0plus > 0.0):
         warnings_list.append(
-            f"T'(0+) = {T_prime_interface:.6e} is not positive: the interface is not heating "
+            f"T'(0+) = {Tprime_0plus:.6e} is not positive: the interface is not heating "
             "downstream, so this branch may be unphysical"
         )
-    if not (q_th_interface < 0.0):
-        warnings_list.append(f"q_th(0+) = {q_th_interface:.6e} is not negative")
+    if not (q_th_0plus < 0.0):
+        warnings_list.append(f"q_th(0+) = {q_th_0plus:.6e} is not negative")
     if np.isfinite(y_max_seen) and y_max_seen > 0.5 * kappa_model["y_max"]:
         warnings_list.append(
             f"max T/qD = {y_max_seen:.4f} approaches the validated conductivity band "
@@ -6235,20 +6226,20 @@ def _solve_front_thermal_conducting_once(
             "success": success,
             "message": message,
             "jB": jB_final,
-            "uN": float(jB_final / nB_N),
+            "u_0minus": float(jB_final / nB_0minus),
             "Pi": float(state_final["Pi"]),
             "F_E": float(state_final["F_E"]),
-            "T_Q": float(state_final["T_Q"]),
-            "muB_Q": float(state_final["muB_Q"]),
-            "nB_Q": float(state_final["nB_Q"]),
-            "nK_Q": float(state_final["nK_Q"]),
-            "jK_Q": float(state_final["jK_Q"]),
+            "T_inf": float(state_final["T_inf"]),
+            "muB_inf": float(state_final["muB_inf"]),
+            "nB_inf": float(state_final["nB_inf"]),
+            "nK_inf": float(state_final["nK_inf"]),
+            "jK_inf": float(state_final["jK_inf"]),
             "lambda_n": float(state_final["lambda_n"]),
             "lambda_compact": float(lam),
-            "aQstar": aQstar,
-            "nK_Qstar": nK_interface,
-            "Tprime_Qstar": T_prime_interface,
-            "q_th_Qstar": q_th_interface,
+            "a_0plus": a_0plus,
+            "nK_0plus": nK_0plus,
+            "Tprime_0plus": Tprime_0plus,
+            "q_th_0plus": q_th_0plus,
             "downstream_stable_dimension": int(state_final["stable_dimension"]),
             "downstream_cf_minus_de": float(state_final["cf_minus_de"]),
             "downstream_eigenvalues": np.asarray(state_final["eigenvalues"]),
@@ -6291,10 +6282,10 @@ def _solve_front_thermal_conducting_once(
 
 
 def solve_front_thermal_conducting(
-    T,
-    nB_N,
+    T_0minus,
+    nB_0minus,
     B_one_forth,
-    T_interface=0.0,
+    T_0plus=0.0,
     ms=0.0,
     param=para.paraQMCRMF3,
     NM_type="PNM",
@@ -6305,7 +6296,7 @@ def solve_front_thermal_conducting(
     jB_guess=None,
     jB_bounds=None,
     kappa_model=None,
-    aQstar_guess=None,
+    a_0plus_guess=None,
     continuation_schedule=None,
     seed_from_ideal=True,
     return_profile=False,
@@ -6327,7 +6318,7 @@ def solve_front_thermal_conducting(
     EOS closure is a 2x2 solve for (muB, muK) at prescribed T.
 
     Boundary conditions (four, matching three ODEs plus one parameter):
-        T(0) = T_interface (default exactly 0), jK(0) = jB, and two downstream
+        T(0) = T_0plus (default exactly 0), jK(0) = jB, and two downstream
         conditions killing the growing modes of the linearised system.
 
     Neither nK(0) nor T'(0+) is imposed: both are selected by the global
@@ -6338,41 +6329,41 @@ def solve_front_thermal_conducting(
     temperature. That is a continuation waypoint only; the final solve uses the
     exact boundary condition and no temperature floor is introduced anywhere.
     At the first temperature waypoint, a separate compact-tail continuation
-    deepens the domain to the exact requested tail_eps before T_interface is
+    deepens the domain to the exact requested tail_eps before T_0plus is
     continued. The numerically unresolved final tail is matched smoothly to
     the linear downstream system and independently checked against the full
     nonlinear RHS during reconstruction.
     """
-    T = float(T)
-    nB_N = float(nB_N)
-    T_interface = float(T_interface)
-    if (not np.isfinite(T_interface)) or T_interface < 0.0:
-        raise RuntimeError("T_interface must be non-negative")
+    T_0minus = float(T_0minus)
+    nB_0minus = float(nB_0minus)
+    T_0plus = float(T_0plus)
+    if (not np.isfinite(T_0plus)) or T_0plus < 0.0:
+        raise RuntimeError("T_0plus must be non-negative")
     if NM_type != "PNM":
         raise RuntimeError("solve_front_thermal_conducting currently requires NM_type='PNM'")
-    if (not np.isfinite(T)) or T <= 0.0 or (not np.isfinite(nB_N)) or nB_N <= 0.0:
-        raise RuntimeError("solve_front_thermal_conducting requires positive T and nB_N")
+    if (not np.isfinite(T_0minus)) or T_0minus <= 0.0 or (not np.isfinite(nB_0minus)) or nB_0minus <= 0.0:
+        raise RuntimeError("solve_front_thermal_conducting requires positive T and nB_0minus")
     if not (0.0 < float(tail_eps) < 1.0):
         raise RuntimeError("tail_eps must satisfy 0 < tail_eps < 1")
     if int(n_mesh) < 5 or int(max_nodes) <= int(n_mesh) or float(tol_bvp) <= 0.0:
         raise RuntimeError("invalid BVP mesh or tolerance settings")
-    nuclear_state = _thermal_upstream_nuclear_state(T, nB_N, param, NM_type)
+    nuclear_state = _thermal_upstream_nuclear_state(T_0minus, nB_0minus, param, NM_type)
 
     if continuation_schedule is None:
-        if T_interface == 0.0:
+        if T_0plus == 0.0:
             # Geometric decrements. The measured choke point is a large first
             # drop (2.0 -> 0.5 MeV failed for most perturbed inputs); the
             # adaptive bisection below can recover from it, but each recovery
             # costs a wasted BVP solve, so the default path steps gently.
             schedule = [2.0, 1.0, 0.5, 0.25, 0.1, 0.04, 0.01, 0.0]
         else:
-            schedule = [T_interface]
+            schedule = [T_0plus]
     else:
         schedule = [float(v) for v in continuation_schedule]
         if not schedule:
             raise RuntimeError("continuation_schedule must be non-empty")
-        if abs(schedule[-1] - T_interface) > 1.0e-12:
-            schedule = schedule + [T_interface]
+        if abs(schedule[-1] - T_0plus) > 1.0e-12:
+            schedule = schedule + [T_0plus]
     if any((not np.isfinite(v)) or v < 0.0 for v in schedule):
         raise RuntimeError("continuation_schedule entries must be finite and non-negative")
 
@@ -6383,22 +6374,22 @@ def solve_front_thermal_conducting(
     seed_info = None
     if jB_guess is None and seed_from_ideal:
         seed_info = _thermal_seed_from_ideal_solver(
-            T, nB_N, B_one_forth, ms=ms, param=param, NM_type=NM_type
+            T_0minus, nB_0minus, B_one_forth, ms=ms, param=param, NM_type=NM_type
         )
         if seed_info is not None:
             jB_guess = seed_info["jB"]
             if verb:
                 print(
                     f"[thermal_conducting] seeded from ideal solver: jB={jB_guess:.6e} "
-                    f"aQstar={seed_info['aQstar']:.4f}",
+                    f"a_0plus={seed_info['a_0plus']:.4f}",
                     flush=True,
                 )
-    if aQstar_guess is None:
+    if a_0plus_guess is None:
         # Start on the heating side of the T'(0+) sign change. Below the
         # threshold the interface cools into T < 0 and the solve cannot start.
-        aQstar_guess = 0.85
-        if seed_info is not None and np.isfinite(seed_info.get("aQstar", np.nan)):
-            aQstar_guess = float(min(0.95, max(0.85, seed_info["aQstar"] + 0.30)))
+        a_0plus_guess = 0.85
+        if seed_info is not None and np.isfinite(seed_info.get("a_0plus", np.nan)):
+            a_0plus_guess = float(min(0.95, max(0.85, seed_info["a_0plus"] + 0.30)))
     if jB_bounds is None and jB_guess is not None and np.isfinite(jB_guess) and jB_guess > 0.0:
         # Bounded logit parameterisation: without it the Newton step on
         # theta = log(jB) is unconstrained and can run away to overflow.
@@ -6435,25 +6426,25 @@ def solve_front_thermal_conducting(
             return continuation_failure(
                 "continuation exceeded "
                 f"{_THERMAL_MAX_CONTINUATION_ATTEMPTS} attempts before reaching "
-                f"tail_eps={tail_eps:g} at T_interface={first_T:g} MeV"
+                f"tail_eps={tail_eps:g} at T_0plus={first_T:g} MeV"
             )
 
         eps_step = float(tail_queue[0])
         if profile_guess is None:
-            seed_candidates = [float(aQstar_guess)]
+            seed_candidates = [float(a_0plus_guess)]
             for extra in (0.85, 0.92, 0.75, 0.95, 0.65):
                 if all(abs(extra - existing) > 1.0e-9 for existing in seed_candidates):
                     seed_candidates.append(float(extra))
         else:
-            seed_candidates = [float(aQstar_guess)]
+            seed_candidates = [float(a_0plus_guess)]
 
         result = None
         for seed_attempt, seed_value in enumerate(seed_candidates):
             result = _solve_front_thermal_conducting_once(
-                T,
-                nB_N,
+                T_0minus,
+                nB_0minus,
                 B_one_forth,
-                T_interface=first_T,
+                T_0plus=first_T,
                 ms=ms,
                 param=param,
                 NM_type=NM_type,
@@ -6464,7 +6455,7 @@ def solve_front_thermal_conducting(
                 jB_guess=jB_running,
                 jB_bounds=jB_bounds,
                 kappa_model=kappa_model,
-                aQstar_guess=seed_value,
+                a_0plus_guess=seed_value,
                 profile_guess=profile_guess,
                 return_profile=(
                     return_profile
@@ -6478,7 +6469,7 @@ def solve_front_thermal_conducting(
                 if verb and seed_attempt:
                     print(
                         f"[thermal_conducting] cold start recovered with "
-                        f"aQstar_guess={seed_value:g}",
+                        f"a_0plus_guess={seed_value:g}",
                         flush=True,
                     )
                 break
@@ -6488,9 +6479,9 @@ def solve_front_thermal_conducting(
             {
                 "tail_eps": eps_step,
                 "success": succeeded,
-                "uN": result.get("uN", np.nan),
+                "u_0minus": result.get("u_0minus", np.nan),
                 "jB": result.get("jB", np.nan),
-                "aQstar": result.get("aQstar", np.nan),
+                "a_0plus": result.get("a_0plus", np.nan),
                 "tail_state_residual_norm": result.get(
                     "tail_state_residual_norm", np.nan
                 ),
@@ -6500,9 +6491,9 @@ def solve_front_thermal_conducting(
         if verb:
             print(
                 f"[thermal_conducting] tail_eps={eps_step:g} at "
-                f"T_interface={first_T:g} MeV -> success={succeeded} "
-                f"uN={result.get('uN', float('nan')):.6e} "
-                f"aQstar={result.get('aQstar', float('nan')):.6f}",
+                f"T_0plus={first_T:g} MeV -> success={succeeded} "
+                f"u_0minus={result.get('u_0minus', float('nan')):.6e} "
+                f"a_0plus={result.get('a_0plus', float('nan')):.6f}",
                 flush=True,
             )
 
@@ -6516,7 +6507,7 @@ def solve_front_thermal_conducting(
         if last_good_eps is None:
             return continuation_failure(
                 f"tail continuation failed at its first step "
-                f"(tail_eps={eps_step:g}, T_interface={first_T:g} MeV) after "
+                f"(tail_eps={eps_step:g}, T_0plus={first_T:g} MeV) after "
                 f"{len(seed_candidates)} interface-composition seeds: "
                 f"{result.get('message', '')}"
             )
@@ -6542,11 +6533,11 @@ def solve_front_thermal_conducting(
 
     history.append(
         {
-            "T_interface": first_T,
+            "T_0plus": first_T,
             "success": True,
-            "uN": result.get("uN", np.nan),
+            "u_0minus": result.get("u_0minus", np.nan),
             "jB": result.get("jB", np.nan),
-            "aQstar": result.get("aQstar", np.nan),
+            "a_0plus": result.get("a_0plus", np.nan),
             "message": result.get("message", ""),
         }
     )
@@ -6562,16 +6553,16 @@ def solve_front_thermal_conducting(
             return continuation_failure(
                 "continuation exceeded "
                 f"{_THERMAL_MAX_CONTINUATION_ATTEMPTS} attempts before reaching "
-                f"T_interface={T_interface:g} MeV"
+                f"T_0plus={T_0plus:g} MeV"
             )
 
         T_step = float(queue[0])
         is_final = bool(len(queue) == 1)
         result = _solve_front_thermal_conducting_once(
-            T,
-            nB_N,
+            T_0minus,
+            nB_0minus,
             B_one_forth,
-            T_interface=T_step,
+            T_0plus=T_step,
             ms=ms,
             param=param,
             NM_type=NM_type,
@@ -6582,7 +6573,7 @@ def solve_front_thermal_conducting(
             jB_guess=jB_running,
             jB_bounds=jB_bounds,
             kappa_model=kappa_model,
-            aQstar_guess=aQstar_guess,
+            a_0plus_guess=a_0plus_guess,
             profile_guess=profile_guess,
             return_profile=return_profile and is_final,
             verb=verb,
@@ -6592,19 +6583,19 @@ def solve_front_thermal_conducting(
         succeeded = bool(result.get("success", False))
         history.append(
             {
-                "T_interface": T_step,
+                "T_0plus": T_step,
                 "success": succeeded,
-                "uN": result.get("uN", np.nan),
+                "u_0minus": result.get("u_0minus", np.nan),
                 "jB": result.get("jB", np.nan),
-                "aQstar": result.get("aQstar", np.nan),
+                "a_0plus": result.get("a_0plus", np.nan),
                 "message": result.get("message", ""),
             }
         )
         if verb:
             print(
-                f"[thermal_conducting] T_interface={T_step:g} MeV -> "
-                f"success={succeeded} uN={result.get('uN', float('nan')):.6e} "
-                f"aQstar={result.get('aQstar', float('nan')):.6f}",
+                f"[thermal_conducting] T_0plus={T_step:g} MeV -> "
+                f"success={succeeded} u_0minus={result.get('u_0minus', float('nan')):.6e} "
+                f"a_0plus={result.get('a_0plus', float('nan')):.6f}",
                 flush=True,
             )
 
@@ -6621,7 +6612,7 @@ def solve_front_thermal_conducting(
         ):
             return continuation_failure(
                 f"continuation stalled: repeated bisection from the last converged "
-                f"T_interface={last_good_T:.10g} MeV could not reach the next target "
+                f"T_0plus={last_good_T:.10g} MeV could not reach the next target "
                 f"(stuck at {T_step:.10g} MeV, remaining schedule {queue[1:]!r}); "
                 f"last solver message: {result.get('message', '')}"
             )
@@ -6636,13 +6627,13 @@ def solve_front_thermal_conducting(
     result = dict(result)
     reached_requested_endpoint = bool(
         result.get("success", False)
-        and float(result.get("T_interface", np.nan)) == T_interface
+        and float(result.get("T_0plus", np.nan)) == T_0plus
         and float(result.get("tail_eps", np.nan)) == float(tail_eps)
     )
     if not reached_requested_endpoint:
         return continuation_failure(
             "continuation terminated without reaching both the requested "
-            f"T_interface={T_interface:g} MeV and tail_eps={tail_eps:g}"
+            f"T_0plus={T_0plus:g} MeV and tail_eps={tail_eps:g}"
         )
     result["continuation_history"] = history
     result["continuation_schedule"] = schedule
@@ -6691,7 +6682,7 @@ def z_time_evolution(
     t_max=20.0,
     sample_count=24,
     output_count=500,
-    TQstar=0.5,
+    T_0plus=0.5,
     ms=0.0,
     param=para.paraQMCRMF3,
     NM_type="PNM",
@@ -6700,7 +6691,7 @@ def z_time_evolution(
     tol_bvp=1e-4,
     max_nodes=10000,
     jB_guess=None,
-    TQ_guess=None,
+    T_inf_guess=None,
     jB_bounds=None,
     adaptive_continuation=True,
     max_continuation_subdivisions=12,
@@ -6716,15 +6707,15 @@ def z_time_evolution(
     n0 = 0.16 fm^-3, so the upstream density used by the hydrodynamic solver
     is
 
-        nB_N(z) = nB_target + density_slope_n0_per_km * n0 * z.
+        nB_0minus(z) = nB_target + density_slope_n0_per_km * n0 * z.
 
     ``temperature`` may be a positive scalar in MeV or a callable accepting
     ``z`` in km and returning the local upstream temperature in MeV. Explicit
     time-dependent cooling is not supported because it would require a
     two-dimensional velocity surrogate v(z, t).
 
-    The hydrodynamic solver returns the spatial four-velocity u_N. It is
-    converted to ordinary speed with beta_N = u_N/sqrt(1 + u_N**2), and the
+    The hydrodynamic solver returns the spatial four-velocity u_0minus. It is
+    converted to ordinary speed with beta_0minus = u_0minus/sqrt(1 + u_0minus**2), and the
     ODE dz/dt = -v(z) is integrated until ``z_stop`` or ``t_max``.
 
     Parameters
@@ -6754,7 +6745,7 @@ def z_time_evolution(
         Maximum number of logarithmic interval subdivisions for one nominal
         sample before reporting the hydrodynamic failure.
     stall_on_terminal_branch : bool, optional
-        At exact ``TQstar=0``, return an explicitly unsuccessful numerical
+        At exact ``T_0plus=0``, return an explicitly unsuccessful numerical
         continuation result with a zero-velocity closure when retries are
         exhausted. This does not classify the failure as a physical terminal
         branch.
@@ -6771,7 +6762,7 @@ def z_time_evolution(
     density_slope_n0_per_km = float(density_slope_n0_per_km)
     z_stop = float(z_stop)
     t_max = float(t_max)
-    TQstar = float(TQstar)
+    T_0plus = float(T_0plus)
     ms = float(ms)
 
     if (not np.isfinite(nB_target)) or nB_target <= 0.0:
@@ -6824,29 +6815,29 @@ def z_time_evolution(
 
     def solve_velocity_sample(z_value, continuation_guess):
         z_value = float(z_value)
-        nB_N = float(nB_target + density_slope_n0_per_km * n0 * z_value)
+        nB_0minus = float(nB_target + density_slope_n0_per_km * n0 * z_value)
         try:
-            T_N = float(temperature_of_z(z_value))
+            T_0minus = float(temperature_of_z(z_value))
         except Exception as exc:
             raise RuntimeError(
                 f"temperature(z) failed at z={z_value:.9g} km: {exc}"
             ) from exc
-        if (not np.isfinite(T_N)) or T_N <= 0.0:
+        if (not np.isfinite(T_0minus)) or T_0minus <= 0.0:
             raise RuntimeError(
                 f"temperature(z) must be positive and finite at z={z_value:.9g} km"
             )
 
         point_jB_guess = jB_guess
-        point_TQ_guess = TQ_guess
+        point_T_inf_guess = T_inf_guess
         if isinstance(continuation_guess, dict):
             point_jB_guess = continuation_guess.get("jB", point_jB_guess)
-            point_TQ_guess = continuation_guess.get("T_Q", point_TQ_guess)
+            point_T_inf_guess = continuation_guess.get("T_inf", point_T_inf_guess)
 
         result = solve_front_energy_conserving_uNmax(
-            T_N,
-            float(nB_N),
+            T_0minus,
+            float(nB_0minus),
             B_one_forth,
-            TQstar=TQstar,
+            T_0plus=T_0plus,
             ms=ms,
             param=param,
             NM_type=NM_type,
@@ -6855,22 +6846,22 @@ def z_time_evolution(
             tol_bvp=tol_bvp,
             max_nodes=max_nodes,
             jB_guess=point_jB_guess,
-            TQ_guess=point_TQ_guess,
+            T_inf_guess=point_T_inf_guess,
             jB_bounds=jB_bounds,
             continuation_guess=continuation_guess,
             return_profile=True,
             verb=verb,
         )
         if not bool(result.get("success", False)):
-            return None, result, nB_N, T_N
+            return None, result, nB_0minus, T_0minus
 
-        u_N = float(result.get("u_N_max_candidate", result.get("u_N", np.nan)))
-        if (not np.isfinite(u_N)) or u_N < 0.0:
+        u_0minus = float(result.get("u_0minus_max_candidate", result.get("u_0minus", np.nan)))
+        if (not np.isfinite(u_0minus)) or u_0minus < 0.0:
             raise RuntimeError(
-                f"uNmax returned a non-physical u_N={u_N!r} at z={z_value:.9g} km"
+                f"uNmax returned a non-physical u_0minus={u_0minus!r} at z={z_value:.9g} km"
             )
-        beta_N = float(u_N / np.sqrt(1.0 + u_N * u_N))
-        velocity_km_s = float(const.c_km * beta_N)
+        beta_0minus = float(u_0minus / np.sqrt(1.0 + u_0minus * u_0minus))
+        velocity_km_s = float(const.c_km * beta_0minus)
         if (not np.isfinite(velocity_km_s)) or velocity_km_s < 0.0:
             raise RuntimeError(
                 f"uNmax produced a non-physical velocity at z={z_value:.9g} km"
@@ -6878,21 +6869,21 @@ def z_time_evolution(
 
         sample = {
             "z": z_value,
-            "nB_N": nB_N,
-            "T_N": T_N,
-            "u_N": u_N,
+            "nB_0minus": nB_0minus,
+            "T_0minus": T_0minus,
+            "u_0minus": u_0minus,
             "velocity_km_s": velocity_km_s,
-            "T_Q": float(result.get("T_Q", np.nan)),
-            "T_Qstar": float(result.get("T_Qstar", np.nan)),
+            "T_inf": float(result.get("T_inf", np.nan)),
+            "T_0plus": float(result.get("T_0plus", np.nan)),
         }
-        return sample, result, nB_N, T_N
+        return sample, result, nB_0minus, T_0minus
 
-    def failed_sample_message(z_value, nB_N, T_N, failure, subdivisions):
+    def failed_sample_message(z_value, nB_0minus, T_0minus, failure, subdivisions):
         last_success = successful_samples[-1]["z"] if successful_samples else np.nan
         return (
             "uNmax velocity solve failed at "
-            f"z={float(z_value):.9g} km, nB_N={float(nB_N):.9g} MeV^3, "
-            f"T_N={float(T_N):.9g} MeV after {int(subdivisions)} adaptive "
+            f"z={float(z_value):.9g} km, nB_0minus={float(nB_0minus):.9g} MeV^3, "
+            f"T_0minus={float(T_0minus):.9g} MeV after {int(subdivisions)} adaptive "
             f"subdivision(s); last successful z={float(last_success):.9g} km: "
             f"{failure.get('message', 'unknown failure')}"
         )
@@ -6901,7 +6892,7 @@ def z_time_evolution(
         pending = [(float(nominal_z), 0, False)]
         while pending:
             z_value, subdivisions, is_inserted = pending.pop()
-            sample, result, nB_N, T_N = solve_velocity_sample(
+            sample, result, nB_0minus, T_0minus = solve_velocity_sample(
                 z_value,
                 current_continuation,
             )
@@ -6922,18 +6913,18 @@ def z_time_evolution(
             if not can_subdivide:
                 if (
                     stall_on_terminal_branch
-                    and TQstar == 0.0
+                    and T_0plus == 0.0
                 ):
                     had_successful_sample = bool(successful_samples)
                     successful_samples.append(
                         {
                             "z": float(z_value),
-                            "nB_N": float(nB_N),
-                            "T_N": float(T_N),
-                            "u_N": 0.0,
+                            "nB_0minus": float(nB_0minus),
+                            "T_0minus": float(T_0minus),
+                            "u_0minus": 0.0,
                             "velocity_km_s": 0.0,
-                            "T_Q": np.nan,
-                            "T_Qstar": 0.0,
+                            "T_inf": np.nan,
+                            "T_0plus": 0.0,
                         }
                     )
                     if return_solver_results:
@@ -6942,19 +6933,19 @@ def z_time_evolution(
                         try:
                             T_stop = float(temperature_of_z(z_stop))
                         except Exception:
-                            T_stop = float(T_N)
+                            T_stop = float(T_0minus)
                         successful_samples.append(
                             {
                                 "z": float(z_stop),
-                                "nB_N": float(
+                                "nB_0minus": float(
                                     nB_target
                                     + density_slope_n0_per_km * n0 * z_stop
                                 ),
-                                "T_N": T_stop,
-                                "u_N": 0.0,
+                                "T_0minus": T_stop,
+                                "u_0minus": 0.0,
                                 "velocity_km_s": 0.0,
-                                "T_Q": np.nan,
-                                "T_Qstar": 0.0,
+                                "T_inf": np.nan,
+                                "T_0plus": 0.0,
                             }
                         )
                         if return_solver_results:
@@ -6963,25 +6954,25 @@ def z_time_evolution(
                                     "success": False,
                                     "message": "Synthetic zero-velocity support point below exhausted continuation",
                                     "synthetic_stall_support": True,
-                                    "T_Qstar": 0.0,
+                                    "T_0plus": 0.0,
                                 }
                             )
                     stalled = True
                     stall_z_km = float(z_value)
                     stall_reason = failed_sample_message(
-                        z_value, nB_N, T_N, result, subdivisions
+                        z_value, nB_0minus, T_0minus, result, subdivisions
                     )
                     pending.clear()
                     break
                 raise RuntimeError(
-                    failed_sample_message(z_value, nB_N, T_N, result, subdivisions)
+                    failed_sample_message(z_value, nB_0minus, T_0minus, result, subdivisions)
                 )
 
             last_success_z = float(successful_samples[-1]["z"])
             midpoint_z = float(np.sqrt(last_success_z * z_value))
             if not (z_value < midpoint_z < last_success_z):
                 raise RuntimeError(
-                    failed_sample_message(z_value, nB_N, T_N, result, subdivisions)
+                    failed_sample_message(z_value, nB_0minus, T_0minus, result, subdivisions)
                 )
             pending.append((z_value, subdivisions + 1, is_inserted))
             pending.append((midpoint_z, subdivisions + 1, True))
@@ -6990,31 +6981,31 @@ def z_time_evolution(
 
     z_descending = np.asarray([sample["z"] for sample in successful_samples], dtype=float)
     density_descending = np.asarray(
-        [sample["nB_N"] for sample in successful_samples], dtype=float
+        [sample["nB_0minus"] for sample in successful_samples], dtype=float
     )
     temperature_descending = np.asarray(
-        [sample["T_N"] for sample in successful_samples], dtype=float
+        [sample["T_0minus"] for sample in successful_samples], dtype=float
     )
-    u_N_descending = np.asarray(
-        [sample["u_N"] for sample in successful_samples], dtype=float
+    u_0minus_descending = np.asarray(
+        [sample["u_0minus"] for sample in successful_samples], dtype=float
     )
     velocity_descending = np.asarray(
         [sample["velocity_km_s"] for sample in successful_samples], dtype=float
     )
-    T_Q_descending = np.asarray(
-        [sample["T_Q"] for sample in successful_samples], dtype=float
+    T_inf_descending = np.asarray(
+        [sample["T_inf"] for sample in successful_samples], dtype=float
     )
-    T_Qstar_descending = np.asarray(
-        [sample["T_Qstar"] for sample in successful_samples], dtype=float
+    T_0plus_descending = np.asarray(
+        [sample["T_0plus"] for sample in successful_samples], dtype=float
     )
 
     z_samples = z_descending[::-1].copy()
     density_samples = density_descending[::-1].copy()
     temperature_samples = temperature_descending[::-1].copy()
-    u_N_samples = u_N_descending[::-1].copy()
+    u_0minus_samples = u_0minus_descending[::-1].copy()
     velocity_samples = velocity_descending[::-1].copy()
-    T_Q_samples = T_Q_descending[::-1].copy()
-    T_Qstar_samples = T_Qstar_descending[::-1].copy()
+    T_inf_samples = T_inf_descending[::-1].copy()
+    T_0plus_samples = T_0plus_descending[::-1].copy()
 
     def velocity_of_z(z_value):
         z_value = float(z_value)
@@ -7076,12 +7067,12 @@ def z_time_evolution(
         "density_slope_n0_per_km": density_slope_n0_per_km,
         "temperature_mode": temperature_description,
         "z_samples_km": z_samples,
-        "nB_N_samples_MeV3": density_samples,
-        "T_N_samples_MeV": temperature_samples,
-        "u_N_samples": u_N_samples,
+        "nB_0minus_samples_MeV3": density_samples,
+        "T_0minus_samples_MeV": temperature_samples,
+        "u_0minus_samples": u_0minus_samples,
         "velocity_samples_km_s": velocity_samples,
-        "T_Q_samples_MeV": T_Q_samples,
-        "T_Qstar_samples_MeV": T_Qstar_samples,
+        "T_inf_samples_MeV": T_inf_samples,
+        "T_0plus_samples_MeV": T_0plus_samples,
         "nominal_sample_count": sample_count,
         "adaptive_continuation_used": bool(inserted_point_count > 0),
         "continuation_inserted_point_count": int(inserted_point_count),
