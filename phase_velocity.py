@@ -4625,12 +4625,12 @@ def _solve_front_energy_conserving_uNmax_once(
             "success": False,
             "message": f"Initial uNmax nK state construction failed: {last_failure['message']}",
             "T_0plus": T_0plus,
-            "solver_variant": "u0minus_max_direct_T0plus_nK",
+            "solver_variant": "energy_conserving_nK_fixed_T_0plus",
             "rate_model": "exact_nonleptonic",
             "composition_definition": "nK_over_local_nB",
             "current_definition": "u_nK_minus_D_dnK_dx",
             "density_ratio_definition": "lambda_n_equals_nB_0minus_over_nB_inf",
-            "_root_method": "solve_bvp_u0minus_max_nK_parameter_1d",
+            "_root_method": "solve_bvp_nK_jK_parameter_jB",
         }
 
     bvp_nK_scale = max(abs(state0["thermo_0plus"]["nK"]), abs(state0["thermo_inf"]["nK"]), 1.0)
@@ -4713,12 +4713,12 @@ def _solve_front_energy_conserving_uNmax_once(
             "success": False,
             "message": f"absolute-nK uNmax BVP failed: {exc}; last failure: {last_failure['message']}",
             "T_0plus": T_0plus,
-            "solver_variant": "u0minus_max_direct_T0plus_nK",
+            "solver_variant": "energy_conserving_nK_fixed_T_0plus",
             "rate_model": "exact_nonleptonic",
             "composition_definition": "nK_over_local_nB",
             "current_definition": "u_nK_minus_D_dnK_dx",
             "density_ratio_definition": "lambda_n_equals_nB_0minus_over_nB_inf",
-            "_root_method": "solve_bvp_u0minus_max_nK_parameter_1d",
+            "_root_method": "solve_bvp_nK_jK_parameter_jB",
         }
 
     s_profile = np.asarray(sol.x, dtype=float)
@@ -4754,12 +4754,12 @@ def _solve_front_energy_conserving_uNmax_once(
             "success": False,
             "message": f"uNmax nK profile reconstruction failed: {exc}",
             "T_0plus": T_0plus,
-            "solver_variant": "u0minus_max_direct_T0plus_nK",
+            "solver_variant": "energy_conserving_nK_fixed_T_0plus",
             "rate_model": "exact_nonleptonic",
             "composition_definition": "nK_over_local_nB",
             "current_definition": "u_nK_minus_D_dnK_dx",
             "density_ratio_definition": "lambda_n_equals_nB_0minus_over_nB_inf",
-            "_root_method": "solve_bvp_u0minus_max_nK_parameter_1d",
+            "_root_method": "solve_bvp_nK_jK_parameter_jB",
         }
 
     dy_ds = _bvp_dense_derivative(sol, s_profile)
@@ -4821,7 +4821,8 @@ def _solve_front_energy_conserving_uNmax_once(
         "message": result_message,
         "jB": float(state["jB"]),
         "u_0minus": float(state["u_0minus"]),
-        "u_0minus_max_candidate": float(state["u_0minus"]),
+        "u_0plus": float(state_0plus["u"]),
+        "u_inf": float(target["u"]),
         "T_0minus": T_0minus,
         "T_inf": float(state["T_inf"]),
         "T_0plus": float(state_0plus["T"]),
@@ -4838,19 +4839,28 @@ def _solve_front_energy_conserving_uNmax_once(
         "Pi_right_residual": Pi_right_residual,
         "Pi_right_residual_norm": Pi_right_residual_norm,
         "a_0plus": float(a_profile[0]),
-        "a_0plus_derived": float(a_profile[0]),
+        "a_inf": float(target["nK"] / target["nB"]),
         "lambda_n": float(state["lambda_n"]),
-        "u_inf": float(target["u"]),
         "r_gamma_0minus": float(state["r_gamma_0minus"]),
         "r_gamma_inf": float(_relativistic_gamma_from_u(target["u"])),
         "r_gamma_0plus": float(_relativistic_gamma_from_u(state_0plus["u"])),
+        "nB_0minus": nB_0minus,
+        "P_0minus": P_0minus,
+        "e_0minus": e_0minus,
         "muB_inf": float(target["muB"]),
+        "muK_inf": float(target["muK"]),
         "nB_inf": float(target["nB"]),
         "nK_inf": float(target["nK"]),
+        "P_inf": float(target["P"]),
+        "e_inf": float(target["e"]),
+        "jK_inf": float(state["jK_inf"]),
         "muB_0plus": float(state_0plus["muB"]),
         "muK_0plus": float(state_0plus["muK"]),
         "nB_0plus": float(state_0plus["nB"]),
         "nK_0plus": float(state_0plus["nK"]),
+        "P_0plus": float(state_0plus["P"]),
+        "e_0plus": float(state_0plus["e"]),
+        "jK_0plus": float(jK_profile[0]),
         "h_0minus": h_0minus,
         "h_inf": float(target["h"]),
         "h_0plus": float(state_0plus["h"]),
@@ -4883,10 +4893,10 @@ def _solve_front_energy_conserving_uNmax_once(
         "composition_definition": "nK_over_local_nB",
         "current_definition": "u_nK_minus_D_dnK_dx",
         "density_ratio_definition": "lambda_n_equals_nB_0minus_over_nB_inf",
-        "solver_variant": "u0minus_max_direct_T0plus_nK",
+        "solver_variant": "energy_conserving_nK_fixed_T_0plus",
         "coordinate": "BVP: s_coord in [0, 1-tail_eps], s_coord=1-exp(-lambda*x)",
         "tail_eps": float(tail_eps),
-        "_root_method": "solve_bvp_u0minus_max_nK_parameter_1d",
+        "_root_method": "solve_bvp_nK_jK_parameter_jB",
         "bvp_status": int(sol.status),
         "bvp_message": str(sol.message),
         "bvp_collocation_converged": bool(sol.success),
@@ -4938,17 +4948,14 @@ def _annotate_energy_uNmax_result(
     out = dict(result)
     T_0plus_target = float(T_0plus_target)
     T_0plus = float(out.get("T_0plus", np.nan))
-    a_0plus_out = float(out.get("a_0plus", np.nan))
-    u_0minus_out = float(out.get("u_0minus", np.nan))
-    out["solver_variant"] = "u0minus_max_direct_T0plus_nK"
+    out["solver_variant"] = "energy_conserving_nK_fixed_T_0plus"
+    out["_root_method"] = "solve_bvp_nK_jK_parameter_jB"
     out["T_0plus_target"] = T_0plus_target
     out["T_0plus_residual"] = (
         float(T_0plus - T_0plus_target)
         if np.isfinite(T_0plus) and np.isfinite(T_0plus_target)
         else np.nan
     )
-    out["a_0plus_derived"] = a_0plus_out
-    out["u_0minus_max_candidate"] = u_0minus_out
     return out
 
 
@@ -4976,9 +4983,8 @@ def solve_front_energy_conserving_uNmax(
 
     This variant treats T_0plus as the input and derives a_0plus from the
     quark EOS, which is useful for probing the upper end of the branch where
-    T_0plus approaches zero. It is not a separate optimizer: the returned
-    u_0minus_max_candidate is the upstream velocity for the requested fixed
-    T_0plus.
+    T_0plus approaches zero. It is not a separate optimizer: u_0minus is the
+    upstream velocity for the requested fixed T_0plus.
     """
     T_0plus = float(T_0plus)
     if (not np.isfinite(T_0plus)) or T_0plus < 0.0:
@@ -7064,7 +7070,7 @@ def z_time_evolution(
         if not bool(result.get("success", False)):
             return None, result, nB_0minus, T_0minus
 
-        u_0minus = float(result.get("u_0minus_max_candidate", result.get("u_0minus", np.nan)))
+        u_0minus = float(result.get("u_0minus", np.nan))
         if (not np.isfinite(u_0minus)) or u_0minus < 0.0:
             raise RuntimeError(
                 f"uNmax returned a non-physical u_0minus={u_0minus!r} at z={z_value:.9g} km"
