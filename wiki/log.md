@@ -113,3 +113,10 @@ Endpoint-notation renames had propagated into the code but not the wiki: `uN`→
 Re-measured the 196/202/228 m/s reference triple: it reproduces under **no** current code path (full analytic at $T(0^+)=5$ MeV gives 143.93/147.82/163.23; LTE, the closest, 189.22/193.84/212.06), and the quoted $\mu_B\approx1181$ MeV is really 1190.86 at $3n_{\rm sat}$.
 The $X_q$ estimate in [[gw-observables-section]] rests on the retired triple and is flagged for recomputation rather than silently rescaled.
 Substance of [[unmax-degeneracy]] and [[unmax-low-temperature]] re-verified against live code and found correct; only names were stale.
+
+## [2026-08-17] tooling | Wiki is now version-controlled and public
+
+The workspace root became a git repository so `wiki/` and `RMFsolver/` are tracked together; it pushes to `https://github.com/JiazhenShao/RMFsolver`.
+The repository history was moved up from `RMFsolver/` rather than restarted, so `git log --follow` on the package still reaches the 2025 baseline, and the four-commit public snapshot previously on `main` was merged in with `-s ours` rather than force-pushed away.
+`.gitignore` is an allowlist because the workspace root is also the venv: everything at top level is ignored and only the two published trees are re-included.
+Consequence for wiki practice: this vault is **public**, including [[combustion-paper]] and [[gw-observables-section]]. Write pages knowing they are readable by anyone, and treat every commit as publication.
