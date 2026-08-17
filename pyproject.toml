@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "RMFsolver"
+version = "0.1.0"
+description = "Relativistic mean-field solvers for dense matter, neutron-star structure, and hadron-to-quark conversion fronts."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy",
+    "scipy",
+    "matplotlib",
+    "numdifftools",
+]
+
+# Named explicitly rather than via find_packages(): the project root is also a
+# virtualenv and a research workspace, so discovery would sweep up unrelated
+# directories that happen to carry an __init__.py.
+[tool.setuptools]
+packages = ["RMFsolver"]
+
+# Without this the bundled crust table is left out of an install, and tov.py
+# cannot find it.
+[tool.setuptools.package-data]
+RMFsolver = ["TM1ecrust+BPS.table"]

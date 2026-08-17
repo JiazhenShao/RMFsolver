@@ -8,6 +8,7 @@
 /*
 !/.gitignore
 !/README.md
+!/pyproject.toml
 !/requirements.txt
 !/setup.py
 !/RMFsolver/
