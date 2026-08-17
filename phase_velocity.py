@@ -1011,6 +1011,11 @@ def _analytic_a_0plus_lte(A_boundary, u_0minus, lambda_n):
 # where uniform neutron matter is mechanically unstable and real matter breaks up
 # into crust. The default seed occasionally falls into its basin at isolated muB,
 # so these alternatives re-seed the solve near the physical (sigma > 0) root.
+# Seeds that land on the same branch reproduce sigma to well under this, and the
+# off-branch roots differ from it by many percent, so the exact value is not
+# delicate.
+_PNM_BRANCH_AGREEMENT_RTOL = 1.0e-6
+
 _PNM_BRANCH_SEEDS = (
     (30.0, 20.0, -3.0),
     (70.0, 70.0, -3.0),
@@ -1125,11 +1130,32 @@ def _validated_pnm_state(muB, T, param):
     """
     Solve PNM at (muB, T) on the physical mean-field branch.
 
-    Seeds are tried in turn and the first solve that passes
-    _pnm_branch_rejection is returned; if every seed lands off the physical
-    branch a RuntimeError is raised rather than a silently wrong state.
+    Seeds are tried in turn and the state is accepted once two of them agree on
+    sigma, which is what pins the vacuum-connected branch; if every seed lands
+    off the physical branch a RuntimeError is raised rather than a silently
+    wrong state.
+
+    _pnm_branch_rejection alone is not enough. It catches the sigma < 0 root,
+    but two further ways of leaving the branch carry sigma > 0 and P > 0 and so
+    slip past it, each over a muB window only a fraction of an MeV wide:
+
+      * the collapsed large-sigma root of the scalar gap equation (near
+        muB = 2450 MeV at T = 0.01 the first seed gives sigma = 108.31 and a
+        density 7.7x the physical one), and
+      * a solve that never moves off its own seed (near muB = 2705 the
+        (50, 45, -3) seed returns sigma = 50.0 exactly, 28x too dense).
+
+    Either one puts an isolated spike in nB(muB), and a spike is
+    indistinguishable from a root to any bracketing solve, so muB_from_nB
+    converges onto the jump instead of the density it was asked for. Both are
+    minority outcomes -- the remaining seeds agree on the physical root -- so
+    agreement between two seeds is the discriminator. Note that neither the
+    smallest sigma nor the largest pressure identifies the physical branch: the
+    collapsed root carries the larger pressure at the same muB, and the
+    stalled seed carries the smaller sigma.
     """
     reasons = []
+    accepted = []
     for seed in _PNM_BRANCH_SEEDS:
         try:
             P, e, nB, sigma = _pnm_state_at_seed(muB, T, param, seed)
@@ -1137,9 +1163,26 @@ def _validated_pnm_state(muB, T, param):
             reasons.append(f"seed {seed}: solve failed ({str(exc)[:80]})")
             continue
         reason = _pnm_branch_rejection(P, e, nB, sigma)
-        if not reason:
-            return P, e, nB, sigma
-        reasons.append(f"seed {seed}: {reason}")
+        if reason:
+            reasons.append(f"seed {seed}: {reason}")
+            continue
+        for other in accepted:
+            if abs(sigma - other[3]) <= _PNM_BRANCH_AGREEMENT_RTOL * max(
+                abs(sigma), abs(other[3]), 1.0
+            ):
+                return P, e, nB, sigma
+        accepted.append((P, e, nB, sigma))
+    if len(accepted) == 1:
+        # Only one seed reached a physically acceptable state, so there is
+        # nothing to corroborate it against; the single state is still the best
+        # available answer and matches the pre-agreement behaviour.
+        return accepted[0]
+    if accepted:
+        sigmas = ", ".join(f"{state[3]:.6f}" for state in accepted)
+        raise RuntimeError(
+            f"PNM solve at muB={float(muB):.4f}, T={float(T):.4g} did not settle on "
+            f"one mean-field branch: no two seeds agreed on sigma (got {sigmas})"
+        )
     raise RuntimeError(
         f"PNM solve at muB={float(muB):.4f}, T={float(T):.4g} could not reach the "
         "physical mean-field branch from any seed: " + "; ".join(reasons)
@@ -1150,17 +1193,22 @@ def _analytic_nuclear_state(muB_0minus, T_0minus, param=para.paraQMCRMF3, NM_typ
     """
     Return the upstream nuclear state used by analytic_velocity_bound.
 
-    For PNM the solve is validated against the spurious sigma < 0 branch and
-    re-seeded when needed; see _validated_pnm_state.
+    For PNM the state always comes from _validated_pnm_state, which pins the
+    vacuum-connected branch by agreement between seeds. Screening the
+    default-seed solve first is not enough: the screen only sees the sigma < 0
+    root, so the collapsed large-sigma root and a solve that never left its seed
+    both pass it and the wrong branch reaches the caller silently. The validator
+    costs one extra mean-field solve, against the 72-point eigenvalue scan that
+    follows.
     """
-    P_0minus = float(PNM(muB_0minus, T_0minus, param=param, NM_type=NM_type))
-    e_0minus = float(edensNM(muB_0minus, T_0minus, param=param))
-    nB_0minus = float(nB_NM(muB_0minus, T_0minus, param=param, NM_type=NM_type))
-    if str(NM_type) == "PNM" and _pnm_state_is_off_branch(muB_0minus, T_0minus, param, P_0minus, e_0minus, nB_0minus):
-        # The default mean-field seed occasionally lands on the sigma < 0 root,
-        # which shows up here as a negative pressure. Re-solve from other seeds
-        # and check the scalar field directly before accepting the state.
-        P_0minus, e_0minus, nB_0minus, _sigma_0minus = _validated_pnm_state(muB_0minus, T_0minus, param)
+    if str(NM_type) == "PNM":
+        P_0minus, e_0minus, nB_0minus, _sigma_0minus = _validated_pnm_state(
+            muB_0minus, T_0minus, param
+        )
+    else:
+        P_0minus = float(PNM(muB_0minus, T_0minus, param=param, NM_type=NM_type))
+        e_0minus = float(edensNM(muB_0minus, T_0minus, param=param))
+        nB_0minus = float(nB_NM(muB_0minus, T_0minus, param=param, NM_type=NM_type))
     h_0minus = float(P_0minus + e_0minus)
     if (not np.isfinite(P_0minus)) or (not np.isfinite(e_0minus)) or (not np.isfinite(h_0minus)):
         raise RuntimeError("Nuclear EOS returned non-finite pressure or enthalpy")
@@ -1642,8 +1690,8 @@ def _solve_analytic_velocity_bound(
 
     if (not np.isfinite(muB_0minus)) or muB_0minus <= 0.0:
         raise RuntimeError("muB_0minus must be positive and finite")
-    if (not np.isfinite(T_0minus)) or T_0minus <= 0.0:
-        raise RuntimeError("T_0minus must be positive and finite")
+    if (not np.isfinite(T_0minus)) or T_0minus < 0.0:
+        raise RuntimeError("T_0minus must be finite and non-negative")
     if (not np.isfinite(B_one_forth)) or B_one_forth <= 0.0:
         raise RuntimeError("B_one_forth must be positive and finite")
     if (not np.isfinite(xi)) or not (-1.0 < xi < 1.0):
@@ -4303,8 +4351,11 @@ def _solve_front_energy_conserving_uNmax_once(
     T_0plus = float(T_0plus)
     if NM_type != "PNM":
         raise RuntimeError("solve_front_energy_conserving_uNmax currently requires NM_type='PNM'")
-    if (not np.isfinite(T_0minus)) or T_0minus <= 0.0 or (not np.isfinite(nB_0minus)) or nB_0minus <= 0.0:
-        raise RuntimeError("solve_front_energy_conserving_uNmax requires positive T and nB_0minus")
+    if (not np.isfinite(T_0minus)) or T_0minus < 0.0 or (not np.isfinite(nB_0minus)) or nB_0minus <= 0.0:
+        raise RuntimeError(
+            "solve_front_energy_conserving_uNmax requires non-negative T_0minus "
+            "and positive nB_0minus"
+        )
     if (not np.isfinite(T_0plus)) or T_0plus < 0.0:
         raise RuntimeError("T_0plus must be non-negative")
     if not (0.0 < float(tail_eps) < 1.0):
