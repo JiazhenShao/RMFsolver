@@ -1,12 +1,25 @@
-# macOS
-.DS_Store
+# Allowlist repository.
+#
+# This directory is a Python virtualenv *and* a research workspace: it holds the
+# venv itself (bin/ lib/ include/ share/), ~30 notebooks, LaTeX sources, and
+# large .npz/.pdf calculation outputs. None of that belongs in version control,
+# and there is no realistic denylist for it. So everything at the top level is
+# ignored and only the two published trees are re-included.
+/*
+!/.gitignore
+!/README.md
+!/requirements.txt
+!/setup.py
+!/RMFsolver/
+!/wiki/
 
-# Python
+# Exclusions that still apply inside the tracked trees
+.DS_Store
 __pycache__/
 *.pyc
-
-# Jupyter
 .ipynb_checkpoints/
-
-# Misc
 *.log
+
+# Obsidian per-machine UI state; the rest of wiki/.obsidian/ is shared config
+# worth carrying so the vault opens correctly on any machine.
+/wiki/.obsidian/workspace.json
