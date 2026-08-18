@@ -1,7 +1,7 @@
 ---
 summary: Catalog of every wiki page. Read this first; drill down from here.
 status: current
-updated: 2026-08-17
+updated: 2026-08-18
 tags: [meta, index]
 ---
 
@@ -21,13 +21,13 @@ The nuclear→quark combustion front project. **This is the only page loaded by 
 |---|---|
 | [[diffusion-limited-front]] | Physical regime, assumptions, fluxes, variables and boundary conditions |
 | [[analytic-front-speed]] | Constant-background speed estimate, scaling, layer thickness and formal endpoint limits |
-| [[isothermal-analytic-front-speed]] | Fixed-$T$ speed with local $a=n_K/n_B$, the $\Delta\mu_B$ stable-matter gate, the finite-flux analytic API, and the formal low-$T$ divergence |
+| [[isothermal-analytic-front-speed]] | Fixed-$T$ analytical speed, the $\Delta\mu_B$ stable-matter gate, and its relation to the exact physical-$n_K,J_K$ numerical BVP |
 | [[front-speed-phenomenology]] | Fixed-$T(0^+)$ numerical contour, zero-speed boundary, and tail-dominated $z(t)$ evolution |
 | [[quark-matter-eos]] | Bag-model EOS, chemical-potential basis and quadratic analytic expansion |
 | [[strangeness-reaction-diffusion]] | Weak source, flavor diffusion, and the phenomenological status of $\alpha_s=0.3$ |
 | [[interface-closure]] | Why a fourth relation is needed and which one is authoritative |
 | [[thermal-transparent-closure]] | The baseline $T(0^+)=T(0^-)$ — and why "adiabatic" is the wrong word |
-| [[lte-composition-bound]] | $\beta_{\rm LTE} = 5u_N\lambda_n$, the exact-local-isobar correction, the coefficient trap |
+| [[lte-composition-bound]] | $\beta_{\rm LTE}=5u(0^-)\lambda_n$, the exact-local-isobar correction, the coefficient trap |
 | [[interface-temperature-jump]] | The signed observable $\Delta T=T(0^-)-T_{\rm LTE}(0^+)$ and its payload contract |
 | [[quark-transport]] | HP93 coefficients — and why $\kappa_{\rm th}$ and $D_K$ do **not** share a relaxation time |
 | [[kapitza-resistance]] | The honest gap: $G_{\rm int}$ has no dense-matter literature value |
@@ -36,15 +36,15 @@ The nuclear→quark combustion front project. **This is the only page loaded by 
 
 | Page | What it settles |
 |---|---|
-| [[phase-velocity-overview]] | Three analytic entry points (not one), the endpoint-notation renames, units, the editing restriction |
+| [[phase-velocity-overview]] | Analytical and numerical solver APIs, including the local-fraction isothermal BVP, units, and the editing restriction |
 | [[unmax-degeneracy]] | At $T(0^+)=0$, `jB` is a non-Lipschitz continuum — `success=True` proves nothing |
 | [[unmax-low-temperature]] | The `logT`→$T^2$ fix (landed) and the $n_K$-resolution limit (open) |
 | [[thermal-conducting]] | $T$ as a propagated field; $a(0^+)$ becomes an output; six debugging facts |
-| [[known-issues]] | Isothermal strict-retry bug, GIL-bound "parallel" cells, bisection asymmetry |
+| [[known-issues]] | Finite-$m_s$ isothermal cost, superseded strict-retry history, GIL-bound "parallel" cells, and bisection asymmetry |
 
 ## Methods
 
-- [[steady-front-bvp]] — the two-field reaction-diffusion BVP, flux eigenvalues, EOS reconstruction and compactification.
+- [[steady-front-bvp]] — the physical-$n_K,J_K$ reaction-diffusion BVPs, flux eigenvalues, EOS reconstruction and compactification.
 - [[two-block-contour-scans]] — the adaptive mesh every contour uses, the 80 MeV seam, and why blocks are never concatenated.
 
 ## Paper

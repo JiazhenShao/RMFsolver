@@ -21,7 +21,17 @@ from RMFsolver.SQMsolver import (
     _quark_uds_state,
     _solve_scalar_root,
 )
-from RMFsolver.Solver import RMFsolve, RMFsolve_mu, RMFpressureSYM, RMFpressurePNM, pressure_RMF, RMFsolvePNM_mu
+from RMFsolver.Solver import (
+    RMFsolve,
+    RMFsolve_mu,
+    RMFsolveSYM,
+    RMFpressureSYM,
+    RMFpressurePNM,
+    pressure_RMF,
+    edens_RMF,
+    baryon_density_RMF,
+    RMFsolvePNM_mu,
+)
 from RMFsolver.Solver import RMFedensPNM, RMFentropyPNM, RMFbaryon_densityPNM, RMFbaryon_densitySYM, RMFbaryon_density
 
 __all__ = [
@@ -3374,6 +3384,96 @@ def _microphysics_at_0plus_isothermal_baseline(muB_0plus, T):
     return _microphysics_from_quark_state_isothermal_baseline(muB_0plus, T)
 
 
+def _isothermal_upstream_nuclear_state(T, nB_0minus, param, NM_type):
+    """Return fixed-T upstream thermodynamics and its local K fraction."""
+    T = float(T)
+    nB_0minus = float(nB_0minus)
+    NM_type = str(NM_type)
+
+    if NM_type == "PNM":
+        P_0minus = float(PNM_n(nB_0minus, T, param=param, NM_type=NM_type))
+        e_0minus = float(edensNM_n(nB_0minus, T, param=param))
+        proton_fraction = 0.0
+    elif NM_type in ("SYM", "Beta_eq"):
+        if NM_type == "SYM":
+            rmf_state = RMFsolveSYM(
+                nB_0minus,
+                T,
+                param,
+                sigma_init=30,
+                w0_init=20,
+                mub_init=990,
+                verb=False,
+            )
+            electrons = False
+            proton_fraction = 0.5
+        else:
+            rmf_state = RMFsolve(
+                nB_0minus,
+                T,
+                param,
+                sigma_init=30,
+                w0_init=20,
+                r03_init=-3,
+                mub_init=990,
+                mu_e_init=50,
+                verb=False,
+            )
+            electrons = True
+            recovered_nB, species = baryon_density_RMF(
+                rmf_state,
+                return_species=True,
+            )
+            if not np.isclose(
+                float(recovered_nB),
+                nB_0minus,
+                rtol=2.0e-6,
+                atol=0.0,
+            ):
+                raise RuntimeError(
+                    "Beta-equilibrated RMF state did not reproduce nB_0minus"
+                )
+            proton_fraction = float(species["n_p"] / recovered_nB)
+
+        P_0minus = float(
+            pressure_RMF(
+                rmf_state,
+                electrons=electrons,
+                neutrinos=False,
+            )
+        )
+        e_0minus = float(
+            edens_RMF(
+                rmf_state,
+                electrons=electrons,
+                neutrinos=False,
+            )[1]
+        )
+    else:
+        raise RuntimeError(
+            "NM_type must be one of 'PNM', 'SYM', or 'Beta_eq'"
+        )
+
+    a_0minus = float(1.0 - 0.5 * proton_fraction)
+    values = np.array(
+        [P_0minus, e_0minus, proton_fraction, a_0minus],
+        dtype=float,
+    )
+    if not np.all(np.isfinite(values)) or e_0minus <= 0.0:
+        raise RuntimeError("Upstream isothermal nuclear state is non-physical")
+    if not (0.0 <= proton_fraction <= 1.0 and 0.0 < a_0minus <= 1.0):
+        raise RuntimeError("Upstream nuclear composition is non-physical")
+    return {
+        "P_0minus": P_0minus,
+        "e_0minus": e_0minus,
+        "h_0minus": float(P_0minus + e_0minus),
+        "nB_0minus": nB_0minus,
+        "proton_fraction_0minus": proton_fraction,
+        "a_0minus": a_0minus,
+        "nK_0minus": float(a_0minus * nB_0minus),
+    }
+
+
 def _microphysics_from_quark_state_energy(muB, T, allow_zero_temperature=False):
     """
     Energy-conserving transport coefficients.
@@ -3857,7 +3957,7 @@ def _solve_local_quark_state_from_nK_E_and_Pi(
 
 
 # Public isothermal front solver
-def solve_front_isothermal(
+def _solve_front_isothermal_normalized_legacy(
     T,
     nB_0minus,
     B_one_forth,
@@ -3876,7 +3976,7 @@ def solve_front_isothermal(
     verb=False,
 ):
     """
-    Solve the fixed-a_0plus steady-front problem as a compact-coordinate BVP.
+    Historical normalized-composition implementation retained for comparison.
 
     This solver keeps the same hydro + diffusion + reaction equations as the
     1D IVP shooting solvers, but uses solve_bvp with jB as an unknown BVP
@@ -4297,7 +4397,7 @@ def solve_front_isothermal(
             if coarse_retry_available and _ISOTHERMAL_RETRY_ACTIVE == 0:
                 _ISOTHERMAL_RETRY_ACTIVE += 1
                 try:
-                    coarse_profile = solve_front_isothermal(
+                    coarse_profile = _solve_front_isothermal_normalized_legacy(
                         T=T,
                         nB_0minus=nB_0minus,
                         B_one_forth=B_one_forth,
@@ -4340,7 +4440,7 @@ def solve_front_isothermal(
     if retryable_isothermal_failure and coarse_retry_available and _ISOTHERMAL_RETRY_ACTIVE == 0:
         _ISOTHERMAL_RETRY_ACTIVE += 1
         try:
-            coarse_result = solve_front_isothermal(
+            coarse_result = _solve_front_isothermal_normalized_legacy(
                 T=T,
                 nB_0minus=nB_0minus,
                 B_one_forth=B_one_forth,
@@ -4360,7 +4460,7 @@ def solve_front_isothermal(
             )
             coarse_jB = float(coarse_result.get("jB", np.nan))
             if bool(coarse_result.get("success")) and np.isfinite(coarse_jB) and coarse_jB > 0.0:
-                refined_result = solve_front_isothermal(
+                refined_result = _solve_front_isothermal_normalized_legacy(
                     T=T,
                     nB_0minus=nB_0minus,
                     B_one_forth=B_one_forth,
@@ -4393,6 +4493,673 @@ def solve_front_isothermal(
         print(
             f"bvp jB={result['jB']:.6g}, a_0plus={a_0plus:.6g}, "
             f"tail_norm={tail_residual_norm:.6g}, status={sol.status}, success={success}"
+        )
+    return result
+
+
+def solve_front_isothermal(
+    T,
+    nB_0minus,
+    B_one_forth,
+    a_0plus,
+    ms=0.0,
+    param=para.paraQMCRMF3,
+    NM_type="PNM",
+    tail_eps=1.0e-3,
+    n_mesh=300,
+    tol_bvp=1.0e-4,
+    max_nodes=50000,
+    jB_guess=None,
+    jB_bounds=None,
+    kappa_factor=1.0,
+    return_profile=False,
+    verb=False,
+):
+    """Solve the fixed-T front as a compact BVP in physical nK and J_K.
+
+    ``a_0plus`` is the local interface fraction nK(0+)/nB(0+).  The BVP
+    transports the physical K density and current, reconstructs the local EOS
+    state at fixed T and momentum flux, and evaluates both D_K and the exact
+    nonleptonic rate at every node.
+    """
+    T = float(T)
+    nB_0minus = float(nB_0minus)
+    B_one_forth = float(B_one_forth)
+    a_0plus = float(a_0plus)
+    ms = float(ms)
+    tail_eps = float(tail_eps)
+    tol_bvp = float(tol_bvp)
+    kappa_factor = float(kappa_factor)
+    NM_type = str(NM_type)
+    if (not np.isfinite(T)) or T <= 0.0:
+        raise RuntimeError("T must be positive and finite")
+    if (not np.isfinite(nB_0minus)) or nB_0minus <= 0.0:
+        raise RuntimeError("nB_0minus must be positive and finite")
+    if (not np.isfinite(B_one_forth)) or B_one_forth <= 0.0:
+        raise RuntimeError("B_one_forth must be positive and finite")
+    if (not np.isfinite(a_0plus)) or not (0.0 < a_0plus < 1.0):
+        raise RuntimeError("a_0plus must satisfy 0 < a_0plus < 1")
+    if (not np.isfinite(ms)) or ms < 0.0:
+        raise RuntimeError("ms must be finite and non-negative")
+    if NM_type not in ("PNM", "SYM", "Beta_eq"):
+        raise RuntimeError("NM_type must be one of 'PNM', 'SYM', or 'Beta_eq'")
+    if not (0.0 < tail_eps < 1.0):
+        raise RuntimeError("tail_eps must satisfy 0 < tail_eps < 1")
+    if int(n_mesh) < 5:
+        raise RuntimeError("n_mesh must be at least 5")
+    if (not np.isfinite(tol_bvp)) or tol_bvp <= 0.0:
+        raise RuntimeError("tol_bvp must be positive and finite")
+    if int(max_nodes) <= int(n_mesh):
+        raise RuntimeError("max_nodes must be larger than n_mesh")
+    if (not np.isfinite(kappa_factor)) or kappa_factor <= 0.0:
+        raise RuntimeError("kappa_factor must be positive and finite")
+
+    upB = 5000
+    t_start = time.perf_counter()
+    if isinstance(verb, str):
+        verb_mode = "full" if verb.lower() == "full" else ("simple" if verb else "off")
+    else:
+        verb_mode = "simple" if verb else "off"
+    full_diag = verb_mode == "full"
+    simple_diag = verb_mode in ("simple", "full")
+
+    def diag(message):
+        if full_diag:
+            elapsed = time.perf_counter() - t_start
+            print(f"[isothermal_nK_bvp +{elapsed:8.2f}s] {message}", flush=True)
+
+    nuclear_state = _isothermal_upstream_nuclear_state(
+        T,
+        nB_0minus,
+        param,
+        NM_type,
+    )
+    if not (a_0plus < float(nuclear_state["a_0minus"])):
+        raise RuntimeError(
+            "Forward conversion requires a_0plus < a_0minus"
+        )
+
+    if jB_guess is None:
+        jB_guess = 1.0e-6 * nB_0minus
+    jB_guess = float(jB_guess)
+    if (not np.isfinite(jB_guess)) or jB_guess <= 0.0:
+        raise RuntimeError("jB_guess must be positive and finite")
+
+    bounded_jB = jB_bounds is not None
+    if bounded_jB:
+        if len(jB_bounds) != 2:
+            raise RuntimeError("jB_bounds must be a 2-tuple (jB_min, jB_max)")
+        jB_lower_bound, jB_upper_bound = map(float, jB_bounds)
+        if not (
+            np.isfinite(jB_lower_bound)
+            and np.isfinite(jB_upper_bound)
+            and 0.0 < jB_lower_bound < jB_upper_bound
+        ):
+            raise RuntimeError("jB_bounds must satisfy 0 < jB_min < jB_max")
+        jB_guess = float(
+            np.clip(
+                jB_guess,
+                jB_lower_bound * (1.0 + 1.0e-8),
+                jB_upper_bound * (1.0 - 1.0e-8),
+            )
+        )
+    else:
+        jB_lower_bound = 0.0
+        jB_upper_bound = np.inf
+
+    def parameter_from_jB(jB):
+        jB = float(jB)
+        if bounded_jB:
+            fraction = (jB - jB_lower_bound) / (
+                jB_upper_bound - jB_lower_bound
+            )
+            fraction = float(np.clip(fraction, 1.0e-12, 1.0 - 1.0e-12))
+            return float(np.log(fraction / (1.0 - fraction)))
+        return float(np.log(jB))
+
+    def jB_from_parameter(theta):
+        theta = float(theta)
+        if bounded_jB:
+            sigmoid = 1.0 / (1.0 + np.exp(-np.clip(theta, -60.0, 60.0)))
+            return float(
+                jB_lower_bound
+                + (jB_upper_bound - jB_lower_bound) * sigmoid
+            )
+        return float(np.exp(np.clip(theta, -700.0, 700.0)))
+
+    stats = {
+        "bvp_ode_calls": 0,
+        "bvp_bc_calls": 0,
+        "global_state_builds": 0,
+        "global_state_failures": 0,
+        "local_state_failures": 0,
+        "profile_state_calls": 0,
+    }
+    state_cache = {}
+    last_failure = {"message": ""}
+    s_end = float(1.0 - tail_eps)
+
+    def build_global_state(theta):
+        key = round(float(theta), 12)
+        if key in state_cache:
+            return state_cache[key]
+        stats["global_state_builds"] += 1
+        jB = jB_from_parameter(theta)
+        u_0minus = float(jB / nB_0minus)
+        Pi = float(
+            nuclear_state["P_0minus"]
+            + nuclear_state["h_0minus"] * u_0minus**2
+        )
+
+        muB_inf = float(
+            _solve_muB_inf_at_muK0_for_given_Pi(
+                Pi,
+                jB,
+                B_one_forth,
+                T,
+                ms=ms,
+                upB=upB,
+            )
+        )
+        thermo_inf = _quark_thermo_state(
+            muB_inf,
+            0.0,
+            B_one_forth,
+            T,
+            jB,
+            ms=ms,
+            upB=upB,
+        )
+        micro_inf = _microphysics_from_quark_state_energy(muB_inf, T)
+        if micro_inf["invD"] <= 0.0:
+            raise RuntimeError("Downstream inverse diffusion coefficient is non-positive")
+        D_K_inf = float(1.0 / micro_inf["invD"])
+        nK_inf = float(thermo_inf["nK"])
+        nB_inf = float(thermo_inf["nB"])
+        u_inf = float(thermo_inf["u"])
+        jK_inf = float(u_inf * nK_inf)
+        a_inf = float(nK_inf / nB_inf)
+        if not (a_inf < a_0plus):
+            raise RuntimeError(
+                "Forward conversion requires a_inf < a_0plus"
+            )
+
+        muB_0plus, muK_0plus = _solve_interface_0plus_from_local_a_and_Pi(
+            a_0plus,
+            Pi,
+            jB,
+            B_one_forth,
+            T,
+            ms=ms,
+            upB=upB,
+            initial_guess=(muB_inf, _branch_muK_seed(a_0plus)),
+        )
+        thermo_0plus = _quark_thermo_state(
+            muB_0plus,
+            muK_0plus,
+            B_one_forth,
+            T,
+            jB,
+            ms=ms,
+            upB=upB,
+        )
+        micro_0plus = _microphysics_from_quark_state_energy(muB_0plus, T)
+        D_K_0plus = float(1.0 / micro_0plus["invD"])
+        rate_0plus = float(
+            _exact_kaon_transport_rate(
+                muB_0plus,
+                muK_0plus,
+                T,
+                ms=ms,
+                upB=upB,
+            )["Gamma_K"]
+        )
+
+        delta_nK = float(
+            max(1.0e-5 * max(abs(nK_inf), nB_inf), 1.0e-2)
+        )
+        probe = _solve_local_quark_state_from_nK_T_and_Pi(
+            nK_inf + delta_nK,
+            T,
+            Pi,
+            jB,
+            B_one_forth,
+            ms=ms,
+            upB=upB,
+            initial_guess=(muB_inf, max(1.0e-3, muK_0plus * 1.0e-3)),
+            stats=stats,
+        )
+        rate_probe = float(
+            _exact_kaon_transport_rate(
+                probe["muB"],
+                probe["muK"],
+                T,
+                ms=ms,
+                upB=upB,
+            )["Gamma_K"]
+        )
+        rate_slope_inf = float(rate_probe / delta_nK)
+        advective_flux_slope_inf = float(
+            (probe["u"] * probe["nK"] - jK_inf) / delta_nK
+        )
+        if (
+            (not np.isfinite(rate_slope_inf))
+            or rate_slope_inf <= 0.0
+            or (not np.isfinite(advective_flux_slope_inf))
+        ):
+            raise RuntimeError("Downstream isothermal linearization is non-physical")
+        discriminant = float(
+            advective_flux_slope_inf**2
+            + 4.0 * D_K_inf * rate_slope_inf
+        )
+        lambda_inf = float(
+            (
+                -advective_flux_slope_inf
+                + np.sqrt(discriminant)
+            )
+            / (2.0 * D_K_inf)
+        )
+        if (not np.isfinite(lambda_inf)) or lambda_inf <= 0.0:
+            raise RuntimeError("Downstream tail decay rate is non-positive")
+
+        jK_0plus = float(jB * nuclear_state["a_0minus"])
+        tail_coefficient = float(
+            advective_flux_slope_inf + D_K_inf * lambda_inf
+        )
+        state = {
+            "jB": jB,
+            "u_0minus": u_0minus,
+            "Pi": Pi,
+            "muB_0plus": float(muB_0plus),
+            "muK_0plus": float(muK_0plus),
+            "nB_0plus": float(thermo_0plus["nB"]),
+            "nK_0plus": float(thermo_0plus["nK"]),
+            "u_0plus": float(thermo_0plus["u"]),
+            "jK_0plus": jK_0plus,
+            "D_K_0plus": D_K_0plus,
+            "Gamma_K_0plus": rate_0plus,
+            "muB_inf": muB_inf,
+            "nB_inf": nB_inf,
+            "nK_inf": nK_inf,
+            "u_inf": u_inf,
+            "jK_inf": jK_inf,
+            "a_inf": a_inf,
+            "D_K_inf": D_K_inf,
+            "rate_slope_inf": rate_slope_inf,
+            "advective_flux_slope_inf": advective_flux_slope_inf,
+            "lambda_inf": lambda_inf,
+            "tail_coefficient": tail_coefficient,
+            "x_end": float(
+                -kappa_factor * np.log1p(-s_end) / lambda_inf
+            ),
+        }
+        state_cache[key] = state
+        return state
+
+    def state_or_none(theta):
+        try:
+            return build_global_state(theta)
+        except Exception as exc:
+            stats["global_state_failures"] += 1
+            last_failure["message"] = str(exc)
+            return None
+
+    def ode(s, y, p):
+        stats["bvp_ode_calls"] += 1
+        state = state_or_none(float(p[0]))
+        if state is None:
+            return np.full_like(y, 1.0e12)
+        dyds = np.empty_like(y)
+        guess = (state["muB_0plus"], state["muK_0plus"])
+        for index in range(y.shape[1]):
+            nK_value = float(y[0, index])
+            jK_value = float(y[1, index])
+            try:
+                thermo = _solve_local_quark_state_from_nK_T_and_Pi(
+                    nK_value,
+                    T,
+                    state["Pi"],
+                    state["jB"],
+                    B_one_forth,
+                    ms=ms,
+                    upB=upB,
+                    initial_guess=guess,
+                    stats=stats,
+                )
+                guess = (thermo["muB"], thermo["muK"])
+                micro = _microphysics_from_quark_state_energy(
+                    thermo["muB"],
+                    T,
+                )
+                rate = float(
+                    _exact_kaon_transport_rate(
+                        thermo["muB"],
+                        thermo["muK"],
+                        T,
+                        ms=ms,
+                        upB=upB,
+                    )["Gamma_K"]
+                )
+                one_minus_s = max(
+                    1.0 - float(s[index]),
+                    np.finfo(float).tiny,
+                )
+                dx_ds = float(
+                    kappa_factor
+                    / (state["lambda_inf"] * one_minus_s)
+                )
+                dyds[0, index] = (
+                    (thermo["u"] * nK_value - jK_value)
+                    * micro["invD"]
+                    * dx_ds
+                )
+                dyds[1, index] = -rate * dx_ds
+            except Exception as exc:
+                stats["local_state_failures"] += 1
+                last_failure["message"] = str(exc)
+                dyds[:, index] = 1.0e12
+        return dyds
+
+    def boundary_conditions(ya, yb, p):
+        stats["bvp_bc_calls"] += 1
+        state = state_or_none(float(p[0]))
+        if state is None:
+            return np.full(3, 1.0e12, dtype=float)
+        nK_scale = max(
+            abs(state["nK_0plus"] - state["nK_inf"]),
+            abs(state["nK_0plus"]),
+            1.0,
+        )
+        jK_scale = max(
+            abs(state["jK_0plus"] - state["jK_inf"]),
+            abs(state["jB"]),
+            1.0,
+        )
+        tail_residual = float(
+            yb[1]
+            - state["jK_inf"]
+            - state["tail_coefficient"]
+            * (yb[0] - state["nK_inf"])
+        )
+        return np.array(
+            [
+                (ya[0] - state["nK_0plus"]) / nK_scale,
+                (ya[1] - state["jK_0plus"]) / jK_scale,
+                tail_residual / jK_scale,
+            ],
+            dtype=float,
+        )
+
+    theta_guess = parameter_from_jB(jB_guess)
+    state0 = build_global_state(theta_guess)
+    s_mesh = np.linspace(0.0, s_end, int(n_mesh))
+    tail_shape = np.maximum(1.0 - s_mesh, tail_eps) ** kappa_factor
+    nK_guess = state0["nK_inf"] + (
+        state0["nK_0plus"] - state0["nK_inf"]
+    ) * tail_shape
+    stable_jK_guess = state0["jK_inf"] + state0["tail_coefficient"] * (
+        nK_guess - state0["nK_inf"]
+    )
+    blend = s_mesh / max(s_end, np.finfo(float).tiny)
+    jK_guess_profile = (
+        (1.0 - blend) * state0["jK_0plus"]
+        + blend * stable_jK_guess
+    )
+    y_guess = np.vstack((nK_guess, jK_guess_profile))
+    diag(
+        f"starting compact BVP with jB_guess={jB_guess:.6g}, "
+        f"a_0plus={a_0plus:.6g}, tail_eps={tail_eps:.3g}"
+    )
+
+    try:
+        sol = solve_bvp(
+            ode,
+            boundary_conditions,
+            s_mesh,
+            y_guess,
+            p=np.array([theta_guess], dtype=float),
+            tol=tol_bvp,
+            bc_tol=tol_bvp,
+            max_nodes=int(max_nodes),
+            verbose=2 if full_diag else 0,
+        )
+        state = build_global_state(float(sol.p[0]))
+        bc_residual = boundary_conditions(
+            sol.y[:, 0],
+            sol.y[:, -1],
+            sol.p,
+        )
+    except Exception as exc:
+        return {
+            "success": False,
+            "message": (
+                f"Physical-nK isothermal BVP failed: {exc}; "
+                f"last failure: {last_failure['message']}"
+            ),
+            "a_0plus": a_0plus,
+            "jB": np.nan,
+            "composition_definition": "nK_over_local_nB",
+            "current_definition": "u_nK_minus_D_K_dnK_dx",
+            "rate_model": "exact_nonleptonic",
+            "diffusion_model": "local_muB_fixed_T",
+            "bvp_status": -999,
+            **{key: int(value) for key, value in stats.items()},
+        }
+
+    nK_end = float(sol.y[0, -1])
+    jK_end = float(sol.y[1, -1])
+    end_thermo = _solve_local_quark_state_from_nK_T_and_Pi(
+        nK_end,
+        T,
+        state["Pi"],
+        state["jB"],
+        B_one_forth,
+        ms=ms,
+        upB=upB,
+        initial_guess=(state["muB_inf"], 0.0),
+        stats=stats,
+    )
+    a_end = float(nK_end / end_thermo["nB"])
+    tail_residual_norm = float(bc_residual[2])
+    success = bool(
+        sol.success
+        and np.all(np.isfinite(bc_residual))
+        and np.max(np.abs(bc_residual)) <= max(tol_bvp, 1.0e-10)
+    )
+    result = {
+        "success": success,
+        "message": (
+            "Physical-nK isothermal BVP converged"
+            if success
+            else f"{sol.message}; last failure: {last_failure['message']}"
+        ),
+        "jB": float(state["jB"]),
+        "u_0minus": float(state["u_0minus"]),
+        "u_0plus": float(state["u_0plus"]),
+        "u_inf": float(state["u_inf"]),
+        "Pi": float(state["Pi"]),
+        "T_0minus": T,
+        "T_0plus": T,
+        "T_inf": T,
+        "nB_0minus": nB_0minus,
+        "P_0minus": float(nuclear_state["P_0minus"]),
+        "e_0minus": float(nuclear_state["e_0minus"]),
+        "h_0minus": float(nuclear_state["h_0minus"]),
+        "proton_fraction_0minus": float(
+            nuclear_state["proton_fraction_0minus"]
+        ),
+        "a_0minus": float(nuclear_state["a_0minus"]),
+        "nK_0minus": float(nuclear_state["nK_0minus"]),
+        "a_0plus": a_0plus,
+        "a_0plus_derived": float(state["nK_0plus"] / state["nB_0plus"]),
+        "muB_0plus": float(state["muB_0plus"]),
+        "muK_0plus": float(state["muK_0plus"]),
+        "nB_0plus": float(state["nB_0plus"]),
+        "nK_0plus": float(state["nK_0plus"]),
+        "jK_0plus": float(state["jK_0plus"]),
+        "muB_inf": float(state["muB_inf"]),
+        "muK_inf": 0.0,
+        "nB_inf": float(state["nB_inf"]),
+        "nK_inf": float(state["nK_inf"]),
+        "jK_inf": float(state["jK_inf"]),
+        "a_inf": float(state["a_inf"]),
+        "D_K_0plus": float(state["D_K_0plus"]),
+        "D_K_inf": float(state["D_K_inf"]),
+        "Gamma_K_0plus": float(state["Gamma_K_0plus"]),
+        "rate_slope_inf": float(state["rate_slope_inf"]),
+        "advective_flux_slope_inf": float(
+            state["advective_flux_slope_inf"]
+        ),
+        "lambda_inf": float(state["lambda_inf"]),
+        "coordinate": (
+            "BVP: s in [0, 1-tail_eps], "
+            "s=1-exp(-lambda_inf*x/kappa_factor)"
+        ),
+        "tail_eps": tail_eps,
+        "kappa_factor": kappa_factor,
+        "compact_scale": float(kappa_factor / state["lambda_inf"]),
+        "s_end": s_end,
+        "x_end": float(state["x_end"]),
+        "nK_end": nK_end,
+        "jK_end": jK_end,
+        "a_end": a_end,
+        "tail_residual": float(
+            jK_end
+            - state["jK_inf"]
+            - state["tail_coefficient"] * (nK_end - state["nK_inf"])
+        ),
+        "tail_residual_norm": tail_residual_norm,
+        "boundary_residuals": np.asarray(bc_residual, dtype=float),
+        "composition_definition": "nK_over_local_nB",
+        "current_definition": "u_nK_minus_D_K_dnK_dx",
+        "rate_model": "exact_nonleptonic",
+        "diffusion_model": "local_muB_fixed_T",
+        "_residual": np.asarray(bc_residual, dtype=float),
+        "_root_method": "solve_bvp_nK_parameter_1d",
+        "bvp_status": int(sol.status),
+        "bvp_message": str(sol.message),
+        "bvp_niter": int(getattr(sol, "niter", -1)),
+        "bvp_nodes": int(sol.x.size),
+        **{key: int(value) for key, value in stats.items()},
+    }
+
+    if return_profile:
+        try:
+            s_profile = np.asarray(sol.x, dtype=float)
+            nK_profile = np.asarray(sol.y[0], dtype=float)
+            jK_profile = np.asarray(sol.y[1], dtype=float)
+            x_profile = (
+                -kappa_factor
+                * np.log1p(-s_profile)
+                / float(state["lambda_inf"])
+            )
+            fields = {
+                key: np.empty_like(s_profile)
+                for key in (
+                    "nB",
+                    "u",
+                    "muB",
+                    "muK",
+                    "D_K",
+                    "Gamma_K",
+                    "closure_error",
+                )
+            }
+            guess = (state["muB_0plus"], state["muK_0plus"])
+            for index, nK_value in enumerate(nK_profile):
+                stats["profile_state_calls"] += 1
+                thermo = _solve_local_quark_state_from_nK_T_and_Pi(
+                    float(nK_value),
+                    T,
+                    state["Pi"],
+                    state["jB"],
+                    B_one_forth,
+                    ms=ms,
+                    upB=upB,
+                    initial_guess=guess,
+                    stats=stats,
+                )
+                guess = (thermo["muB"], thermo["muK"])
+                micro = _microphysics_from_quark_state_energy(
+                    thermo["muB"],
+                    T,
+                )
+                rate = _exact_kaon_transport_rate(
+                    thermo["muB"],
+                    thermo["muK"],
+                    T,
+                    ms=ms,
+                    upB=upB,
+                )
+                fields["nB"][index] = thermo["nB"]
+                fields["u"][index] = thermo["u"]
+                fields["muB"][index] = thermo["muB"]
+                fields["muK"][index] = thermo["muK"]
+                fields["D_K"][index] = 1.0 / micro["invD"]
+                fields["Gamma_K"][index] = rate["Gamma_K"]
+                fields["closure_error"][index] = thermo["closure_residual"]
+            a_profile = nK_profile / fields["nB"]
+            dy_ds = np.asarray(sol.sol.derivative(1)(s_profile), dtype=float)
+            dx_ds = (
+                kappa_factor
+                / (
+                    state["lambda_inf"]
+                    * np.maximum(1.0 - s_profile, np.finfo(float).tiny)
+                )
+            )
+            dnK_dx = dy_ds[0] / dx_ds
+            djK_dx = dy_ds[1] / dx_ds
+            constitutive_residual = (
+                fields["u"] * nK_profile
+                - fields["D_K"] * dnK_dx
+                - jK_profile
+            )
+            reaction_residual = djK_dx + fields["Gamma_K"]
+            result.update(
+                {
+                    "s": s_profile,
+                    "x": x_profile,
+                    "a": a_profile,
+                    "nK": nK_profile,
+                    "jK": jK_profile,
+                    "nB": fields["nB"],
+                    "u": fields["u"],
+                    "muB": fields["muB"],
+                    "muK": fields["muK"],
+                    "D_K": fields["D_K"],
+                    "Gamma_K": fields["Gamma_K"],
+                    "closure_error": fields["closure_error"],
+                    "closure_error_max": float(
+                        np.max(np.abs(fields["closure_error"]))
+                    ),
+                    "constitutive_residual": constitutive_residual,
+                    "reaction_residual": reaction_residual,
+                    "constitutive_residual_norm": float(
+                        np.max(np.abs(constitutive_residual))
+                        / max(abs(state["jB"]), 1.0)
+                    ),
+                    "reaction_residual_norm": float(
+                        np.mean(np.abs(reaction_residual))
+                        / max(np.mean(np.abs(fields["Gamma_K"])), np.finfo(float).tiny)
+                    ),
+                    "a_monotone_nonincreasing": bool(
+                        np.max(np.diff(a_profile))
+                        <= max(10.0 * tol_bvp, 1.0e-8)
+                    ),
+                    "profile_state_calls": int(stats["profile_state_calls"]),
+                }
+            )
+        except Exception as exc:
+            result["success"] = False
+            result["message"] = (
+                f"{result['message']}; profile reconstruction failed: {exc}"
+            )
+
+    if simple_diag:
+        print(
+            f"bvp jB={result['jB']:.6g}, a_0plus={a_0plus:.6g}, "
+            f"tail_norm={tail_residual_norm:.6g}, status={sol.status}, "
+            f"success={result['success']}"
         )
     return result
 

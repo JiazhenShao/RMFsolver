@@ -127,3 +127,11 @@ The workspace root became a git repository so `wiki/` and `RMFsolver/` are track
 The repository history was moved up from `RMFsolver/` rather than restarted, so `git log --follow` on the package still reaches the 2025 baseline, and the four-commit public snapshot previously on `main` was merged in with `-s ours` rather than force-pushed away.
 `.gitignore` is an allowlist because the workspace root is also the venv: everything at top level is ignored and only the two published trees are re-included.
 Consequence for wiki practice: this vault is **public**, including [[combustion-paper]] and [[gw-observables-section]]. Write pages knowing they are readable by anyone, and treat every commit as publication.
+
+## [2026-08-18] implement | Numerical isothermal local-fraction BVP
+
+Rewrote `solve_front_isothermal` so its fundamental fields are the physical K density and current, $n_K$ and $J_K$, while every public composition value is the local fraction $a=n_K/n_B$.
+The fixed-temperature EOS closure now recomputes $D_K$ from the local $\mu_B$ and evaluates the exact $\mu_K$-dependent nonleptonic rate at every node; the cubic reduced source and frozen transport remain analytical approximations only.
+The solver retains the compactified `solve_bvp` construction with $j_B$ as its scalar eigenvalue, supports PNM, SYM, and beta-equilibrated upstream matter through $a(0^-)=1-Y_p/2$, and supports finite $m_s$ with a shifted tail about nonzero equilibrated $n_K(\infty)$ and $J_K(\infty)$.
+Added tracked regression coverage for the local-fraction contract, exact-rate and local-diffusion profiles, upstream composition, domains, finite-flux residuals, endpoint closure, and a finite-$m_s$ live EOS case.
+The old normalized-composition strict-retry reference is superseded; its formerly failing case now converges directly in the physical-field formulation.

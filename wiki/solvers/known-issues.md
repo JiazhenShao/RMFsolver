@@ -1,24 +1,29 @@
 ---
-summary: Live bugs and performance traps — the isothermal strict-retry failure, GIL-bound "parallel" notebook cells, and asymmetric bisection depth.
+summary: Live solver and performance traps, including finite-ms isothermal cost, GIL-bound notebook threads, and asymmetric bisection depth.
 status: current
-updated: 2026-08-17
+updated: 2026-08-18
 tags: [solver, bugs, performance]
 ---
 
 # Known issues and traps
 
-## Isothermal strict-retry — 2 tests deliberately failing
+## Isothermal strict-retry issue — superseded
 
-`solve_front_isothermal` had a pre-existing crash caused by two undefined legacy compatibility identifiers for the fixed $T(0^+)$ mode and target. The references were copy-paste debris from the energy-conserving solver and made every call raise `NameError`. Removing that dead line in the 2026-07-23 cleanup restored 4/6 isothermal tests.
+The old normalized-composition `solve_front_isothermal` had a singular-Jacobian failure in its coarse-recovery retry and two historical tests expected `jB=0.20069404233893348`.
+The 2026-08-18 rewrite replaced that system with a direct BVP in physical $n_K$ and $J_K$, the exact nonleptonic rate, and local $D_K$.
+The previously failing strict case now converges directly, including profile reconstruction, at approximately `jB=0.1978159459` with a vanishing tail residual.
 
-That fix **exposed** (did not cause) a deeper pre-existing failure: the coarse-recovery strict-retry path fails with a **singular Jacobian**. Two regression tests remain failing by decision:
+The old reference value and retry-specific assertions describe a different set of differential variables and approximations, so they are not valid regressions for the new model.
+Current tests instead verify the physical constitutive and reaction residuals, endpoint momentum closure, local-fraction identity, and finite-flux boundary conditions.
 
-- `test_solve_front_isothermal_strict_retry_regression`
-- `test_solve_front_isothermal_strict_profile_retry_regression`
+## ⚠ Finite strange-quark mass is expensive in the isothermal BVP
 
-Both expect `jB == 0.20069404233893348`.
+Finite `ms` is supported, including nonzero equilibrated $n_K(\infty)$ and $J_K(\infty)$.
+It is much slower than the massless branch because the existing strange-quark EOS performs numerical quadrature inside every local nonlinear closure, and `solve_bvp` repeats those closures for collocation and Jacobian perturbations.
 
-**Do not treat these as a regression from the cleanup.** Restoring an unconditional `jB_upper_bound = min(jB_upper_bound, max(3.0, 1.5*jB_guess))` causes an infinite runaway, so that is *not* the fix. The correct original jB-bound logic is in no backup — cluster and `backup/` copies predate the strict-retry feature. Before attempting a fix, ask where the 0.20069 regression value came from and what the intended strict-retry bound behaviour is.
+A deliberately coarse live check with `ms=100`, 12 initial nodes, `tail_eps=1e-2`, and `tol_bvp=5e-2` took about two minutes and required roughly one thousand local EOS roots on the current workstation.
+This is a performance limitation, not a frozen-$D_K$ shortcut license: $D_K$ must still be recomputed from the local $\mu_B$.
+Use the massless default for broad scans unless finite-$m_s$ physics is specifically required, and budget finite-$m_s$ validation points individually.
 
 ## ⚠ `ThreadPoolExecutor` gives zero parallelism
 

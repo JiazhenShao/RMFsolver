@@ -1,7 +1,7 @@
 ---
 summary: The fixed-temperature speed uses the local K fraction, a hydro-consistent finite-flux eigenvalue, and a fixed-(P,T) Delta-muB mask for stable neutron matter.
 status: current
-updated: 2026-08-17
+updated: 2026-08-18
 tags: [physics, analytic, front-speed, isothermal]
 ---
 
@@ -16,7 +16,7 @@ u(0^-)=\frac{a(0^+)}{\lambda_n}
 {2[1-a(0^+)][1+\xi a(0^+)]}},
 $$
 
-where $\lambda_n\equiv n_B(0^-)/n_B^{(+)}$, $-1<\xi<1$, and
+where $\lambda_n\equiv n_B(0^-)/n_B(\infty)$, $-1<\xi<1$, and
 
 $$
 \eta=\frac{9\pi^2T^2}{\mu_q^2}.
@@ -40,21 +40,21 @@ The formula is exact in $I_2$ within the stated cubic-plus-linear weak-rate redu
 Under the piecewise-constant quark-side background,
 
 $$
-J_K=n_B^{(+)}\left(u^{(+)}a-D_Ka'\right),
+J_K=n_B(\infty)\left[u(\infty)a-D_Ka'\right],
 \qquad
-\frac{dJ_K}{dx}=-n_B^{(+)}\gamma_K(a^3+\eta a),
+\frac{dJ_K}{dx}=-n_B(\infty)\gamma_K(a^3+\eta a),
 $$
 
-with $u^{(+)}=\lambda_nu(0^-)$.  Therefore
+with $u(\infty)=\lambda_nu(0^-)$.  Therefore
 
 $$
-\frac{d}{dx}(D_Ka')=u^{(+)}a'+\gamma_K(a^3+\eta a).
+\frac{d}{dx}(D_Ka')=u(\infty)a'+\gamma_K(a^3+\eta a).
 $$
 
 Multiplication by $D_Ka'$ and integration from $0^+$ to $\infty$ give
 
 $$
-\frac12[D_Ka'(0^+)]^2=-u^{(+)}I_1+I_2,
+\frac12[D_Ka'(0^+)]^2=-u(\infty)I_1+I_2,
 $$
 
 where
@@ -93,48 +93,54 @@ $$
 
 which yields the boxed speed above after selecting the positive root.
 
-## Relation for the literal isothermal BVP
+## Relation to the numerical isothermal BVP
 
-⚠ The present `solve_front_isothermal` does **not** yet propagate the local fraction above.
-It uses the separately normalized disequilibrium variable
-
-$$
-\widetilde a(x)\equiv\frac{n_K(x)-n_K(\infty)}{n_B(\infty)}.
-$$
-
-For the massless baseline, $n_K(\infty)=0$, so $\widetilde a=n_K/n_B(\infty)$ and $\widetilde a(0^-)=n_B(0^-)/n_B(\infty)=\lambda_n$, not $1$.
-It agrees with the local fraction in the quark layer only in the constant-density limit $n_B(x)=n_B(\infty)$.
-Updating the numerical solver to the local-fraction convention is a separate pending task; do not use the two variables interchangeably before that change lands.
-
-`solve_front_isothermal` reconstructs small variations of $n_B(x)$ and $u(x)$ rather than imposing them to be exactly constant.
-For its massless-quark normalization $\widetilde a(\infty)=0$, the integrated equation instead contains
+`solve_front_isothermal` now propagates the physical K density and current,
 
 $$
-I_1^{\rm BVP}=\int_{0^+}^{\infty}D_K\widetilde a'(u\widetilde a)'\,dx.
+\frac{dn_K}{dx}=\frac{u n_K-J_K}{D_K},
+\qquad
+\frac{dJ_K}{dx}=-\Gamma_K(\mu_B,\mu_K,T,m_s),
 $$
 
-Writing
+and reports the composition only as the derived local fraction
 
 $$
-G\equiv-D_K\widetilde a'(0^+)
-=u(0^-)\left[\widetilde a(0^-)-\frac{u(0^+)}{u(0^-)}\widetilde a(0^+)\right]
+a(x)=\frac{n_K(x)}{n_B(x)}.
 $$
 
-and parameterizing the area in $u\widetilde a$ by
+For each trial baryon current $j_B$, the fixed upstream state gives $u(0^-)=j_B/n_B(0^-)$ and $\Pi=P(0^-)+h(0^-)u^2(0^-)$.
+The solver reconstructs $n_B(x)$, $u(x)$, $\mu_B(x)$, and $\mu_K(x)$ pointwise from fixed $T$, $j_B$, $\Pi$, and the current value of $n_K$.
+It then recomputes both the exact nonleptonic source $\Gamma_K$ and $D_K[\mu_B(x),T]$ at every BVP node.
+
+The upstream local fraction for a nuclear proton fraction $Y_p$ is
 
 $$
-I_1^{\rm BVP}=\frac{1+\xi}{2}G\,u(0^+)\widetilde a(0^+),
+a(0^-)=1-\frac{Y_p}{2}.
 $$
 
-gives the solver-faithful endpoint formula
+K-current continuity therefore imposes
 
 $$
-u^2(0^-)=\frac{2I_2}
-{\left[\widetilde a(0^-)-\dfrac{u(0^+)}{u(0^-)}\widetilde a(0^+)\right]
- \left[\widetilde a(0^-)+\xi\dfrac{u(0^+)}{u(0^-)}\widetilde a(0^+)\right]}.
+J_K(0^+)=j_Ba(0^-),
 $$
 
-When $n_B(0^+)=n_B(\infty)=n_B^{(+)}$, one has $\widetilde a(0^-)=u(0^+)/u(0^-)=\lambda_n$ and $\widetilde a(0^+)=a(0^+)$, so this relation reduces to the local-fraction piecewise-constant formula.
+while the supplied $a(0^+)$ fixes $n_K(0^+)$ through the local quark EOS.
+The downstream state satisfies $\mu_K(\infty)=0$; for finite $m_s$, both $n_K(\infty)$ and $J_K(\infty)=u(\infty)n_K(\infty)$ can be nonzero.
+
+The semi-infinite layer is compactified with
+
+$$
+s=1-\exp\left[-\frac{\lambda_\infty x}{\kappa_{\rm factor}}\right],
+\qquad
+0\leq s\leq1-\epsilon_{\rm tail},
+$$
+
+where $\lambda_\infty$ is obtained by linearizing the same exact fixed-$T$ closure at equilibrium.
+A shifted Robin condition matches the finite-$m_s$ tail to $[n_K(\infty),J_K(\infty)]$.
+
+This numerical system is more exact than the analytical formula above.
+The analytical derivation deliberately freezes the background coefficients and reduces the source to $\gamma_K(a^3+\eta a)$ so that $I_2$ is an endpoint polynomial; the numerical BVP makes neither approximation.
 
 ## Formal zero-temperature limit
 
@@ -262,7 +268,7 @@ For these branches, neutron matter is stable on the lower-density side of the ta
 `analytic_velocity_isothermal(T_0minus, nB_0minus, B_one_forth, a_0plus, *, xi=0, ...)` implements the local-fraction formula as a finite-flux scalar eigenvalue.
 For every trial $u(0^-)$ it constructs $j_B=n_B(0^-)u(0^-)$ and $\Pi=P(0^-)+h(0^-)u^2(0^-)$, solves the equilibrated $\mu_K(\infty)=0$ endpoint, and solves the $0^+$ state from $\Pi$, $j_B$, and $n_K(0^+)/n_B(0^+)=a(0^+)$.
 It then finds the root of $u_{\rm formula}^2(0^-)-u^2(0^-)$.
-The piecewise-constant density ratio uses $n_B^{(+)}=n_B(\infty)$, so $\lambda_n=n_B(0^-)/n_B(\infty)$, while the frozen transport coefficients are evaluated at $0^+$ to match the numerical isothermal baseline.
+The piecewise-constant density ratio uses $n_B(\infty)$, so $\lambda_n=n_B(0^-)/n_B(\infty)$, while the analytical transport coefficients are deliberately frozen at $0^+$.
 The exact hydro states can have $n_B(0^+)\neq n_B(\infty)$; retaining both exact states while using this mixed constant-background reduction is the explicit analytical approximation, not an assertion that the two densities are identical.
 
 The function returns `u_0minus=0` with `front_exists=False` in stable neutron matter and at coexistence.
@@ -274,8 +280,9 @@ A nonzero strange-quark mass gives $n_K(\infty)\neq0$ and requires rewriting the
 ## ⚠ Why the coefficients are constant
 
 Isothermality by itself does not make $D_K$ independent of position because [[strangeness-reaction-diffusion|the transport coefficient]] also depends on $q_D\propto\mu_q$.
-The coefficients are constant here because the analytic treatment also freezes $\mu_q$, while the present `solve_front_isothermal` implementation explicitly evaluates $D_K$, $\gamma_K$, and $\eta$ once at $0^+$ and reuses them through the BVP.
-If a future isothermal solver updates these coefficients using the local $\mu_B(x)$, $I_2$ is no longer the polynomial endpoint expression above.
+The coefficients are constant only in the analytical reduction because it also freezes $\mu_q$.
+The numerical `solve_front_isothermal` instead updates $D_K$ with the local $\mu_B(x)$ and evaluates the exact $\mu_K$-dependent rate at every node.
+Consequently, its source integral is not the polynomial endpoint expression $I_2$ above.
 
 ## Symbolic check
 
@@ -306,6 +313,6 @@ For the finite-temperature zero-speed question, Wolfram returned `a0 == 0` as th
 
 ## Sources
 
-- `RMFsolver/phase_velocity.py`, `analytic_velocity_isothermal`, `solve_front_isothermal`, and `_microphysics_from_quark_state_isothermal_baseline`.
+- `RMFsolver/phase_velocity.py`, `analytic_velocity_isothermal`, `solve_front_isothermal`, `_exact_kaon_transport_rate`, and the fixed-$T$ local EOS closure helpers.
 - `Latex_writting/Hydrodynamical combustion/Notes.tex`, “Isothermal Notes (Mar 16, 2026).”
 - [[analytic-front-speed]] for the corresponding non-isothermal construction.

@@ -1,7 +1,7 @@
 ---
-summary: Map of the phase_velocity.py public API — three energy-conserving analytic methods plus the hydro-consistent isothermal analytic method — and which solver answers which question.
+summary: Map of the phase_velocity.py public API, including the analytical and physical-nK numerical isothermal solvers, and which solver answers which question.
 status: current
-updated: 2026-08-17
+updated: 2026-08-18
 tags: [solver, api, map]
 ---
 
@@ -21,7 +21,8 @@ Helpers: `u_0minus` · `z_time_evolution` · plus the EOS wrappers `PNM` `PNM_n`
 
 ⚠ `__all__` lists only seven names — `analytic_velocity_isothermal`, `analytic_velocity_bound`, the four `solve_front_*`, and `z_time_evolution`. `semi_analytic_velocity_bound`, `analytic_velocity_bound_lte` and `u_0minus` are **public but not exported**, so `from ... import *` silently omits them. Import them by name.
 
-⚠ `uN` was **renamed `u_0minus`** under the endpoint-notation rule (`_N`→`_0minus`, `_Qstar`→`_0plus`, `_Q`→`_inf`). Result-dict keys followed: `u_0minus_max`, `T_inf`, `a_0plus_LTE`, `muB_inf`. Notes citing `uN`, `T_Q`, `a_interface_LTE` or `u_N` are stale.
+Endpoint notation in the current API is location based throughout: examples include `u_0minus`, `u_0minus_max`, `a_0plus_LTE`, `T_inf`, and `muB_inf`.
+Older non-location endpoint identifiers in archived notes are stale and must not be copied into new work.
 
 `solve_front_adiabatic` and `solve_front_energy_conserving` **no longer exist** — removed in a restructuring. Older notes and specs referencing them are stale.
 
@@ -56,6 +57,20 @@ The exact $T=0$ moving formula is deliberately rejected because the fixed-compos
 At positive $T$, failure to find the eigenvalue within $u(0^-)<1$ returns the structured `slow_front_approximation_invalid` status; the code does not cross a disconnected EOS branch after the slow-front approximation has failed.
 The present function requires `NM_type="PNM"` and `ms=0`; see [[isothermal-analytic-front-speed]] for the derivation and result dictionary contract.
 
+## Isothermal numerical entry point
+
+`solve_front_isothermal(T, nB_0minus, B_one_forth, a_0plus, ms=0, ..., NM_type="PNM", ...)` is the exact fixed-temperature BVP counterpart.
+Its two differential fields are the physical `nK` and `jK`; the profile key `a` is always reconstructed as the local ratio $n_K/n_B$.
+For PNM, SYM, and beta-equilibrated upstream matter, the interface K-current is fixed by $j_K(0^+)=j_B[1-Y_p(0^-)/2]$.
+
+At every node the solver closes the quark EOS at fixed $T$, $j_B$, and momentum flux, then evaluates the exact $\mu_K$-dependent nonleptonic rate and the local $D_K[\mu_B(x),T]$.
+It uses the standard compactified `solve_bvp` formulation with `jB` as the one scalar eigenvalue.
+The downstream condition is $\mu_K(\infty)=0$; finite `ms` is supported, so the equilibrated `nK_inf` and `jK_inf` are not assumed to vanish.
+
+This numerical API deliberately performs no $\Delta\mu_B$ phase-stability gate.
+It solves the requested BVP branch; use `analytic_velocity_isothermal` or an explicit thermodynamic pre-classification when a stable-neutron-matter mask is required.
+Finite `ms` is substantially slower because the existing massive strange-quark EOS evaluates numerical quadratures inside every local closure.
+
 ## Exact zero upstream temperature
 
 `analytic_velocity_bound`, `semi_analytic_velocity_bound`, and
@@ -84,12 +99,12 @@ sequentially, with one process pool using the allocation at a time.
 | Front speed at prescribed interface composition | `solve_front_energy_conserving_nK` | — |
 | Maximised front speed at prescribed $T(0^+)$ | `solve_front_energy_conserving_uNmax` | **Untrustworthy below $T(0^+)\approx$ a few MeV** — see [[unmax-degeneracy]] |
 | Front speed with conduction, $a(0^+)$ as output | `solve_front_thermal_conducting` | Current best. See [[thermal-conducting]] |
-| Numerical isothermal front | `solve_front_isothermal` | Still uses the normalized $\widetilde a=[n_K-n_K(\infty)]/n_B(\infty)$ convention; local-fraction migration is pending. Strict-retry path broken — see [[known-issues]]. |
+| Numerical isothermal front | `solve_front_isothermal` | Solves physical $n_K,J_K$; reports local $a=n_K/n_B$; exact rate and local $D_K$. BVP-only, with no $\Delta\mu_B$ gate. |
 | Catch-up / $z(t)$ evolution | `z_time_evolution` | Needs full continuation state, not scalar guesses |
 
 ## Units
 
-The solver is in **pure natural MeV units end to end**. `const.MeV_fm` appears exactly once in 7353 lines (line 7072, converting $n_0 = 0.16\ \mathrm{fm^{-3}}$). Verified dimensionally:
+The solver is in **pure natural MeV units end to end**. Conversion from $n_0=0.16\ \mathrm{fm^{-3}}$ is localized at the density-conversion boundary rather than mixed into the front equations. Verified dimensionally:
 
 ```text
 Gamma_K = G_F^2 * mu_u^5 * muK * (muK^2 + 4 pi^2 T^2) = MeV^4   OK
@@ -116,7 +131,7 @@ The closest path to the retired triple is LTE, still 3.5–7.5% below it; passin
 
 ## $z(t)$ continuation
 
-`z_time_evolution` must propagate the **complete** previous solver result — previous downstream endpoint, interface state, BVP profile and baryon current — not just scalar guesses. Rebuilding the endpoint seed as $(1100\ \mathrm{MeV}, T_Q^{\rm guess})$ at every density leaves the local convergence basin near equilibrium.
+`z_time_evolution` must propagate the **complete** previous solver result — previous downstream endpoint, interface state, BVP profile and baryon current — not just scalar guesses. Rebuilding the endpoint seed as $(1100\ \mathrm{MeV},T^{\rm guess}(\infty))$ at every density leaves the local convergence basin near equilibrium.
 
 Adaptive stepping: on failure, insert the logarithmic midpoint between the last successful distance and the target, solve that, retry. `adaptive_continuation=True`, `max_continuation_subdivisions=12`. Inserted points participate in the velocity interpolation and travel-time integral.
 
