@@ -1,5 +1,5 @@
 ---
-summary: The fixed-temperature speed has one profile-shape factor, vanishes intrinsically only when a(0+) does, and needs a separate isothermal coexistence mask for stable neutron matter.
+summary: The fixed-temperature speed uses the local K fraction, a hydro-consistent finite-flux eigenvalue, and a fixed-(P,T) Delta-muB mask for stable neutron matter.
 status: current
 updated: 2026-08-17
 tags: [physics, analytic, front-speed, isothermal]
@@ -21,6 +21,16 @@ where $\lambda_n\equiv n_B(0^-)/n_B^{(+)}$, $-1<\xi<1$, and
 $$
 \eta=\frac{9\pi^2T^2}{\mu_q^2}.
 $$
+
+Throughout the analytical derivation, the composition is the **local** K fraction
+
+$$
+a(x)\equiv\frac{n_K(x)}{n_B(x)}.
+$$
+
+Pure neutron matter has $a(x<0)=1$ because $n_K=(n_d-n_s)/2=n_B$ there.
+The sharp interface does not require $a(0^+)=a(0^-)$; only the K current is continuous, so $a(0^+)$ remains an independent interface input.
+The factor $1-a(0^+)$ in the speed formula is the explicit use of $a(0^-)=1$ in that current jump.
 
 Thus the equivalent explicitly temperature-dependent numerator is $a^2(0^+)+18\pi^2T^2/\mu_q^2$.
 The formula is exact in $I_2$ within the stated cubic-plus-linear weak-rate reduction; $\xi$ is the only conversion-profile input.
@@ -85,35 +95,46 @@ which yields the boxed speed above after selecting the positive root.
 
 ## Relation for the literal isothermal BVP
 
-`solve_front_isothermal` reconstructs small variations of $n_B(x)$ and $u(x)$ rather than imposing them to be exactly constant.
-For its massless-quark normalization $a(\infty)=0$, the integrated equation instead contains
+⚠ The present `solve_front_isothermal` does **not** yet propagate the local fraction above.
+It uses the separately normalized disequilibrium variable
 
 $$
-I_1^{\rm BVP}=\int_{0^+}^{\infty}D_Ka'(ua)'\,dx.
+\widetilde a(x)\equiv\frac{n_K(x)-n_K(\infty)}{n_B(\infty)}.
+$$
+
+For the massless baseline, $n_K(\infty)=0$, so $\widetilde a=n_K/n_B(\infty)$ and $\widetilde a(0^-)=n_B(0^-)/n_B(\infty)=\lambda_n$, not $1$.
+It agrees with the local fraction in the quark layer only in the constant-density limit $n_B(x)=n_B(\infty)$.
+Updating the numerical solver to the local-fraction convention is a separate pending task; do not use the two variables interchangeably before that change lands.
+
+`solve_front_isothermal` reconstructs small variations of $n_B(x)$ and $u(x)$ rather than imposing them to be exactly constant.
+For its massless-quark normalization $\widetilde a(\infty)=0$, the integrated equation instead contains
+
+$$
+I_1^{\rm BVP}=\int_{0^+}^{\infty}D_K\widetilde a'(u\widetilde a)'\,dx.
 $$
 
 Writing
 
 $$
-G\equiv-D_Ka'(0^+)
-=u(0^-)\left[a(0^-)-\frac{u(0^+)}{u(0^-)}a(0^+)\right]
+G\equiv-D_K\widetilde a'(0^+)
+=u(0^-)\left[\widetilde a(0^-)-\frac{u(0^+)}{u(0^-)}\widetilde a(0^+)\right]
 $$
 
-and parameterizing the area in $ua$ by
+and parameterizing the area in $u\widetilde a$ by
 
 $$
-I_1^{\rm BVP}=\frac{1+\xi}{2}G\,u(0^+)a(0^+),
+I_1^{\rm BVP}=\frac{1+\xi}{2}G\,u(0^+)\widetilde a(0^+),
 $$
 
 gives the solver-faithful endpoint formula
 
 $$
 u^2(0^-)=\frac{2I_2}
-{\left[a(0^-)-\dfrac{u(0^+)}{u(0^-)}a(0^+)\right]
- \left[a(0^-)+\xi\dfrac{u(0^+)}{u(0^-)}a(0^+)\right]}.
+{\left[\widetilde a(0^-)-\dfrac{u(0^+)}{u(0^-)}\widetilde a(0^+)\right]
+ \left[\widetilde a(0^-)+\xi\dfrac{u(0^+)}{u(0^-)}\widetilde a(0^+)\right]}.
 $$
 
-When $n_B(0^+)=n_B(\infty)=n_B^{(+)}$, one has $a(0^-)=u(0^+)/u(0^-)=\lambda_n$, and this relation reduces to the piecewise-constant formula.
+When $n_B(0^+)=n_B(\infty)=n_B^{(+)}$, one has $\widetilde a(0^-)=u(0^+)/u(0^-)=\lambda_n$ and $\widetilde a(0^+)=a(0^+)$, so this relation reduces to the local-fraction piecewise-constant formula.
 
 ## Formal zero-temperature limit
 
@@ -200,6 +221,31 @@ $$
 
 The stable region should be masked or hatched rather than filled by evaluating the positive-speed formula.  Setting its forward speed to zero is a plotting convention; inside that region the modeled neutron-to-quark front does not exist, and the reverse process is outside the present calculation.
 
+The implemented density-parameterized classifier uses the equivalent common-$(P,T)$ construction.
+Let $\mu_{B,\rm QM}^{(P)}$ solve
+
+$$
+P_{\rm QM}[\mu_{B,\rm QM}^{(P)},0,T]=P(0^-),
+$$
+
+and define
+
+$$
+\Delta\mu_B\equiv\mu_{B,\rm QM}^{(P)}-\mu_B(0^-).
+$$
+
+At common $P$ and $T$, the phase with lower baryon chemical potential is favored, hence
+
+$$
+\begin{array}{lll}
+\Delta\mu_B>0 &: & \text{neutron matter stable; no forward front},\\
+\Delta\mu_B=0 &: & \text{isothermal coexistence},\\
+\Delta\mu_B<0 &: & \text{quark matter favored; solve the moving branch}.
+\end{array}
+$$
+
+This has the same stability sign as $\Delta P_{\rm iso}$ above but avoids evaluating both pressures at a common trial chemical potential when the contour input is $n_B(0^-)$.
+
 A direct diagnostic scan of the live QMC-RMF3 and massless bag-model EOS gives the following neutron-side coexistence densities:
 
 | $T$ (MeV) | $n_{B,\rm coexist}(T)/n_0$ for $B^{1/4}=180$ MeV | $n_{B,\rm coexist}(T)/n_0$ for $B^{1/4}=189.1566$ MeV |
@@ -210,6 +256,20 @@ A direct diagnostic scan of the live QMC-RMF3 and massless bag-model EOS gives t
 | 60 | 0.5246 | 1.3247 |
 
 For these branches, neutron matter is stable on the lower-density side of the tabulated curve.  The second calibration is the one chosen so cold coexistence occurs at $3n_0$.
+
+## Analytical API
+
+`analytic_velocity_isothermal(T_0minus, nB_0minus, B_one_forth, a_0plus, *, xi=0, ...)` implements the local-fraction formula as a finite-flux scalar eigenvalue.
+For every trial $u(0^-)$ it constructs $j_B=n_B(0^-)u(0^-)$ and $\Pi=P(0^-)+h(0^-)u^2(0^-)$, solves the equilibrated $\mu_K(\infty)=0$ endpoint, and solves the $0^+$ state from $\Pi$, $j_B$, and $n_K(0^+)/n_B(0^+)=a(0^+)$.
+It then finds the root of $u_{\rm formula}^2(0^-)-u^2(0^-)$.
+The piecewise-constant density ratio uses $n_B^{(+)}=n_B(\infty)$, so $\lambda_n=n_B(0^-)/n_B(\infty)$, while the frozen transport coefficients are evaluated at $0^+$ to match the numerical isothermal baseline.
+The exact hydro states can have $n_B(0^+)\neq n_B(\infty)$; retaining both exact states while using this mixed constant-background reduction is the explicit analytical approximation, not an assertion that the two densities are identical.
+
+The function returns `u_0minus=0` with `front_exists=False` in stable neutron matter and at coexistence.
+At exactly $T=0$, it still performs that thermodynamic classification; a quark-favored point with $a(0^+)>0$ returns `status="zero_temperature_transport_invalid"` and no finite velocity.
+At positive $T$, if the formal eigenvalue does not occur within the slow-front domain $u(0^-)<1$, it returns `status="slow_front_approximation_invalid"` instead of following a disconnected high-velocity EOS branch.
+The present derivation and implementation require `NM_type="PNM"` and `ms=0`.
+A nonzero strange-quark mass gives $n_K(\infty)\neq0$ and requires rewriting the weak source in terms of departure from equilibrium; other upstream compositions need a corresponding replacement for $a(0^-)=1$.
 
 ## ⚠ Why the coefficients are constant
 
@@ -246,6 +306,6 @@ For the finite-temperature zero-speed question, Wolfram returned `a0 == 0` as th
 
 ## Sources
 
-- `RMFsolver/phase_velocity.py`, `solve_front_isothermal` and `_microphysics_from_quark_state_isothermal_baseline`.
+- `RMFsolver/phase_velocity.py`, `analytic_velocity_isothermal`, `solve_front_isothermal`, and `_microphysics_from_quark_state_isothermal_baseline`.
 - `Latex_writting/Hydrodynamical combustion/Notes.tex`, “Isothermal Notes (Mar 16, 2026).”
 - [[analytic-front-speed]] for the corresponding non-isothermal construction.

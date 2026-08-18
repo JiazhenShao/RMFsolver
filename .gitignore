@@ -13,6 +13,9 @@
 !/setup.py
 !/RMFsolver/
 !/wiki/
+!/tests/
+/tests/*
+!/tests/test_phase_velocity_isothermal_analytic.py
 
 # Exclusions that still apply inside the tracked trees
 .DS_Store

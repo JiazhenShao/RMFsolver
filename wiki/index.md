@@ -21,7 +21,7 @@ The nuclear→quark combustion front project. **This is the only page loaded by 
 |---|---|
 | [[diffusion-limited-front]] | Physical regime, assumptions, fluxes, variables and boundary conditions |
 | [[analytic-front-speed]] | Constant-background speed estimate, scaling, layer thickness and formal endpoint limits |
-| [[isothermal-analytic-front-speed]] | Fixed-$T$ speed, formal low-$T$ divergence, and the separate isothermal-coexistence mask required for stable neutron matter |
+| [[isothermal-analytic-front-speed]] | Fixed-$T$ speed with local $a=n_K/n_B$, the $\Delta\mu_B$ stable-matter gate, the finite-flux analytic API, and the formal low-$T$ divergence |
 | [[front-speed-phenomenology]] | Fixed-$T(0^+)$ numerical contour, zero-speed boundary, and tail-dominated $z(t)$ evolution |
 | [[quark-matter-eos]] | Bag-model EOS, chemical-potential basis and quadratic analytic expansion |
 | [[strangeness-reaction-diffusion]] | Weak source, flavor diffusion, and the phenomenological status of $\alpha_s=0.3$ |

@@ -1,5 +1,5 @@
 ---
-summary: Map of the phase_velocity.py public API — three separate analytic velocity entry points, not one — and which solver answers which question.
+summary: Map of the phase_velocity.py public API — three energy-conserving analytic methods plus the hydro-consistent isothermal analytic method — and which solver answers which question.
 status: current
 updated: 2026-08-17
 tags: [solver, api, map]
@@ -7,7 +7,7 @@ tags: [solver, api, map]
 
 # `phase_velocity.py` — what exists and when to use it
 
-`RMFsolver/phase_velocity.py`, 7353 lines as of 2026-08-17. **Editing rule: this is the only file under `RMFsolver/` that may be modified** without an explicit instruction naming another file (see `AGENTS.md` and the project `CLAUDE.md`).
+`RMFsolver/phase_velocity.py` is the only file under `RMFsolver/` that may be modified without an explicit instruction naming another file (see `AGENTS.md` and the project `CLAUDE.md`).
 
 For the physics formulation behind these APIs, start with [[diffusion-limited-front]] and [[steady-front-bvp]]. For the analytic reduction, see [[analytic-front-speed]].
 
@@ -15,11 +15,11 @@ For the physics formulation behind these APIs, start with [[diffusion-limited-fr
 
 Front solvers: `solve_front_isothermal` · `solve_front_energy_conserving_nK` · `solve_front_energy_conserving_uNmax` · `solve_front_thermal_conducting`
 
-Analytic velocity: `analytic_velocity_bound` · `semi_analytic_velocity_bound` · `analytic_velocity_bound_lte`
+Analytic velocity: `analytic_velocity_isothermal` · `analytic_velocity_bound` · `semi_analytic_velocity_bound` · `analytic_velocity_bound_lte`
 
 Helpers: `u_0minus` · `z_time_evolution` · plus the EOS wrappers `PNM` `PNM_n` `edensNM` `edensNM_n` `sNM_n` `muB_from_nB_physical` `hNM` `hNM_n` `nB_NM` `Pi_NM` `hQM` `Pi_QM`.
 
-⚠ `__all__` lists only six names — `analytic_velocity_bound`, the four `solve_front_*`, and `z_time_evolution`. `semi_analytic_velocity_bound`, `analytic_velocity_bound_lte` and `u_0minus` are **public but not exported**, so `from ... import *` silently omits them. Import them by name.
+⚠ `__all__` lists only seven names — `analytic_velocity_isothermal`, `analytic_velocity_bound`, the four `solve_front_*`, and `z_time_evolution`. `semi_analytic_velocity_bound`, `analytic_velocity_bound_lte` and `u_0minus` are **public but not exported**, so `from ... import *` silently omits them. Import them by name.
 
 ⚠ `uN` was **renamed `u_0minus`** under the endpoint-notation rule (`_N`→`_0minus`, `_Qstar`→`_0plus`, `_Q`→`_inf`). Result-dict keys followed: `u_0minus_max`, `T_inf`, `a_0plus_LTE`, `muB_inf`. Notes citing `uN`, `T_Q`, `a_interface_LTE` or `u_N` are stale.
 
@@ -45,6 +45,17 @@ The fourth combination (`numerical_I2` + `LTE`) has no public wrapper.
 
 All three return the same key set (~70 keys); only the values and the `velocity_method` / `analytic_formula_variant` / `interface_fraction_mode` tags differ.
 
+## Isothermal analytical entry point
+
+`analytic_velocity_isothermal(T_0minus, nB_0minus, B_one_forth, a_0plus, *, xi=0, ...)` is separate from the three energy-conserving methods above.
+It replaces energy conservation by $T(x)=T(0^-)$, takes the local interface fraction $a(0^+)=n_K(0^+)/n_B(0^+)$ as an input, and couples the closed-form reaction--diffusion speed to exact baryon- and momentum-flux endpoint states through a scalar eigenvalue solve.
+
+Before attempting the moving root, it pressure-matches equilibrated quark matter at the same $T$ and defines $\Delta\mu_B=\mu_{B,\rm QM}^{(P)}-\mu_B(0^-)$.
+Positive $\Delta\mu_B$ returns stable neutron matter with `u_0minus=0` and `front_exists=False`; zero is coexistence; negative selects the moving branch.
+The exact $T=0$ moving formula is deliberately rejected because the fixed-composition limit diverges and the diffusion model is invalid.
+At positive $T$, failure to find the eigenvalue within $u(0^-)<1$ returns the structured `slow_front_approximation_invalid` status; the code does not cross a disconnected EOS branch after the slow-front approximation has failed.
+The present function requires `NM_type="PNM"` and `ms=0`; see [[isothermal-analytic-front-speed]] for the derivation and result dictionary contract.
+
 ## Exact zero upstream temperature
 
 `analytic_velocity_bound`, `semi_analytic_velocity_bound`, and
@@ -69,10 +80,11 @@ sequentially, with one process pool using the allocation at a time.
 | Fast analytic bound at prescribed $T(0^+)$ | `analytic_velocity_bound` | Closed-form $I_2$. Feeds [[two-block-contour-scans]]. |
 | Same, with $I_2$ integrated numerically | `semi_analytic_velocity_bound` | Slower, no quadratic-$T$ bracket. Supplies the hidden ray mesh and analytic seeds. |
 | Analytic bound with $a(0^+)$ from local equilibrium | `analytic_velocity_bound_lte` | No $T(0^+)$ input. See [[lte-composition-bound]] |
+| Hydro-consistent analytic speed with $T(x)=T(0^-)$ and prescribed local $a(0^+)$ | `analytic_velocity_isothermal` | Applies the $\Delta\mu_B$ stable-phase gate first; massless baseline only. |
 | Front speed at prescribed interface composition | `solve_front_energy_conserving_nK` | — |
 | Maximised front speed at prescribed $T(0^+)$ | `solve_front_energy_conserving_uNmax` | **Untrustworthy below $T(0^+)\approx$ a few MeV** — see [[unmax-degeneracy]] |
 | Front speed with conduction, $a(0^+)$ as output | `solve_front_thermal_conducting` | Current best. See [[thermal-conducting]] |
-| Isothermal front | `solve_front_isothermal` | Strict-retry path broken — see [[known-issues]] |
+| Numerical isothermal front | `solve_front_isothermal` | Still uses the normalized $\widetilde a=[n_K-n_K(\infty)]/n_B(\infty)$ convention; local-fraction migration is pending. Strict-retry path broken — see [[known-issues]]. |
 | Catch-up / $z(t)$ evolution | `z_time_evolution` | Needs full continuation state, not scalar guesses |
 
 ## Units

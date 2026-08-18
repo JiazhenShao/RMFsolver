@@ -114,6 +114,13 @@ Re-measured the 196/202/228 m/s reference triple: it reproduces under **no** cur
 The $X_q$ estimate in [[gw-observables-section]] rests on the retired triple and is flagged for recomputation rather than silently rescaled.
 Substance of [[unmax-degeneracy]] and [[unmax-low-temperature]] re-verified against live code and found correct; only names were stale.
 
+## [2026-08-17] implement | Hydro-consistent isothermal analytical velocity
+
+Added `analytic_velocity_isothermal`, which accepts $T(0^-)$, $n_B(0^-)$ and the local interface fraction $a(0^+)=n_K(0^+)/n_B(0^+)$.
+It classifies the stable-neutron-matter region with $\Delta\mu_B=\mu_{B,\rm QM}^{(P)}-\mu_B(0^-)$ at common $(P,T)$, returning zero speed when $\Delta\mu_B\geq0$, and couples the negative-$\Delta\mu_B$ branch to baryon and momentum conservation through a scalar finite-flux eigenvalue.
+The massless analytical result was verified on both sides of the $T=20$ MeV coexistence curve; the pre-existing numerical isothermal regression still passes and remains on its older normalized-$\widetilde a$ convention pending a separate migration.
+A live $T=10^{-8}$ MeV check reaches the $u(0^-)=1$ slow-front boundary without an eigenvalue and now returns `slow_front_approximation_invalid` rather than jumping to a disconnected high-velocity EOS root.
+
 ## [2026-08-17] tooling | Wiki is now version-controlled and public
 
 The workspace root became a git repository so `wiki/` and `RMFsolver/` are tracked together; it pushes to `https://github.com/JiazhenShao/RMFsolver`.

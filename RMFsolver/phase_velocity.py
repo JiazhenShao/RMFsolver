@@ -26,6 +26,7 @@ from RMFsolver.Solver import RMFedensPNM, RMFentropyPNM, RMFbaryon_densityPNM, R
 
 __all__ = [
     "analytic_velocity_bound",
+    "analytic_velocity_isothermal",
     "solve_front_isothermal",
     "solve_front_energy_conserving_nK",
     "solve_front_energy_conserving_uNmax",
@@ -1901,6 +1902,800 @@ def _solve_analytic_velocity_bound(
         "analytic_formula_variant": "piecewise_constant_lambda_n",
         "slow_front_consistent": bool(u_0minus_max < 1.0),
     }
+
+
+class _AnalyticIsothermalSlowFrontInvalid(RuntimeError):
+    """The formal isothermal root lies outside the slow-front regime."""
+
+    def __init__(self, limit_data):
+        super().__init__(
+            "No analytical isothermal eigenvalue exists within u_0minus < 1; "
+            "the slow-front approximation is invalid for this state"
+        )
+        self.limit_data = limit_data
+
+
+def _solve_analytic_isothermal_log_root(
+    evaluate_log_u,
+    *,
+    max_u_0minus=None,
+):
+    """Bracket and solve the positive isothermal velocity without a unit cap."""
+    evaluation_cache = {}
+
+    def cached_evaluate(theta):
+        theta = float(theta)
+        if theta not in evaluation_cache:
+            evaluation_cache[theta] = evaluate_log_u(theta)
+        return evaluation_cache[theta]
+
+    seed_u = 1.0e-12
+    seed_theta = float(np.log(seed_u))
+    seed_residual, seed_data = cached_evaluate(seed_theta)
+    seed_residual = float(seed_residual)
+    if not np.isfinite(seed_residual):
+        raise RuntimeError("Initial analytical isothermal residual is non-finite")
+    if seed_residual == 0.0:
+        return seed_data
+
+    direction = 4.0 if seed_residual > 0.0 else 0.25
+    previous_u = seed_u
+    previous_residual = seed_residual
+    bracket = None
+    for _ in range(512):
+        next_u = float(previous_u * direction)
+        reached_upper_limit = False
+        if (
+            direction > 1.0
+            and max_u_0minus is not None
+            and next_u >= float(max_u_0minus)
+        ):
+            next_u = float(max_u_0minus)
+            reached_upper_limit = True
+        if (not np.isfinite(next_u)) or next_u <= 0.0 or next_u == previous_u:
+            break
+        next_residual, next_data = cached_evaluate(float(np.log(next_u)))
+        next_residual = float(next_residual)
+        if not np.isfinite(next_residual):
+            raise RuntimeError("Analytical isothermal residual is non-finite")
+        if reached_upper_limit:
+            raise _AnalyticIsothermalSlowFrontInvalid(next_data)
+        if next_residual == 0.0:
+            return next_data
+        if previous_residual * next_residual < 0.0:
+            bracket = (float(np.log(previous_u)), float(np.log(next_u)))
+            break
+        previous_u = next_u
+        previous_residual = next_residual
+
+    if bracket is None:
+        direction_label = "above" if direction > 1.0 else "below"
+        raise RuntimeError(
+            "Analytical isothermal eigenvalue scan found no sign change "
+            f"{direction_label} u_0minus={seed_u:.1e}"
+        )
+
+    def scalar_residual(theta):
+        residual, _ = cached_evaluate(theta)
+        return float(residual)
+
+    root_result = root_scalar(
+        scalar_residual,
+        bracket=bracket,
+        method="brentq",
+        xtol=1.0e-12,
+        rtol=1.0e-12,
+    )
+    if not root_result.converged:
+        raise RuntimeError(
+            "Analytical isothermal eigenvalue solve did not converge: "
+            f"{root_result.flag}"
+        )
+    _, final_data = cached_evaluate(float(root_result.root))
+    return final_data
+
+
+def _solve_interface_0plus_from_local_a_and_Pi(
+    a_0plus,
+    Pi,
+    jB,
+    B_one_forth,
+    T,
+    ms=0.0,
+    upB=5000,
+    initial_guess=None,
+):
+    """Solve the fixed-T interface state at local a(0+) = nK(0+)/nB(0+)."""
+    a_0plus = float(a_0plus)
+    if not (0.0 < a_0plus < 1.0):
+        raise RuntimeError("a_0plus must satisfy 0 < a_0plus < 1")
+
+    pi_scale = max(abs(float(Pi)), 1.0)
+
+    def equations(vec):
+        muB_0plus, muK_0plus = map(float, vec)
+        if (
+            (not np.isfinite(muB_0plus))
+            or (not np.isfinite(muK_0plus))
+            or muB_0plus <= 0.0
+        ):
+            return np.array([1.0e12, 1.0e12], dtype=float)
+        try:
+            nB_0plus = float(
+                nB_QM(
+                    muB_0plus,
+                    muK_0plus,
+                    B_one_forth,
+                    T,
+                    ms=ms,
+                    upB=upB,
+                )
+            )
+            nK_0plus = float(
+                nK_QM(
+                    muB_0plus,
+                    muK_0plus,
+                    B_one_forth,
+                    T,
+                    ms=ms,
+                    upB=upB,
+                )
+            )
+            if nB_0plus <= 0.0:
+                return np.array([1.0e12, 1.0e12], dtype=float)
+            return np.array(
+                [
+                    (
+                        _Pi_QM_state(
+                            muB_0plus,
+                            muK_0plus,
+                            B_one_forth,
+                            T,
+                            jB,
+                            ms=ms,
+                            upB=upB,
+                        )
+                        - Pi
+                    )
+                    / pi_scale,
+                    nK_0plus / nB_0plus - a_0plus,
+                ],
+                dtype=float,
+            )
+        except Exception:
+            return np.array([1.0e12, 1.0e12], dtype=float)
+
+    muK_seed = _branch_muK_seed(a_0plus)
+    guesses = []
+    if initial_guess is not None:
+        guess = np.asarray(initial_guess, dtype=float).ravel()
+        if guess.size >= 2 and np.all(np.isfinite(guess[:2])):
+            guesses.append(np.array(guess[:2], dtype=float))
+            muB_seed = float(guess[0])
+        else:
+            muB_seed = 1200.0
+    else:
+        muB_seed = 1200.0
+    guesses.extend(
+        [
+            np.array([muB_seed, muK_seed], dtype=float),
+            np.array([1200.0, muK_seed], dtype=float),
+            np.array([1500.0, max(muK_seed, 400.0 * a_0plus)], dtype=float),
+            np.array([900.0, muK_seed], dtype=float),
+        ]
+    )
+
+    best = None
+    best_norm = np.inf
+    best_message = "local-a interface state solve did not converge"
+    for guess in guesses:
+        try:
+            sol = root(
+                equations,
+                guess,
+                method="hybr",
+                options={"maxfev": 3000, "xtol": 1.0e-10},
+            )
+            if not np.all(np.isfinite(sol.x)):
+                best_message = str(sol.message)
+                continue
+            residual = equations(sol.x)
+            residual_norm = float(np.linalg.norm(residual, ord=np.inf))
+            muB_0plus = float(sol.x[0])
+            muK_0plus = float(sol.x[1])
+            nB_0plus = float(
+                nB_QM(
+                    muB_0plus,
+                    muK_0plus,
+                    B_one_forth,
+                    T,
+                    ms=ms,
+                    upB=upB,
+                )
+            )
+            if (
+                residual_norm < best_norm
+                and muB_0plus > 0.0
+                and muK_0plus >= -1.0e-8
+                and nB_0plus > 0.0
+            ):
+                best = (muB_0plus, max(muK_0plus, 0.0))
+                best_norm = residual_norm
+            if sol.success and best is not None and best_norm <= 1.0e-8:
+                return best
+            best_message = str(sol.message)
+        except Exception as exc:
+            best_message = str(exc)
+
+    if best is not None and best_norm <= 1.0e-8:
+        return best
+    raise RuntimeError(
+        "x = 0+ local-a state solve failed: "
+        f"{best_message}; best scaled residual={best_norm:.3e}"
+    )
+
+
+def analytic_velocity_isothermal(
+    T_0minus,
+    nB_0minus,
+    B_one_forth,
+    a_0plus,
+    *,
+    xi=0.0,
+    ms=0.0,
+    param=para.paraQMCRMF3,
+    NM_type="PNM",
+    upB=5000,
+    delta_muB_tol=1.0e-6,
+):
+    """Return the hydro-consistent analytical isothermal front velocity.
+
+    ``a_0plus`` is the local interface fraction nK(0+)/nB(0+).  The current
+    closed-form weak source is derived for massless quarks, for which the
+    equilibrated endpoint has nK(inf) = 0.
+    """
+    T_0minus = float(T_0minus)
+    nB_0minus = float(nB_0minus)
+    B_one_forth = float(B_one_forth)
+    a_0plus = float(a_0plus)
+    xi = float(xi)
+    ms = float(ms)
+    delta_muB_tol = float(delta_muB_tol)
+    try:
+        upB_float = float(upB)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise RuntimeError("upB must be a positive finite integer") from exc
+
+    if (not np.isfinite(T_0minus)) or T_0minus < 0.0:
+        raise RuntimeError("T_0minus must be finite and non-negative")
+    if (not np.isfinite(nB_0minus)) or nB_0minus <= 0.0:
+        raise RuntimeError("nB_0minus must be positive and finite")
+    if (not np.isfinite(B_one_forth)) or B_one_forth <= 0.0:
+        raise RuntimeError("B_one_forth must be positive and finite")
+    if (not np.isfinite(a_0plus)) or not (0.0 <= a_0plus < 1.0):
+        raise RuntimeError("a_0plus must satisfy 0 <= a_0plus < 1")
+    if (not np.isfinite(xi)) or not (-1.0 < xi < 1.0):
+        raise RuntimeError("xi must satisfy -1 < xi < 1")
+    if (not np.isfinite(ms)) or abs(ms) > 1.0e-12:
+        raise RuntimeError(
+            "analytic_velocity_isothermal currently requires ms=0 because its "
+            "weak source is written for nK(inf)=0"
+        )
+    if str(NM_type) != "PNM":
+        raise RuntimeError(
+            "analytic_velocity_isothermal currently requires NM_type='PNM'"
+        )
+    if (not np.isfinite(delta_muB_tol)) or delta_muB_tol < 0.0:
+        raise RuntimeError("delta_muB_tol must be finite and non-negative")
+    if (
+        (not np.isfinite(upB_float))
+        or upB_float <= 0.0
+        or not upB_float.is_integer()
+    ):
+        raise RuntimeError("upB must be a positive finite integer")
+    upB = int(upB_float)
+
+    muB_0minus = float(
+        muB_from_nB_physical(
+            nB_0minus,
+            T_0minus,
+            param=param,
+            NM_type=NM_type,
+            auto_expand=True,
+        )
+    )
+    nuclear_state = _analytic_nuclear_state(
+        muB_0minus,
+        T_0minus,
+        param=param,
+        NM_type=NM_type,
+    )
+    recovered_nB_0minus = float(nuclear_state["nB_0minus"])
+    if not np.isclose(
+        recovered_nB_0minus,
+        nB_0minus,
+        rtol=2.0e-6,
+        atol=0.0,
+    ):
+        raise RuntimeError(
+            "muB_from_nB_physical did not reproduce nB_0minus on the validated branch"
+        )
+    nuclear_state = dict(nuclear_state)
+    nuclear_state["muB_0minus"] = muB_0minus
+    nuclear_state["T_0minus"] = T_0minus
+
+    P_0minus = float(nuclear_state["P_0minus"])
+    muB_qm_candidate = float(
+        _solve_muB_inf_at_muK0_for_given_Pi(
+            P_0minus,
+            0.0,
+            B_one_forth,
+            T_0minus,
+            ms=ms,
+            upB=upB,
+        )
+    )
+    nB_qm_candidate = float(
+        nB_QM(
+            muB_qm_candidate,
+            0.0,
+            B_one_forth,
+            T_0minus,
+            ms=ms,
+            upB=upB,
+        )
+    )
+    nK_qm_candidate = float(
+        nK_QM(
+            muB_qm_candidate,
+            0.0,
+            B_one_forth,
+            T_0minus,
+            ms=ms,
+            upB=upB,
+        )
+    )
+    if (not np.isfinite(nB_qm_candidate)) or nB_qm_candidate <= 0.0:
+        raise RuntimeError("Pressure-matched quark candidate has non-positive nB")
+    if not np.isfinite(nK_qm_candidate):
+        raise RuntimeError("Pressure-matched quark candidate has non-finite nK")
+
+    delta_muB = float(muB_qm_candidate - muB_0minus)
+    result = {
+        "success": True,
+        "status": "",
+        "message": "",
+        "phase_region": "",
+        "front_exists": False,
+        "u_0minus": np.nan,
+        "u_0minus_squared": np.nan,
+        "u_0minus_formula_squared": np.nan,
+        "analytic_velocity_residual": np.nan,
+        "jB": np.nan,
+        "T_0minus": T_0minus,
+        "T_0plus": np.nan,
+        "T_inf": np.nan,
+        "nB_0minus": nB_0minus,
+        "muB_0minus": muB_0minus,
+        "P_0minus": P_0minus,
+        "e_0minus": float(nuclear_state["e_0minus"]),
+        "h_0minus": float(nuclear_state["h_0minus"]),
+        "h_over_nB_0minus": float(nuclear_state["h_over_nB_0minus"]),
+        "B_one_forth": B_one_forth,
+        "a_0minus": 1.0,
+        "a_0plus": a_0plus,
+        "xi": xi,
+        "ms": ms,
+        "upB": int(upB),
+        "delta_muB": delta_muB,
+        "delta_muB_tol": delta_muB_tol,
+        "muB_qm_candidate": muB_qm_candidate,
+        "muK_qm_candidate": 0.0,
+        "nB_qm_candidate": nB_qm_candidate,
+        "nK_qm_candidate": nK_qm_candidate,
+        "P_qm_candidate": P_0minus,
+        "muB_0plus": np.nan,
+        "muK_0plus": np.nan,
+        "nB_0plus": np.nan,
+        "nK_0plus": np.nan,
+        "u_0plus": np.nan,
+        "muB_inf": np.nan,
+        "muK_inf": np.nan,
+        "nB_inf": np.nan,
+        "nK_inf": np.nan,
+        "u_inf": np.nan,
+        "Pi": np.nan,
+        "lambda_n": np.nan,
+        "lambda_n_squared": np.nan,
+        "D": np.nan,
+        "D_K": np.nan,
+        "eta": np.nan,
+        "gamma": np.nan,
+        "gamma_K": np.nan,
+        "tau": np.nan,
+        "mu_q": np.nan,
+        "qD": np.nan,
+        "alpha_s": np.nan,
+        "I2": np.nan,
+        "analytic_denominator": np.nan,
+        "composition_residual": np.nan,
+        "momentum_flux_inf_residual": np.nan,
+        "momentum_flux_0plus_residual": np.nan,
+        "slow_front_consistent": False,
+        "u_0minus_trial_limit": np.nan,
+        "u_0minus_formula_squared_at_limit": np.nan,
+        "composition_definition": "a_0plus_equals_nK_0plus_over_nB_0plus",
+        "density_ratio_definition": "lambda_n_equals_nB_0minus_over_nB_inf",
+        "velocity_method": "analytic_isothermal_closed_form_I2",
+        "analytic_formula_variant": "isothermal_piecewise_constant_lambda_n",
+    }
+
+    if delta_muB > delta_muB_tol:
+        result.update(
+            {
+                "status": "stable_neutron_matter",
+                "message": (
+                    "Neutron matter is thermodynamically stable at common P and T; "
+                    "no forward conversion front exists"
+                ),
+                "phase_region": "stable_neutron_matter",
+                "u_0minus": 0.0,
+                "u_0minus_squared": 0.0,
+                "jB": 0.0,
+            }
+        )
+        return result
+
+    if abs(delta_muB) <= delta_muB_tol:
+        result.update(
+            {
+                "status": "isothermal_coexistence",
+                "message": "Static isothermal coexistence at common P, T, and muB",
+                "phase_region": "isothermal_coexistence",
+                "u_0minus": 0.0,
+                "u_0minus_squared": 0.0,
+                "jB": 0.0,
+                "T_0plus": T_0minus,
+                "T_inf": T_0minus,
+                "muB_0plus": muB_qm_candidate,
+                "muK_0plus": 0.0,
+                "nB_0plus": nB_qm_candidate,
+                "nK_0plus": nK_qm_candidate,
+                "u_0plus": 0.0,
+                "muB_inf": muB_qm_candidate,
+                "muK_inf": 0.0,
+                "nB_inf": nB_qm_candidate,
+                "nK_inf": nK_qm_candidate,
+                "u_inf": 0.0,
+                "Pi": P_0minus,
+                "lambda_n": float(nB_0minus / nB_qm_candidate),
+            }
+        )
+        return result
+
+    result["phase_region"] = "quark_matter_favored"
+    if a_0plus == 0.0:
+        result.update(
+            {
+                "status": "zero_interface_composition",
+                "message": "The analytical reaction-diffusion speed vanishes at a_0plus=0",
+                "u_0minus": 0.0,
+                "u_0minus_squared": 0.0,
+                "u_0minus_formula_squared": 0.0,
+                "analytic_velocity_residual": 0.0,
+                "jB": 0.0,
+            }
+        )
+        return result
+
+    if T_0minus == 0.0:
+        result.update(
+            {
+                "success": False,
+                "status": "zero_temperature_transport_invalid",
+                "message": (
+                    "The fixed-composition T -> 0+ formula diverges and the local "
+                    "diffusion model is invalid at exactly T_0minus=0"
+                ),
+                "u_0minus": np.nan,
+                "u_0minus_squared": np.nan,
+                "jB": np.nan,
+            }
+        )
+        return result
+
+    evaluated_states = []
+
+    def evaluate_log_u(theta):
+        theta = float(theta)
+        u_0minus = float(np.exp(theta))
+        if (not np.isfinite(u_0minus)) or u_0minus <= 0.0:
+            raise RuntimeError("Trial u_0minus must be positive and finite")
+        jB = float(nB_0minus * u_0minus)
+        Pi = float(P_0minus + float(nuclear_state["h_0minus"]) * u_0minus**2)
+
+        if evaluated_states:
+            _, nearest_state = min(
+                evaluated_states,
+                key=lambda item: abs(float(item[0]) - theta),
+            )
+            endpoint_initial_guess = float(nearest_state["muB_inf"])
+            interface_initial_guess = (
+                float(nearest_state["muB_0plus"]),
+                float(nearest_state["muK_0plus"]),
+            )
+        else:
+            endpoint_initial_guess = muB_qm_candidate
+            interface_initial_guess = (
+                muB_qm_candidate,
+                _branch_muK_seed(a_0plus),
+            )
+
+        muB_inf = float(
+            _solve_muB_inf_at_muK0_for_given_Pi_ms(
+                Pi,
+                jB,
+                B_one_forth,
+                T_0minus,
+                ms=ms,
+                upB=upB,
+                initial_guess=endpoint_initial_guess,
+            )
+        )
+        nB_inf = float(
+            nB_QM(
+                muB_inf,
+                0.0,
+                B_one_forth,
+                T_0minus,
+                ms=ms,
+                upB=upB,
+            )
+        )
+        nK_inf = float(
+            nK_QM(
+                muB_inf,
+                0.0,
+                B_one_forth,
+                T_0minus,
+                ms=ms,
+                upB=upB,
+            )
+        )
+        if (not np.isfinite(nB_inf)) or nB_inf <= 0.0:
+            raise RuntimeError("Equilibrated quark endpoint has non-positive nB_inf")
+        if not np.isfinite(nK_inf):
+            raise RuntimeError("Equilibrated quark endpoint has non-finite nK_inf")
+
+        muB_0plus, muK_0plus = _solve_interface_0plus_from_local_a_and_Pi(
+            a_0plus,
+            Pi,
+            jB,
+            B_one_forth,
+            T_0minus,
+            ms=ms,
+            upB=upB,
+            initial_guess=interface_initial_guess,
+        )
+        nB_0plus = float(
+            nB_QM(
+                muB_0plus,
+                muK_0plus,
+                B_one_forth,
+                T_0minus,
+                ms=ms,
+                upB=upB,
+            )
+        )
+        nK_0plus = float(
+            nK_QM(
+                muB_0plus,
+                muK_0plus,
+                B_one_forth,
+                T_0minus,
+                ms=ms,
+                upB=upB,
+            )
+        )
+        if (not np.isfinite(nB_0plus)) or nB_0plus <= 0.0:
+            raise RuntimeError("x = 0+ quark state has non-positive nB_0plus")
+        if not np.isfinite(nK_0plus):
+            raise RuntimeError("x = 0+ quark state has non-finite nK_0plus")
+
+        composition_residual = float(nK_0plus / nB_0plus - a_0plus)
+        micro = _microphysics_from_quark_state_isothermal_baseline(
+            muB_0plus,
+            T_0minus,
+        )
+        D_K = float(micro["D"])
+        eta = float(micro["eta"])
+        gamma_K = float(micro["gamma"])
+        lambda_n = float(nB_0minus / nB_inf)
+        if (not np.isfinite(lambda_n)) or lambda_n <= 0.0:
+            raise RuntimeError("lambda_n must be positive and finite")
+
+        denominator = float(
+            lambda_n**2
+            * (1.0 - a_0plus)
+            * (1.0 + xi * a_0plus)
+        )
+        if (not np.isfinite(denominator)) or denominator <= 0.0:
+            raise RuntimeError("Analytical isothermal denominator is non-physical")
+        I2 = float(
+            D_K
+            * gamma_K
+            * a_0plus**2
+            * (a_0plus**2 + 2.0 * eta)
+            / 4.0
+        )
+        u_0minus_formula_squared = float(2.0 * I2 / denominator)
+        if (
+            (not np.isfinite(I2))
+            or I2 < 0.0
+            or (not np.isfinite(u_0minus_formula_squared))
+            or u_0minus_formula_squared < 0.0
+        ):
+            raise RuntimeError("Analytical isothermal formula returned a non-physical value")
+
+        momentum_flux_inf_residual = float(
+            _Pi_QM_state(
+                muB_inf,
+                0.0,
+                B_one_forth,
+                T_0minus,
+                jB,
+                ms=ms,
+                upB=upB,
+            )
+            - Pi
+        )
+        momentum_flux_0plus_residual = float(
+            _Pi_QM_state(
+                muB_0plus,
+                muK_0plus,
+                B_one_forth,
+                T_0minus,
+                jB,
+                ms=ms,
+                upB=upB,
+            )
+            - Pi
+        )
+        residual = float(u_0minus_formula_squared - u_0minus**2)
+        data = {
+            "u_0minus": u_0minus,
+            "u_0minus_formula_squared": u_0minus_formula_squared,
+            "jB": jB,
+            "Pi": Pi,
+            "muB_inf": muB_inf,
+            "nB_inf": nB_inf,
+            "nK_inf": nK_inf,
+            "u_inf": float(jB / nB_inf),
+            "muB_0plus": float(muB_0plus),
+            "muK_0plus": float(muK_0plus),
+            "nB_0plus": nB_0plus,
+            "nK_0plus": nK_0plus,
+            "u_0plus": float(jB / nB_0plus),
+            "lambda_n": lambda_n,
+            "D_K": D_K,
+            "eta": eta,
+            "gamma_K": gamma_K,
+            "tau": float(micro["tau"]),
+            "mu_q": float(micro["muQ"]),
+            "qD": float(micro["qD"]),
+            "alpha_s": float(micro["alpha_s"]),
+            "I2": I2,
+            "analytic_denominator": denominator,
+            "composition_residual": composition_residual,
+            "momentum_flux_inf_residual": momentum_flux_inf_residual,
+            "momentum_flux_0plus_residual": momentum_flux_0plus_residual,
+            "residual": residual,
+        }
+        evaluated_states.append((theta, data))
+        return residual, data
+
+    try:
+        final_data = _solve_analytic_isothermal_log_root(
+            evaluate_log_u,
+            max_u_0minus=1.0,
+        )
+    except _AnalyticIsothermalSlowFrontInvalid as exc:
+        limit_data = exc.limit_data
+        result.update(
+            {
+                "success": False,
+                "status": "slow_front_approximation_invalid",
+                "message": str(exc),
+                "phase_region": "quark_matter_favored",
+                "front_exists": False,
+                "u_0minus": np.nan,
+                "u_0minus_squared": np.nan,
+                "u_0minus_formula_squared": np.nan,
+                "analytic_velocity_residual": np.nan,
+                "jB": np.nan,
+                "u_0minus_trial_limit": float(limit_data["u_0minus"]),
+                "u_0minus_formula_squared_at_limit": float(
+                    limit_data["u_0minus_formula_squared"]
+                ),
+                "slow_front_consistent": False,
+            }
+        )
+        return result
+
+    u_0minus = float(final_data["u_0minus"])
+    u_0minus_squared = float(u_0minus**2)
+    analytic_velocity_residual = float(
+        final_data["u_0minus_formula_squared"] - u_0minus_squared
+    )
+    formula_scale = max(
+        abs(float(final_data["u_0minus_formula_squared"])),
+        abs(u_0minus_squared),
+        1.0e-30,
+    )
+    Pi_scale = max(abs(float(final_data["Pi"])), 1.0)
+    if abs(analytic_velocity_residual) > 1.0e-8 * formula_scale:
+        raise RuntimeError(
+            "Analytical isothermal velocity residual is too large: "
+            f"{analytic_velocity_residual:.6e}"
+        )
+    if abs(float(final_data["momentum_flux_inf_residual"])) > 1.0e-8 * Pi_scale:
+        raise RuntimeError("Downstream momentum-flux residual is too large")
+    if abs(float(final_data["momentum_flux_0plus_residual"])) > 1.0e-8 * Pi_scale:
+        raise RuntimeError("Interface momentum-flux residual is too large")
+    if abs(float(final_data["composition_residual"])) > 1.0e-8:
+        raise RuntimeError("Interface local-composition residual is too large")
+
+    result.update(
+        {
+            "success": True,
+            "status": "moving_front",
+            "message": "Hydro-consistent analytical isothermal velocity evaluated",
+            "phase_region": "quark_matter_favored",
+            "front_exists": True,
+            "u_0minus": u_0minus,
+            "u_0minus_squared": u_0minus_squared,
+            "u_0minus_formula_squared": float(
+                final_data["u_0minus_formula_squared"]
+            ),
+            "analytic_velocity_residual": analytic_velocity_residual,
+            "jB": float(final_data["jB"]),
+            "T_0plus": T_0minus,
+            "T_inf": T_0minus,
+            "muB_0plus": float(final_data["muB_0plus"]),
+            "muK_0plus": float(final_data["muK_0plus"]),
+            "nB_0plus": float(final_data["nB_0plus"]),
+            "nK_0plus": float(final_data["nK_0plus"]),
+            "u_0plus": float(final_data["u_0plus"]),
+            "muB_inf": float(final_data["muB_inf"]),
+            "muK_inf": 0.0,
+            "nB_inf": float(final_data["nB_inf"]),
+            "nK_inf": float(final_data["nK_inf"]),
+            "u_inf": float(final_data["u_inf"]),
+            "Pi": float(final_data["Pi"]),
+            "lambda_n": float(final_data["lambda_n"]),
+            "lambda_n_squared": float(final_data["lambda_n"] ** 2),
+            "D": float(final_data["D_K"]),
+            "D_K": float(final_data["D_K"]),
+            "eta": float(final_data["eta"]),
+            "gamma": float(final_data["gamma_K"]),
+            "gamma_K": float(final_data["gamma_K"]),
+            "tau": float(final_data["tau"]),
+            "mu_q": float(final_data["mu_q"]),
+            "qD": float(final_data["qD"]),
+            "alpha_s": float(final_data["alpha_s"]),
+            "I2": float(final_data["I2"]),
+            "analytic_denominator": float(final_data["analytic_denominator"]),
+            "composition_residual": float(final_data["composition_residual"]),
+            "momentum_flux_inf_residual": float(
+                final_data["momentum_flux_inf_residual"]
+            ),
+            "momentum_flux_0plus_residual": float(
+                final_data["momentum_flux_0plus_residual"]
+            ),
+            "slow_front_consistent": bool(u_0minus < 1.0),
+        }
+    )
+    return result
 
 
 def analytic_velocity_bound(
