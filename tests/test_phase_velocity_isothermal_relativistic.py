@@ -31,6 +31,13 @@ class TestMomentumFluxDiagnostics(unittest.TestCase):
         d = pv._momentum_flux_diagnostics(1.0e9, 5.0e9, np.nan)
         self.assertTrue(np.isnan(d["momentum_flux_ratio"]))
 
+    def test_out_of_range_velocity_gives_nan_not_raise(self):
+        for bad_u in (-0.1, 1.0, 1.5):
+            d = pv._momentum_flux_diagnostics(1.0e9, 5.0e9, bad_u)
+            self.assertTrue(np.isnan(d["momentum_flux_ratio"]), f"u={bad_u}")
+            self.assertTrue(np.isnan(d["relativistic_flux_ratio"]), f"u={bad_u}")
+            self.assertTrue(np.isnan(d["gamma_minus_1"]), f"u={bad_u}")
+
 
 class TestDiagnosticsReachTheResults(unittest.TestCase):
     def test_analytic_reports_a_small_ratio_at_realistic_composition(self):
@@ -49,6 +56,18 @@ class TestDiagnosticsReachTheResults(unittest.TestCase):
             4.0,
             delta=0.3,
         )
+
+
+class TestNumericalDiagnosticsReachTheResults(unittest.TestCase):
+    def test_bvp_reports_a_small_finite_ratio_at_realistic_composition(self):
+        r = pv.solve_front_isothermal(
+            1.0, 3.5 * N0, B14, 0.5, n_mesh=120, tol_bvp=1.0e-3
+        )
+        for key in ("momentum_flux_ratio", "relativistic_flux_ratio", "gamma_minus_1"):
+            self.assertIn(key, r)
+            self.assertTrue(np.isfinite(r[key]), f"{key} is not finite: {r[key]}")
+        self.assertGreaterEqual(r["momentum_flux_ratio"], 0.0)
+        self.assertLess(r["momentum_flux_ratio"], 1.0e-3)
 
 
 if __name__ == "__main__":
