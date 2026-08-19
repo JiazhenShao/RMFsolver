@@ -13,14 +13,27 @@ class TestMomentumFluxDiagnostics(unittest.TestCase):
     def test_ratios_match_closed_form(self):
         P, w, u = 1.0e9, 5.74e9, 5.8e-3
         d = pv._momentum_flux_diagnostics(P, w, u)
-        gamma_squared = 1.0 / (1.0 - u * u)
+        # u is the proper velocity gamma*v, so gamma = sqrt(1 + u**2).
+        gamma_squared = 1.0 + u * u
         self.assertAlmostEqual(d["momentum_flux_ratio"], w * u * u / P, places=12)
-        self.assertAlmostEqual(
-            d["relativistic_flux_ratio"], w * gamma_squared * u * u / P, places=12
-        )
         self.assertAlmostEqual(
             d["gamma_minus_1"], np.sqrt(gamma_squared) - 1.0, places=12
         )
+
+    def test_gamma_uses_the_proper_velocity_convention(self):
+        # Same convention as _relativistic_gamma_from_u, which the
+        # energy-conserving solver has used all along.
+        for u in (0.0, 5.8e-3, 0.5, 1.0, 7.0):
+            d = pv._momentum_flux_diagnostics(1.0e9, 5.0e9, u)
+            self.assertAlmostEqual(
+                d["gamma_minus_1"] + 1.0, pv._relativistic_gamma_from_u(u), places=12
+            )
+
+    def test_no_separate_relativistic_ratio_is_reported(self):
+        # w*gamma**2*v**2 == w*u**2 identically, so a second key would just
+        # duplicate momentum_flux_ratio -- or, as before, double-count gamma**2.
+        d = pv._momentum_flux_diagnostics(1.0e9, 5.0e9, 5.8e-3)
+        self.assertNotIn("relativistic_flux_ratio", d)
 
     def test_static_limit_is_zero(self):
         d = pv._momentum_flux_diagnostics(1.0e9, 5.0e9, 0.0)
@@ -31,12 +44,17 @@ class TestMomentumFluxDiagnostics(unittest.TestCase):
         d = pv._momentum_flux_diagnostics(1.0e9, 5.0e9, np.nan)
         self.assertTrue(np.isnan(d["momentum_flux_ratio"]))
 
-    def test_out_of_range_velocity_gives_nan_not_raise(self):
-        for bad_u in (-0.1, 1.0, 1.5):
-            d = pv._momentum_flux_diagnostics(1.0e9, 5.0e9, bad_u)
-            self.assertTrue(np.isnan(d["momentum_flux_ratio"]), f"u={bad_u}")
-            self.assertTrue(np.isnan(d["relativistic_flux_ratio"]), f"u={bad_u}")
-            self.assertTrue(np.isnan(d["gamma_minus_1"]), f"u={bad_u}")
+    def test_negative_velocity_gives_nan_not_raise(self):
+        d = pv._momentum_flux_diagnostics(1.0e9, 5.0e9, -0.1)
+        self.assertTrue(np.isnan(d["momentum_flux_ratio"]))
+        self.assertTrue(np.isnan(d["gamma_minus_1"]))
+
+    def test_proper_velocity_above_one_is_physical_not_nan(self):
+        # u = 1 is v = 1/sqrt(2); the old guard NaN-ed the whole diagnostic.
+        for u in (1.0, 1.5, 12.0):
+            d = pv._momentum_flux_diagnostics(1.0e9, 5.0e9, u)
+            self.assertTrue(np.isfinite(d["momentum_flux_ratio"]), f"u={u}")
+            self.assertTrue(np.isfinite(d["gamma_minus_1"]), f"u={u}")
 
 
 class TestDiagnosticsReachTheResults(unittest.TestCase):
@@ -63,7 +81,7 @@ class TestNumericalDiagnosticsReachTheResults(unittest.TestCase):
         r = pv.solve_front_isothermal(
             1.0, 3.5 * N0, B14, 0.5, n_mesh=120, tol_bvp=1.0e-3
         )
-        for key in ("momentum_flux_ratio", "relativistic_flux_ratio", "gamma_minus_1"):
+        for key in ("momentum_flux_ratio", "gamma_minus_1"):
             self.assertIn(key, r)
             self.assertTrue(np.isfinite(r[key]), f"{key} is not finite: {r[key]}")
         self.assertGreaterEqual(r["momentum_flux_ratio"], 0.0)
@@ -91,6 +109,34 @@ class TestValidityGuard(unittest.TestCase):
             1.0, 3.5 * N0, B14, 1.0 - 1e-9, xi=-0.5, momentum_flux_tol=1.0
         )
         self.assertEqual(r["status"], "moving_front")
+
+
+class TestClosureIsAlreadyRelativistic(unittest.TestCase):
+    def test_quark_momentum_flux_equals_the_exact_relativistic_pair(self):
+        """Pi - P must equal w*(jB/nB)**2 exactly, at every flux.
+
+        ``u = jB/nB`` is the proper velocity gamma*v, so w*u**2 IS
+        w*gamma**2*v**2: inverting jB = nB*gamma*v gives v = x/sqrt(1 + x**2)
+        with x = jB/nB, hence gamma**2 = 1 + x**2 and gamma**2*v**2 = x**2
+        identically.  The closure needs no relativistic correction, and this
+        test is the guard against anyone "fixing" it by adding one.
+        """
+        muB, muK, T = 1100.0, 20.0, 1.0
+        nB = float(pv.nB_QM(muB, muK, B14, T, upB=5000))
+        P = float(pv.PQM(muB, muK, B14, T, upB=5000))
+        w = P + float(pv.edensQM(muB, muK, B14, T, include_em=False, upB=5000))
+        self.assertGreater(nB, 0.0)
+        for jB in (1.0e5, 1.0e6, 5.0e6, 2.0e7):
+            with self.subTest(jB=jB):
+                x = jB / nB
+                Pi = pv._Pi_QM_state(muB, muK, B14, T, jB)
+                self.assertAlmostEqual(Pi / (P + w * x * x), 1.0, delta=1.0e-13)
+                # ... and spelled out through the 3-velocity, the long way.
+                v = x / np.sqrt(1.0 + x * x)
+                gamma_squared = 1.0 / (1.0 - v * v)
+                self.assertAlmostEqual(
+                    Pi / (P + w * gamma_squared * v * v), 1.0, delta=1.0e-13
+                )
 
 
 if __name__ == "__main__":

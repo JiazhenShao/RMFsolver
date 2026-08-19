@@ -2156,12 +2156,18 @@ def _solve_interface_0plus_from_local_a_and_Pi(
 def _momentum_flux_diagnostics(P_0minus, w_0minus, u_0minus):
     """Report how far the front departs from the static-pressure limit.
 
-    The isothermal solvers impose the gamma -> 1 junction conditions,
-    jB = nB*u and Pi = P + w*u**2.  ``momentum_flux_ratio`` is the size of
-    the flux term relative to the pressure, (Pi - P)/P, and is the leading
-    error of treating the interface as a static isobar.
-    ``relativistic_flux_ratio`` is the same quantity with the exact
-    gamma**2 factor, so their difference isolates the relativistic part.
+    ``u_0minus`` is the **proper** velocity gamma*v that this module transports
+    as jB/nB, the same convention as :func:`_relativistic_gamma_from_u`, which
+    returns sqrt(1 + u**2).  It is therefore unbounded: u = 1 just means
+    v = 1/sqrt(2), which is perfectly physical, so only u < 0 or a non-finite
+    value is rejected.
+
+    ``momentum_flux_ratio`` is (Pi - P)/P = w*u**2/P, the size of the flux term
+    relative to the pressure and the leading error of treating the interface as
+    a static isobar.  Written in the proper velocity it is *already* the exact
+    relativistic ratio, since w*gamma**2*v**2 = w*u**2 identically -- there is
+    no separate "relativistic" ratio to report, and multiplying by another
+    gamma**2 would double-count it.
     """
     P_0minus = float(P_0minus)
     w_0minus = float(w_0minus)
@@ -2171,18 +2177,16 @@ def _momentum_flux_diagnostics(P_0minus, w_0minus, u_0minus):
         or (not np.isfinite(w_0minus))
         or (not np.isfinite(u_0minus))
         or P_0minus <= 0.0
-        or not (0.0 <= u_0minus < 1.0)
+        or u_0minus < 0.0
     ):
         return {
             "momentum_flux_ratio": np.nan,
-            "relativistic_flux_ratio": np.nan,
             "gamma_minus_1": np.nan,
         }
-    gamma_squared = 1.0 / (1.0 - u_0minus * u_0minus)
+    gamma_squared = 1.0 + u_0minus * u_0minus
     flux = w_0minus * u_0minus * u_0minus / P_0minus
     return {
         "momentum_flux_ratio": float(flux),
-        "relativistic_flux_ratio": float(flux * gamma_squared),
         "gamma_minus_1": float(np.sqrt(gamma_squared) - 1.0),
     }
 
