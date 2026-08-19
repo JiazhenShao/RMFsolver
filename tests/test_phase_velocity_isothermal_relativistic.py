@@ -70,5 +70,28 @@ class TestNumericalDiagnosticsReachTheResults(unittest.TestCase):
         self.assertLess(r["momentum_flux_ratio"], 1.0e-3)
 
 
+class TestValidityGuard(unittest.TestCase):
+    def test_tolerance_constant_exists_and_is_conservative(self):
+        self.assertLessEqual(pv.MOMENTUM_FLUX_RATIO_TOLERANCE, 1.0e-3)
+
+    def test_analytic_flags_when_the_flux_term_is_large(self):
+        # 1-a = 1e-9 measured at (Pi-P)/P ~ 0.2 for this state.
+        r = pv.analytic_velocity_isothermal(1.0, 3.5 * N0, B14, 1.0 - 1e-9, xi=-0.5)
+        self.assertFalse(r["success"])
+        self.assertEqual(r["status"], "static_isobar_approximation_invalid")
+        self.assertGreater(r["momentum_flux_ratio"], pv.MOMENTUM_FLUX_RATIO_TOLERANCE)
+
+    def test_realistic_composition_is_unaffected(self):
+        r = pv.analytic_velocity_isothermal(1.0, 3.5 * N0, B14, 0.5, xi=-0.5)
+        self.assertTrue(r["success"])
+        self.assertEqual(r["status"], "moving_front")
+
+    def test_guard_can_be_relaxed_by_the_caller(self):
+        r = pv.analytic_velocity_isothermal(
+            1.0, 3.5 * N0, B14, 1.0 - 1e-9, xi=-0.5, momentum_flux_tol=1.0
+        )
+        self.assertEqual(r["status"], "moving_front")
+
+
 if __name__ == "__main__":
     unittest.main()

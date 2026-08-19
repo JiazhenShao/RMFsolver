@@ -60,6 +60,14 @@ _ISOTHERMAL_RETRY_ACTIVE = 0
 _LAYER_TRAJECTORY_STEPS = 320
 _LAYER_TRAJECTORY_MAX_DMUB = 0.05
 
+# Above this fraction the static-isobar reduction used by the isothermal
+# interface construction is no longer trustworthy: (Pi - P)/P = w*u**2/P is the
+# leading error of treating the interface as a static isobar.  Measured
+# 2026-08-19, it reaches 10% only at 1 - a_0plus ~ 1e-9 to 1e-12, far outside
+# the realized range a_0plus_max in (0.01, 0.99), so this bound never binds in
+# practice; it exists so the failure is loud if it ever does.
+MOMENTUM_FLUX_RATIO_TOLERANCE = 1.0e-3
+
 
 class SlowFrontNoSolution(RuntimeError):
     """
@@ -2300,6 +2308,7 @@ def analytic_velocity_isothermal(
     NM_type="PNM",
     upB=5000,
     delta_muB_tol=1.0e-6,
+    momentum_flux_tol=MOMENTUM_FLUX_RATIO_TOLERANCE,
 ):
     """Return the hydro-consistent analytical isothermal front velocity.
 
@@ -2906,6 +2915,21 @@ def analytic_velocity_isothermal(
             "slow_front_consistent": bool(u_0minus < 1.0),
         }
     )
+    if result["momentum_flux_ratio"] > float(momentum_flux_tol):
+        result.update(
+            {
+                "success": False,
+                "status": "static_isobar_approximation_invalid",
+                "message": (
+                    "The momentum-flux term is "
+                    f"{result['momentum_flux_ratio']:.3e} of the upstream "
+                    "pressure, above momentum_flux_tol="
+                    f"{float(momentum_flux_tol):.3e}; the static-isobar "
+                    "interface reduction is not trustworthy here"
+                ),
+                "front_exists": False,
+            }
+        )
     return result
 
 
