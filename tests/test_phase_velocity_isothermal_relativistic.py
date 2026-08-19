@@ -93,5 +93,24 @@ class TestValidityGuard(unittest.TestCase):
         self.assertEqual(r["status"], "moving_front")
 
 
+class TestRelativisticFluxPair(unittest.TestCase):
+    def test_reduces_to_the_newtonian_pair_at_small_velocity(self):
+        nB, w, P, u = 1.0e7, 5.0e9, 1.0e9, 1.0e-6
+        jB, Pi = pv._relativistic_flux_pair(nB, w, P, u)
+        self.assertAlmostEqual(jB / (nB * u), 1.0, places=10)
+        self.assertAlmostEqual(Pi / (P + w * u * u), 1.0, places=10)
+
+    def test_carries_the_gamma_factors_at_large_velocity(self):
+        nB, w, P, u = 1.0e7, 5.0e9, 1.0e9, 0.6
+        gamma = 1.0 / np.sqrt(1.0 - u * u)
+        jB, Pi = pv._relativistic_flux_pair(nB, w, P, u)
+        self.assertAlmostEqual(jB, nB * gamma * u, places=4)
+        self.assertAlmostEqual(Pi, P + w * gamma**2 * u * u, delta=1.0)
+
+    def test_rejects_superluminal_velocity(self):
+        with self.assertRaises(RuntimeError):
+            pv._relativistic_flux_pair(1.0e7, 5.0e9, 1.0e9, 1.0)
+
+
 if __name__ == "__main__":
     unittest.main()

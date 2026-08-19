@@ -2187,6 +2187,24 @@ def _momentum_flux_diagnostics(P_0minus, w_0minus, u_0minus):
     }
 
 
+def _relativistic_flux_pair(nB, w, P, u):
+    """Return the exact (jB, Pi) junction fluxes for 3-velocity ``u``.
+
+    jB = nB*gamma*u and Pi = P + w*gamma**2*u**2, the planar steady-front
+    baryon and momentum fluxes.  The gamma -> 1 limit is the pair the
+    isothermal solvers use by default.
+    """
+    nB = float(nB)
+    w = float(w)
+    P = float(P)
+    u = float(u)
+    if (not np.isfinite(u)) or not (0.0 <= u < 1.0):
+        raise RuntimeError("Front-frame velocity must satisfy 0 <= u < 1")
+    gamma_squared = 1.0 / (1.0 - u * u)
+    gamma = float(np.sqrt(gamma_squared))
+    return float(nB * gamma * u), float(P + w * gamma_squared * u * u)
+
+
 def _solve_a_0plus_max(
     muB_0minus,
     P_0minus,
