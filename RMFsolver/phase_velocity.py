@@ -2145,11 +2145,120 @@ def _solve_interface_0plus_from_local_a_and_Pi(
     )
 
 
+def _solve_a_0plus_max(
+    muB_0minus,
+    P_0minus,
+    T,
+    B_one_forth,
+    ms=0.0,
+    upB=5000,
+    a_floor=1.0e-8,
+    a_ceiling=1.0 - 1.0e-9,
+):
+    """Return the largest interface fraction the fixed-T transition supports.
+
+    Three unknowns -- muB(0+), muK(0+) and a(0+) -- are fixed by three
+    conditions at the interface: the fixed-T pressure match to the upstream
+    state, the local composition definition, and the average
+    chemical-potential balance,
+
+        PQM[muB(0+), muK(0+), T] = P(0-),
+        nK(0+)/nB(0+)            = a(0+),
+        muB(0-)                  = muB(0+) + a(0+)*muK(0+).
+
+    Eliminating the first two leaves a scalar residual in a(0+) alone.  That
+    residual is monotone, so it is bracketed and solved with brentq rather
+    than by a simultaneous 3x3 Newton step, which is seed sensitive: a poor
+    seed converges to a spurious point with a large residual instead of
+    failing loudly.
+
+    At a(0+) -> 0 the residual reduces identically to delta_muB, so the root
+    runs to zero on the stable-neutron-matter boundary and to one where even
+    a strangeness-free interface stays favorable.  ``status`` reports which:
+    ``"interior"`` for a root in (0,1), ``"saturated"`` when a(0+) = 1 is
+    still favorable, and ``"stable"`` when no positive a(0+) is.
+
+    The interface state is evaluated in the static limit, at momentum flux
+    P(0-) with jB = 0.  A moving front carries Pi = P(0-) + h(0-)*u(0-)**2,
+    an O(u**2) ~ 1e-6 correction for the slow fronts this describes, so the
+    bound is not iterated against the velocity it later constrains.
+    """
+    muB_0minus = float(muB_0minus)
+    P_0minus = float(P_0minus)
+    T = float(T)
+    B_one_forth = float(B_one_forth)
+    a_floor = float(a_floor)
+    a_ceiling = float(a_ceiling)
+    if not (0.0 < a_floor < a_ceiling < 1.0):
+        raise RuntimeError("a_0plus bracket must satisfy 0 < a_floor < a_ceiling < 1")
+
+    interface_cache = {}
+
+    def gibbs_residual(a_0plus):
+        a_0plus = float(a_0plus)
+        muB_0plus, muK_0plus = _solve_interface_0plus_from_local_a_and_Pi(
+            a_0plus,
+            P_0minus,
+            0.0,
+            B_one_forth,
+            T,
+            ms=ms,
+            upB=upB,
+        )
+        interface_cache[a_0plus] = (float(muB_0plus), float(muK_0plus))
+        return float(muB_0plus + a_0plus * muK_0plus - muB_0minus)
+
+    residual_ceiling = gibbs_residual(a_ceiling)
+    if residual_ceiling <= 0.0:
+        muB_0plus, muK_0plus = interface_cache[a_ceiling]
+        return {
+            "status": "saturated",
+            "a_0plus_max": 1.0,
+            "muB_0plus": muB_0plus,
+            "muK_0plus": muK_0plus,
+            "gibbs_residual": residual_ceiling,
+        }
+
+    residual_floor = gibbs_residual(a_floor)
+    if residual_floor >= 0.0:
+        muB_0plus, muK_0plus = interface_cache[a_floor]
+        return {
+            "status": "stable",
+            "a_0plus_max": 0.0,
+            "muB_0plus": muB_0plus,
+            "muK_0plus": muK_0plus,
+            "gibbs_residual": residual_floor,
+        }
+
+    root_result = root_scalar(
+        gibbs_residual,
+        bracket=(a_floor, a_ceiling),
+        method="brentq",
+        xtol=1.0e-12,
+        rtol=1.0e-13,
+    )
+    if not root_result.converged:
+        raise RuntimeError(
+            f"a_0plus_max solve did not converge: {root_result.flag}"
+        )
+    a_0plus_max = float(root_result.root)
+    muB_0plus, muK_0plus = interface_cache[a_0plus_max]
+    return {
+        "status": "interior",
+        "a_0plus_max": a_0plus_max,
+        "muB_0plus": muB_0plus,
+        "muK_0plus": muK_0plus,
+        "gibbs_residual": float(
+            muB_0plus + a_0plus_max * muK_0plus - muB_0minus
+        ),
+    }
+
+
 def analytic_velocity_isothermal(
     T_0minus,
     nB_0minus,
     B_one_forth,
-    a_0plus,
+    a_0plus=np.nan,
     *,
     xi=0.0,
     ms=0.0,
@@ -2163,6 +2272,16 @@ def analytic_velocity_isothermal(
     ``a_0plus`` is the local interface fraction nK(0+)/nB(0+).  The current
     closed-form weak source is derived for massless quarks, for which the
     equilibrated endpoint has nK(inf) = 0.
+
+    Passing ``a_0plus=nan`` (the default) requests the thermodynamic maximum
+    instead of a prescribed value: the solver calls :func:`_solve_a_0plus_max`
+    and evaluates the speed there, giving the fastest front the interface can
+    support at this upstream state.  The resolved value is echoed in
+    ``a_0plus``, with ``a_0plus_source`` set to ``"maximum"`` and the ceiling
+    diagnostics in ``a_0plus_max``, ``a_0plus_max_status`` and
+    ``a_0plus_max_residual``.  Where even a strangeness-free interface stays
+    favorable the ceiling is the kinematic 1, at which the speed diverges;
+    that returns ``status="composition_ceiling_saturated"`` and no velocity.
     """
     T_0minus = float(T_0minus)
     nB_0minus = float(nB_0minus)
@@ -2182,8 +2301,14 @@ def analytic_velocity_isothermal(
         raise RuntimeError("nB_0minus must be positive and finite")
     if (not np.isfinite(B_one_forth)) or B_one_forth <= 0.0:
         raise RuntimeError("B_one_forth must be positive and finite")
-    if (not np.isfinite(a_0plus)) or not (0.0 <= a_0plus < 1.0):
-        raise RuntimeError("a_0plus must satisfy 0 <= a_0plus < 1")
+    a_0plus_is_auto = bool(np.isnan(a_0plus))
+    if (not a_0plus_is_auto) and (
+        (not np.isfinite(a_0plus)) or not (0.0 <= a_0plus < 1.0)
+    ):
+        raise RuntimeError(
+            "a_0plus must satisfy 0 <= a_0plus < 1, or be NaN to request the "
+            "thermodynamic maximum"
+        )
     if (not np.isfinite(xi)) or not (-1.0 < xi < 1.0):
         raise RuntimeError("xi must satisfy -1 < xi < 1")
     if (not np.isfinite(ms)) or abs(ms) > 1.0e-12:
@@ -2294,6 +2419,10 @@ def analytic_velocity_isothermal(
         "B_one_forth": B_one_forth,
         "a_0minus": 1.0,
         "a_0plus": a_0plus,
+        "a_0plus_source": "maximum" if a_0plus_is_auto else "input",
+        "a_0plus_max": np.nan,
+        "a_0plus_max_status": "",
+        "a_0plus_max_residual": np.nan,
         "xi": xi,
         "ms": ms,
         "upB": int(upB),
@@ -2384,6 +2513,39 @@ def analytic_velocity_isothermal(
         return result
 
     result["phase_region"] = "quark_matter_favored"
+
+    if a_0plus_is_auto:
+        ceiling = _solve_a_0plus_max(
+            muB_0minus,
+            P_0minus,
+            T_0minus,
+            B_one_forth,
+            ms=ms,
+            upB=upB,
+        )
+        result.update(
+            {
+                "a_0plus_max": float(ceiling["a_0plus_max"]),
+                "a_0plus_max_status": str(ceiling["status"]),
+                "a_0plus_max_residual": float(ceiling["gibbs_residual"]),
+            }
+        )
+        if ceiling["status"] == "saturated":
+            result.update(
+                {
+                    "success": False,
+                    "status": "composition_ceiling_saturated",
+                    "message": (
+                        "The strangeness-free interface is still favored, so "
+                        "a_0plus is capped only by its kinematic ceiling of 1, "
+                        "where the analytical speed diverges"
+                    ),
+                }
+            )
+            return result
+        a_0plus = float(ceiling["a_0plus_max"])
+        result["a_0plus"] = a_0plus
+
     if a_0plus == 0.0:
         result.update(
             {
@@ -4501,7 +4663,7 @@ def solve_front_isothermal(
     T,
     nB_0minus,
     B_one_forth,
-    a_0plus,
+    a_0plus=np.nan,
     ms=0.0,
     param=para.paraQMCRMF3,
     NM_type="PNM",
@@ -4521,6 +4683,15 @@ def solve_front_isothermal(
     transports the physical K density and current, reconstructs the local EOS
     state at fixed T and momentum flux, and evaluates both D_K and the exact
     nonleptonic rate at every node.
+
+    Passing ``a_0plus=nan`` (the default) resolves it from
+    :func:`_solve_a_0plus_max` instead of taking a prescribed value, giving the
+    fastest front the interface can support at this upstream state.  That path
+    needs muB(0-), so it adds one branch-validated density inversion.  The
+    resolved value is echoed in ``a_0plus`` with ``a_0plus_source="maximum"``,
+    alongside ``a_0plus_max`` and ``a_0plus_max_status``.  A ceiling that is
+    not interior to (0,1) raises rather than returning, since the BVP has no
+    admissible composition there.
     """
     T = float(T)
     nB_0minus = float(nB_0minus)
@@ -4537,8 +4708,14 @@ def solve_front_isothermal(
         raise RuntimeError("nB_0minus must be positive and finite")
     if (not np.isfinite(B_one_forth)) or B_one_forth <= 0.0:
         raise RuntimeError("B_one_forth must be positive and finite")
-    if (not np.isfinite(a_0plus)) or not (0.0 < a_0plus < 1.0):
-        raise RuntimeError("a_0plus must satisfy 0 < a_0plus < 1")
+    a_0plus_is_auto = bool(np.isnan(a_0plus))
+    if (not a_0plus_is_auto) and (
+        (not np.isfinite(a_0plus)) or not (0.0 < a_0plus < 1.0)
+    ):
+        raise RuntimeError(
+            "a_0plus must satisfy 0 < a_0plus < 1, or be NaN to request the "
+            "thermodynamic maximum"
+        )
     if (not np.isfinite(ms)) or ms < 0.0:
         raise RuntimeError("ms must be finite and non-negative")
     if NM_type not in ("PNM", "SYM", "Beta_eq"):
@@ -4574,6 +4751,40 @@ def solve_front_isothermal(
         param,
         NM_type,
     )
+    a_0plus_max = np.nan
+    a_0plus_max_status = ""
+    if a_0plus_is_auto:
+        muB_0minus_for_ceiling = float(
+            muB_from_nB_physical(
+                nB_0minus,
+                T,
+                param=param,
+                NM_type=NM_type,
+                auto_expand=True,
+            )
+        )
+        ceiling = _solve_a_0plus_max(
+            muB_0minus_for_ceiling,
+            float(nuclear_state["P_0minus"]),
+            T,
+            B_one_forth,
+            ms=ms,
+            upB=upB,
+        )
+        a_0plus_max = float(ceiling["a_0plus_max"])
+        a_0plus_max_status = str(ceiling["status"])
+        if a_0plus_max_status != "interior":
+            raise RuntimeError(
+                "a_0plus=NaN requested the thermodynamic maximum, but the "
+                f"ceiling solve returned status '{a_0plus_max_status}' "
+                f"(a_0plus_max={a_0plus_max:.6g}); the BVP requires "
+                "0 < a_0plus < 1"
+            )
+        a_0plus = a_0plus_max
+        diag(
+            f"resolved a_0plus from thermodynamic maximum: {a_0plus:.6f}"
+        )
+
     if not (a_0plus < float(nuclear_state["a_0minus"])):
         raise RuntimeError(
             "Forward conversion requires a_0plus < a_0minus"
@@ -4937,6 +5148,9 @@ def solve_front_isothermal(
                 f"last failure: {last_failure['message']}"
             ),
             "a_0plus": a_0plus,
+            "a_0plus_source": "maximum" if a_0plus_is_auto else "input",
+            "a_0plus_max": a_0plus_max,
+            "a_0plus_max_status": a_0plus_max_status,
             "jB": np.nan,
             "composition_definition": "nK_over_local_nB",
             "current_definition": "u_nK_minus_D_K_dnK_dx",
@@ -4991,6 +5205,9 @@ def solve_front_isothermal(
         "a_0minus": float(nuclear_state["a_0minus"]),
         "nK_0minus": float(nuclear_state["nK_0minus"]),
         "a_0plus": a_0plus,
+        "a_0plus_source": "maximum" if a_0plus_is_auto else "input",
+        "a_0plus_max": a_0plus_max,
+        "a_0plus_max_status": a_0plus_max_status,
         "a_0plus_derived": float(state["nK_0plus"] / state["nB_0plus"]),
         "muB_0plus": float(state["muB_0plus"]),
         "muK_0plus": float(state["muK_0plus"]),

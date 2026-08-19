@@ -16,6 +16,9 @@
 !/tests/
 /tests/*
 !/tests/test_phase_velocity_isothermal_analytic.py
+!/tests/test_phase_velocity_isothermal_numerical.py
+!/tests/test_phase_velocity_isothermal_a_0plus_max.py
+!/tests/test_phase_velocity_isothermal_relativistic.py
 
 # Exclusions that still apply inside the tracked trees
 .DS_Store
