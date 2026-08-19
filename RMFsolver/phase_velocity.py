@@ -2145,6 +2145,40 @@ def _solve_interface_0plus_from_local_a_and_Pi(
     )
 
 
+def _momentum_flux_diagnostics(P_0minus, w_0minus, u_0minus):
+    """Report how far the front departs from the static-pressure limit.
+
+    The isothermal solvers impose the gamma -> 1 junction conditions,
+    jB = nB*u and Pi = P + w*u**2.  ``momentum_flux_ratio`` is the size of
+    the flux term relative to the pressure, (Pi - P)/P, and is the leading
+    error of treating the interface as a static isobar.
+    ``relativistic_flux_ratio`` is the same quantity with the exact
+    gamma**2 factor, so their difference isolates the relativistic part.
+    """
+    P_0minus = float(P_0minus)
+    w_0minus = float(w_0minus)
+    u_0minus = float(u_0minus)
+    if (
+        (not np.isfinite(P_0minus))
+        or (not np.isfinite(w_0minus))
+        or (not np.isfinite(u_0minus))
+        or P_0minus <= 0.0
+        or not (0.0 <= u_0minus < 1.0)
+    ):
+        return {
+            "momentum_flux_ratio": np.nan,
+            "relativistic_flux_ratio": np.nan,
+            "gamma_minus_1": np.nan,
+        }
+    gamma_squared = 1.0 / (1.0 - u_0minus * u_0minus)
+    flux = w_0minus * u_0minus * u_0minus / P_0minus
+    return {
+        "momentum_flux_ratio": float(flux),
+        "relativistic_flux_ratio": float(flux * gamma_squared),
+        "gamma_minus_1": float(np.sqrt(gamma_squared) - 1.0),
+    }
+
+
 def _solve_a_0plus_max(
     muB_0minus,
     P_0minus,
@@ -2863,6 +2897,11 @@ def analytic_velocity_isothermal(
             ),
             "momentum_flux_0plus_residual": float(
                 final_data["momentum_flux_0plus_residual"]
+            ),
+            **_momentum_flux_diagnostics(
+                P_0minus,
+                float(nuclear_state["h_0minus"]),
+                u_0minus,
             ),
             "slow_front_consistent": bool(u_0minus < 1.0),
         }
@@ -5209,6 +5248,11 @@ def solve_front_isothermal(
         "a_0plus_max": a_0plus_max,
         "a_0plus_max_status": a_0plus_max_status,
         "a_0plus_derived": float(state["nK_0plus"] / state["nB_0plus"]),
+        **_momentum_flux_diagnostics(
+            float(nuclear_state["P_0minus"]),
+            float(nuclear_state["h_0minus"]),
+            float(state["u_0minus"]),
+        ),
         "muB_0plus": float(state["muB_0plus"]),
         "muK_0plus": float(state["muK_0plus"]),
         "nB_0plus": float(state["nB_0plus"]),

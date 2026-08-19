@@ -1,0 +1,55 @@
+import unittest
+
+import numpy as np
+
+from RMFsolver import phase_velocity as pv
+from RMFsolver.constants import MeV_fm
+
+N0 = 0.16 * MeV_fm**3
+B14 = 189.1566
+
+
+class TestMomentumFluxDiagnostics(unittest.TestCase):
+    def test_ratios_match_closed_form(self):
+        P, w, u = 1.0e9, 5.74e9, 5.8e-3
+        d = pv._momentum_flux_diagnostics(P, w, u)
+        gamma_squared = 1.0 / (1.0 - u * u)
+        self.assertAlmostEqual(d["momentum_flux_ratio"], w * u * u / P, places=12)
+        self.assertAlmostEqual(
+            d["relativistic_flux_ratio"], w * gamma_squared * u * u / P, places=12
+        )
+        self.assertAlmostEqual(
+            d["gamma_minus_1"], np.sqrt(gamma_squared) - 1.0, places=12
+        )
+
+    def test_static_limit_is_zero(self):
+        d = pv._momentum_flux_diagnostics(1.0e9, 5.0e9, 0.0)
+        self.assertEqual(d["momentum_flux_ratio"], 0.0)
+        self.assertEqual(d["gamma_minus_1"], 0.0)
+
+    def test_non_finite_velocity_gives_nan_not_raise(self):
+        d = pv._momentum_flux_diagnostics(1.0e9, 5.0e9, np.nan)
+        self.assertTrue(np.isnan(d["momentum_flux_ratio"]))
+
+
+class TestDiagnosticsReachTheResults(unittest.TestCase):
+    def test_analytic_reports_a_small_ratio_at_realistic_composition(self):
+        r = pv.analytic_velocity_isothermal(1.0, 3.5 * N0, B14, 0.5, xi=-0.5)
+        self.assertEqual(r["status"], "moving_front")
+        self.assertLess(r["momentum_flux_ratio"], 1.0e-6)
+        self.assertLess(r["gamma_minus_1"], 1.0e-6)
+
+    def test_ratio_grows_as_composition_approaches_one(self):
+        near = pv.analytic_velocity_isothermal(1.0, 3.5 * N0, B14, 1.0 - 1e-8, xi=-0.5)
+        far = pv.analytic_velocity_isothermal(1.0, 3.5 * N0, B14, 1.0 - 1e-4, xi=-0.5)
+        self.assertGreater(near["momentum_flux_ratio"], far["momentum_flux_ratio"])
+        # (Pi-P)/P scales as 1/(1-a): four decades of a give four of ratio.
+        self.assertAlmostEqual(
+            np.log10(near["momentum_flux_ratio"] / far["momentum_flux_ratio"]),
+            4.0,
+            delta=0.3,
+        )
+
+
+if __name__ == "__main__":
+    unittest.main()
