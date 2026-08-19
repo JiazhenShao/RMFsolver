@@ -112,5 +112,31 @@ class TestRelativisticFluxPair(unittest.TestCase):
             pv._relativistic_flux_pair(1.0e7, 5.0e9, 1.0e9, 1.0)
 
 
+class TestRelativisticThreading(unittest.TestCase):
+    def test_default_path_is_unchanged(self):
+        """relativistic=False must reproduce the pre-existing result exactly."""
+        base = pv.solve_front_isothermal(
+            1.0, 3.5 * N0, B14, 0.5, n_mesh=120, tol_bvp=1.0e-3
+        )
+        same = pv.solve_front_isothermal(
+            1.0, 3.5 * N0, B14, 0.5, n_mesh=120, tol_bvp=1.0e-3, relativistic=False
+        )
+        self.assertEqual(base["jB"], same["jB"])
+
+    def test_relativistic_agrees_to_the_measured_correction_size(self):
+        newton = pv.solve_front_isothermal(
+            1.0, 3.5 * N0, B14, 0.5, n_mesh=120, tol_bvp=1.0e-3
+        )
+        exact = pv.solve_front_isothermal(
+            1.0, 3.5 * N0, B14, 0.5, n_mesh=120, tol_bvp=1.0e-3, relativistic=True
+        )
+        # This state hits the known pre-existing singular-Jacobian failure in
+        # the BVP collocation solve, so neither path reports success -- the
+        # no-arg default fails identically.  What the flag must not do is
+        # change the outcome: same convergence verdict, same jB.
+        self.assertEqual(exact["success"], newton["success"])
+        self.assertLess(abs(exact["jB"] / newton["jB"] - 1.0), 1.0e-5)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -3217,15 +3217,37 @@ def u_0minus(T, nB_0minus, Delta_n, B_one_forth, param=para.paraQMCRMF3, ms=0, u
 
 
 # Shared quark-state helpers
-def _Pi_QM_state(muB, muK, B_one_forth, T, jB, ms=0.0, upB=5000):
+def _Pi_QM_state(muB, muK, B_one_forth, T, jB, ms=0.0, upB=5000, relativistic=False):
     """
     Momentum flux Pi = h*u^2 + P for a quark state at fixed (muB, muK).
+
+    ``relativistic=True`` (opt in, off by default) routes the same flux through
+    :func:`_relativistic_flux_pair`: the 3-velocity is recovered from
+    jB = nB*gamma*v by the closed-form inverse v = x/sqrt(1 + x**2) with
+    x = jB/nB, and the flux is P + h*gamma**2*v**2.
+
+    That path is an *identity*, not a correction.  gamma**2 = 1 + x**2 and
+    v**2 = x**2/(1 + x**2), so gamma**2*v**2 = x**2 exactly, and the default
+    branch below already returns P + h*(jB/nB)**2.  In other words the local
+    variable ``u = jB/nB`` is the proper velocity gamma*v, not the 3-velocity,
+    and this closure has always been exactly relativistic at fixed (jB, nB).
+    The flag is kept as an executable check of that equivalence; it moves the
+    answer only by floating-point rounding (order 1e-16 relative).  Only
+    :func:`solve_front_isothermal` passes it; every other caller keeps the
+    default branch.
     """
     nB = nB_QM(muB, muK, B_one_forth, T, ms=ms, upB=upB)
     if nB <= 0.0:
         return np.nan
     P = PQM(muB, muK, B_one_forth, T, ms=ms, upB=upB)
     h = P + edensQM(muB, muK, B_one_forth, T, ms=ms, include_em=False, upB=upB)
+    if relativistic:
+        x = float(jB / nB)
+        if not np.isfinite(x):
+            return np.nan
+        # Pi is even in u, so the magnitude is all the inversion needs.
+        u = float(abs(x) / np.sqrt(1.0 + x * x))
+        return float(_relativistic_flux_pair(nB, h, P, u)[1])
     u = jB / nB
     return float(h * u * u + P)
 
@@ -3284,7 +3306,7 @@ def _quark_thermo_state(muB, muK, B_one_forth, T, jB, ms=0.0, upB=5000, allow_ze
     }
 
 
-def _solve_muB_inf_at_muK0_for_given_Pi(Pi, jB, B_one_forth, T, ms=0.0, upB=5000, stats=None):
+def _solve_muB_inf_at_muK0_for_given_Pi(Pi, jB, B_one_forth, T, ms=0.0, upB=5000, stats=None, relativistic=False):
     """
     Solve for the equilibrated QM endpoint muB_inf at muK=0 for a given Pi.
     """
@@ -3296,6 +3318,7 @@ def _solve_muB_inf_at_muK0_for_given_Pi(Pi, jB, B_one_forth, T, ms=0.0, upB=5000
         ms=ms,
         upB=upB,
         stats=stats,
+        relativistic=relativistic,
     )
 
 
@@ -3309,6 +3332,7 @@ def _solve_muB_inf_at_muK0_for_given_Pi_ms(
     stats=None,
     stats_key="q_root_calls",
     initial_guess=None,
+    relativistic=False,
 ):
     """
     Solve for the equilibrated QM endpoint muB_inf at muK=0 using the ms-aware
@@ -3319,7 +3343,12 @@ def _solve_muB_inf_at_muK0_for_given_Pi_ms(
 
     def equation(muB_in):
         muB = float(np.atleast_1d(muB_in)[0])
-        return float(_Pi_QM_state(muB, 0.0, B_one_forth, T, jB, ms=ms, upB=upB) - Pi)
+        return float(
+            _Pi_QM_state(
+                muB, 0.0, B_one_forth, T, jB, ms=ms, upB=upB, relativistic=relativistic
+            )
+            - Pi
+        )
 
     guesses = []
     if initial_guess is not None:
@@ -3342,7 +3371,19 @@ def _solve_muB_inf_at_muK0_for_given_Pi_ms(
                 warnings.simplefilter("ignore", RuntimeWarning)
                 muB_arr, info, ier, mesg = fsolve(equation, muB_guess, full_output=True)
             muB_inf = float(np.atleast_1d(muB_arr)[0])
-            Pi_residual = float(_Pi_QM_state(muB_inf, 0.0, B_one_forth, T, jB, ms=ms, upB=upB) - Pi)
+            Pi_residual = float(
+                _Pi_QM_state(
+                    muB_inf,
+                    0.0,
+                    B_one_forth,
+                    T,
+                    jB,
+                    ms=ms,
+                    upB=upB,
+                    relativistic=relativistic,
+                )
+                - Pi
+            )
             nB = float(nB_QM(muB_inf, 0.0, B_one_forth, T, ms=ms, upB=upB))
             if (not np.isfinite(muB_inf)) or (not np.isfinite(Pi_residual)) or (not np.isfinite(nB)) or nB <= 0.0:
                 last_error = "Solved muB_inf lies on a non-physical density branch"
@@ -3370,13 +3411,16 @@ def _branch_muK_seed(a_like):
     return float(max(1.0, 20.0, 250.0 * abs(float(a_like))))
 
 
-def _quark_state_residual(muB, muK, a_target, Pi, jB, nB_inf, nK_inf, B_one_forth, T, ms=0.0, upB=5000):
+def _quark_state_residual(muB, muK, a_target, Pi, jB, nB_inf, nK_inf, B_one_forth, T, ms=0.0, upB=5000, relativistic=False):
     """
     Return the local quark-state residuals at fixed (a_target, Pi, jB).
     """
     return np.array(
         [
-            _Pi_QM_state(muB, muK, B_one_forth, T, jB, ms=ms, upB=upB) - Pi,
+            _Pi_QM_state(
+                muB, muK, B_one_forth, T, jB, ms=ms, upB=upB, relativistic=relativistic
+            )
+            - Pi,
             (nK_QM(muB, muK, B_one_forth, T, ms=ms, upB=upB) - nK_inf) / nB_inf - a_target,
         ],
         dtype=float,
@@ -4757,6 +4801,7 @@ def solve_front_isothermal(
     kappa_factor=1.0,
     return_profile=False,
     verb=False,
+    relativistic=False,
 ):
     """Solve the fixed-T front as a compact BVP in physical nK and J_K.
 
@@ -4773,6 +4818,15 @@ def solve_front_isothermal(
     alongside ``a_0plus_max`` and ``a_0plus_max_status``.  A ceiling that is
     not interior to (0,1) raises rather than returning, since the BVP has no
     admissible composition there.
+
+    ``relativistic=True`` (default ``False``) opts the downstream quark
+    momentum-flux closure into the explicit relativistic pair
+    jB = nB*gamma*v, Pi = P + w*gamma**2*v**2 by way of
+    :func:`_relativistic_flux_pair`.  It is a consistency switch, not a
+    physics change: see :func:`_Pi_QM_state` for why gamma**2*v**2 equals
+    (jB/nB)**2 identically, so the two branches agree to rounding.  No other
+    solver family is affected -- the flag is passed only from inside this
+    function.
     """
     T = float(T)
     nB_0minus = float(nB_0minus)
@@ -4783,6 +4837,7 @@ def solve_front_isothermal(
     tol_bvp = float(tol_bvp)
     kappa_factor = float(kappa_factor)
     NM_type = str(NM_type)
+    relativistic = bool(relativistic)
     if (not np.isfinite(T)) or T <= 0.0:
         raise RuntimeError("T must be positive and finite")
     if (not np.isfinite(nB_0minus)) or nB_0minus <= 0.0:
@@ -4951,6 +5006,7 @@ def solve_front_isothermal(
                 T,
                 ms=ms,
                 upB=upB,
+                relativistic=relativistic,
             )
         )
         thermo_inf = _quark_thermo_state(
