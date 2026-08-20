@@ -1,7 +1,7 @@
 ---
 summary: Catalog of every wiki page. Read this first; drill down from here.
 status: current
-updated: 2026-08-18
+updated: 2026-08-20
 tags: [meta, index]
 ---
 
@@ -45,6 +45,7 @@ The nuclear→quark combustion front project. **This is the only page loaded by 
 ## Methods
 
 - [[steady-front-bvp]] — the physical-$n_K,J_K$ reaction-diffusion BVPs, flux eigenvalues, EOS reconstruction and compactification.
+- [[isothermal-contour-cluster]] — one-command all-CPU scan with boundary/domain/analytical/numerical point bars, checkpoint-before-increment ordering, shell continuation, and hard timeouts.
 - [[two-block-contour-scans]] — the adaptive mesh every contour uses, the 80 MeV seam, and why blocks are never concatenated.
 
 ## Paper

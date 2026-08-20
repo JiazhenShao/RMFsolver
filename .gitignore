@@ -14,11 +14,18 @@
 !/RMFsolver/
 !/wiki/
 !/tests/
+!/new_paper_calculations/
+/new_paper_calculations/*
+!/new_paper_calculations/26-08-19/
+/new_paper_calculations/26-08-19/*
+!/new_paper_calculations/26-08-19/*.py
+!/new_paper_calculations/26-08-19/README.md
 /tests/*
 !/tests/test_phase_velocity_isothermal_analytic.py
 !/tests/test_phase_velocity_isothermal_numerical.py
 !/tests/test_phase_velocity_isothermal_a_0plus_max.py
 !/tests/test_phase_velocity_isothermal_relativistic.py
+!/tests/test_isothermal_contour_cluster_26_08_19.py
 
 # Exclusions that still apply inside the tracked trees
 .DS_Store

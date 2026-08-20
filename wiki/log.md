@@ -149,3 +149,12 @@ $u=j_B/n_B$ throughout `phase_velocity.py` is the proper velocity $\gamma v$, co
 An opt-in "relativistic" junction-flux branch was built to test this and shifted results by $0$ to $2.4\times10^{-15}$ — an algebraic identity — so it was reverted rather than kept.
 `_momentum_flux_diagnostics` had briefly shipped with $\gamma$ computed as the 3-velocity form $1/\sqrt{1-u^2}$ and a `relativistic_flux_ratio` key that multiplied in a second, double-counted $\gamma^2$; both were corrected or dropped.
 Recorded on [[isothermal-analytic-front-speed]], along with the residual static-isobar bound from `_solve_a_0plus_max` and the `slow_front_consistent` label mismatch (it tests $u(0^-)<1$, i.e. $v<0.707$, not $v<1$).
+
+## [2026-08-20] implement | Boundary-fitted isothermal contour cluster workflow
+
+Added `new_paper_calculations/26-08-19/` to invert the live weighted static-isobar ceiling between the PNM--equilibrated-quark and strangeness-free phase boundaries, then run matched analytical and physical-$n_K,J_K$ contours with `a_0plus` omitted from both public calls.
+Analytical cells have a 300-second killable limit; the numerical stage advances in composition shells with scalar-$j_B$ continuation, disposable spawned BVP attempts, 180-second trial and 900-second cell limits, and atomic per-cell checkpoints.
+The one-command driver now auto-uses the scheduler allocation or all local CPUs and displays ordered boundary, 600-point domain, 600-point analytical, and 600-point numerical `tqdm` bars; the parent atomically saves each point before incrementing its bar, and domain resume can continue partial checkpoints.
+The domain fingerprint covers every phase boundary and curvilinear coordinate, while resume reuses that domain and rejects changed physics or solver controls; every failure remains a structured mask rather than zero or infinity.
+A $3\times3$ live smoke run gave 9 valid domain cells, 9 analytical successes, a maximum composition residual of $4.6\times10^{-12}$, and an exact proper-speed conversion; deliberately reduced numerical budgets produced 9 clean `cell_timeout` masks without blocking later shells or plotting.
+The workflow and the distinction between this static-isobar ceiling and a future finite-flux maximum are recorded in [[isothermal-contour-cluster]].

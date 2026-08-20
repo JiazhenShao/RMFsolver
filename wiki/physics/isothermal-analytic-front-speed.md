@@ -1,7 +1,7 @@
 ---
 summary: The fixed-temperature speed uses the local K fraction, a hydro-consistent finite-flux eigenvalue, and a fixed-(P,T) Delta-muB mask for stable neutron matter.
 status: current
-updated: 2026-08-19
+updated: 2026-08-20
 tags: [physics, analytic, front-speed, isothermal]
 ---
 
@@ -29,7 +29,8 @@ a(x)\equiv\frac{n_K(x)}{n_B(x)}.
 $$
 
 Pure neutron matter has $a(x<0)=1$ because $n_K=(n_d-n_s)/2=n_B$ there.
-The sharp interface does not require $a(0^+)=a(0^-)$; only the K current is continuous, so $a(0^+)$ remains an independent interface input.
+The sharp interface does not require $a(0^+)=a(0^-)$; only the K current is continuous, so conservation laws alone do not determine $a(0^+)$.
+The public solvers therefore either accept it from the caller or select the separate static-isobar thermodynamic ceiling described below.
 The factor $1-a(0^+)$ in the speed formula is the explicit use of $a(0^-)=1$ in that current jump.
 
 Thus the equivalent explicitly temperature-dependent numerator is $a^2(0^+)+18\pi^2T^2/\mu_q^2$.
@@ -302,7 +303,18 @@ For these branches, neutron matter is stable on the lower-density side of the ta
 
 ## Analytical API
 
-`analytic_velocity_isothermal(T_0minus, nB_0minus, B_one_forth, a_0plus, *, xi=0, ...)` implements the local-fraction formula as a finite-flux scalar eigenvalue.
+`analytic_velocity_isothermal(T_0minus, nB_0minus, B_one_forth, a_0plus=np.nan, *, xi=0, ...)` implements the local-fraction formula as a finite-flux scalar eigenvalue.
+An explicit finite `a_0plus` evaluates that prescribed interface composition.
+Omitting it activates the PNM-only automatic ceiling defined by
+
+$$
+P(0^+)=P(0^-),\qquad
+a(0^+)=\frac{n_K(0^+)}{n_B(0^+)},\qquad
+\mu_B(0^-)=\mu_B(0^+)+a(0^+)\mu_K(0^+).
+$$
+
+An interior root reports `a_0plus_source="maximum"` and `a_0plus_max_status="interior"`.
+If the ceiling reaches the exact endpoint $a(0^+)=1$, the function returns `status="composition_ceiling_saturated"` and no speed; the singular endpoint is never evaluated as a moving front.
 For every trial $u(0^-)$ it constructs $j_B=n_B(0^-)u(0^-)$ and $\Pi=P(0^-)+h(0^-)u^2(0^-)$, solves the equilibrated $\mu_K(\infty)=0$ endpoint, and solves the $0^+$ state from $\Pi$, $j_B$, and $n_K(0^+)/n_B(0^+)=a(0^+)$.
 It then finds the root of $u_{\rm formula}^2(0^-)-u^2(0^-)$.
 The piecewise-constant density ratio uses $n_B(\infty)$, so $\lambda_n=n_B(0^-)/n_B(\infty)$, while the analytical transport coefficients are deliberately frozen at $0^+$.
@@ -311,6 +323,7 @@ The exact hydro states can have $n_B(0^+)\neq n_B(\infty)$; retaining both exact
 The function returns `u_0minus=0` with `front_exists=False` in stable neutron matter and at coexistence.
 At exactly $T=0$, it still performs that thermodynamic classification; a quark-favored point with $a(0^+)>0$ returns `status="zero_temperature_transport_invalid"` and no finite velocity.
 At positive $T$, if the formal eigenvalue does not occur within the slow-front domain $u(0^-)<1$, it returns `status="slow_front_approximation_invalid"` instead of following a disconnected high-velocity EOS branch.
+Even below that root-search ceiling, a resolved result is masked with `status="momentum_flux_ratio_above_tolerance"` when $(\Pi-P(0^-))/P(0^-)$ exceeds the default $10^{-3}$ analytical-validity threshold.
 The present derivation and implementation require `NM_type="PNM"` and `ms=0`.
 A nonzero strange-quark mass gives $n_K(\infty)\neq0$ and requires rewriting the weak source in terms of departure from equilibrium; other upstream compositions need a corresponding replacement for $a(0^-)=1$.
 
@@ -391,6 +404,8 @@ Realized compositions span $a_{\max}(0^+)\in(0.01,0.99)$, where the correction i
 `MOMENTUM_FLUX_RATIO_TOLERANCE = 1e-3` makes that failure loud rather than silent; it does not bind anywhere in the present domain.
 
 **Open.** `slow_front_consistent` tests $u(0^-)<1$, but for a proper velocity that is $v<0.707$, not $v<1$ — the label and the bound disagree.
+
+The boundary-fitted analytical and exact numerical contour workflow that uses this automatic ceiling is recorded in [[isothermal-contour-cluster]].
 
 ## Sources
 

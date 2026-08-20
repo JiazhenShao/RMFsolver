@@ -1,7 +1,7 @@
 ---
-summary: Map of the phase_velocity.py public API, including the analytical and physical-nK numerical isothermal solvers, and which solver answers which question.
+summary: Map of the phase_velocity.py public API, including automatic-ceiling analytical and physical-nK numerical isothermal solvers, and which solver answers which question.
 status: current
-updated: 2026-08-18
+updated: 2026-08-20
 tags: [solver, api, map]
 ---
 
@@ -48,19 +48,22 @@ All three return the same key set (~70 keys); only the values and the `velocity_
 
 ## Isothermal analytical entry point
 
-`analytic_velocity_isothermal(T_0minus, nB_0minus, B_one_forth, a_0plus, *, xi=0, ...)` is separate from the three energy-conserving methods above.
-It replaces energy conservation by $T(x)=T(0^-)$, takes the local interface fraction $a(0^+)=n_K(0^+)/n_B(0^+)$ as an input, and couples the closed-form reaction--diffusion speed to exact baryon- and momentum-flux endpoint states through a scalar eigenvalue solve.
+`analytic_velocity_isothermal(T_0minus, nB_0minus, B_one_forth, a_0plus=np.nan, *, xi=0, ...)` is separate from the three energy-conserving methods above.
+It replaces energy conservation by $T(x)=T(0^-)$ and couples the closed-form reaction--diffusion speed to exact baryon- and momentum-flux endpoint states through a scalar eigenvalue solve.
+The caller may prescribe the local interface fraction $a(0^+)=n_K(0^+)/n_B(0^+)$; omitting it makes the PNM solver select the live static-isobar thermodynamic ceiling.
 
 Before attempting the moving root, it pressure-matches equilibrated quark matter at the same $T$ and defines $\Delta\mu_B=\mu_{B,\rm QM}^{(P)}-\mu_B(0^-)$.
 Positive $\Delta\mu_B$ returns stable neutron matter with `u_0minus=0` and `front_exists=False`; zero is coexistence; negative selects the moving branch.
 The exact $T=0$ moving formula is deliberately rejected because the fixed-composition limit diverges and the diffusion model is invalid.
 At positive $T$, failure to find the eigenvalue within $u(0^-)<1$ returns the structured `slow_front_approximation_invalid` status; the code does not cross a disconnected EOS branch after the slow-front approximation has failed.
+An automatic ceiling at $a(0^+)=1$ returns `composition_ceiling_saturated`, while a resolved momentum-flux ratio above the default $10^{-3}$ validity threshold returns `momentum_flux_ratio_above_tolerance`; neither status supplies a plotted speed.
 The present function requires `NM_type="PNM"` and `ms=0`; see [[isothermal-analytic-front-speed]] for the derivation and result dictionary contract.
 
 ## Isothermal numerical entry point
 
-`solve_front_isothermal(T, nB_0minus, B_one_forth, a_0plus, ms=0, ..., NM_type="PNM", ...)` is the exact fixed-temperature BVP counterpart.
+`solve_front_isothermal(T, nB_0minus, B_one_forth, a_0plus=np.nan, ms=0, ..., NM_type="PNM", ...)` is the exact fixed-temperature BVP counterpart.
 Its two differential fields are the physical `nK` and `jK`; the profile key `a` is always reconstructed as the local ratio $n_K/n_B$.
+An explicit `a_0plus` solves the requested composition; omitting it on the PNM branch resolves the same static-isobar ceiling and reports `a_0plus_source="maximum"`.
 For PNM, SYM, and beta-equilibrated upstream matter, the interface K-current is fixed by $j_K(0^+)=j_B[1-Y_p(0^-)/2]$.
 
 At every node the solver closes the quark EOS at fixed $T$, $j_B$, and momentum flux, then evaluates the exact $\mu_K$-dependent nonleptonic rate and the local $D_K[\mu_B(x),T]$.
@@ -95,11 +98,11 @@ sequentially, with one process pool using the allocation at a time.
 | Fast analytic bound at prescribed $T(0^+)$ | `analytic_velocity_bound` | Closed-form $I_2$. Feeds [[two-block-contour-scans]]. |
 | Same, with $I_2$ integrated numerically | `semi_analytic_velocity_bound` | Slower, no quadratic-$T$ bracket. Supplies the hidden ray mesh and analytic seeds. |
 | Analytic bound with $a(0^+)$ from local equilibrium | `analytic_velocity_bound_lte` | No $T(0^+)$ input. See [[lte-composition-bound]] |
-| Hydro-consistent analytic speed with $T(x)=T(0^-)$ and prescribed local $a(0^+)$ | `analytic_velocity_isothermal` | Applies the $\Delta\mu_B$ stable-phase gate first; massless baseline only. |
+| Hydro-consistent analytic speed with $T(x)=T(0^-)$ and prescribed or automatic-ceiling local $a(0^+)$ | `analytic_velocity_isothermal` | Applies the $\Delta\mu_B$ stable-phase gate and analytical-validity masks; massless baseline only. |
 | Front speed at prescribed interface composition | `solve_front_energy_conserving_nK` | — |
 | Maximised front speed at prescribed $T(0^+)$ | `solve_front_energy_conserving_uNmax` | **Untrustworthy below $T(0^+)\approx$ a few MeV** — see [[unmax-degeneracy]] |
 | Front speed with conduction, $a(0^+)$ as output | `solve_front_thermal_conducting` | Current best. See [[thermal-conducting]] |
-| Numerical isothermal front | `solve_front_isothermal` | Solves physical $n_K,J_K$; reports local $a=n_K/n_B$; exact rate and local $D_K$. BVP-only, with no $\Delta\mu_B$ gate. |
+| Numerical isothermal front | `solve_front_isothermal` | Solves physical $n_K,J_K$; reports local $a=n_K/n_B$; exact rate and local $D_K$; optional PNM automatic ceiling; no $\Delta\mu_B$ gate. |
 | Catch-up / $z(t)$ evolution | `z_time_evolution` | Needs full continuation state, not scalar guesses |
 
 ## Units
