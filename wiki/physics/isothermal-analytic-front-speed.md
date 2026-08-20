@@ -1,7 +1,7 @@
 ---
 summary: The fixed-temperature speed uses the local K fraction, a hydro-consistent finite-flux eigenvalue, and a fixed-(P,T) Delta-muB mask for stable neutron matter.
 status: current
-updated: 2026-08-18
+updated: 2026-08-19
 tags: [physics, analytic, front-speed, isothermal]
 ---
 
@@ -92,6 +92,43 @@ I_2=\frac12\lambda_n^2u^2(0^-)[1-a(0^+)][1+\xi a(0^+)],
 $$
 
 which yields the boxed speed above after selecting the positive root.
+
+## ⚠ Local-fraction current-jump form
+
+When $a=n_K/n_B$ is used on both sides of the interface, the upstream term in the fraction-gradient jump must carry the density ratio explicitly.
+Baryon conservation gives
+
+$$
+n_B(0^-)u(0^-)=n_B(\infty)u(\infty)=j_B,
+\qquad
+u(\infty)=\lambda_nu(0^-).
+$$
+
+K-current continuity on the piecewise-constant downstream background therefore gives
+
+$$
+D_Ka'(0^+)
+=u(\infty)[a(0^+)-a(0^-)]
+=\lambda_nu(0^-)[a(0^+)-a(0^-)].
+$$
+
+The integrated equation can equivalently be written
+
+$$
+\frac12\left\{\lambda_nu(0^-)[a(0^+)-a(0^-)]\right\}^2
+=\frac{1+\xi}{2}\lambda_nu(0^-)a(0^+)
+\left\{\lambda_nu(0^-)[a(0^+)-a(0^-)]\right\}+I_2.
+$$
+
+Solving it before imposing pure neutron matter gives
+
+$$
+u^2(0^-)=\frac{2I_2}
+{\lambda_n^2[a(0^-)-a(0^+)][a(0^-)+\xi a(0^+)]}.
+$$
+
+For $a(0^-)=1$, this is exactly the implemented isothermal formula.
+If the factor $\lambda_n$ is omitted from the upstream local-fraction term, the denominator instead becomes $[a(0^-)-\lambda_na(0^+)][a(0^-)+\xi\lambda_na(0^+)]$, which is generally different and is not the implemented formula.
 
 ## Relation to the numerical isothermal BVP
 
@@ -310,6 +347,50 @@ Pi*qd^(2/3)*gamma*a0^4 /
 ```
 
 For the finite-temperature zero-speed question, Wolfram returned `a0 == 0` as the only root under the physical sign and domain assumptions.
+For the local-fraction current-jump check, the Wolfram Language input was
+
+```text
+Solve[
+  1/2 lambdaN^2 v (aPlus-aMinus)^2 ==
+    (1+xi)/2 lambdaN^2 v aPlus (aPlus-aMinus) + I2,
+  v
+]
+```
+
+and returned `v -> 2 I2/[(aMinus-aPlus) lambdaN^2 (aMinus+xi aPlus)]`.
+
+## Velocity convention and the static-isobar bound
+
+The variable the solvers call $u$ is the **proper** velocity $\gamma v$, not the 3-velocity.
+The module's own `_relativistic_gamma_from_u` (15 call sites) has always returned $\gamma=\sqrt{1+u^2}$, which is the same statement.
+
+This makes the isothermal junction conditions exact as written.
+With $x\equiv j_B/n_B$, inverting $j_B=n_B\gamma v$ gives $v=x/\sqrt{1+x^2}$, hence $\gamma v=x$ and
+
+$$
+h\gamma^2v^2=hx^2.
+$$
+
+So $j_B=n_Bu$ and $\Pi=P+hu^2$ are **already** the exact relativistic baryon and momentum fluxes, not a $\gamma\to1$ reduction of them.
+Verified symbolically and numerically: an opt-in "relativistic" branch built on 2026-08-19 shifted results by $0$ to $2.4\times10^{-15}$, i.e. it was an algebraic identity, and it was reverted.
+
+⚠ **The trap.** Reading $u$ as a 3-velocity makes $\gamma=1/\sqrt{1-u^2}$, which is wrong here and inflates $\gamma$; it also suggests a relativistic correction that does not exist.
+That misreading produced a whole implementation plan before it was caught.
+
+**What *is* approximate.** `_solve_a_0plus_max` evaluates the interface in the static limit, $j_B=0$ and $\Pi=P(0^-)$, dropping the flux term.
+Its relative size is $(\Pi-P)/P=hu^2/P$, which scales as $1/[1-a(0^+)]$ because $u(0^-)\propto[1-a(0^+)]^{-1/2}$:
+
+| $T$ (MeV) | $n_B(0^-)/n_0$ | $h/P$ | $1-a(0^+)$ at 10% | $\gamma-1$ there |
+|---:|---:|---:|---:|---:|
+| 1 | 3.5 | 5.74 | $10^{-9}$ | 0.019 |
+| 40 | 3.0 | 6.80 | $10^{-11}$ | 0.0075 |
+| 80 | 2.0 | 8.74 | $3\times10^{-12}$ | 0.039 |
+
+Note $h/P\approx6$–$9$: the enthalpy density is several times the pressure, not below it.
+Realized compositions span $a_{\max}(0^+)\in(0.01,0.99)$, where the correction is under $10^{-6}$ — below `tol_bvp`, the ray solver's $\rho$ tolerance, and the momentum-flux residual gate alike.
+`MOMENTUM_FLUX_RATIO_TOLERANCE = 1e-3` makes that failure loud rather than silent; it does not bind anywhere in the present domain.
+
+**Open.** `slow_front_consistent` tests $u(0^-)<1$, but for a proper velocity that is $v<0.707$, not $v<1$ — the label and the bound disagree.
 
 ## Sources
 

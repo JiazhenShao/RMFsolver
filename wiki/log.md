@@ -135,3 +135,17 @@ The fixed-temperature EOS closure now recomputes $D_K$ from the local $\mu_B$ an
 The solver retains the compactified `solve_bvp` construction with $j_B$ as its scalar eigenvalue, supports PNM, SYM, and beta-equilibrated upstream matter through $a(0^-)=1-Y_p/2$, and supports finite $m_s$ with a shifted tail about nonzero equilibrated $n_K(\infty)$ and $J_K(\infty)$.
 Added tracked regression coverage for the local-fraction contract, exact-rate and local-diffusion profiles, upstream composition, domains, finite-flux residuals, endpoint closure, and a finite-$m_s$ live EOS case.
 The old normalized-composition strict-retry reference is superseded; its formerly failing case now converges directly in the physical-field formulation.
+
+## [2026-08-18] verify | Local-fraction form of the isothermal eigenvalue
+
+Translated an independently derived current-jump equation into location-based notation and the local definition $a=n_K/n_B$.
+Baryon conservation requires the upstream local fraction in the downstream-background jump to appear as $\lambda_na(0^-)$, or equivalently requires both composition terms to be multiplied by $u(\infty)$.
+With the profile-area coefficient $(1+\xi)/2$, Wolfram verified the general result $u^2(0^-)=2I_2/\{\lambda_n^2[a(0^-)-a(0^+)][a(0^-)+\xi a(0^+)]\}$, whose pure-neutron-matter specialization is exactly the implemented formula.
+Omitting the density-ratio conversion produces a different denominator and is correct only in the special case $\lambda_n=1$.
+
+## [2026-08-19] verify | Proper-velocity convention makes the isothermal momentum flux exact
+
+$u=j_B/n_B$ throughout `phase_velocity.py` is the proper velocity $\gamma v$, confirmed by the pre-existing `_relativistic_gamma_from_u` ($\gamma=\sqrt{1+u^2}$, 15 call sites); $\Pi=P+hu^2$ is therefore already the exact relativistic momentum flux, not a $\gamma\to1$ reduction of it.
+An opt-in "relativistic" junction-flux branch was built to test this and shifted results by $0$ to $2.4\times10^{-15}$ — an algebraic identity — so it was reverted rather than kept.
+`_momentum_flux_diagnostics` had briefly shipped with $\gamma$ computed as the 3-velocity form $1/\sqrt{1-u^2}$ and a `relativistic_flux_ratio` key that multiplied in a second, double-counted $\gamma^2$; both were corrected or dropped.
+Recorded on [[isothermal-analytic-front-speed]], along with the residual static-isobar bound from `_solve_a_0plus_max` and the `slow_front_consistent` label mismatch (it tests $u(0^-)<1$, i.e. $v<0.707$, not $v<1$).
