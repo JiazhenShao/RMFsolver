@@ -326,16 +326,17 @@ class AnalyticVelocityIsothermalApiTests(unittest.TestCase):
         ):
             # The synthetic EOS above (P = 20, w = 100) is not a physical
             # state: it gives momentum_flux_ratio ~ 9.5e-3, which correctly
-            # trips the static-isobar guard.  This test is about the I2 and
-            # u**2 algebra, so it opts out of the guard rather than weakening
-            # its default.
+            # trips the momentum-flux validity guard.  This test is about the
+            # I2 and u**2 algebra, so it opts out of the guard (with a large
+            # finite tolerance; the parameter must be finite) rather than
+            # weakening its default.
             result = pv.analytic_velocity_isothermal(
                 10.0,
                 nB_0minus,
                 180.0,
                 a_0plus,
                 xi=xi,
-                momentum_flux_tol=np.inf,
+                momentum_flux_tol=1.0,
             )
 
         self.assertTrue(result["success"])

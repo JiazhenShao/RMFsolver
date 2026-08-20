@@ -60,12 +60,17 @@ _ISOTHERMAL_RETRY_ACTIVE = 0
 _LAYER_TRAJECTORY_STEPS = 320
 _LAYER_TRAJECTORY_MAX_DMUB = 0.05
 
-# Above this fraction the static-isobar reduction used by the isothermal
-# interface construction is no longer trustworthy: (Pi - P)/P = w*u**2/P is the
-# leading error of treating the interface as a static isobar.  Measured
-# 2026-08-19, it reaches 10% only at 1 - a_0plus ~ 1e-9 to 1e-12, far outside
-# the realized range a_0plus_max in (0.01, 0.99), so this bound never binds in
-# practice; it exists so the failure is loud if it ever does.
+# momentum_flux_ratio = (Pi - P)/P = w*u**2/P is EXACT under this module's
+# proper-velocity convention (u = jB/nB, so w*gamma**2*v**2 = w*u**2
+# identically) -- it is NOT a leading-order error of treating the interface
+# as a static isobar.  It is kept as a validity gate on the CLOSED-FORM
+# isothermal speed because that derivation freezes the background transport
+# coefficients (D_K, gamma_K, mu_q) at their u=0 values, and that reduction
+# degrades as u grows.  Measured 2026-08-19, the guard first binds (ratio
+# reaches this 1e-3 threshold) near 1 - a_0plus ~ 2e-7, roughly six decades
+# outside the realized ceiling range a_0plus_max in (0.01, 0.99); it never
+# binds in the present domain and exists to make that failure loud if the
+# domain ever moves.
 MOMENTUM_FLUX_RATIO_TOLERANCE = 1.0e-3
 
 
@@ -2154,7 +2159,7 @@ def _solve_interface_0plus_from_local_a_and_Pi(
 
 
 def _momentum_flux_diagnostics(P_0minus, w_0minus, u_0minus):
-    """Report how far the front departs from the static-pressure limit.
+    """Report the momentum-flux term's size relative to the upstream pressure.
 
     ``u_0minus`` is the **proper** velocity gamma*v that this module transports
     as jB/nB, the same convention as :func:`_relativistic_gamma_from_u`, which
@@ -2163,11 +2168,14 @@ def _momentum_flux_diagnostics(P_0minus, w_0minus, u_0minus):
     value is rejected.
 
     ``momentum_flux_ratio`` is (Pi - P)/P = w*u**2/P, the size of the flux term
-    relative to the pressure and the leading error of treating the interface as
-    a static isobar.  Written in the proper velocity it is *already* the exact
-    relativistic ratio, since w*gamma**2*v**2 = w*u**2 identically -- there is
-    no separate "relativistic" ratio to report, and multiplying by another
-    gamma**2 would double-count it.
+    relative to the pressure.  Written in the proper velocity this is
+    *already* the EXACT relativistic ratio, since w*gamma**2*v**2 = w*u**2
+    identically -- there is no separate "relativistic" ratio to report, and
+    multiplying by another gamma**2 would double-count it.  It is not, itself,
+    a static-isobar approximation error: the genuine static-isobar
+    approximation in this module lives in :func:`_solve_a_0plus_max`, which
+    evaluates the interface at jB = 0 rather than iterating it against the
+    front's own momentum flux.
     """
     P_0minus = float(P_0minus)
     w_0minus = float(w_0minus)
@@ -2329,6 +2337,16 @@ def analytic_velocity_isothermal(
     ``a_0plus_max_residual``.  Where even a strangeness-free interface stays
     favorable the ceiling is the kinematic 1, at which the speed diverges;
     that returns ``status="composition_ceiling_saturated"`` and no velocity.
+
+    ``momentum_flux_tol`` (default :data:`MOMENTUM_FLUX_RATIO_TOLERANCE`) is a
+    default-on validity gate on ``momentum_flux_ratio``, the resolved front's
+    (Pi - P_0minus)/P_0minus.  That ratio is exact under this module's
+    proper-velocity convention, but the closed-form speed computed here
+    freezes the background transport coefficients at u=0, and that reduction
+    degrades as u grows.  When the ratio exceeds ``momentum_flux_tol`` the
+    result is overwritten to ``success=False``,
+    ``status="momentum_flux_ratio_above_tolerance"`` and
+    ``front_exists=False``; pass a larger ``momentum_flux_tol`` to relax it.
     """
     T_0minus = float(T_0minus)
     nB_0minus = float(nB_0minus)
@@ -2369,6 +2387,9 @@ def analytic_velocity_isothermal(
         )
     if (not np.isfinite(delta_muB_tol)) or delta_muB_tol < 0.0:
         raise RuntimeError("delta_muB_tol must be finite and non-negative")
+    momentum_flux_tol = float(momentum_flux_tol)
+    if (not np.isfinite(momentum_flux_tol)) or momentum_flux_tol <= 0.0:
+        raise RuntimeError("momentum_flux_tol must be finite and positive")
     if (
         (not np.isfinite(upB_float))
         or upB_float <= 0.0
@@ -2507,6 +2528,8 @@ def analytic_velocity_isothermal(
         "composition_residual": np.nan,
         "momentum_flux_inf_residual": np.nan,
         "momentum_flux_0plus_residual": np.nan,
+        "momentum_flux_ratio": np.nan,
+        "gamma_minus_1": np.nan,
         "slow_front_consistent": False,
         "u_0minus_trial_limit": np.nan,
         "u_0minus_formula_squared_at_limit": np.nan,
@@ -2923,13 +2946,14 @@ def analytic_velocity_isothermal(
         result.update(
             {
                 "success": False,
-                "status": "static_isobar_approximation_invalid",
+                "status": "momentum_flux_ratio_above_tolerance",
                 "message": (
                     "The momentum-flux term is "
                     f"{result['momentum_flux_ratio']:.3e} of the upstream "
                     "pressure, above momentum_flux_tol="
-                    f"{float(momentum_flux_tol):.3e}; the static-isobar "
-                    "interface reduction is not trustworthy here"
+                    f"{float(momentum_flux_tol):.3e}; the closed-form "
+                    "isothermal speed freezes background transport "
+                    "coefficients at u=0 and is not trustworthy at this flux"
                 ),
                 "front_exists": False,
             }
@@ -4758,7 +4782,10 @@ def solve_front_isothermal(
     resolved value is echoed in ``a_0plus`` with ``a_0plus_source="maximum"``,
     alongside ``a_0plus_max`` and ``a_0plus_max_status``.  A ceiling that is
     not interior to (0,1) raises rather than returning, since the BVP has no
-    admissible composition there.
+    admissible composition there.  The auto-ceiling request requires
+    ``NM_type='PNM'`` and raises for ``'SYM'`` or ``'Beta_eq'``: the ceiling's
+    chemical-potential balance presumes an upstream with no muK
+    (``a_0minus=1``), which PNM satisfies but SYM and Beta_eq do not.
     """
     T = float(T)
     nB_0minus = float(nB_0minus)
@@ -4787,6 +4814,14 @@ def solve_front_isothermal(
         raise RuntimeError("ms must be finite and non-negative")
     if NM_type not in ("PNM", "SYM", "Beta_eq"):
         raise RuntimeError("NM_type must be one of 'PNM', 'SYM', or 'Beta_eq'")
+    if a_0plus_is_auto and NM_type != "PNM":
+        raise RuntimeError(
+            "a_0plus=NaN (the thermodynamic-maximum request) requires "
+            "NM_type='PNM': the ceiling's chemical-potential balance "
+            "muB(0-) = muB(0+) + a_0plus*muK(0+) presumes an upstream that "
+            "carries no muK, i.e. a_0minus=1, which holds for PNM but not "
+            f"for NM_type={NM_type!r}, where a_0minus = 1 - 0.5*x_p < 1"
+        )
     if not (0.0 < tail_eps < 1.0):
         raise RuntimeError("tail_eps must satisfy 0 < tail_eps < 1")
     if int(n_mesh) < 5:

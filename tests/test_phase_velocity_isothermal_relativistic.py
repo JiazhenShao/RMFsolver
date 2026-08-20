@@ -75,6 +75,17 @@ class TestDiagnosticsReachTheResults(unittest.TestCase):
             delta=0.3,
         )
 
+    def test_non_moving_front_path_still_has_momentum_flux_keys(self):
+        # stable_neutron_matter returns before the moving_front branch that
+        # used to be the only place momentum_flux_ratio/gamma_minus_1 were
+        # inserted; the base result dict must seed both keys regardless.
+        r = pv.analytic_velocity_isothermal(1.0, 2.0 * N0, B14, 0.5, xi=-0.5)
+        self.assertEqual(r["status"], "stable_neutron_matter")
+        self.assertIn("momentum_flux_ratio", r)
+        self.assertIn("gamma_minus_1", r)
+        self.assertTrue(np.isnan(r["momentum_flux_ratio"]))
+        self.assertTrue(np.isnan(r["gamma_minus_1"]))
+
 
 class TestNumericalDiagnosticsReachTheResults(unittest.TestCase):
     def test_bvp_reports_a_small_finite_ratio_at_realistic_composition(self):
@@ -96,7 +107,7 @@ class TestValidityGuard(unittest.TestCase):
         # 1-a = 1e-9 measured at (Pi-P)/P ~ 0.2 for this state.
         r = pv.analytic_velocity_isothermal(1.0, 3.5 * N0, B14, 1.0 - 1e-9, xi=-0.5)
         self.assertFalse(r["success"])
-        self.assertEqual(r["status"], "static_isobar_approximation_invalid")
+        self.assertEqual(r["status"], "momentum_flux_ratio_above_tolerance")
         self.assertGreater(r["momentum_flux_ratio"], pv.MOMENTUM_FLUX_RATIO_TOLERANCE)
 
     def test_realistic_composition_is_unaffected(self):
@@ -109,6 +120,14 @@ class TestValidityGuard(unittest.TestCase):
             1.0, 3.5 * N0, B14, 1.0 - 1e-9, xi=-0.5, momentum_flux_tol=1.0
         )
         self.assertEqual(r["status"], "moving_front")
+
+    def test_tolerance_must_be_finite_and_positive(self):
+        for bad in (np.nan, -1.0, 0.0, np.inf):
+            with self.subTest(momentum_flux_tol=bad):
+                with self.assertRaises(RuntimeError):
+                    pv.analytic_velocity_isothermal(
+                        1.0, 3.5 * N0, B14, 0.5, xi=-0.5, momentum_flux_tol=bad
+                    )
 
 
 class TestClosureIsAlreadyRelativistic(unittest.TestCase):

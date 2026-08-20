@@ -141,6 +141,19 @@ class TestNumericalBranch(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             pv.solve_front_isothermal(1.0, 3.5 * N0, B14, 1.0)
 
+    def test_auto_ceiling_requires_PNM(self):
+        # a_0plus=NaN (the default) resolves the ceiling from the balance
+        # muB(0-) = muB(0+) + a_0plus*muK(0+), which presumes an upstream
+        # with no muK (a_0minus=1).  That holds for PNM but not for SYM or
+        # Beta_eq, where a_0minus = 1 - 0.5*x_p < 1, so the auto request must
+        # raise rather than silently reuse the PNM-only balance.
+        for NM_type in ("SYM", "Beta_eq"):
+            with self.subTest(NM_type=NM_type):
+                with self.assertRaises(RuntimeError):
+                    pv.solve_front_isothermal(
+                        1.0, 3.5 * N0, B14, NM_type=NM_type
+                    )
+
 
 if __name__ == "__main__":
     unittest.main()
