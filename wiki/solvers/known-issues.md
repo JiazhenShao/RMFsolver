@@ -1,11 +1,23 @@
 ---
-summary: Live solver and performance traps, including finite-ms isothermal cost, GIL-bound notebook threads, and asymmetric bisection depth.
+summary: Live solver and performance traps, including unchecked PNM roots, cold quadrature, finite-ms isothermal cost, GIL-bound notebook threads, and asymmetric bisection depth.
 status: current
-updated: 2026-08-18
+updated: 2026-08-21
 tags: [solver, bugs, performance]
 ---
 
 # Known issues and traps
+
+## ⚠ PNM root success is unchecked and cold positive temperatures still use adaptive quadrature
+
+Both `RMFsolvePNM` and `RMFsolvePNM_mu` currently return `sol.x` after the nonlinear root call even when `sol.success` is false; their failure checks are commented out.
+Downstream callers must therefore validate scaled equation residuals rather than treating a returned state as convergence.
+
+The PNM comments and verbose messages say that temperatures below $1$ MeV use the zero-temperature treatment, but `_nB` and `_ns` actually switch only below $10^{-3}$ MeV.
+Consequently the contour value $T=0.01$ MeV uses adaptive finite-temperature momentum quadrature on a nearly discontinuous Fermi surface.
+The cluster has emitted SciPy `IntegrationWarning` messages from the baryon-density integral in this regime; the integral is finite, so the warning indicates numerical difficulty during RMF root iterates rather than a physical divergence.
+
+The analytical isothermal path no longer multiplies this problem through a broad chemical-potential scan; it uses the direct fixed-density validator in [[pnm-density-state-recovery]].
+The underlying `Solver.py` behavior remains open and must be fixed separately, with an explicit decision between a controlled low-temperature approximation and a stabilized exact finite-$T$ quadrature.
 
 ## Isothermal strict-retry issue — superseded
 

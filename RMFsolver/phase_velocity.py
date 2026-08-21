@@ -30,6 +30,7 @@ from RMFsolver.Solver import (
     pressure_RMF,
     edens_RMF,
     baryon_density_RMF,
+    RMFsolvePNM,
     RMFsolvePNM_mu,
 )
 from RMFsolver.Solver import RMFedensPNM, RMFentropyPNM, RMFbaryon_densityPNM, RMFbaryon_densitySYM, RMFbaryon_density
@@ -1211,6 +1212,180 @@ def _validated_pnm_state(muB, T, param):
         f"PNM solve at muB={float(muB):.4f}, T={float(T):.4g} could not reach the "
         "physical mean-field branch from any seed: " + "; ".join(reasons)
     )
+
+
+def _validated_pnm_state_from_nB(nB_0minus, T_0minus, param=para.paraQMCRMF3):
+    """Return one branch-validated PNM state solved directly at fixed density.
+
+    The caller already supplies ``nB_0minus``, so recovering ``muB_0minus`` by
+    scanning the chemical-potential axis is unnecessary and can force the RMF
+    solver through unrelated, ill-conditioned states.  Instead, solve the
+    density-input RMF system from the established branch seeds, reject bad
+    scaled equation residuals, and require two physical solutions to agree on
+    both sigma and muB before accepting the state.
+
+    Pressure, energy density, and the forward density check are all evaluated
+    from the accepted RMF solution table; no second mean-field solve is done.
+    """
+    nB_0minus = float(nB_0minus)
+    T_0minus = float(T_0minus)
+    if (not np.isfinite(nB_0minus)) or nB_0minus <= 0.0:
+        raise RuntimeError("nB_0minus must be positive and finite")
+    if (not np.isfinite(T_0minus)) or T_0minus < 0.0:
+        raise RuntimeError("T_0minus must be finite and non-negative")
+
+    residual_rtol = 1.0e-6
+    density_rtol = 2.0e-6
+    reasons = []
+    accepted = []
+    agreed = None
+    residual_scale = max(abs(nB_0minus), 1.0)
+
+    seed_count = 0
+    for seed in _PNM_BRANCH_SEEDS:
+        seed_count += 1
+        sigma_init, w0_init, r03_init = seed
+        try:
+            solution = RMFsolvePNM(
+                nB_0minus,
+                T_0minus,
+                param,
+                sigma_init=float(sigma_init),
+                w0_init=float(w0_init),
+                r03_init=float(r03_init),
+                mub_init=990.0,
+                verb=False,
+            )
+            state_vector = np.asarray(solution[0], dtype=float)
+            equation_residuals = np.asarray(solution[1], dtype=float)
+        except Exception as exc:
+            reasons.append(f"seed {seed}: solve failed ({str(exc)[:80]})")
+            continue
+        if state_vector.size < 4 or not np.all(np.isfinite(state_vector[:4])):
+            reasons.append(f"seed {seed}: non-finite or incomplete RMF state")
+            continue
+        if equation_residuals.size < 4 or not np.all(np.isfinite(equation_residuals[:4])):
+            reasons.append(f"seed {seed}: non-finite or incomplete RMF residuals")
+            continue
+        scaled_residual = float(
+            np.linalg.norm(equation_residuals[:4], ord=np.inf) / residual_scale
+        )
+        if scaled_residual > residual_rtol:
+            reasons.append(
+                f"seed {seed}: scaled RMF residual {scaled_residual:.3e} exceeds "
+                f"{residual_rtol:.1e}"
+            )
+            continue
+        sigma_0minus = float(state_vector[0])
+        muB_0minus = float(state_vector[3])
+        if sigma_0minus <= 0.0:
+            reasons.append(
+                f"seed {seed}: scalar field sigma={sigma_0minus:.6f} is not positive"
+            )
+            continue
+        if muB_0minus <= 0.0:
+            reasons.append(
+                f"seed {seed}: muB_0minus={muB_0minus:.6f} is not positive"
+            )
+            continue
+
+        candidate = {
+            "solution": solution,
+            "sigma_0minus": sigma_0minus,
+            "muB_0minus": muB_0minus,
+            "scaled_residual": scaled_residual,
+        }
+        for other in accepted:
+            sigma_agrees = abs(sigma_0minus - other["sigma_0minus"]) <= (
+                _PNM_BRANCH_AGREEMENT_RTOL
+                * max(abs(sigma_0minus), abs(other["sigma_0minus"]), 1.0)
+            )
+            muB_agrees = abs(muB_0minus - other["muB_0minus"]) <= (
+                _PNM_BRANCH_AGREEMENT_RTOL
+                * max(abs(muB_0minus), abs(other["muB_0minus"]), 1.0)
+            )
+            if sigma_agrees and muB_agrees:
+                agreed = min(
+                    (candidate, other),
+                    key=lambda item: item["scaled_residual"],
+                )
+                break
+        if agreed is not None:
+            break
+        accepted.append(candidate)
+
+    if agreed is None:
+        if accepted:
+            states = ", ".join(
+                f"(sigma={item['sigma_0minus']:.6f}, "
+                f"muB={item['muB_0minus']:.6f})"
+                for item in accepted
+            )
+            reasons.append(f"no two physical seeds agreed; accepted states: {states}")
+        raise RuntimeError(
+            f"PNM density solve at nB_0minus={nB_0minus:.6e}, "
+            f"T_0minus={T_0minus:.4g} could not pin the physical branch: "
+            + "; ".join(reasons)
+        )
+
+    solution = agreed["solution"]
+    recovered_nB_0minus = float(np.asarray(baryon_density_RMF(solution)).item())
+    density_relative_residual = float(
+        recovered_nB_0minus / nB_0minus - 1.0
+    )
+    if (
+        (not np.isfinite(recovered_nB_0minus))
+        or recovered_nB_0minus <= 0.0
+        or abs(density_relative_residual) > density_rtol
+    ):
+        raise RuntimeError(
+            "Direct PNM density solve failed its forward-density validation: "
+            f"relative residual {density_relative_residual:.3e} exceeds "
+            f"{density_rtol:.1e}"
+        )
+
+    P_0minus = float(
+        np.asarray(
+            pressure_RMF(
+                solution,
+                add_photons=False,
+                renorm=False,
+                electrons=False,
+                neutrinos=False,
+            )
+        ).item()
+    )
+    e_0minus = float(
+        np.asarray(
+            edens_RMF(
+                solution,
+                add_photons=False,
+                renorm=False,
+                electrons=False,
+                neutrinos=False,
+            )[1]
+        ).item()
+    )
+    h_0minus = float(P_0minus + e_0minus)
+    if not np.all(np.isfinite([P_0minus, e_0minus, h_0minus])):
+        raise RuntimeError("Direct PNM density solve returned non-finite thermodynamics")
+    if P_0minus <= 0.0:
+        raise RuntimeError("Direct PNM density solve returned non-positive pressure")
+    if h_0minus <= 0.0:
+        raise RuntimeError("Direct PNM density solve returned non-positive enthalpy")
+
+    return {
+        "muB_0minus": float(agreed["muB_0minus"]),
+        "P_0minus": P_0minus,
+        "e_0minus": e_0minus,
+        "h_0minus": h_0minus,
+        "nB_0minus": recovered_nB_0minus,
+        "h_over_nB_0minus": float(h_0minus / recovered_nB_0minus),
+        "sigma_0minus": float(agreed["sigma_0minus"]),
+        "upstream_rmf_scaled_residual": float(agreed["scaled_residual"]),
+        "upstream_density_relative_residual": density_relative_residual,
+        "upstream_seed_count": int(seed_count),
+    }
 
 
 def _analytic_nuclear_state(muB_0minus, T_0minus, param=para.paraQMCRMF3, NM_type="PNM"):
@@ -2398,21 +2573,12 @@ def analytic_velocity_isothermal(
         raise RuntimeError("upB must be a positive finite integer")
     upB = int(upB_float)
 
-    muB_0minus = float(
-        muB_from_nB_physical(
-            nB_0minus,
-            T_0minus,
-            param=param,
-            NM_type=NM_type,
-            auto_expand=True,
-        )
-    )
-    nuclear_state = _analytic_nuclear_state(
-        muB_0minus,
+    nuclear_state = _validated_pnm_state_from_nB(
+        nB_0minus,
         T_0minus,
         param=param,
-        NM_type=NM_type,
     )
+    muB_0minus = float(nuclear_state["muB_0minus"])
     recovered_nB_0minus = float(nuclear_state["nB_0minus"])
     if not np.isclose(
         recovered_nB_0minus,
@@ -2421,10 +2587,9 @@ def analytic_velocity_isothermal(
         atol=0.0,
     ):
         raise RuntimeError(
-            "muB_from_nB_physical did not reproduce nB_0minus on the validated branch"
+            "Direct PNM density solve did not reproduce nB_0minus"
         )
     nuclear_state = dict(nuclear_state)
-    nuclear_state["muB_0minus"] = muB_0minus
     nuclear_state["T_0minus"] = T_0minus
 
     P_0minus = float(nuclear_state["P_0minus"])
@@ -2484,6 +2649,14 @@ def analytic_velocity_isothermal(
         "e_0minus": float(nuclear_state["e_0minus"]),
         "h_0minus": float(nuclear_state["h_0minus"]),
         "h_over_nB_0minus": float(nuclear_state["h_over_nB_0minus"]),
+        "sigma_0minus": float(nuclear_state.get("sigma_0minus", np.nan)),
+        "upstream_rmf_scaled_residual": float(
+            nuclear_state.get("upstream_rmf_scaled_residual", np.nan)
+        ),
+        "upstream_density_relative_residual": float(
+            nuclear_state.get("upstream_density_relative_residual", np.nan)
+        ),
+        "upstream_seed_count": int(nuclear_state.get("upstream_seed_count", 0)),
         "B_one_forth": B_one_forth,
         "a_0minus": 1.0,
         "a_0plus": a_0plus,

@@ -1,7 +1,7 @@
 ---
 summary: Map of the phase_velocity.py public API, including automatic-ceiling analytical and physical-nK numerical isothermal solvers, and which solver answers which question.
 status: current
-updated: 2026-08-20
+updated: 2026-08-21
 tags: [solver, api, map]
 ---
 
@@ -51,6 +51,7 @@ All three return the same key set (~70 keys); only the values and the `velocity_
 `analytic_velocity_isothermal(T_0minus, nB_0minus, B_one_forth, a_0plus=np.nan, *, xi=0, ...)` is separate from the three energy-conserving methods above.
 It replaces energy conservation by $T(x)=T(0^-)$ and couples the closed-form reaction--diffusion speed to exact baryon- and momentum-flux endpoint states through a scalar eigenvalue solve.
 The caller may prescribe the local interface fraction $a(0^+)=n_K(0^+)/n_B(0^+)$; omitting it makes the PNM solver select the live static-isobar thermodynamic ceiling.
+The upstream PNM state is solved directly at the supplied $n_B(0^-)$ with scaled-residual rejection, two-seed branch agreement, and one forward-density check; the analytical path no longer performs a broad $\mu_B$ scan ([[pnm-density-state-recovery]]).
 
 Before attempting the moving root, it pressure-matches equilibrated quark matter at the same $T$ and defines $\Delta\mu_B=\mu_{B,\rm QM}^{(P)}-\mu_B(0^-)$.
 Positive $\Delta\mu_B$ returns stable neutron matter with `u_0minus=0` and `front_exists=False`; zero is coexistence; negative selects the moving branch.

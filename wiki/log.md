@@ -155,6 +155,30 @@ Recorded on [[isothermal-analytic-front-speed]], along with the residual static-
 Added `new_paper_calculations/26-08-19/` to invert the live weighted static-isobar ceiling between the PNM--equilibrated-quark and strangeness-free phase boundaries, then run matched analytical and physical-$n_K,J_K$ contours with `a_0plus` omitted from both public calls.
 Analytical cells have a 300-second killable limit; the numerical stage advances in composition shells with scalar-$j_B$ continuation, disposable spawned BVP attempts, 180-second trial and 900-second cell limits, and atomic per-cell checkpoints.
 The one-command driver now auto-uses the scheduler allocation or all local CPUs and displays ordered boundary, 600-point domain, 600-point analytical, and 600-point numerical `tqdm` bars; the parent atomically saves each point before incrementing its bar, and domain resume can continue partial checkpoints.
+Its runtime selection validates the active cluster environment first and treats a repository-local `bin/python3` only as an optional fallback.
+The first production payload was audited after both 600-point bars completed instantly: all cells were masked, both velocity files contained zero records, and the domain contained 460 failures from a stale subprocess `RMFsolver` without `_solve_a_0plus_max` plus 140 cells masked by seven missing boundary points.
+The successful boundary records themselves satisfy the intended PNM--equilibrated-quark and $a(0^+)=1$ PNM--ud equations to about $10^{-10}$ relative pressure accuracy, but the upper curve has six low-temperature `no_root` gaps and the lower curve lacks its $120$ MeV endpoint.
 The domain fingerprint covers every phase boundary and curvilinear coordinate, while resume reuses that domain and rejects changed physics or solver controls; every failure remains a structured mask rather than zero or infinity.
 A $3\times3$ live smoke run gave 9 valid domain cells, 9 analytical successes, a maximum composition residual of $4.6\times10^{-12}$, and an exact proper-speed conversion; deliberately reduced numerical budgets produced 9 clean `cell_timeout` masks without blocking later shells or plotting.
 The workflow and the distinction between this static-isobar ceiling and a future finite-flux maximum are recorded in [[isothermal-contour-cluster]].
+
+## [2026-08-20] fix | Isothermal contours moved to the energy-conserving polar mesh
+
+Replaced the superseded fixed-temperature by fixed-$a(0^+)$ domain in `new_paper_calculations/26-08-19/` with the exact 26-08-18 elliptical-polar window: $1\leq n_B(0^-)/n_0\leq5.5$, $0.01\leq T(0^-)\leq120$ MeV, 30 endpoint-inclusive contour rays, and the same 20 outward radial fractions.
+Twelve endpoint-inclusive Chebyshev rays now trace the $\Delta\mu_B=0$ and $a(0^+)=1$ radii from shared upstream probes; incomplete or reversed boundaries stop the workflow before either velocity scan.
+The analytical and numerical solvers receive the resulting physical $n_B(0^-),T(0^-)$ points with `a_0plus` omitted, and the numerical continuation advances outward in radial-fraction shells rather than composition shells.
+Every stage now forces the repository checkout ahead of installed packages, records the resolved solver path, atomically checkpoints before each point-bar increment, and uses an incompatible schema version so the invalid first production payload cannot resume.
+
+## [2026-08-20] fix | Dated isothermal workflow is self-contained
+
+Moved the active polar contour workflow to `new_paper_calculations/26-08-20/` and embedded its boundary residual and ray-root logic directly in `_isothermal_domain.py`.
+Spawned boundary workers no longer import the workspace-level `isothermal_domain_rays` prototype, which was absent on the cluster and caused all twelve rays to fail before their first EOS probe.
+The 26-08-20 run tag and regression path now match the active directory, and the repository allowlist includes its Python files and README.
+
+## [2026-08-21] fix | Analytical isothermal upstream PNM recovery no longer scans chemical potential
+
+Replaced the broad `muB_from_nB_physical` scan inside `analytic_velocity_isothermal` with a direct fixed-$n_B(0^-)$ `RMFsolvePNM` validator.
+The new path rejects bad scaled RMF residuals, requires two seeds to agree on both $\sigma(0^-)$ and $\mu_B(0^-)$, stops once agreement is found, and reuses the accepted solution table for the forward-density check, pressure, and energy density.
+The former cold and hot-low-density timeout examples now complete in $0.78$ s and $0.14$ s instead of $102.8$ s and $65.9$ s locally, while reproducing the scan-based velocities to better than $4\times10^{-8}$ relatively.
+Added public upstream diagnostics and regression coverage for scan removal, residual rejection, branch agreement, forward-density validation, existing analytical behavior, numerical isolation, and the 26-08-20 cluster workflow.
+The remaining low-temperature quadrature and disabled root-success checks in `Solver.py` are documented but were not changed.

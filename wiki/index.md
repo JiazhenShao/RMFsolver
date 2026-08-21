@@ -1,7 +1,7 @@
 ---
 summary: Catalog of every wiki page. Read this first; drill down from here.
 status: current
-updated: 2026-08-20
+updated: 2026-08-21
 tags: [meta, index]
 ---
 
@@ -37,6 +37,7 @@ The nuclear→quark combustion front project. **This is the only page loaded by 
 | Page | What it settles |
 |---|---|
 | [[phase-velocity-overview]] | Analytical and numerical solver APIs, including the local-fraction isothermal BVP, units, and the editing restriction |
+| [[pnm-density-state-recovery]] | Direct fixed-density upstream PNM recovery replaces the analytical isothermal solver's broad chemical-potential scan |
 | [[unmax-degeneracy]] | At $T(0^+)=0$, `jB` is a non-Lipschitz continuum — `success=True` proves nothing |
 | [[unmax-low-temperature]] | The `logT`→$T^2$ fix (landed) and the $n_K$-resolution limit (open) |
 | [[thermal-conducting]] | $T$ as a propagated field; $a(0^+)$ becomes an output; six debugging facts |
@@ -45,7 +46,7 @@ The nuclear→quark combustion front project. **This is the only page loaded by 
 ## Methods
 
 - [[steady-front-bvp]] — the physical-$n_K,J_K$ reaction-diffusion BVPs, flux eigenvalues, EOS reconstruction and compactification.
-- [[isothermal-contour-cluster]] — one-command all-CPU scan with boundary/domain/analytical/numerical point bars, checkpoint-before-increment ordering, shell continuation, and hard timeouts.
+- [[isothermal-contour-cluster]] — 30-by-20 elliptical-polar isothermal mesh between ray-traced coexistence and $a(0^+)=1$ boundaries, with outward-shell continuation and pointwise checkpoints.
 - [[two-block-contour-scans]] — the adaptive mesh every contour uses, the 80 MeV seam, and why blocks are never concatenated.
 
 ## Paper

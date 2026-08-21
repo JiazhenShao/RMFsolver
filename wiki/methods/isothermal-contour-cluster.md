@@ -1,5 +1,5 @@
 ---
-summary: One run_isothermal_all.py command uses the allocated CPUs for pointwise-checkpointed domain, analytical, and physical-nK/jK contour stages.
+summary: The isothermal contour uses the 26-08-18 elliptical-polar 30-by-20 mesh between the delta-muB=0 and a(0+)=1 ray-traced boundaries.
 status: current
 updated: 2026-08-20
 tags: [method, cluster, contour, isothermal]
@@ -7,58 +7,87 @@ tags: [method, cluster, contour, isothermal]
 
 # Isothermal contour cluster workflow
 
-`new_paper_calculations/26-08-19/` is the cluster-ready workflow for comparing `analytic_velocity_isothermal` with the exact `solve_front_isothermal` BVP on identical thermodynamic-maximum coordinates.
-From that directory, its production entry point is simply `python3 run_isothermal_all.py`.
-It takes the scheduler CPU allocation, or all locally available CPUs, and runs domain preparation, analytical cells, numerical composition shells, and plotting sequentially.
+`new_paper_calculations/26-08-20/` compares `analytic_velocity_isothermal` with the physical-$n_K,J_K$ `solve_front_isothermal` BVP at identical physical points.
+From that directory the production entry point is `python3 run_isothermal_all.py`.
+The launcher uses the scheduler CPU allocation, or all locally available CPUs, and executes domain preparation, the analytical contour, outward-shell numerical continuation, and plotting in order.
 
-## Boundary-fitted domain
+## Elliptical-polar domain
 
-The production moving grid has 30 positive temperatures from $0.01$ to $120$ MeV and 20 targets uniformly spaced over $0.01\leq a(0^+)\leq0.99$.
-The separate phase-curve axis also includes exactly $T=0$; no moving solver is called there.
-
-The lower boundary is PNM--equilibrated-quark coexistence at common $(P,T,\mu_B)$ and $\mu_K=0$.
-The upper boundary is the strangeness-free interface state with $n_s(0^+)=0$.
-For each interior target, the domain stage inverts the live `_solve_a_0plus_max` result between those boundaries rather than copying its closure:
+The production calculation uses the same coordinate window and mesh structure as the 26-08-18 energy-conserving cluster workflow:
 
 $$
-P(0^+)=P(0^-),\qquad
-a(0^+)=\frac{n_K(0^+)}{n_B(0^+)},\qquad
-\mu_B(0^-)=\mu_B(0^+)+a(0^+)\mu_K(0^+).
+1\leq \frac{n_B(0^-)}{n_0}\leq5.5,
+\qquad
+0.01\ {\rm MeV}\leq T(0^-)\leq120\ {\rm MeV}.
 $$
 
-Both public velocity calls omit `a_0plus`, independently recover `a_0plus_source="maximum"`, and must agree with the domain target within $10^{-7}$.
-This is the current **static-isobar thermodynamic ceiling**, not a two-eigenparameter finite-flux maximization.
-Near $a(0^+)=1$, the analytical speed and momentum-flux correction grow; the exact endpoint is a shaded boundary, not a velocity datum.
+The hidden dimensionless coordinates are
 
-## Execution and failure isolation
+$$
+X=\frac{n_B(0^-)/n_0-1}{4.5},
+\qquad
+Y=\frac{T(0^-)}{120\ {\rm MeV}},
+$$
 
-Analytical cells are independent, run in disposable spawned processes with a default 300-second hard limit, and checkpoint after every terminal result.
-The numerical stage advances in increasing-$a(0^+)$ shells, parallelizing only temperatures within a shell.
-Its deterministic baryon-current seeds use the preceding one or two composition shells, the same-cell analytical current, bounded multiplicative variants, nearby successful temperatures, and finally a density-scaled fallback.
+with $X=\rho\cos\theta$ and $Y=\rho\sin\theta$.
+The $\theta=0$ ray is clamped to $T(0^-)=0.01$ MeV because the transport microphysics does not accept exact zero temperature.
 
-Every numerical attempt runs in a disposable spawned process.
-The default hard limits are 180 seconds per attempt and 900 seconds per cell; timeout children are terminated, joined, and killed if necessary.
-Payload writes use temporary siblings plus `fsync` and atomic replacement.
-The parent process is the only payload writer: for each completed $(i,j)$ result it updates the in-memory record, atomically replaces the `.npy` file, and then advances `tqdm` by one.
-Consequently, the visible count never gets ahead of the recoverable checkpoint, and completion is counted per point rather than per temperature row or composition shell.
-The command displays five calculation bars in order: the stable-neutron-matter boundary, the $a(0^+)=1$ boundary, the 600-point domain grid, the 600-point analytical scan, and the 600-point numerical scan.
-Domain boundary continuation remains serial, while every independent grid stage uses the available CPU allocation; numerical temperature points are concurrent within each ordered composition shell.
-The domain stores a deterministic fingerprint over all phase boundaries, curvilinear coordinates, masks, axes, physical inputs, and live API signatures.
-Resume continues a partially checkpointed domain, rejects a mismatched fingerprint or solver-control set, and skips every terminal cell.
-The domain grid avoids process-pool semaphore limits by using coordinator threads that each launch one spawned inversion child, so the requested CPU allocation remains usable on restricted cluster nodes.
+Twelve endpoint-inclusive Chebyshev angular rays trace both boundaries.
+The inner radius is the PNM--equilibrated-quark coexistence root $\Delta\mu_B=0$ at common pressure and temperature with $\mu_K(\infty)=0$.
+The outer radius is the $a(0^+)=1$ Gibbs-balance root.
+Both residuals reuse the same upstream nuclear state at each radial probe.
 
-Only finite `task_status="success"` cells enter contours.
-Stable-PNM classifications, coexistence disagreement, analytical validity gates, ceiling saturation, exact-model mismatch, non-finite BVP diagnostics, exceptions, solver failures, and timeouts remain explicit masks; no failure becomes zero or infinity.
-The returned proper velocity is converted for plotting as
+The contour interpolates those boundary radii onto 30 endpoint-inclusive uniformly spaced rays.
+Its 20 outward radial fractions are exactly
+
+```text
+0.02, 0.06, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.45,
+0.50, 0.55, 0.60, 0.66, 0.72, 0.78, 0.84, 0.90, 0.95, 0.99
+```
+
+For ray $i$ and fraction $s_j$,
+
+$$
+\rho_{ij}=\rho_{\rm inner}(\theta_i)
++s_j\left[\rho_{\rm outer}(\theta_i)-\rho_{\rm inner}(\theta_i)\right].
+$$
+
+Mapping $\rho_{ij},\theta_i$ back to physical variables gives 600 points directly.
+The domain no longer constructs a fixed-$T$ by fixed-$a(0^+)$ grid and no longer inverts `_solve_a_0plus_max` to place a point.
+Both public velocity calls omit `a_0plus`; each solver determines and records its thermodynamic maximum composition at the physical mesh point.
+
+## Boundary and source fail-fast rules
+
+Every requested ray must have exactly one finite root for each boundary, and the $a(0^+)=1$ radius must lie outside the coexistence radius.
+Any missing, duplicate, reversed, or non-finite boundary aborts domain construction before the analytical or numerical contour begins.
+The calculation window itself enforces $n_B(0^-)/n_0\geq1$; neither solver calls nor the plot include lower density.
+
+⚠ The first production payload used the superseded fixed-temperature/fixed-composition domain and was invalid.
+Its stage subprocesses imported a stale installed `RMFsolver`, producing 460 `ceiling_inversion_failed` cells and 140 `no_allowed_band` cells; both 600-point velocity stages then pre-masked every cell and finished immediately.
+Schema version 3 rejects those payloads.
+Every stage now prepends the repository checkout to its import path, the launcher propagates that path through `PYTHONPATH`, and payload metadata records the resolved `phase_velocity.py` file.
+The boundary residual and ray-root implementation is contained in `26-08-20/_isothermal_domain.py`; spawned workers do not import the workspace-level `isothermal_domain_rays` prototype.
+
+## Execution and checkpointing
+
+The displayed calculation bars are the stable-neutron-matter boundary rays, the $a(0^+)=1$ boundary rays, the 600-point polar mesh, the 600-point analytical scan, and the 600-point numerical scan.
+Each boundary worker returns both residual roots for one ray; the parent checkpoints that ray before advancing both boundary bars.
+For every mesh or velocity cell the parent updates the in-memory payload, atomically replaces the `.npy` file, and only then advances `tqdm` by one.
+Worker processes never write the shared payload.
+
+Analytical cells are independent spawned processes with a default 300-second hard limit.
+The numerical stage advances through the 20 radial-fraction shells from the inner boundary outward and parallelizes the 30 angular rays inside each shell.
+Its deterministic $j_B$ seeds use the preceding one or two radial shells on the same ray, the same-cell analytical current, bounded multiplicative variants, nearby successful rays in the current shell, and a density-scaled fallback.
+Each BVP attempt has a 180-second default hard limit and each physical cell a 900-second total budget.
+
+The domain fingerprint covers the polar axes, both boundaries, physical coordinate grids, physics inputs, and live API signatures.
+Resume continues partial boundary or mesh construction and skips terminal analytical and numerical cells, while rejecting changed coordinates, source signatures, physics, or solver controls.
+Only finite `task_status="success"` velocities enter a contour; no failure becomes zero or infinity.
+
+The plotted ordinary velocity is
 
 $$
 v=c\frac{u(0^-)}{\sqrt{1+u^2(0^-)}}.
 $$
 
-## Verified smoke result
-
-The 2026-08-20 three-temperature by three-composition smoke run produced 9 ordered interior domain cells and 9 successful analytical cells.
-The maximum composition inversion residual was $4.6\times10^{-12}$, every moving analytical record had $\Delta\mu_B<0$, and the speed conversion agreed exactly to printed precision.
-With deliberately reduced 20-second attempt and 40-second cell limits, all 9 exact BVP cells ended as structured `cell_timeout` masks; later shells still ran and the comparison figure completed without infinity.
-
-See [[isothermal-analytic-front-speed]] for the physics and [[phase-velocity-overview]] for the public API contracts.
+See [[isothermal-analytic-front-speed]] for the physics and [[phase-velocity-overview]] for the public APIs.

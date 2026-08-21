@@ -1,7 +1,7 @@
 ---
 summary: The fixed-temperature speed uses the local K fraction, a hydro-consistent finite-flux eigenvalue, and a fixed-(P,T) Delta-muB mask for stable neutron matter.
 status: current
-updated: 2026-08-20
+updated: 2026-08-21
 tags: [physics, analytic, front-speed, isothermal]
 ---
 
@@ -32,6 +32,9 @@ Pure neutron matter has $a(x<0)=1$ because $n_K=(n_d-n_s)/2=n_B$ there.
 The sharp interface does not require $a(0^+)=a(0^-)$; only the K current is continuous, so conservation laws alone do not determine $a(0^+)$.
 The public solvers therefore either accept it from the caller or select the separate static-isobar thermodynamic ceiling described below.
 The factor $1-a(0^+)$ in the speed formula is the explicit use of $a(0^-)=1$ in that current jump.
+
+`analytic_velocity_isothermal` obtains the supplied upstream PNM state directly at fixed $n_B(0^-)$ and reuses the accepted RMF solution for $\mu_B(0^-)$, $P(0^-)$, and $e(0^-)$.
+It does not perform the former broad $\mu_B$ scan; branch safety now comes from scaled-residual rejection, two-seed agreement, and a final forward-density check as recorded in [[pnm-density-state-recovery]].
 
 Thus the equivalent explicitly temperature-dependent numerator is $a^2(0^+)+18\pi^2T^2/\mu_q^2$.
 The formula is exact in $I_2$ within the stated cubic-plus-linear weak-rate reduction; $\xi$ is the only conversion-profile input.
