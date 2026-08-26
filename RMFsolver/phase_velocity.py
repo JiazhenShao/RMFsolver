@@ -1305,9 +1305,75 @@ def _validated_pnm_state_from_nB(nB_0minus, T_0minus, param=para.paraQMCRMF3):
                 * max(abs(muB_0minus), abs(other["muB_0minus"]), 1.0)
             )
             if sigma_agrees and muB_agrees:
-                agreed = min(
+                proposed = min(
                     (candidate, other),
                     key=lambda item: item["scaled_residual"],
+                )
+                proposed_solution = proposed["solution"]
+                recovered_nB_0minus = float(
+                    np.asarray(baryon_density_RMF(proposed_solution)).item()
+                )
+                density_relative_residual = float(
+                    recovered_nB_0minus / nB_0minus - 1.0
+                )
+                if (
+                    (not np.isfinite(recovered_nB_0minus))
+                    or recovered_nB_0minus <= 0.0
+                    or abs(density_relative_residual) > density_rtol
+                ):
+                    reasons.append(
+                        "agreed branch failed forward-density validation: "
+                        f"relative residual {density_relative_residual:.3e} exceeds "
+                        f"{density_rtol:.1e}"
+                    )
+                    break
+                P_0minus = float(
+                    np.asarray(
+                        pressure_RMF(
+                            proposed_solution,
+                            add_photons=False,
+                            renorm=False,
+                            electrons=False,
+                            neutrinos=False,
+                        )
+                    ).item()
+                )
+                if (not np.isfinite(P_0minus)) or P_0minus <= 0.0:
+                    reasons.append(
+                        "agreed branch rejected for non-positive pressure "
+                        f"P_0minus={P_0minus:.6e}"
+                    )
+                    break
+                e_0minus = float(
+                    np.asarray(
+                        edens_RMF(
+                            proposed_solution,
+                            add_photons=False,
+                            renorm=False,
+                            electrons=False,
+                            neutrinos=False,
+                        )[1]
+                    ).item()
+                )
+                h_0minus = float(P_0minus + e_0minus)
+                if (not np.isfinite(e_0minus)) or (not np.isfinite(h_0minus)):
+                    reasons.append("agreed branch returned non-finite thermodynamics")
+                    break
+                if h_0minus <= 0.0:
+                    reasons.append(
+                        "agreed branch rejected for non-positive enthalpy "
+                        f"h_0minus={h_0minus:.6e}"
+                    )
+                    break
+                agreed = dict(proposed)
+                agreed.update(
+                    {
+                        "nB_0minus": recovered_nB_0minus,
+                        "density_relative_residual": density_relative_residual,
+                        "P_0minus": P_0minus,
+                        "e_0minus": e_0minus,
+                        "h_0minus": h_0minus,
+                    }
                 )
                 break
         if agreed is not None:
@@ -1328,51 +1394,11 @@ def _validated_pnm_state_from_nB(nB_0minus, T_0minus, param=para.paraQMCRMF3):
             + "; ".join(reasons)
         )
 
-    solution = agreed["solution"]
-    recovered_nB_0minus = float(np.asarray(baryon_density_RMF(solution)).item())
-    density_relative_residual = float(
-        recovered_nB_0minus / nB_0minus - 1.0
-    )
-    if (
-        (not np.isfinite(recovered_nB_0minus))
-        or recovered_nB_0minus <= 0.0
-        or abs(density_relative_residual) > density_rtol
-    ):
-        raise RuntimeError(
-            "Direct PNM density solve failed its forward-density validation: "
-            f"relative residual {density_relative_residual:.3e} exceeds "
-            f"{density_rtol:.1e}"
-        )
-
-    P_0minus = float(
-        np.asarray(
-            pressure_RMF(
-                solution,
-                add_photons=False,
-                renorm=False,
-                electrons=False,
-                neutrinos=False,
-            )
-        ).item()
-    )
-    e_0minus = float(
-        np.asarray(
-            edens_RMF(
-                solution,
-                add_photons=False,
-                renorm=False,
-                electrons=False,
-                neutrinos=False,
-            )[1]
-        ).item()
-    )
-    h_0minus = float(P_0minus + e_0minus)
-    if not np.all(np.isfinite([P_0minus, e_0minus, h_0minus])):
-        raise RuntimeError("Direct PNM density solve returned non-finite thermodynamics")
-    if P_0minus <= 0.0:
-        raise RuntimeError("Direct PNM density solve returned non-positive pressure")
-    if h_0minus <= 0.0:
-        raise RuntimeError("Direct PNM density solve returned non-positive enthalpy")
+    recovered_nB_0minus = float(agreed["nB_0minus"])
+    density_relative_residual = float(agreed["density_relative_residual"])
+    P_0minus = float(agreed["P_0minus"])
+    e_0minus = float(agreed["e_0minus"])
+    h_0minus = float(agreed["h_0minus"])
 
     return {
         "muB_0minus": float(agreed["muB_0minus"]),

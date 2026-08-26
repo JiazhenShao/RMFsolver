@@ -22,10 +22,10 @@ The direct fixed-density validator:
 2. rejects non-finite states and equation residuals;
 3. scales the four RMF equation residuals by the requested density and rejects an infinity norm above $10^{-6}$;
 4. requires positive $\sigma(0^-)$ and $\mu_B(0^-)$;
-5. requires two accepted seeds to agree on both $\sigma(0^-)$ and $\mu_B(0^-)$ to relative tolerance $10^{-6}$;
-6. stops as soon as that agreement is found;
-7. evaluates the forward density, pressure, and energy density from the accepted RMF solution table without another mean-field solve;
-8. requires the reconstructed density to match the requested $n_B(0^-)$ within $2\times10^{-6}$ relatively.
+5. requires two candidate seeds to agree on both $\sigma(0^-)$ and $\mu_B(0^-)$ to relative tolerance $10^{-6}$;
+6. evaluates the agreeing branch's forward density, pressure, and energy density from its RMF solution table without another mean-field solve;
+7. rejects that agreement and continues through the remaining seeds unless the reconstructed density matches within $2\times10^{-6}$ relatively and both pressure and enthalpy are positive;
+8. stops at the first agreeing branch that passes those thermodynamic checks.
 
 The public analytical result records `sigma_0minus`, `upstream_rmf_scaled_residual`, `upstream_density_relative_residual`, and `upstream_seed_count`.
 
@@ -38,6 +38,10 @@ For $B^{1/4}=189.1566$ MeV and $\xi=-0.5$:
 
 The corresponding velocities agree with the former scan-based values to better than $4\times10^{-8}$ relatively.
 The analytical contour holes previously labeled `timeout` were therefore execution artifacts, not failures of the isothermal velocity formula.
+
+An additional seed-ordering regression occurred at $T(0^-)=62.20097$ MeV and $n_B(0^-)=1.38240n_0$.
+Seeds two and three agreed on a collapsed $\sigma(0^-)=178.26$ MeV branch with negative pressure before seed four could corroborate the physical $\sigma(0^-)=36.42$ MeV branch found by seed one.
+Thermodynamic validation is now part of branch acceptance rather than a fatal check after early termination; the state returns $\mu_B(0^-)=962.0164$ MeV and positive $P(0^-)=1.4226\times10^8\ \mathrm{MeV}^4$ after four seeds.
 
 ⚠ This change does not repair the low-temperature quadrature or disabled root-success checks inside `Solver.py`; it removes the broad scan that repeatedly exposed them from the analytical isothermal path.
 The older `muB_from_nB_physical` helper remains available for callers that explicitly need chemical-potential-axis inversion.

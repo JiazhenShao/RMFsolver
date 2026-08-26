@@ -1,7 +1,7 @@
 ---
-summary: The isothermal contour uses the 26-08-18 elliptical-polar 30-by-20 mesh between the delta-muB=0 and a(0+)=1 ray-traced boundaries.
+summary: The restored analytical isothermal contour keeps 600 cells, uses a 0.01-to-20-degree logarithmic angular block, and solves each boundary on 24 Chebyshev rays.
 status: current
-updated: 2026-08-20
+updated: 2026-08-26
 tags: [method, cluster, contour, isothermal]
 ---
 
@@ -11,7 +11,43 @@ tags: [method, cluster, contour, isothermal]
 From that directory the production entry point is `python3 run_isothermal_all.py`.
 The launcher uses the scheduler CPU allocation, or all locally available CPUs, and executes domain preparation, the analytical contour, outward-shell numerical continuation, and plotting in order.
 
-## Elliptical-polar domain
+## Current 26-08-25 analytical workflow
+
+`new_paper_calculations/26-08-25/isothermal_analytic/` now uses the successful 26-08-20 domain and analytical execution code as its baseline.
+Only the angular sampling changed; its EOS calls, worker execution, root logic, checkpointing, physical window, and radial fractions remain on that baseline.
+It retains the 20 established radial fractions and 30 angular rays, hence 600 physical cells.
+
+The angular axis is now piecewise: an exact $0^\circ$ ray, 15 positive logarithmic points from $0.01^\circ$ through $20^\circ$, and 14 linear points above $20^\circ$ through $90^\circ$.
+The exact $0^\circ$ ray remains clamped to $T(0^-)=0.01$ MeV.
+The $20^\circ$ seam appears exactly once.
+
+Both the $\Delta\mu_B=0$ and $a(0^+)=1$ boundaries retain the endpoint-clustered Chebyshev construction but increase from 12 to 24 directly solved rays.
+Their radii are interpolated onto the 30 contour rays for mesh construction.
+Schema 4 and the domain fingerprint reject the earlier uniform 30-ray contour axis and 12-ray boundary checkpoints.
+The parent atomically checkpoints each boundary ray, domain cell, and analytical cell before advancing its pointwise progress bar.
+The default physics remains $B^{1/4}=189.1565957288247$ MeV, $\xi=-0.5$, $m_s=0$, `NM_type="PNM"`, and `upB=5000`.
+
+⚠ The deleted experimental 26-08-25 implementation used 61 piecewise boundary rays and a different persistent-worker/direct-density path.
+It is superseded by the restored 26-08-20 baseline described above; do not infer its execution behavior from the retained historical log entries.
+
+## 26-08-25 numerical-only rerun
+
+`new_paper_calculations/26-08-25/isothermal_numeric/` reuses the completed 600-cell `isothermal-domain.npy` directly and does not execute domain construction.
+Its single production command is `python3 run_isothermal_numerical.py`.
+The sibling `../isothermal_analytic/isothermal-analytic.npy` is used only for per-cell baryon-current seeds; every numerical endpoint state, automatic composition ceiling, and BVP is independently recomputed by `solve_front_isothermal`.
+
+The numerical stage advances through increasing radial shells so a ray's accepted baryon current seeds the next shell, while angular rays within a shell run concurrently on the scheduler allocation.
+Each BVP attempt remains isolated behind a hard timeout, and the parent atomically writes `isothermal-numerical.npy` before incrementing the 600-point progress bar.
+The numerical-only rerun uses the public solver's current `tail_eps=1e-3` default rather than the copied historical `1e-8` cluster override.
+Resume reuses all terminal cells and rejects changed controls, axes, physics, live API signatures, or domain fingerprints.
+
+⚠ A four-corner production-configuration smoke test on 2026-08-26 found that this numerical rerun is not yet cluster-ready.
+Only the high-angle inner corner completed its first trial, in 71.9 s; two corners hit the 180 s trial limit and the low-temperature outer corner failed after 154.9 s.
+The root cause is in the live numerical solver rather than domain construction: every trial repeats two upstream fixed-density RMF solves and the obsolete 48-point branch-validated $\mu_B$ scan before starting the BVP.
+At $T(0^-)=0.01$ MeV those repeated RMF iterates exercise the difficult finite-temperature quadratures at `Solver.py:223` and `Solver.py:341`, producing the observed warning flood.
+See [[known-issues]] for the measurements, candidate amplification, and the separate outer-corner current-bound mismatch.
+
+## 26-08-20 matched analytical--numerical domain
 
 The production calculation uses the same coordinate window and mesh structure as the 26-08-18 energy-conserving cluster workflow:
 
@@ -75,7 +111,7 @@ Each boundary worker returns both residual roots for one ray; the parent checkpo
 For every mesh or velocity cell the parent updates the in-memory payload, atomically replaces the `.npy` file, and only then advances `tqdm` by one.
 Worker processes never write the shared payload.
 
-Analytical cells are independent spawned processes with a default 300-second hard limit.
+In the 26-08-20 matched analytical--numerical workflow, analytical cells remain independent spawned processes with a default 300-second hard limit.
 The numerical stage advances through the 20 radial-fraction shells from the inner boundary outward and parallelizes the 30 angular rays inside each shell.
 Its deterministic $j_B$ seeds use the preceding one or two radial shells on the same ray, the same-cell analytical current, bounded multiplicative variants, nearby successful rays in the current shell, and a density-scaled fallback.
 Each BVP attempt has a 180-second default hard limit and each physical cell a 900-second total budget.

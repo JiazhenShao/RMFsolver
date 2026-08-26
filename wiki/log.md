@@ -1,7 +1,7 @@
 ---
 summary: Append-only chronology of wiki operations. Grep the "## [" prefix for a timeline.
 status: current
-updated: 2026-08-17
+updated: 2026-08-26
 tags: [meta, log]
 ---
 
@@ -182,3 +182,53 @@ The new path rejects bad scaled RMF residuals, requires two seeds to agree on bo
 The former cold and hot-low-density timeout examples now complete in $0.78$ s and $0.14$ s instead of $102.8$ s and $65.9$ s locally, while reproducing the scan-based velocities to better than $4\times10^{-8}$ relatively.
 Added public upstream diagnostics and regression coverage for scan removal, residual rejection, branch agreement, forward-density validation, existing analytical behavior, numerical isolation, and the 26-08-20 cluster workflow.
 The remaining low-temperature quadrature and disabled root-success checks in `Solver.py` are documented but were not changed.
+
+## [2026-08-24] revise | Isothermal analytical density-drift approximation
+
+Replaced the manuscript's explicit $\mathcal C(a)$ correction with a direct numerical error estimate for the representative $T=10$ MeV, $n_B(0^-)=3n_0$, $B^{1/4}=189.2$ MeV profile.
+Along its fixed-$(P,T)$ isobar, $\mu_B$ and $n_B$ each increase by about $0.24\%$, and $a'\simeq n_K'/n_B$ differs from the exact local-fraction derivative by at most $0.47\%$.
+
+## [2026-08-25] implement | Piecewise-angular analytical isothermal cluster workflow
+
+Added the source-only `new_paper_calculations/26-08-25/isothermal_analytic/` workflow with a one-command domain, analytical scan, and plotting sequence and no numerical BVP stage.
+The production contour retains 600 cells but replaces the uniform angular axis by an exact zero-degree ray, 15 logarithmic points from $0.01^\circ$ through $20^\circ$, and 14 linear points above the seam through $90^\circ$.
+Both the $\Delta\mu_B=0$ and $a(0^+)=1$ boundaries are now solved directly on 61 piecewise rays, and schema 4 fingerprints the angular-grid metadata while preserving atomic pointwise checkpoints and resume rejection.
+
+## [2026-08-25] fix | Analytical cluster removed obsolete chemical-potential scans
+
+Replaced the 26-08-25 boundary residual's copied `muB_from_nB_physical` scan with the same direct fixed-$n_B(0^-)$ branch-validated PNM recovery used by `analytic_velocity_isothermal`, reusing its accepted $\mu_B(0^-)$ and $P(0^-)$ without a duplicate upstream solve.
+Removed the narrow and broad scan machinery that could probe forbidden RMF states and changed both boundary rays and analytical cells from thread-plus-disposable-child execution to persistent process pools.
+Schema 5 and the v2 run tag invalidate partial payloads from the expensive implementation; atomic parent-side checkpoint-before-progress behavior is unchanged.
+
+## [2026-08-25] fix | Fixed-density PNM agreement now rejects collapsed thermodynamic branches
+
+Reproduced the cluster boundary crash at $T(0^-)=62.20097$ MeV and $n_B(0^-)=1.38240n_0$ and traced it to seed ordering inside `_validated_pnm_state_from_nB`.
+Seeds two and three agreed on a collapsed $\sigma(0^-)=178.26$ MeV branch with negative pressure, causing an early stop before seed four corroborated the physical $\sigma(0^-)=36.42$ MeV positive-pressure branch found by seed one.
+Branch agreement now validates forward density, pressure, and enthalpy before terminating the seed search; the exact former failure returns a moving front in 0.44 s with four seeds.
+The 26-08-25 cluster schema is now 6 so partial results from the faulty branch-selection rule cannot resume.
+
+## [2026-08-25] revise | Analytical cluster restored to the successful 26-08-20 baseline
+
+The experimental 26-08-25 domain and analytical execution code was deleted and replaced by the successful 26-08-20 implementation.
+The restored workflow changes only angular sampling: both Chebyshev boundary axes increase from 12 to 24 directly solved rays, while the 30-ray analytical mesh uses an exact zero-degree ray, 15 logarithmic positive angles from $0.01^\circ$ through $20^\circ$, and 14 linear angles above the unique seam through $90^\circ$.
+The 20 radial fractions and 600-cell total are unchanged; schema 4 rejects the previous uniform-angular checkpoints.
+
+## [2026-08-25] derive | Isothermal static-isobar maximum-speed formula
+
+Substituted the Taylor static-isobar ceiling for $a_{\max}(0^+)$ into the positive analytical isothermal speed branch and verified the algebra with Wolfram Language.
+The resulting expression retains the full $D_K(T,\mu_q)$ and thermal weak-rate term; its Eq.-(31)-style Landau-damped form has a $98.3\ {\rm m\,s^{-1}}$ coefficient when $\alpha_s^{-5/6}$ is explicit, equivalently $268.1\ {\rm m\,s^{-1}}$ at $\alpha_s=0.3$.
+For the massless bag EOS, the ceiling reduces to $a_{\max}^2(0^+)\simeq9[\mu_B(0^-)-\mu_B(\infty)]\,[\mu_B^2(\infty)+3\pi^2T^2]/\{\mu_B(\infty)[\mu_B^2(\infty)+9\pi^2T^2]\}$.
+
+## [2026-08-26] implement | Numerical-only piecewise-angular isothermal cluster rerun
+
+Converted the copied `new_paper_calculations/26-08-25/isothermal_numeric/` analytical runner into `run_isothermal_numerical.py` and fixed its repository-root discovery for the extra subdirectory depth.
+The runner reuses the completed local domain and the sibling analytical payload only for baryon-current seeds, then calls the existing radial-shell numerical stage backed by `solve_front_isothermal`.
+It preserves scheduler-wide angular parallelism, disposable trial timeouts, save-before-progress pointwise checkpoints, structured terminal failures, and resume validation while aligning `tail_eps=1e-3` with the current public solver default.
+
+## [2026-08-26] diagnose | Numerical isothermal corner smoke exposed obsolete upstream scan
+
+Ran one production-configured numerical trial at each corner of the 30-by-20 allowed-domain mesh.
+The high-angle inner corner converged in 71.9 s, the low-temperature outer corner failed after 154.9 s, and the other two corners reached the 180 s hard trial limit.
+Traced the initial stall and `Solver.py:223/341` warning flood to `solve_front_isothermal` repeating two fixed-density upstream RMF solves plus the obsolete 48-point branch-validated chemical-potential scan for every baryon-current candidate; this work occurs before the BVP and is independent of the trial current.
+Also found that the low-temperature outer analytical seed is clipped from $6.38\times10^4$ to $6.48\times10^2$ by the wrapper's global current bound.
+No solver behavior was changed in this diagnostic pass.

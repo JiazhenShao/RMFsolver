@@ -1,7 +1,7 @@
 ---
 summary: Catalog of every wiki page. Read this first; drill down from here.
 status: current
-updated: 2026-08-21
+updated: 2026-08-26
 tags: [meta, index]
 ---
 
@@ -21,7 +21,8 @@ The nuclear→quark combustion front project. **This is the only page loaded by 
 |---|---|
 | [[diffusion-limited-front]] | Physical regime, assumptions, fluxes, variables and boundary conditions |
 | [[analytic-front-speed]] | Constant-background speed estimate, scaling, layer thickness and formal endpoint limits |
-| [[isothermal-analytic-front-speed]] | Fixed-$T$ speed, the density-ratio-correct local-fraction current jump, the $\Delta\mu_B$ gate, and the exact physical-$n_K,J_K$ BVP |
+| [[isothermal-analytic-front-speed]] | Fixed-$T$ speed, the local-fraction current jump, and the sub-percent fixed-isobar density-drift approximation |
+| [[isothermal-maximum-speed]] | Static-isobar composition ceiling, maximum-speed substitution, and the low-$T$ $T^{-5/6}a_{\max}^2(0^+)$ scaling |
 | [[front-speed-phenomenology]] | Fixed-$T(0^+)$ numerical contour, zero-speed boundary, and tail-dominated $z(t)$ evolution |
 | [[quark-matter-eos]] | Bag-model EOS, chemical-potential basis and quadratic analytic expansion |
 | [[strangeness-reaction-diffusion]] | Weak source, flavor diffusion, and the phenomenological status of $\alpha_s=0.3$ |
@@ -41,12 +42,12 @@ The nuclear→quark combustion front project. **This is the only page loaded by 
 | [[unmax-degeneracy]] | At $T(0^+)=0$, `jB` is a non-Lipschitz continuum — `success=True` proves nothing |
 | [[unmax-low-temperature]] | The `logT`→$T^2$ fix (landed) and the $n_K$-resolution limit (open) |
 | [[thermal-conducting]] | $T$ as a propagated field; $a(0^+)$ becomes an output; six debugging facts |
-| [[known-issues]] | Finite-$m_s$ isothermal cost, superseded strict-retry history, GIL-bound "parallel" cells, and bisection asymmetry |
+| [[known-issues]] | Numerical-isothermal obsolete PNM scan, cold quadrature, finite-$m_s$ cost, GIL-bound cells, and bisection asymmetry |
 
 ## Methods
 
 - [[steady-front-bvp]] — the physical-$n_K,J_K$ reaction-diffusion BVPs, flux eigenvalues, EOS reconstruction and compactification.
-- [[isothermal-contour-cluster]] — 30-by-20 elliptical-polar isothermal mesh between ray-traced coexistence and $a(0^+)=1$ boundaries, with outward-shell continuation and pointwise checkpoints.
+- [[isothermal-contour-cluster]] — Piecewise-angular 600-cell isothermal domain, analytical workflow, and numerical-only shell-continuation rerun with pointwise checkpoints.
 - [[two-block-contour-scans]] — the adaptive mesh every contour uses, the 80 MeV seam, and why blocks are never concatenated.
 
 ## Paper

@@ -1,7 +1,7 @@
 ---
-summary: The fixed-temperature speed uses the local K fraction, a hydro-consistent finite-flux eigenvalue, and a fixed-(P,T) Delta-muB mask for stable neutron matter.
+summary: The fixed-temperature speed uses the local K fraction; along the representative isobar, neglecting the baryon-density derivative changes a' by at most 0.47%.
 status: current
-updated: 2026-08-21
+updated: 2026-08-25
 tags: [physics, analytic, front-speed, isothermal]
 ---
 
@@ -38,6 +38,14 @@ It does not perform the former broad $\mu_B$ scan; branch safety now comes from 
 
 Thus the equivalent explicitly temperature-dependent numerator is $a^2(0^+)+18\pi^2T^2/\mu_q^2$.
 The formula is exact in $I_2$ within the stated cubic-plus-linear weak-rate reduction; $\xi$ is the only conversion-profile input.
+The static-isobar Taylor ceiling and its substituted maximum-speed expression are derived in [[isothermal-maximum-speed]].
+
+## Fixed-isobar density drift
+
+At fixed $(P,T)$, Gibbs--Duhem gives $d\mu_B/d\mu_K=-n_K/n_B=-a$.
+For the representative profile with $T=10$ MeV, $n_B(0^-)=3n_0$, $B^{1/4}=189.2$ MeV, and $a(0^+)=0.146$, both $\mu_B$ and $n_B$ rise by about $0.24\%$ between $0^+$ and infinity.
+The exact local-fraction derivative is $a'=n_K'/n_B-a n_B'/n_B$.
+Using $a'\simeq n_K'/n_B$ changes the derivative by at most $0.47\%$ along this trajectory, which supports dropping the density-derivative correction in the body of the analytical treatment.
 
 ## Integrated K-ness equation
 
