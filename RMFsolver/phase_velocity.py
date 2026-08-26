@@ -3842,9 +3842,15 @@ def _isothermal_upstream_nuclear_state(T, nB_0minus, param, NM_type):
     nB_0minus = float(nB_0minus)
     NM_type = str(NM_type)
 
+    direct_pnm_state = None
     if NM_type == "PNM":
-        P_0minus = float(PNM_n(nB_0minus, T, param=param, NM_type=NM_type))
-        e_0minus = float(edensNM_n(nB_0minus, T, param=param))
+        direct_pnm_state = _validated_pnm_state_from_nB(
+            nB_0minus,
+            T,
+            param=param,
+        )
+        P_0minus = float(direct_pnm_state["P_0minus"])
+        e_0minus = float(direct_pnm_state["e_0minus"])
         proton_fraction = 0.0
     elif NM_type in ("SYM", "Beta_eq"):
         if NM_type == "SYM":
@@ -3915,7 +3921,7 @@ def _isothermal_upstream_nuclear_state(T, nB_0minus, param, NM_type):
         raise RuntimeError("Upstream isothermal nuclear state is non-physical")
     if not (0.0 <= proton_fraction <= 1.0 and 0.0 < a_0minus <= 1.0):
         raise RuntimeError("Upstream nuclear composition is non-physical")
-    return {
+    result = {
         "P_0minus": P_0minus,
         "e_0minus": e_0minus,
         "h_0minus": float(P_0minus + e_0minus),
@@ -3924,6 +3930,16 @@ def _isothermal_upstream_nuclear_state(T, nB_0minus, param, NM_type):
         "a_0minus": a_0minus,
         "nK_0minus": float(a_0minus * nB_0minus),
     }
+    if direct_pnm_state is not None:
+        for key in (
+            "muB_0minus",
+            "sigma_0minus",
+            "upstream_rmf_scaled_residual",
+            "upstream_density_relative_residual",
+            "upstream_seed_count",
+        ):
+            result[key] = direct_pnm_state[key]
+    return result
 
 
 def _microphysics_from_quark_state_energy(muB, T, allow_zero_temperature=False):
@@ -5055,15 +5071,7 @@ def solve_front_isothermal(
     a_0plus_max = np.nan
     a_0plus_max_status = ""
     if a_0plus_is_auto:
-        muB_0minus_for_ceiling = float(
-            muB_from_nB_physical(
-                nB_0minus,
-                T,
-                param=param,
-                NM_type=NM_type,
-                auto_expand=True,
-            )
-        )
+        muB_0minus_for_ceiling = float(nuclear_state["muB_0minus"])
         ceiling = _solve_a_0plus_max(
             muB_0minus_for_ceiling,
             float(nuclear_state["P_0minus"]),

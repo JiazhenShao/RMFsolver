@@ -1,5 +1,5 @@
 ---
-summary: Live solver and performance traps, including the numerical isothermal path's obsolete PNM scan, cold quadrature, finite-ms cost, GIL-bound notebook threads, and asymmetric bisection depth.
+summary: Live solver and performance traps, including numerical-isothermal low-temperature recovery and current bounds, cold quadrature, finite-ms cost, GIL-bound threads, and asymmetric bisection depth.
 status: current
 updated: 2026-08-26
 tags: [solver, bugs, performance]
@@ -19,24 +19,26 @@ The cluster has emitted SciPy `IntegrationWarning` messages from the baryon-dens
 The analytical isothermal path no longer multiplies this problem through a broad chemical-potential scan; it uses the direct fixed-density validator in [[pnm-density-state-recovery]].
 The underlying `Solver.py` behavior remains open and must be fixed separately, with an explicit decision between a controlled low-temperature approximation and a stabilized exact finite-$T$ quadrature.
 
-## ⚠ The numerical isothermal auto-ceiling still repeats the obsolete PNM scan
+## Numerical isothermal auto-ceiling scan — fixed; BVP edge failures remain
 
-The physical-$n_K,J_K$ `solve_front_isothermal` path has not yet adopted the analytical solver's direct upstream recovery.
-For every baryon-current trial it first calls `_isothermal_upstream_nuclear_state`, which separately performs fixed-density RMF solves for $P(0^-)$ and $e(0^-)$, and then calls `muB_from_nB_physical(..., scan_points=48, auto_expand=True)` to recover $\mu_B(0^-)$ for the automatic composition ceiling.
-Every chemical-potential sample invokes the branch validator with as many as five RMF seeds.
-The entire upstream calculation is independent of the trial current, but is repeated for every fallback seed because each trial starts a fresh disposable process.
+Before 2026-08-26, every physical-$n_K,J_K$ `solve_front_isothermal` trial separately solved fixed-density PNM pressure and energy, then called `muB_from_nB_physical(..., scan_points=48, auto_expand=True)` to recover $\mu_B(0^-)$ for the automatic composition ceiling.
+Every chemical-potential sample invoked as many as five RMF seeds, even though the upstream state was independent of the trial current.
+The numerical solver now uses one `_validated_pnm_state_from_nB` result and reuses its $\mu_B(0^-)$, $P(0^-)$, and $e(0^-)$, matching the analytical path.
 
 A 2026-08-26 first-trial smoke test used the four corner cells of the 30-by-20 production domain.
 The high-angle inner cell at $T(0^-)=66.055$ MeV and $n_B(0^-)=n_0$ converged on its analytical current seed in 71.9 s; the corresponding analytical cell, which uses direct fixed-density recovery, had taken 2.49 s.
 The low-temperature outer cell failed after 154.9 s during nonlinear state recovery, while the low-temperature inner and high-angle outer cells exceeded the production 180 s trial limit.
-Thus the initial zero-progress interval and warning flood occur inside the first trial, before fallback-seed count can be the primary cause.
+This established that the original initial zero-progress interval and warning flood occurred inside the first trial, before fallback-seed count could be the primary cause.
+After the direct-state fix, the clean high-angle inner corner fell from 71.9 s to 4.18 s with the same velocity and no warnings.
+The low-temperature outer failure fell from 154.9 s to 54.9 s, but the low-temperature inner cell still failed after 111.5 s and the high-angle outer cell still exceeded 180 s.
+Those remaining failures occur after upstream recovery and must be diagnosed in the dynamic quark-state/BVP path.
 
 The cluster candidate list can still amplify the cost after that first failure: a first-shell cell has the analytical current, four multiplicative variants, and one density-scaled fallback, under a 900 s cell budget.
 There is also an independent low-temperature outer-corner bound problem: the analytical seed is $j_B=6.38\times10^4$, but the global `1e-4*nB_0minus` upper bound clips it to $6.48\times10^2$ before the BVP starts.
 This does not by itself prove the exact BVP eigenvalue, but it proves that the current cluster wrapper discards its intended best seed near $a(0^+)\to1$.
 
-The first repair should replace both numerical upstream paths with one `_validated_pnm_state_from_nB` result and reuse its $\mu_B(0^-)$, $P(0^-)$, and $e(0^-)$.
-Only after that root cause is removed should the fallback count and current bounds be retuned from measured BVP behavior.
+The upstream repair is complete.
+The next work is to diagnose the remaining dynamic-state failures and retune the current bounds from measured BVP behavior before reducing fallback count.
 
 ## Isothermal strict-retry issue — superseded
 

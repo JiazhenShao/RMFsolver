@@ -232,3 +232,10 @@ The high-angle inner corner converged in 71.9 s, the low-temperature outer corne
 Traced the initial stall and `Solver.py:223/341` warning flood to `solve_front_isothermal` repeating two fixed-density upstream RMF solves plus the obsolete 48-point branch-validated chemical-potential scan for every baryon-current candidate; this work occurs before the BVP and is independent of the trial current.
 Also found that the low-temperature outer analytical seed is clipped from $6.38\times10^4$ to $6.48\times10^2$ by the wrapper's global current bound.
 No solver behavior was changed in this diagnostic pass.
+
+## [2026-08-26] fix | Numerical isothermal upstream recovery now uses one direct PNM state
+
+Replaced `solve_front_isothermal`'s separate pressure and energy RMF solves plus its 48-point `muB_from_nB_physical` scan with one `_validated_pnm_state_from_nB` result.
+The automatic composition ceiling now reuses the accepted $\mu_B(0^-)$ and upstream thermodynamics, matching `analytic_velocity_isothermal`.
+The high-angle inner corner's first trial fell from 71.9 s to 4.18 s with the same $23.7242\ \mathrm{m\,s^{-1}}$ result and no warnings; the low-temperature outer failure fell from 154.9 s to 54.9 s.
+Three corner trials still fail or time out after upstream recovery, so dynamic quark-state recovery and the near-ceiling current bound remain separate open issues.

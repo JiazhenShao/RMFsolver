@@ -42,10 +42,10 @@ The numerical-only rerun uses the public solver's current `tail_eps=1e-3` defaul
 Resume reuses all terminal cells and rejects changed controls, axes, physics, live API signatures, or domain fingerprints.
 
 ⚠ A four-corner production-configuration smoke test on 2026-08-26 found that this numerical rerun is not yet cluster-ready.
-Only the high-angle inner corner completed its first trial, in 71.9 s; two corners hit the 180 s trial limit and the low-temperature outer corner failed after 154.9 s.
-The root cause is in the live numerical solver rather than domain construction: every trial repeats two upstream fixed-density RMF solves and the obsolete 48-point branch-validated $\mu_B$ scan before starting the BVP.
-At $T(0^-)=0.01$ MeV those repeated RMF iterates exercise the difficult finite-temperature quadratures at `Solver.py:223` and `Solver.py:341`, producing the observed warning flood.
-See [[known-issues]] for the measurements, candidate amplification, and the separate outer-corner current-bound mismatch.
+The first pass traced its initial stall to two redundant upstream RMF solves plus the obsolete 48-point branch-validated $\mu_B$ scan inside every BVP trial.
+The live numerical solver now uses and reuses one direct fixed-density PNM state; the clean high-angle inner corner fell from 71.9 s to 4.18 s with the same velocity.
+The repaired smoke still left two nonlinear state-recovery failures and one near-$a(0^+)=1$ timeout, including a low-temperature outer seed clipped downward by nearly a factor of 100.
+See [[known-issues]] for the measurements, remaining candidate amplification, and current-bound mismatch.
 
 ## 26-08-20 matched analytical--numerical domain
 

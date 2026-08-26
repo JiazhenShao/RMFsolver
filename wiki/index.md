@@ -42,7 +42,7 @@ The nuclear→quark combustion front project. **This is the only page loaded by 
 | [[unmax-degeneracy]] | At $T(0^+)=0$, `jB` is a non-Lipschitz continuum — `success=True` proves nothing |
 | [[unmax-low-temperature]] | The `logT`→$T^2$ fix (landed) and the $n_K$-resolution limit (open) |
 | [[thermal-conducting]] | $T$ as a propagated field; $a(0^+)$ becomes an output; six debugging facts |
-| [[known-issues]] | Numerical-isothermal obsolete PNM scan, cold quadrature, finite-$m_s$ cost, GIL-bound cells, and bisection asymmetry |
+| [[known-issues]] | Numerical-isothermal edge recovery and current bounds, cold quadrature, finite-$m_s$ cost, GIL-bound cells, and bisection asymmetry |
 
 ## Methods
 
