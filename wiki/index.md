@@ -1,7 +1,7 @@
 ---
 summary: Catalog of every wiki page. Read this first; drill down from here.
 status: current
-updated: 2026-08-26
+updated: 2026-09-09
 tags: [meta, index]
 ---
 
@@ -31,6 +31,7 @@ The nuclear→quark combustion front project. **This is the only page loaded by 
 | [[lte-composition-bound]] | $\beta_{\rm LTE}=5u(0^-)\lambda_n$, the exact-local-isobar correction, the coefficient trap |
 | [[interface-temperature-jump]] | The signed observable $\Delta T=T(0^-)-T_{\rm LTE}(0^+)$ and its payload contract |
 | [[quark-transport]] | HP93 coefficients — and why $\kappa_{\rm th}$ and $D_K$ do **not** share a relaxation time |
+| [[thermal-limits]] | Conductive energy balance, finite-flux isothermal limit, and the zero-cooling condition for adiabatic flow |
 | [[kapitza-resistance]] | The honest gap: $G_{\rm int}$ has no dense-matter literature value |
 
 ## Solvers
@@ -42,12 +43,12 @@ The nuclear→quark combustion front project. **This is the only page loaded by 
 | [[unmax-degeneracy]] | At $T(0^+)=0$, `jB` is a non-Lipschitz continuum — `success=True` proves nothing |
 | [[unmax-low-temperature]] | The `logT`→$T^2$ fix (landed) and the $n_K$-resolution limit (open) |
 | [[thermal-conducting]] | $T$ as a propagated field; $a(0^+)$ becomes an output; six debugging facts |
-| [[known-issues]] | Numerical-isothermal edge recovery and current bounds, cold quadrature, finite-$m_s$ cost, GIL-bound cells, and bisection asymmetry |
+| [[known-issues]] | Completed numerical-isothermal failure audit, edge recovery and current bounds, cold quadrature, finite-$m_s$ cost, GIL-bound cells, and bisection asymmetry |
 
 ## Methods
 
 - [[steady-front-bvp]] — the physical-$n_K,J_K$ reaction-diffusion BVPs, flux eigenvalues, EOS reconstruction and compactification.
-- [[isothermal-contour-cluster]] — Piecewise-angular 600-cell isothermal domain, analytical workflow, and numerical-only shell-continuation rerun with pointwise checkpoints.
+- [[isothermal-contour-cluster]] — Piecewise-angular 600-cell isothermal domain, analytical workflow, numerical shell continuation, and failed-cell-only normalized-BVP repair.
 - [[two-block-contour-scans]] — the adaptive mesh every contour uses, the 80 MeV seam, and why blocks are never concatenated.
 
 ## Paper

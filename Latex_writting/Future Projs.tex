@@ -1,0 +1,130 @@
+\documentclass[12pt]{article}
+\usepackage{enumitem}
+\usepackage{amsmath}
+\usepackage{geometry}
+\geometry{margin=1in}
+
+% Reduce spacing after \maketitle
+\usepackage{etoolbox}
+\makeatletter
+\renewcommand{\maketitle}{
+  \begin{center}
+    {\Large \@title \par}
+    \vskip 0.5em % space between title and date (reduce this as needed)
+    {\@date}
+  \end{center}
+  \vskip 0em % space after date before text
+}
+\makeatother
+
+\title{\Large List of Possible Future Projects}
+\date{\today}
+
+% Define shortcuts for bullet points
+\newcommand{\point}[1]{\vspace{1.2em}\noindent$\bullet$ \textbf{#1}\par}
+\newcommand{\subpoint}[1]{\vspace{0.3em}\noindent\hspace{1em}-- #1\par}
+
+\begin{document}
+
+\maketitle
+
+\point{Considering nucleation of SQM seed}
+\subpoint{Suppressed exponentially. Energy required to nucleate $\propto s R^3 + \sigma R^2$. The volume term is favored but the surface term is not, and when $R$ is small, the bubble isn't favored. So there's a critical radius $R_c$ above which bubbles can expand. The rate for a finite number of $s$ quarks to be created at the same time near each other is supressed exponentially by the number of strange quarks. }
+
+\point{Use more sophisticated models in different directions}
+\subpoint{Consider RMF models for NM (already done)}
+\subpoint{Use RMF-like model for QM.}
+
+\point{Generic picture \& post merger signals}
+\subpoint{NM $\rightarrow$ SQM transition will most likely be observed in post-merger signals once the SQM seed is nucleated in the high temperature environment of the inspiral event due to the fact of small $v_{N\to Q}\sim 10^1$(m/s)}
+
+\point{V-QCD and gauge/gravity modeling}
+\subpoint{Modeling in the non-perturbative region of QCD.}
+
+\point{Isospin and Urca processes}
+\subpoint{Consider isospin and Urca processes as well. Leading to two coupled differential equations}
+\subpoint{For two-flavor QM, Urca process is the only weak process. }
+
+\point{Processes ahead of the phase boundary}
+\subpoint{Are there any advanced processes happening ahead of the phase boundary?}
+
+\point{Breaking color superconductivity}
+\subpoint{Breaking color superconductivity Cooper pairs.}
+
+\point{Equation of State as a function of $T$}
+\subpoint{Consider EoS with non-zero temperature.}
+
+\point{SQM to NM transition with hyperons}
+\subpoint{Include hyperons in NM for the SQM to NM transition.}
+
+\point{Pressure assumption validity}
+\subpoint{$P_{Q^*} = P_Q = P_b$ is not a trivial assumption; it depends on the scale of the transition region. If it's larger, then maybe pressure can't be treated as constant.}
+
+\point{Assumptions on the direction of Kaon-ness isospin diffusion}
+\subpoint{Is it good to assume $a_N > a_{Q^*}$? When does this assumption break down?}
+
+\point{Improvement on Diffusion coefficient.}
+\subpoint{The $D_Q$ is a crude / sociologically acceptable approximation, indicate that calculating it using something like $\chi$EFT is worthwhile}
+
+\newpage
+
+\subsection*{Outline: NM $\to$ SQM Conversion in Neutron-Star Mergers}
+
+\paragraph{Goal.}
+\begin{itemize}
+    \item Construct a simplified, microphysics-based theory of NM $\to$ SQM conversion.
+    \item Derive conservative upper bounds on conversion speed.
+    \item Put in NSM conditions (two phases: inspiral/merger and post-merger)
+    \item Simplified enough/capture the dominant contribution.
+\end{itemize}
+
+\paragraph{Two conversion regimes.}
+We distinguish two physically distinct regimes for NM $\to$ SQM conversion:
+\begin{itemize}
+    \item \textbf{Fast (hydrodynamic) mode}
+    \begin{itemize}
+        \item Operates when hydrodynamic driving is strong.
+        \item Relevant during inspiral and merger phases.
+        \item Dominated by compression, shocks, and turbulence.
+        \item Coll's condition is satisfied.
+        \item Diffusion-limited models are not applicable.
+    \end{itemize}
+    
+    \item \textbf{Slow (diffusion-limited) mode}
+    \begin{itemize}
+        \item Operates when hydrodynamic driving becomes ineffective.
+        \item Relevant in the post-merger, quasi-hydrostatic remnant.
+        \item Coll's condition fails.
+        \item Conversion proceeds via diffusion and weak interactions.
+    \end{itemize}
+\end{itemize}
+
+\paragraph{Fast mode and nucleation.}
+\begin{itemize}
+    \item The fast mode may enable the nucleation of strange-quark-matter seeds.
+    \item Such nucleation requires extreme thermodynamic conditions.
+    \item Modeling nucleation in this regime might lie beyond the scope of the present work.
+    \item A phenomenological treatment of strange-nugget nucleation is left for future study.
+\end{itemize}
+
+\paragraph{Slow mode and front propagation.}
+\begin{itemize}
+    \item Once hydrodynamic driving ceases, conversion must proceed in the slow mode.
+    \item In this regime, the propagation speed of the conversion front is controlled by:
+    \begin{itemize}
+        \item diffusion,
+        \item weak interaction rates.
+    \end{itemize}
+    \item The present work focuses on this regime.
+\end{itemize}
+
+\paragraph{Leptonic \& neutrino \& intermediate udQM matter effects.}
+\begin{itemize}
+    \item Leptonic (Urca) processes, neutrino transport, and intermediate udQM matter may modify weak equilibration.
+    \item Their impact on the diffusion-limited front speed should be further assessed.
+    \item This determines whether such effects are essential or subleading under NSM conditions.
+\end{itemize}
+
+
+
+\end{document}

@@ -37,6 +37,7 @@ Its single production command is `python3 run_isothermal_numerical.py`.
 The sibling `../isothermal_analytic/isothermal-analytic.npy` is used only for per-cell baryon-current seeds; every numerical endpoint state, automatic composition ceiling, and BVP is independently recomputed by `solve_front_isothermal`.
 
 The numerical stage advances through increasing radial shells so a ray's accepted baryon current seeds the next shell, while angular rays within a shell run concurrently on the scheduler allocation.
+The implementation caps concurrent cell supervisors at the 30-ray count, so a 64-CPU allocation can run at most 30 BVP trials at once; the remaining CPUs do not shorten a single nested-EOS BVP.
 Each BVP attempt remains isolated behind a hard timeout, and the parent atomically writes `isothermal-numerical.npy` before incrementing the 600-point progress bar.
 The numerical-only rerun uses the public solver's current `tail_eps=1e-3` default rather than the copied historical `1e-8` cluster override.
 Resume reuses all terminal cells and rejects changed controls, axes, physics, live API signatures, or domain fingerprints.
@@ -46,6 +47,27 @@ The first pass traced its initial stall to two redundant upstream RMF solves plu
 The live numerical solver now uses and reuses one direct fixed-density PNM state; the clean high-angle inner corner fell from 71.9 s to 4.18 s with the same velocity.
 The repaired smoke still left two nonlinear state-recovery failures and one near-$a(0^+)=1$ timeout, including a low-temperature outer seed clipped downward by nearly a factor of 100.
 See [[known-issues]] for the measurements, remaining candidate amplification, and current-bound mismatch.
+
+During the subsequent production run, SciPy emitted overflow warnings from `_bvp.py:569--573` around progress 390--420, corresponding to outward shell 13.
+These warnings come from runaway low-temperature collocation iterates rather than the earlier RMF quadrature scan.
+Representative warm and hot cells on the same shell converge normally, while low-temperature fallback trials drive $j_B$ to its artificial lower bound, develop singular Jacobians, or time out.
+The pointwise checkpoint remains safe because only validated finite successes enter the contour.
+
+The completed pre-field-scaling payload was audited on 2026-08-27: 358 cells succeeded, 218 exhausted the 900 s cell budget, and 24 ended in failure.
+Its six-candidate policy was inefficient: 356 of the 358 successes occurred within the first two attempts, while attempts three through five consumed about 34.7 aggregate CPU-hours and recovered only two cells.
+All 93 cells whose analytical seed lay above the wrapper's `1e-4*nB_0minus` upper bound were non-successes.
+These records are the baseline for a failed-cell-only rerun with the normalized live BVP; they must not be presented as results produced by the 2026-08-27 scaling update.
+
+## 26-08-27 failed-cell-only repair
+
+`new_paper_calculations/26-08-27/` contains local copies of the completed domain, analytical seed payload, and pre-scaling numerical checkpoint.
+Its single command is `python3 run_isothermal_numerical.py`.
+The runner treats `task_status="success"` as immutable, clears only eligible non-success records and diagnostic grid entries, and reruns those cells through the current normalized `solve_front_isothermal` implementation.
+The copied checkpoint therefore begins with 358 preserved successes and 242 pending repairs; interrupted reruns use the same command and preserve any additional successes already checkpointed.
+
+The repair retains the original current bounds, candidate ordering, timeouts, mesh, and shell-continuation policy so the first comparison isolates BVP field normalization.
+Pointwise atomic save-before-progress behavior is unchanged.
+Compatibility ignores only the environment-dependent absolute `phase_velocity_file` path while continuing to require exact analytical and numerical function signatures, axes, physics, and domain fingerprint.
 
 ## 26-08-20 matched analytical--numerical domain
 

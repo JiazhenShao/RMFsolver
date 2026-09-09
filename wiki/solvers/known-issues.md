@@ -1,7 +1,7 @@
 ---
 summary: Live solver and performance traps, including numerical-isothermal low-temperature recovery and current bounds, cold quadrature, finite-ms cost, GIL-bound threads, and asymmetric bisection depth.
 status: current
-updated: 2026-08-26
+updated: 2026-08-27
 tags: [solver, bugs, performance]
 ---
 
@@ -39,6 +39,51 @@ This does not by itself prove the exact BVP eigenvalue, but it proves that the c
 
 The upstream repair is complete.
 The next work is to diagnose the remaining dynamic-state failures and retune the current bounds from measured BVP behavior before reducing fallback count.
+
+## ⚠ Low-temperature isothermal BVP trials can overflow SciPy's residual estimator
+
+The `RuntimeWarning` messages at `scipy/integrate/_bvp.py:569--573` are not RMF momentum-integral warnings and do not indicate a divergent physical integral.
+They occur when `solve_bvp` squares an already runaway collocation residual while evaluating a failed Newton iterate.
+The parent cluster process continues because each attempt runs in a disposable child, but the affected attempt normally ends in a singular Jacobian, a nonlinear local-state failure, or the hard timeout.
+
+The failure becomes common on outward low-temperature rays.
+For radial shell 13 of the 26-08-25 mesh, the analytical endpoint has $n_K(0^+)\simeq7\times10^6$ while the trial current is only $O(10)$--$O(10^2)$; the pre-2026-08-27 isothermal solver passed both physical fields to `solve_bvp` without internal state normalization.
+At $T(0^-)=0.73$ MeV the downstream decay rate is $\lambda_\infty=4.89\times10^{-11}$, so the compact-coordinate Jacobian reaches $dx/ds\simeq2.05\times10^{13}$ at `tail_eps=1e-3`.
+This scale separation makes the collocation Jacobian poorly conditioned.
+
+A shell-13 fallback trial at $T(0^-)=3.73$ MeV drove the eigenvalue to the artificial lower bound $j_B\simeq10^{-12}$, expanded to 2692 nodes, and stopped with `bvp_status=2` and a singular Jacobian.
+At $T(0^-)=2.17$ MeV the same pattern reached 8074 nodes and one local-state failure before the singular Jacobian; the $0.73$ and $1.26$ MeV trials hit the 180 s limit.
+By contrast, representative $31.1$, $65.1$, and $84.7$ MeV cells on the same shell converged in 5.8--9.2 s with finite diagnostics and no warnings.
+
+The cluster current bounds aggravate the low-angle cases.
+At the first cell of shell 13 the analytical seed $j_B=6580$ is clipped to the global upper bound $j_B=555$ before the BVP starts, while failed Newton steps may explore down to the unrelated $10^{-12}$ lower bound.
+The warning therefore exposed three coupled numerical issues: unscaled BVP fields, a very large low-$T$ compact-coordinate factor, and overly broad or clipping current bounds.
+The field-scaling part was fixed on 2026-08-27 by copying the working `solve_front_energy_conserving_uNmax` pattern into `solve_front_isothermal`.
+SciPy now evolves $n_K/n_{K,\mathrm{scale}}$ and $J_K/J_{K,\mathrm{scale}}$, with the density scale set by the initial trial's two endpoint densities and the current scale set by its $j_B$ and $J_K(\infty)$.
+Every EOS/rate evaluation reconstructs physical fields, each ODE derivative is divided by its corresponding scale, and endpoints, residual diagnostics, and returned profiles are converted back to physical units.
+The general `solve_front_energy_conserving_nK` branch remains unscaled; only its $u_{\max}(0^-)$ counterpart supplied this reference implementation.
+
+The large compact-coordinate factor and cluster current bounds remain open and may still cause low-temperature timeouts.
+A production rerun is required before claiming that the SciPy overflow warnings or all contour holes are eliminated.
+
+The completed pre-scaling 26-08-25 numerical payload contains 358 successes, 218 hard cell timeouts, and 24 terminal failures.
+All 24 terminal failures lie below $T(0^-)=0.89$ MeV; 23 retained a `bvp_status=2` singular-Jacobian result, with downstream decay rates as small as $6.43\times10^{-12}$.
+The payload predates the field-normalization patch: its records have no `bvp_nK_scale`, `bvp_jK_scale`, or `bvp_field_scaling` fields.
+
+The completed attempt history also separates conditioning from wrapper policy.
+Of 358 successful cells, 321 converged on the first baryon-current candidate, 35 on the second, and only 2 on the third; no cell was recovered by attempts four or later.
+Nevertheless, attempt positions three through five consumed about 34.7 aggregate CPU-hours, and the full payload records 1172 trial timeouts among 1709 attempts.
+The analytical current exceeded the wrapper's global upper bound in 93 cells; none succeeded, while 69 timed out and 24 failed.
+This exact separation does not prove that every physical eigenvalue lies above the bound, but it proves that clipping destroys the intended seed precisely where the analytical speed grows at low temperature and near $a(0^+)\to1$.
+Among the 357 successes with finite analytical currents, the numerical-to-analytical current ratio stayed between 0.739 and 1.594, supporting a per-cell logarithmic bracket centered on the analytical or continued current instead of the unrelated global clip.
+The remaining 149 below-bound timeouts show that removing the clip alone is also insufficient.
+
+The `new_paper_calculations/26-08-27/` repair workflow now reruns only the old non-success cells with the normalized BVP and preserves the 358 accepted records.
+It should compare one change at a time: first field normalization, then physics-based per-cell current brackets, then a shorter two-candidate first pass.
+This is required to attribute recoveries and runtime changes rather than folding three hypotheses into one rerun.
+
+Warnings alone do not prove that a saved cell is corrupt: production storage accepts only finite, validated successful results.
+After the run finishes, inspect `task_status`, `attempts`, `bvp_status`, node counts, and local/global state-failure counters in `isothermal-numerical.npy` to determine the actual holes.
 
 ## Isothermal strict-retry issue — superseded
 

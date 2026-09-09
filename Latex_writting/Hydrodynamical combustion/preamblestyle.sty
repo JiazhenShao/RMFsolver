@@ -1,0 +1,160 @@
+\ProvidesPackage{preamblestyle}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Adapted from M. G. Alford by L. Brodie in June 2023 %%
+
+%% See http://web.mit.edu/8.13/www/revtex4-command-summary.pdf for a summary of revtex commands %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\usepackage{graphicx}
+\usepackage{exscale}
+\usepackage{textcomp}
+\usepackage{enumerate}
+\usepackage[compat=1.1.0]{tikz-feynhand} 
+\usepackage{multirow}
+\usepackage{orcidlink}
+\usepackage{color}
+\usepackage[normalem]{ulem}  % \sout{old text} for strikeout
+%\usepackage{amsmath}
+%\usepackage{amssymb}
+%\usepackage{amssymb}  % \gtrsim, \geqslant, etc: see amsguide.ps
+%\usepackage{cite}
+%\usepackage{bm}
+% \addtolength{\topmargin}{2cm}
+%\usepackage[utf8]{inputenc}
+%\usepackage[T1]{fontenc}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% These are our standard definitions of abbreviations: %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% ADD ABBREVIATIONS for color-highlighted edits %%
+
+\newcommand{\authorname}[1]{{\color{blue}{\textsuperscript{AUTHOR1}#1}}}
+%Example: \newcommand{\lb}[1]{{\color{blue}{\textsuperscript{LB}#1}}}
+
+% Adding comments to the text:
+\newcommand{\com}[1]{{\sf\color[rgb]{0,0,1}[#1]}}
+
+% Marking old and new text:
+\newcommand{\old}[1]{{\color[rgb]{0.7,0.7,0.7}\sout{#1}}}
+\newcommand{\new}[1]{{\color[rgb]{0.7,0,0.7}#1}}
+
+
+%%%%%%%%%% Greek alphabets
+\renewcommand\a{\alpha}
+\renewcommand\b{\beta}
+\newcommand\g{\gamma}
+\renewcommand\d{\delta}
+\newcommand\e{\epsilon}
+\newcommand\ve{\varepsilon}
+\newcommand\z{\zeta}
+\newcommand\h{\eta}
+\newcommand\q{\theta}
+\renewcommand\i{\iota}
+\renewcommand\k{\kappa}
+\renewcommand\l{\lambda}
+\newcommand\m{\mu}
+\newcommand\n{\nu}
+\newcommand\x{\xi}
+%\newcommand\p{\pi}
+\newcommand\rr{\rho}
+\newcommand\s{\sigma}
+\renewcommand\t{\tau}
+\renewcommand\u{\upsilon}
+\newcommand\f{\phi}
+\renewcommand\c{\chi}
+\renewcommand\j{\psi}
+\renewcommand\o{\omega}
+
+\newcommand{\al}{\alpha}
+\newcommand{\be}{\beta}
+\newcommand{\ga}{\gamma}
+\newcommand{\Ga}{\Gamma}
+\newcommand{\de}{\delta}
+\newcommand{\De}{\Delta}
+\newcommand{\ep}{\varepsilon}
+
+\newcommand{\eps}{\epsilon}
+\newcommand{\ze}{\zeta}
+\newcommand{\ka}{\kappa}
+\newcommand{\la}{\lambda}
+\newcommand{\La}{\Lambda}
+\newcommand{\ph}{\varphi}
+\newcommand{\del}{\nabla}
+\newcommand{\si}{\sigma}
+\newcommand{\Si}{\Sigma}
+\renewcommand{\th}{\theta}   % LaTeX: \th already defined
+\newcommand{\Up}{\Upsilon}
+\newcommand{\om}{\omega}
+\newcommand{\Om}{\Omega}
+
+%%%  A few capitals
+\newcommand\D{\Delta}
+\newcommand\G{\Gamma}
+\renewcommand\L{\Lambda}
+\newcommand\J{\Psi}
+\newcommand\U{\Upsilon}
+
+%%%%%%%%%% End Greek alphabets
+
+%%%%%%%%%%  Additional abbreviations
+
+\newcommand{\ovl}[1]{\overline{#1}}
+\newcommand{\udl}[1]{\underline{#1}}
+\newcommand{\non}{\nonumber\\}
+\newcommand{\dsp}{\displaystyle}
+\newcommand{\bea}{\begin{eqnarray}}
+\newcommand{\eea}{\end{eqnarray}}
+\newcommand{\ba}[1]{\begin{array}{#1}}
+\newcommand{\ea}{\end{array}}
+\newcommand{\eqrf}[1]{Eq.~(\ref{#1})}
+\newcommand{\eqrfm}[2]{Eqs.~(\ref{#1})-(\ref{#2})}
+\newcommand{\eqrftw}[2]{Eqs.~(\ref{#1}),(\ref{#2})}
+\newcommand{\eqrftr}[3]{Eqs.~(\ref{#1}),(\ref{#2}),(\ref{#3})}
+\newcommand{\erf}[1]{(\ref{#1})}
+\newcommand{\beq}{\begin{equation}}
+\newcommand{\eeq}{\end{equation}}
+%\newcommand\ra{\rangle}
+%\newcommand\la{\langle}
+%\newcommand{\be}{\begin{equation}}
+%\newcommand{\ee}{\end{equation}}
+
+\newcommand{\uq}{\hat{\mathbf{q}}} 
+\newcommand{\up}{\hat{\mathbf{p}}}
+\newcommand{\hk}{\hat{k}}
+\newcommand{\hq}{\hat{q}}
+\newcommand{\hp}{\hat{p}}
+\newcommand{\vg}{\bm{\gamma}}
+\newcommand{\gperp}{\bm{\gamma}_{\perp}}
+\newcommand{\vf}{\bm{\phi}}
+\newcommand{\vv}{\bm{v}}
+\newcommand{\vJ}{\bm{J}}
+\newcommand{\vphi}{\bm{\varphi}}
+\newcommand{\vt}{\bm{\Theta}}
+\newcommand{\Tr}{\text{Tr}}
+\newcommand{\angk}[1]{\langle #1 \rangle_{\uk}} 
+\newcommand{\angq}[1]{\langle #1 \rangle_{\uq}} 
+\newcommand{\uk}{\hat{\mathbf{k}}}
+\newcommand{\Del}{\nabla}
+\newcommand{\eqn}[1]{(\ref{#1})}
+\newcommand{\sliver}{\kern 0.07em} % like italic correction \/
+%\newcommand{\bm}[1]{\mbox{\boldmath${#1}$}}
+
+\newcommand{\cm}{\text{cm}}
+\newcommand{\fm}{\text{fm}}
+\renewcommand{\sec}{\text{s}}
+\newcommand{\gram}{\text{g}}
+\newcommand{\MeV}{\text{MeV}}
+\newcommand{\kHz}{\text{kHz}}
+\newcommand{\MM}{{\cal M}}
+\newcommand{\Msolar}{\ensuremath{\text{M}_\odot}}
+\newcommand{\nsat}{\ensuremath{n_{0}}}
+\newcommand{\half} {{\textstyle \frac{1}{2}}}
+\newcommand\deriv[3]{{\dfrac{\partial #1}{\partial #2}}\biggr|_{#3}}
+\newcommand{\p}{\partial}
+
+%%% Project-specific commands:
+
+
+%%%%%%%%%% End list of abbreviations 

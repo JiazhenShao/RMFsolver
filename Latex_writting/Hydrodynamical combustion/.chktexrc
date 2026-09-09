@@ -1,0 +1,10 @@
+# TeX Live 2024's global chktexrc includes one PCRE-only rule without
+# a PCRE guard. Preserve its compatible rules and omit only that rule.
+UserWarnRegex =
+{
+    (?!#Always! use! \nmid)\\not! *(\||\\mid)
+    (?!#-1:Capitalize! before! references)PCRE:\b(chapter|(sub)?section|theorem|lemma|proposition|corollary|appendix)~\\ref
+    (?!#1:Capitalize! before! references)POSIX:([^[:alnum:]]|^)(chapter|(sub)?section|theorem|lemma|proposition|corollary|appendix)~\\ref
+    (?!#-2:Use! \toprule,! midrule,! or! \bottomrule! from! booktabs)\\hline
+    (?!#-2:Vertical! rules! in! tables! are! ugly)\\begin\{(array|tabularx?\*?)\}(\[.*\])?\{.*\|.*\}
+}

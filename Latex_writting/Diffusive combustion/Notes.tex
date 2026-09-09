@@ -1,0 +1,1088 @@
+%superscriptaddress,amsmath,floatfix]{revtex4}
+%\documentclass[showpacs,preprintnumbers,nofootinbib,
+%superscriptaddress,amsmath,floatfix,prd]{revtex4}
+\documentclass[superscriptaddress,amsmath,floatfix,aps,prc,twocolumn]{revtex4-1}
+\DeclareUnicodeCharacter{03C9}{$\omega$}
+\DeclareUnicodeCharacter{03C3}{$\sigma$}
+
+\usepackage{amssymb}  % \gtrsim, \geqslant, etc: see amsguide.ps
+\usepackage{graphicx}
+\usepackage{exscale}
+\usepackage{textcomp}
+\usepackage{enumerate}
+%\usepackage[spanish]{babel}
+\usepackage{amsmath}
+\usepackage{amssymb}
+%\usepackage[compat=1.1.0]{tikz-feynhand} 
+\usepackage{multirow}
+\usepackage{orcidlink}
+\usepackage{float}
+\usepackage{subcaption}
+\usepackage{bm}
+%\usepackage{cite}
+%\usepackage{bm}
+% \addtolength{\topmargin}{2cm}
+%\usepackage[utf8]{inputenc}
+%\usepackage[T1]{fontenc}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%    This is our standard definitions of abbreviations        %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\usepackage{color}
+\newcommand{\com}[1]{{\sf\color[rgb]{0,0,1}[#1]}}
+% Marking old and new text:
+\usepackage[normalem]{ulem}  % \sout{old text} for strikeout
+\newcommand{\mga}[1]{{\color[rgb]{0.8,0,0}#1}}
+\newcommand{\mgacom}[1]{{\color[rgb]{0.6,0,0}[\sf #1]}}
+%\newcommand{\new}[1]{#1}
+\newcommand{\old}[1]{{\color[rgb]{0.7,0.7,0.7}\sout{#1}}}
+\newcommand{\new}[1]{{\color[rgb]{0.7,0,0.7}#1}}
+
+\newcommand{\AH}[1]{\textsf{\color{cyan}{\textsuperscript{AH}#1}}}
+
+\newcommand{\LB}[1]{\textsf{\color{brown}{\textsuperscript{LB}#1}}}
+
+\newcommand{\JS}[1]{\textsf{\color{violet} {[\textsuperscript{JS}#1]}}}
+
+
+%%%%%%%%%% Journal Styles for APS
+%\newcommand\NCA{Nuovo Cimento}
+%\newcommand\NPBPS{{Nucl. Phys.} B (Proc. Suppl.)}
+%\newcommand\RMP{Rev. Mod. Phys.}
+%\newcommand\PTP{{Prog. Theor. Phys.}}
+%\newcommand\PTPS{{Prog. Theor. Phys. Suppl.}}
+%\newcommand\ZPA{{Z. Phys.} A}
+%\newcommand\EPJA{{Eur. Phys. J.} A}
+\newcommand{\AP}[3]{Ann.\ Phys.\ {\bf #1},\ #2 (#3)}
+\newcommand{\NPA}[3]{Nucl.\ Phys.\ {\bf A#1},\ #2 (#3)}
+\newcommand{\NPB}[3]{Nucl.\ Phys.\ {\bf B#1},\ #2 (#3)} 
+\newcommand{\PLA}[3]{Phys.\ Lett.\ A\ {\bf #1},\ #2 (#3)}
+\newcommand{\PLB}[3]{Phys.\ Lett.\ B\ {\bf #1},\ #2 (#3)}
+\newcommand{\PR}[3]{Phys.\ Rep.\ {\bf #1},\ #2 (#3)}
+\newcommand{\PRL}[3]{Phys.\ Rev.\ Lett.\ {\bf #1},\ #2 (#3)}
+\newcommand{\PRB}[3]{Phys.\ Rev.\ B\ {\bf #1},\ #2 (#3)}
+\newcommand{\PRC}[3]{Phys.\ Rev.\ C\ {\bf #1},\ #2 (#3)}
+\newcommand{\PRD}[3]{Phys.\ Rev.\ D\ {\bf #1},\ #2 (#3)}
+\newcommand{\JPG}[3]{J.\ Phys.\ G\ {\bf #1},\ #2 (#3)}
+\newcommand{\RPP}[3]{Rep.\ Prog.\ Phys.\ {\bf #1},\ #2 (#3)}
+\newcommand{\ZPC}[3]{Z.\ Phys.\ C\ {\bf #1},\ #2 (#3)}
+\newcommand{\EPJC}[3]{Eur.\ Phys.\ J.\ C\ {\bf #1},\ #2 (#3)}
+\newcommand{\PPNP}[3]
+{Prog.\ Part.\ Nucl.\ Phys.\ {\textbf #1},\ #2 (#3)}
+\newcommand{\APPB}[3]{Acta.\ Phys.\ Polon.\ B\ {\bf #1},\ #2 (#3)}
+
+\newcommand{\ibid}[3]{{\bf #1},\ #2 (#3)}
+%%%%%%%%%% End Journal Definitions
+
+%%%%%%%%%% Greek alphabets
+\renewcommand\a{\alpha}
+\renewcommand\b{\beta}
+\newcommand\g{\gamma}
+\renewcommand\d{\delta}
+\newcommand\e{\epsilon}
+\newcommand\ve{\varepsilon}
+\newcommand\z{\zeta}
+\newcommand\h{\eta}
+\newcommand\q{\theta}
+\renewcommand\i{\iota}
+\renewcommand\k{\kappa}
+\renewcommand\l{\lambda}
+\newcommand\m{\mu}
+\newcommand\n{\nu}
+\newcommand\x{\xi}
+%\newcommand\p{\pi}
+\newcommand\rr{\rho}
+\newcommand\s{\sigma}
+\renewcommand\t{\tau}
+\renewcommand\u{\upsilon}
+\newcommand\f{\phi}
+\renewcommand\c{\chi}
+\renewcommand\j{\psi}
+\renewcommand\o{\omega}
+
+\newcommand{\al}{\alpha}
+\newcommand{\be}{\beta}
+\newcommand{\ga}{\gamma}
+\newcommand{\Ga}{\Gamma}
+\newcommand{\de}{\delta}
+\newcommand{\De}{\Delta}
+\newcommand{\ep}{\varepsilon}
+
+\newcommand{\eps}{\epsilon}
+\newcommand{\ze}{\zeta}
+\newcommand{\ka}{\kappa}
+\newcommand{\la}{\lambda}
+\newcommand{\La}{\Lambda}
+\newcommand{\ph}{\varphi}
+\newcommand{\del}{\nabla}
+\newcommand{\si}{\sigma}
+\newcommand{\Si}{\Sigma}
+\renewcommand{\th}{\theta}   % LaTeX: \th already defined
+\newcommand{\Up}{\Upsilon}
+\newcommand{\om}{\omega}
+\newcommand{\Om}{\Omega}
+
+%%%%%%%%%% End Greek alphabets
+
+%%%  A few capitals
+\newcommand\D{\Delta}
+\newcommand\G{\Gamma}
+\renewcommand\L{\Lambda}
+\newcommand\J{\Psi}
+\newcommand\U{\Upsilon}
+
+%%%%%%%%%%  Some abbreviations
+
+%\newcommand{\Del}{\nabla}
+%\newcommand{\eqn}[1]{(\ref{#1})}
+%\newcommand{\sliver}{\kern 0.07em} % like italic correction \/
+
+
+%%%%%%%%%%  Some abbreviations
+%\newcommand\ra{\rangle}
+%\newcommand\la{\langle}
+\newcommand{\ovl}[1]{\overline{#1}}
+\newcommand{\udl}[1]{\underline{#1}}
+\newcommand{\non}{\nonumber\\}
+\newcommand{\dsp}{\displaystyle}
+%\newcommand{\be}{\begin{equation}}
+%\newcommand{\ee}{\end{equation}}
+\newcommand{\bea}{\begin{eqnarray}}
+\newcommand{\eea}{\end{eqnarray}}
+\newcommand{\ba}[1]{\begin{array}{#1}}
+\newcommand{\ea}{\end{array}}
+\newcommand{\eqrf}[1]{Eq.~(\ref{#1})}
+\newcommand{\eqrfm}[2]{Eqs.~(\ref{#1})-(\ref{#2})}
+\newcommand{\eqrftw}[2]{Eqs.~(\ref{#1}),(\ref{#2})}
+\newcommand{\eqrftr}[3]{Eqs.~(\ref{#1}),(\ref{#2}),(\ref{#3})}
+\newcommand{\erf}[1]{(\ref{#1})}
+\newcommand{\beq}{\begin{equation}}
+\newcommand{\eeq}{\end{equation}}
+
+\newcommand{\uq}{\hat{\mathbf{q}}} 
+\newcommand{\up}{\hat{\mathbf{p}}}
+\newcommand{\hk}{\hat{k}}
+\newcommand{\hq}{\hat{q}}
+\newcommand{\hp}{\hat{p}}
+\newcommand{\vg}{\bm{\gamma}}
+\newcommand{\gperp}{\bm{\gamma}_{\perp}}
+\newcommand{\vf}{\bm{\phi}}
+\newcommand{\vv}{\bm{v}}
+\newcommand{\vJ}{\bm{J}}
+\newcommand{\vphi}{\bm{\varphi}}
+\newcommand{\vt}{\bm{\Theta}}
+\newcommand{\Tr}{\text{Tr}}
+\newcommand{\angk}[1]{\langle #1 \rangle_{\uk}} 
+\newcommand{\angq}[1]{\langle #1 \rangle_{\uq}} 
+\newcommand{\uk}{\hat{\mathbf{k}}}
+%\newcommand{\bm}[1]{\mbox{\boldmath${#1}$}}
+\newcommand{\Del}{\nabla}
+\newcommand{\eqn}[1]{(\ref{#1})}
+\newcommand{\sliver}{\kern 0.07em} % like italic correction \/
+
+\newcommand{\cm}{\text{cm}}
+\newcommand{\fm}{\text{fm}}
+\newcommand{\m}{\text{m}}
+\newcommand{\km}{\text{km}}
+\newcommand{\s}{\text{s}}
+\renewcommand{\sec}{\text{s}}
+\newcommand{\gram}{\text{g}}
+\newcommand{\MeV}{\text{MeV}}
+\newcommand{\kHz}{\text{kHz}}
+\newcommand{\MM}{{\cal M}}
+\newcommand{\Msolar}{\ensuremath{\text{M}_\odot}}
+
+\newcommand{\nsat}{\ensuremath{n_{0}}}
+\newcommand{\aQstar}{\ensuremath{a_{Q^*}}}
+\newcommand{\vb}{\ensuremath{v_{N\to Q}}}
+\newcommand{\Nbar}{{\ensuremath{\bar N}}}
+\newcommand{\Qbar}{{\ensuremath{\bar Q}}}
+
+
+\newcommand{\tfinal}{\ensuremath{t_\text{eq}}}
+
+
+\newcommand{\half} {{\textstyle \frac{1}{2}}}
+\newcommand\deriv[3]{{\dfrac{\partial #1}{\partial #2}}\biggr|_{#3}}
+\newcommand{\p}{\partial}
+
+
+\begin{document}
+
+\title{Phase boundary velocity etc}
+\author{Mark G.~Alford\orcidlink{0000-0001-9675-7005}}
+\email{alford@wustl.edu}
+\affiliation{Physics Department, Washington University in Saint Louis, 63130 Saint Louis, MO, USA}
+
+\author{Alexander Haber\,\orcidlink{0000-0002-5511-9565}}
+\email{ahaber@physics.wustl.edu}
+\affiliation{Physics Department, Washington University in Saint Louis, 63130 Saint Louis, MO, USA}
+
+\author{J. Shao\,\orcidlink{0009-0004-9698-0177}}
+\email{jan.shao@wustl.edu}
+\affiliation{Physics Department, Washington University in Saint Louis, 63130 Saint Louis, MO, USA}
+\affiliation{McDonnell Center for the Space Sciences, Washington University in Saint Louis, Saint Louis, MO 63130, USA}
+
+\date{\today}   % Add date when submitting to arXiv
+
+
+\begin{abstract}
+We are interested in how fast is the conversion from nuclear matter to strange quark matter in neutron star mergers. The derivation is based on \cite{Olinto:1986je}, \cite{Madsen:1993xx}, and \cite{Alford:2014jha}. A remarkable thing is that although finite temperature effects are considered in \cite{Alford:2014jha}, it's only taken as a small correction to the widely used zero temperature approximation since the physical process happens in isolated neutron star with $T\sim$ keV, which falls in the reign $a_{Q^*}^4>\eta_Q a_{Q^*}^2$. In the case of a neutron star merger, however, the temperature is higher and the finite-temperature term becomes dominant.
+\end{abstract}
+
+\maketitle
+
+
+\begin{figure*}[t]
+\includegraphics[width=0.68\textwidth]{contour.pdf}
+\caption{
+The contour of nuclear matter to quark matter phase transition boundary moving velocity $v_{N\to Q}$ when varying temperature and the dimensionless quantity $a_{Q^*}$, which is normalized and proportional to $d$ quark number density minus $s$ quark number density. There are two terms contributing to $v^2_{N\to Q}$: zero temperature effect $\propto a_{Q^*}^4$, and finite temperature effect $\propto\eta_Qa_{Q^*}^2 = 9\pi^2T^2a_{Q^*}^2/\mu_Q^2$, where $\mu_Q$ is the average quark chemical potential. The finite temperature effect becomes dominate for higher temperature, as is the case for neutron star mergers compared with isolated neutron stars. We see that for temperature reign of neutron star merger events $10\sim 100$ MeV, the $v_{N\to Q}$ is slow varying and around $10^1\,m\cdot s^{-1}$. Considering the length scale of neutron star mergers $\sim 10^1$ km, the time scale of nuclear matter to quark matter conversion in neutron star merger is around $10^3\,s$, far longer than the time scale of the inspiral and merger event $\sim 10^{-3}\,s$. 
+%For explicite expression of $v_{N\to Q}$, see Eq.(29) in \cite{Alford:2014jha}, the derivation starts from Eq.(27-28) and Eq.(31-33) in \cite{Alford:2014jha}, following the procedure of Olinto's paper \cite{Olinto:1986je}; the definition of $a_{Q^*}$ is given by Eq.(28) of \cite{Alford:2014jha}; other definition that might also be useful: Eq.(25-26) of \cite{Alford:2014jha}.  For the derivation of $\mathcal{R}_Q(a)$, which is given by Eq.(31-33) in \cite{Alford:2014jha}, start from Eq.(23) in \cite{Madsen:1993xx}. 
+}
+\label{fig:v-contours}
+\end{figure*}
+
+
+We are interested in how fast is the conversion from nuclear matter to strange quark matter in neutron star mergers. The derivation is based on \cite{Olinto:1986je}, \cite{Madsen:1993xx}, and \cite{Alford:2014jha}. Mathematical details of how $v_{N\to Q}$ is dependent on temperature and a dimensionless parameter $a_{Q^*}$ is provided as follows:
+
+\section{How things are defined}
+
+Nuclear matter (NM) has hardly any $s$ quarks while strange quark matter (SQM) has roughly equal number of $u$, $d$, and $s$ quarks. To quantitatively account for the difference of NM and SQM, a kaon-ness number is defined:
+\begin{equation}
+n_K = \frac{n_d - n_s}{2}
+\end{equation}
+we see that approximately, in SQM, $n_K = 0$, and in NM, $n_K = n_d/2 = n_u$. 
+%\AH{I think this is only true in neutron matter, not in beta equilibrated nuclear matter}
+Since the neutron star merger isn't a macroscopic equilibrium process, we define coordinate variable $x$ and thermodynamical quantities are defined over macroscopically small but microscopically large volumns in which the fluctuation of thermodynamical quantities is negligible. Hence number density of different quarks, and the kaon-ness number density become function of $x$. In addition, we take the orientation of $x$ to be: the phase boundary of NM and SQM is located at $x=0$, and NM occupies $x<0$ and SQM occupies $x>0$. The thin phase transition reign is located immediately after $x$ pass through 0 to $0^+$, so around $0^-$, the medium is equilibrated nuclear matter.  
+
+We also define a normalized kaon-ness number $a$ as follows:
+\begin{equation}
+a(x) = \frac{n_K(x) - n_K^Q}{n_Q} \simeq \frac{n_d(x) - n_s(x)}{2n_Q} \label{def_of_a}
+\end{equation}
+where $n_K^Q = n_K(+\infty)$ is the kaon-ness number density in equilibrated SQM, which is approximately 0 in strange quark matter, and $n_Q$ is the baryon number density in equilibrated quark matter. 
+
+
+\section{how did we derive this velocity formula}
+
+To convert NM to SQM, we need a process that takes in $d$ quarks and spits out $s$ quarks; and at tree level, this is done by the weak process $ud\to us$. 
+%\AH{Do we need to get rid of electrons? If so, Urca processes might play a role?}
+There are several ways to change $a$ at certain $x$:
+\begin{itemize}
+\item the weak process $ud\to us$, adds one $s$ and absorbs one $d$; and it's inverse process adds one $d$ while absorbs one $s$; so the net contribution to kaon-ness density is:
+\begin{equation}
+	\left[\frac{d(n_d - n_s)}{dt}\right]_1 = \Gamma_{s\to d} - \Gamma_{d\to s}
+\end{equation}
+%\AH{don't understand [] notation}
+where the $\Gamma$ are quantum mechanical event rates calculated using QFT. Hence for $a$, we have:
+\begin{equation}
+	\left[\frac{da}{dt}\right]_1 = \frac{1}{2n_Q}\left[\frac{d(n_d - n_s)}{dt}\right]_1 = \frac{\Gamma_{s\to d} - \Gamma_{d\to s}}{2n_Q} = -\mathcal{R}_Q(a)
+\end{equation}
+\item diffusion of $s$ quark from $s$ quark rich SQM ($x>0$) to materials around $x\simeq 0$, which is discribed by dispersion equation:
+\begin{equation}
+	\left[\frac{da}{dt}\right]_2 = D_Q\frac{d^2a}{dx^2}
+\end{equation}
+
+\end{itemize}
+
+Combine the two contributions together, we have
+\begin{equation}
+\begin{aligned}
+\frac{da}{dt} & = \left[\frac{da}{dt}\right]_1 + \left[\frac{da}{dt}\right]_2 = \frac{dx}{dt}\frac{da}{dx} = v_{N\to Q}a^\prime \\
+& = D_Qa^{\prime\prime} - \mathcal{R}_Q(a)
+\end{aligned}
+\end{equation}
+Therefore, we arrived at
+\begin{equation}
+	D_Qa^{\prime\prime}(x) - v_{N\to Q}a^\prime(x) - \mathcal{R}_Q(a) = 0 \label{Diff_eq}
+\end{equation}
+From the definition of $a(x)$ in Eq.\eqref{def_of_a}, we expect the following boundary/initial conditions:
+\begin{equation}
+\begin{aligned}
+& a(0^-) = a_N\simeq 1, & a(+\infty) = 0 \\
+& a(0^+) = a_{Q^*}, & a^\prime(0^+) = -v_{N\to Q}\frac{a_N - a_{Q^*}}{D_Q} \\
+\end{aligned}
+\end{equation}
+the last initial condition for $a^\prime$ comes from integrating the differential equation Eq.\eqref{Diff_eq} from $0^-$ to $0^+$, and $a(0^+) = a_{Q^*}$ is the definition of $a_{Q^*}$. 
+
+To solve for $a(x)$, first let's figure out what does $\mathcal{R}_Q(a)$ looks like. From Eq.(23) in \cite{Madsen:1993xx}:
+\begin{equation}
+\begin{aligned}
+	\Gamma&_{s\to d} \simeq  \\
+    & \frac{16}{5\pi^5}G_F^2\sin^2\theta_C \cos^2\theta_C \mu_u^5(\mu_s - \mu_d)\left[ (\mu_s - \mu_d)^2 + 4\pi^2 T^2 \right]
+\end{aligned}
+\end{equation}
+and noting that the quark number density for each flavor $n_f = \mu_f^3/\pi^2$, and defining $\mu_Q$ to be the averaged quark chemical potential: $\mu_u\simeq \mu_Q$, $\mu_d\simeq \mu_Q+\epsilon$, $\mu_s \simeq \mu_Q - \epsilon$, we can obtain the following
+\begin{equation}
+	\mathcal{R}_Q(a) \simeq \frac{a^3 + \eta_Qa}{\tau_Q}
+    \label{eq:Rq}
+\end{equation}
+where
+\begin{equation}
+\eta_Q = \frac{9\pi^2 T^2}{\mu_Q^2}
+\end{equation}
+\begin{equation}
+\tau_Q = \left( \frac{128}{27\times 5\pi^3} G_F^2\sin^2\theta_C \cos^2\theta_C \mu_Q^5 \right)^{-1}
+\end{equation}
+
+Next, we give a theoretical approach to approximate $v_{N\to Q}$. Note that the second order differential equation Eq.\eqref{Diff_eq} looks like what we got in classical mechanics:
+\begin{equation}
+m\ddot{r} = f + F
+\end{equation}
+where $F$ is a conservative force coming from a potential, and $f$ is the friction. In stead of solving this equation for $r(t)$, we can get physical result from energy conservation: the change in kinetic energy and potential energy equals work done by friction force. 
+
+Similarly, from Eq.\eqref{Diff_eq}, we can define $m = D_Q$, $f = -v_{Q\to N}a^\prime$, and $F = \mathcal{R}_Q$, which implies a ``potential energy'' equals to $\mathcal{V}(a) = -\frac{a^4 + 2\eta_Q a^2}{4\tau_Q}$, and from ``energy conservation'', we have:
+\begin{equation}
+\begin{aligned}
+& \frac{D_Q}{2}\left[ a^{\prime\,2}(+\infty) - a^{\prime\,2}(0^+) \right] - \left.\frac{a^4 + 2\eta_Q a^2}{4\tau_Q}\right|_{a(0^+)}^{a(+\infty)} \\
+& = -\int_{a(0^+)}^{a(+\infty)} v_{Q\to N}a^\prime\;da \label{Eq14}
+\end{aligned}
+\end{equation}
+
+The friction force at $a(0^+)$ equals to $-v_{N\to Q}a^\prime(0^+)$ and at $a(+\infty)$ equals to $-v_{N\to Q}a^\prime(+\infty) = 0$ because $a^\prime(+\infty) = 0$. So we can approximate the work done by the friction force by the area of the triangle 
+\begin{equation}
+\begin{aligned}
+W & = -\int_{a(0^+)}^{a(+\infty)} v_{Q\to N}a^\prime\,da = \int_{a(+\infty)}^{a(0^+)} v_{Q\to N}a^\prime\;da \\ 
+& \simeq \frac{1}{2}\Delta a \Delta f = \frac{1}{2}a_{Q^*}v^2_{N\to Q}\frac{a_N - a_{Q^*}}{D_Q}
+\end{aligned}
+\end{equation}
+See Figure.\ref{fig:illu_work} for illustration of this approximation. 
+
+
+
+\begin{figure}[H]  % "H" forces the figure to appear here
+    \centering
+    % First mini plot
+    \begin{subfigure}{0.45\textwidth}  % Adjust the width
+        \centering
+        \includegraphics[width=1.0\linewidth]{true_work.pdf}
+        \caption{The true ``work'' done by the ``friction''}
+        \label{fig:plot1}
+    \end{subfigure}
+    \hfill
+    % Second mini plot
+    \begin{subfigure}{0.45\textwidth}
+        \centering
+        \includegraphics[width=1.0\linewidth]{approx_work.pdf}
+        \caption{Approximated ``work'' done by the ``friction''}
+        \label{fig:plot2}
+    \end{subfigure}
+    \caption{Illustration of approximation on the ``work'' done by the ``friction''}
+    \label{fig:illu_work}
+\end{figure}
+
+With this approximation at hand, we can put it to Eq.\eqref{Eq14} to get a analytical approximation to the velocity:
+\begin{equation}
+v_{N\to Q} \simeq \sqrt{\frac{D_Q}{\tau_Q} \frac{a_{Q^*}^4 + 2\eta_Q a_{Q^*}^2}{2a_N(a_N - a_{Q^*})} }
+\end{equation}
+
+We also tried to solve Eq.\eqref{Diff_eq} numerically, taking $v_{N\to Q}$ and $a_{Q^*}$ as free parameters which we tried to adjust so that the numerical solution reaches the desired boundary condition $a(+\infty) = 0$. In this way, we get a more accurate numerical result for $v_{Q\to N}$ for different temperature and $a_{Q^*}$. We plotted the error between this numerical result and the analytical approximated result in Figure.\ref{fig:error_of_v}.
+
+\section{Velocity formula derivation}\label{sec:v_analytical_derivation}
+
+We start from the stationary front equation
+\begin{equation}
+    D_Q a''(x) = v\,a'(x) + \mathcal{R}(a(x)),
+    \qquad
+    \mathcal{R}(a) = \gamma_Q\bigl(a^3 + 2\eta_Q a\bigr),
+    \label{eq:front}
+\end{equation}
+with $a(0^-)=a_\Nbar$, $a(0^+)=\aQstar$ and $a'(\infty)=0$.
+Integrating \eqref{eq:front} on $[0^-,0^+]$,
+\begin{equation}
+    D_Q\bigl[a'(0^+) - a'(0^-)\bigr]
+    = v\bigl(\aQstar-a_\Nbar\bigr).
+\end{equation}
+Since $a(x<0)=\mathrm{const.}$, this gives
+\begin{equation}
+    a'(0^+) = \frac{v}{D_Q}\bigl(\aQstar-a_\Nbar\bigr),
+    \label{eq:S5}
+\end{equation}
+
+Multiplying \eqref{eq:front} by $a'(x)$ gives
+\begin{equation}
+    \frac{D_Q}{2}\frac{d}{dx}\bigl(a'^2\bigr)
+    = v\,a'^2 + \mathcal{R}(a)a',
+    \label{eq:energyform}
+\end{equation}
+Integrating \eqref{eq:energyform} from $0^+$ to $\infty$ yields
+\begin{equation}
+    -\frac{v^2}{2D_Q}\bigl(\aQstar-a_\Nbar\bigr)^2
+    = v\,\int_{0}^{\infty}a'^2dx
+      +\int^{0}_{\aQstar}\mathcal{R}(a)\,da,
+    \label{eq:balance}
+\end{equation}
+where we used $a'(\infty)=0$ and Eq.~\eqref{eq:S5} to evaluate the left-hand side.
+
+To evaluate the first term on the right of \eqref{eq:balance}, since $a(0^+)=\aQstar$ and
+$a(\infty)=a_\Nbar$, the (Cauchy) mean-value theorem implies that there exists a point
+$\hat{x}$ in the transition region such that
+\begin{equation}
+    \int_{0}^{\infty} a'^2\,dx
+    = a'(\hat{x})\int_{0}^{\infty} a'\,dx
+    = a'(\hat{x})\big(a(\infty) - \aQstar\big) 
+    = -a'(\hat{x})\aQstar ,
+    \label{eq:MVT_step}
+\end{equation}
+where $0<\hat{x}<\infty$.
+
+From Eq.~\eqref{eq:S5}, $a'(x)$ continuously decreases from
+\begin{equation}
+    a'(0^+) = \frac{v}{D_Q}\bigl(\aQstar-a_\Nbar\bigr)
+\end{equation}
+to $a'(\infty)=0$, so there exists a dimensionless parameter
+\begin{equation}
+    0<\lambda<1
+\end{equation}
+such that
+\begin{equation}
+    a'(\hat{x})=\lambda\,\frac{v}{D_Q}\bigl(\aQstar-a_\Nbar\bigr).
+    \label{eq:lambda_def}
+\end{equation}
+Substituting \eqref{eq:lambda_def} into \eqref{eq:MVT_step} gives
+\begin{equation}
+    \int_{0}^{\infty} a'^2\,dx
+    = -\,\lambda\,\frac{v}{D_Q}\bigl(\aQstar-a_\Nbar\bigr) \aQstar.
+    \label{eq:int_a_prime_sq_lambda}
+\end{equation}
+Inserting \eqref{eq:int_a_prime_sq_lambda} into the balance equation
+\eqref{eq:balance}, we find
+\begin{equation}
+    -\frac{v^2}{2D_Q}\bigl(\aQstar-a_\Nbar\bigr)^2
+    = -\,\lambda\,\frac{v^2}{D_Q}\bigl(\aQstar-a_\Nbar\bigr)\aQstar
+      +\int^{0}_{\aQstar}\mathcal{R}(a)\,da.
+    \label{eq:balance_lambda}
+\end{equation}
+For the cubic reaction term \eqref{eq:front}, the integral is
+\begin{equation}
+    \int^{0}_{\aQstar}\mathcal{R}(a)\,da
+    = \gamma_Q\int_{\aQstar}^{0}\bigl(a^3+\eta_Q a\bigr)\,da
+    = -\,\frac{\gamma_Q}{4}\left(\aQstar^4+2\eta_Q \aQstar^2\right).
+    \label{eq:R_integral}
+\end{equation}
+Combining \eqref{eq:balance_lambda} and \eqref{eq:R_integral} and solving for $v^2$
+gives
+\begin{equation}
+    v_{N\to Q}^2
+    = \frac{D_Q\gamma_Q\,\bigl(\aQstar^4+2\eta_Q\aQstar\bigr)}
+           {2\bigl(a_\Nbar-\aQstar\bigr)\bigl(a_\Nbar+(2\lambda-1)\aQstar\bigr)}.
+    \label{eq:v_lambda_final}
+\end{equation}
+It is convenient to introduce $\xi \equiv 2\lambda-1, \ -1<\xi<1,$ so that \eqref{eq:v_lambda_final} can be written as
+\begin{equation}
+    v_{N\to Q}^2
+    = \frac{D_Q\gamma_Q}{2}\,
+      \frac{\aQstar^4+4\eta_Q \aQstar^2}
+           {\bigl(a_\Nbar+\xi \aQstar\bigr)\bigl(a_\Nbar-\aQstar\bigr)},
+    \qquad -1<\xi<1,
+    \label{eq:v_xi_final}
+\end{equation}
+which is the form used in the main text.
+
+
+
+\section{The $\mu_B-\mu_K$ plane}
+
+[Maybe we also need to plot the isobar in the  $\mu_B-\mu_K$ plane in this paper. Although we have some results using the noninteracting NM model and the bag model for SQM, I think it would be better if we added these isobar plots once we have explored more ``realistic'' models (acknowledged by sociology), such as the Walecka model for NM. So the next section I just assume we have already explained the isobar plots and the physics in the plots].
+
+\section{Upper limits on $a_{Q^*}$}
+
+When we pass from NM towards the SQM, since the phase boundary is eating up NM, we expect the average baryon chemical for NM is larger \com{LB: but dosen't the next equation say the opposite} \JS{$\mu_B^N>\overline{\mu}_{Q^*}$ means it takes more energy to add a particle in NM, so NM is not favored, meaning QM can eat up NM.}\com{LB: that is what i mean, but the next equation shows that $\mu_B^N$ is smaller.} than that at the phase boundary: $\overline{\mu}_B^{Q^*} > \mu_B^N$. In addition, $\overline{\mu}_B^{Q^*} = \mu_B^Q + \frac{n_K^{Q^*}}{n_B^{Q^*}}\mu_K^{Q^*}$, so for the phase boundary to move from NM to SQM, the following condition must hold: %\com{LB: in Ref.~\cite{Alford:2014jha}, on the right hand side it is $\mu_B^{Q*}$. Why is there a difference here?} \JS{Just fixed the typo in Eq.\eqref{Upper_lim_1}.}
+\begin{equation}
+    \mu_B^N > \mu_B^{Q^*} + \frac{n_K^{Q^*}}{n_B^{Q^*}}\mu_K^{Q^*} \label{Upper_lim_1}
+\end{equation}
+We will show that this condition actually places an upper bound on the value of $a_{Q^*}$. 
+
+On the isobar for quark matter, we expand the SQM pressure as a function of $\mu_B$ and $\mu_K$ at point (Q), where SQM is at beta equilibrium:
+\begin{equation}
+\begin{aligned}
+P_{\mathrm{QM}}(\mu_B, \mu_K) = & P_Q + n_Q(\mu_B - \mu_B^{Q}) + n_K^Q(\mu_K - \mu_K^{Q}) \\ 
+& + \frac{1}{2} \chi_K^Q (\mu_K - \mu_K^Q)^2 + \cdots
+\end{aligned}
+\label{Upper_lim_2}
+\end{equation}
+
+where $\chi_K^Q \equiv \partial n_K / \partial \mu_K$ is the susceptibility with respect to $K$-ness evaluated at equilibrium (Q). In equilibrated quark matter, $\mu_K^Q = 0$. Since the whole conversion region is at the same pressure $P_{Q^*} = P_Q = P_{crit}$, solving for $\mu_B^{Q^*}$ we have 
+%\com{LB: I can confirm that the plus sign between the two terms in parenthesis in Eq.~\ref{Upper_lim_3} is correct, contrary to Eq.~37 in Ref.~\cite{Alford:2014jha}.} \JS{Then plug Eq.\eqref{Upper_lim_4} in, which comes from taking derivatives of Eq.\eqref{Upper_lim_2} so we're not making new assumptions in Eq.\eqref{Upper_lim_4}}
+
+\begin{equation}
+\mu_B^{Q^*} = \mu_B^Q - \left( \frac{n_K^Q}{n_Q} + \frac{\chi_K^Q \mu_K^{Q^*}}{2 n_Q} \right) \mu_K^{Q^*}.\label{Upper_lim_3}
+\end{equation}
+
+Then, we plug Eq.\eqref{Upper_lim_3} in Eq.\eqref{Upper_lim_1} while also noting the following Eq.\eqref{Upper_lim_4}, which we got by taking partial derivative of Eq.\eqref{Upper_lim_2} with respect to $\mu_B$ and $\mu_K$
+\begin{equation}
+\left\{
+\begin{aligned}
+& n_B^{Q^*} = n_Q \\
+& n_K^{Q^*} = n_K^Q + \chi_K^Q\mu_K^{Q^*}
+\end{aligned}
+\right.
+\label{Upper_lim_4}
+\end{equation}
+we arrive at the following
+%Assuming that $Q^*$ is close to equilibrium, so that $n_K^Q \approx n_K^{Q^*}$, $n_{Q^*} \approx n_Q$, Eq.~(35) becomes
+\begin{equation}
+\Delta \mu_B = \mu_B^N - \mu_B^Q > \frac{\chi_K^Q (\mu_K^{Q^*})^2}{2 n_Q}.
+\end{equation}
+
+From the definition of $a_{Q^*}$, we get $a_{Q^*} = (n_K^{Q^*} - n_K^Q) / n_Q \approx \mu_K^{Q^*} \chi_K^Q / n_Q$, and then Eq.~(38) leads to an upper bound on $a_{Q^*}$
+\begin{equation}
+a_{Q^*}^{\mathrm{max}} = \sqrt{ \frac{2 \Delta \mu_B \chi_K^Q}{n_Q} }.
+\end{equation}
+%\com{LB: why not write this as $a_{Q^*}^{\text{max}}=\frac{2\Delta\mu_B}{\mu_K^{Q^*}}$? I think this is equivalent and comes directly from plugging $a_{Q^*}$ into Eq.~21.} \JS{Yes, both are viable ways. Practically, Eq. 22 is favored because we don't need to calculate $\mu_K^{Q^*}$ to get $a_{Q^*}$. }
+
+\section{Numerical Solution}
+We first map the infinte interval $x\in[0,\infty)$ onto a finite interval via the coordinate transformation
+\begin{equation}
+    \tilde{x}=L\left(1-e^{-x/\kappa}\right) \, ,
+\end{equation}
+which maps it onto a finite interval of the length $L$, with an exponential decay $\kappa$. We can choose $\kappa$ such that it reflects the behavior of the solution to Eq.~(\ref{Diff_eq}) at infinity. We are deriving this coefficient by linearizing $R_Q$ in Eq.~(\ref{eq:Rq}), and obtain, after considering that $a(x\to\infty)=0$, the exponential decay
+\begin{equation}
+    a_\infty=c_1 \exp(-\frac{x}{\kappa}) \,
+\end{equation}
+where inverse $\kappa$ is given by
+\begin{equation}
+    \kappa^{-1}=\frac{-v_\mathrm{ph}+\sqrt{4\frac{D_Q\eta_Q}{\tau_Q}+v_\mathrm{ph}^2}}{2D_Q} \, .
+\end{equation}
+%\JS{There's a typo, you might have missed an $\eta_Q$ in bold face}\AH{correct, it's correct in my code} 
+We see that the length of the interval $L$ and the integration constant $c_1$ should be identical, $L=c_1$. One possible choice is to set $c_1=L=a_{Q^*}$, such that the asymptotic solution also obeys the boundary conditions at $x=0^+$, although this is not strictly necessary. This choice yields
+\begin{equation}
+    \tilde{x}=a_{Q^*}\left(1-e^{-x/\kappa}\right) \, .
+\end{equation}
+We now need to rewrite the differential equation in terms of the new variables. Using the chain rule, we find that 
+%\JS{I'm not sure are the following equations correct, since you seem to plug in $dx/d\tilde{x}$ in there instead of $d\tilde{x}/dx$, I assume these are typos, since when following equations below, I got contour plots with velocity uniformly increasing with temperature for each fixed $a_{Q^*}$, instead of uniformly decreasing as is shown in your plot.}
+\begin{align}
+    \frac{da}{dx}&=\frac{da}{d\tilde{x}}\frac{d\tilde{x}}{dx}=\frac{c_1}{\kappa}e^{-x/\kappa}\frac{da}{d\tilde{x}}=\frac{c_1}{\kappa}(1-\tilde{x}/c_1)\frac{da}{d\tilde{x}} \, ,\\
+    \frac{d^2a}{dx^2}&=\frac{c_1e^{-x/\kappa}}{\kappa}\left[ \frac{d^2a}{d\tilde{x}}-\frac{1}{\kappa}\frac{da}{d\tilde{x}}\right] \nonumber \\
+    &=\frac{c_1(1-\tilde{x}/c_1)}{\kappa}\left[ \frac{d^2a}{d\tilde{x}}-\frac{1}{\kappa}\frac{da}{d\tilde{x}}\right] \,
+\end{align}
+\JS{I think we disagree because I get the following equation for $d^2a/dx^2$ expressed in terms of derivitives of $\tilde{x}$:}
+\begin{equation}
+    \frac{d^2 a}{dx^2} = \frac{c_1 - \tilde{x}}{\kappa}\bigg[ \frac{c_1 - \tilde{x}}{\kappa}\frac{d^2 a}{d\tilde{x}^2} - \frac{1}{\kappa}\frac{da}{d\tilde{x}} \bigg]
+\end{equation}
+where we have kept the integration constant $c_1$ general.
+The differential equation now reads
+\begin{align}
+       &D_Q\left[\frac{c_1 - \tilde{x}}{\kappa}\left( \frac{c_1 - \tilde{x}}{\kappa}\frac{d^2 a}{d\tilde{x}^2} - \frac{1}{\kappa}\frac{da}{d\tilde{x}} \right)\right] - \nonumber \\
+    & v_{N\to Q}\left[\frac{c_1}{\kappa}(1-\tilde{x}/c_1)\frac{da}{d\tilde{x}}\right] - \mathcal{R}_Q(a) = 0 \, ,
+\end{align}
+where $a=a(\tilde{x})$ and 
+\begin{equation}
+    x(\tilde{x})=-\kappa\ln(1-\tilde{x}/c_1) \, .
+\end{equation}
+This equation, together with the boundary conditions
+
+\begin{align}
+& a(0^-) = a_N\simeq 1 \, , & a(c_1) = 0 \, ,\\
+& a(0^+) = a_{Q^*}\, , & a^\prime(0^+) = -v_\mathrm{ph}\frac{a_N - a_{Q^*}}{D_Q} \, ,\\
+\end{align}
+
+has to be solved on the compact interval $\tilde{x}\in [0,c_1)$. The easiest way to proceed is to solve the ODE using \texttt{NDsolve} in Mathematica for a given velocity $v_\mathrm{ph}$ with the boundary conditions for the function $a(\tilde{x})$ enforced, but the codition for the slope of the function $a^\prime(\tilde{x}=0^+)$ being ignored. \texttt{FindRoot} can then directly be used to find the right velocity where the remaining boundary condition is also met. 
+
+\JS{Here's some comments/tricks:}
+Here's a way to make the solver more stable for this equation. In the following, denote $a^\prime = da/dx$ and $\dot{a} = da/d\tilde{x}$. We define $p = a^\prime$, and the differential equation is equivalent to:
+\begin{align}
+& \dot{a} = p \frac{dx}{d\tilde{x}}\\
+& \dot{p} = \frac{vp + \mathcal{R}(a)}{D}\frac{dx}{d\tilde{x}}
+\end{align}
+So this case, we don't have to encounter $\ddot{a}\propto (\tilde{x} - L)^{-2}$, and mostly just $(\tilde{x} - L)^{-1}$ appear, which is safer as $\tilde{x}$ approaches $L$ compared with $(\tilde{x} - L)^{-2}$. But it's always useful to let the solver be in an interval like from 0 to $L - \epsilon$ where $\epsilon$ is a small but finite number so things don't blow up as $\tilde{x}\to L$. 
+Since most NDsolvers take inputs as $dy/dx = f(x,y)$, and so it's easy to code the equation above as input for those NDsolvers. 
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.9\linewidth]{ana_sol.pdf}
+    \caption{Analytical approximation plotted in the $T-a_{Q^*}$ plane.}
+    \label{fig:ana_sol}
+\end{figure}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.9\linewidth]{num_sol.pdf}
+    \caption{Numerical solution plotted in the $T-a_{Q^*}$ plane.}
+    \label{fig:num_sol}
+\end{figure}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.9\linewidth]{ratio_ana_num.pdf}
+    \caption{Ratio of the numerical and the analytically approximated solutions. We find that the behavior at low $T$ differs drastically, with the approximation overestimating the phase boundary velocity up to an order of magnitude.}
+    \label{fig:ratio_ana_num}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=1.05\linewidth]{z(t)_T15_nc2.5.pdf}
+    \caption{The distance $z$ between the phase boundary and the isobar $P = P_{crit}$ as a function of time for $T = 15\,MeV$ and $n_{crit} = 2.5n_0$. As we can see, it takes roughly $\sim 10^4$ms $\sim 10$s for the phase boundary to catch up with the isobar when the isobar is stationary, and at $t \sim 1$ms time scale, the distance basically doesn't decrease at all. The initial distance between the two surfaces is roughly 1km. \JS{Maybe it would be nice if we have multiple curves for different temperature and critical points}}
+    \label{fig:z(t)}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=1.05\linewidth]{v(z).pdf}
+    \caption{Phase boundary velocity when changing the distance between phase boundary and isobar}
+    \label{fig:v(z)}
+\end{figure}
+
+\section*{Adaptive temperature switching for Fermi integrals}
+
+A numerical subtlety arises in the finite--temperature pressure
+integral for a relativistic Fermi gas. For a single fermion species
+with mass $m$ and chemical potential $\mu$, the pressure can be written
+as
+\begin{equation}
+  P(T;\mu,m)
+  = \frac{1}{\pi^2}\int_0^\infty k^2\, g(T,E_k)\,\mathrm{d}k,
+  \qquad
+  E_k = \sqrt{k^2 + m^2},
+\end{equation}
+with
+\begin{equation}
+  g(T,E_k)
+  = T \biggl[
+      \ln\!\Bigl(1 + e^{-(E_k-\mu)/T}\Bigr)
+      + \ln\!\Bigl(1 + e^{-(E_k+\mu)/T}\Bigr)
+    \biggr] .
+\end{equation}
+The first logarithm encodes particles, the second antiparticles.
+As $T \to 0$ and for $\mu > m$, the Fermi surface becomes sharp:
+only modes with $E_k \approx \mu$ contribute appreciably, and one can
+show that the integral reduces to the usual $T=0$ expression $P_0(\mu,m)$
+plus $O(T^2)$ Sommerfeld corrections.
+
+Numerically, however, the factor
+\begin{equation}
+  \delta
+  \equiv e^{-(E_k-\mu)/T}
+\end{equation}
+becomes extremely small but nonzero whenever $(E_k-\mu)/T \gg 1$.
+In IEEE double precision, if $\delta \lesssim 10^{-16}$ the increment
+$\delta$ is lost when forming $1+\delta$:
+\begin{equation}
+  1+\delta \;\to\; 1
+  \qquad\text{(rounding to machine precision)},
+\end{equation}
+so that
+\begin{equation}
+  \ln(1+\delta) \;\to\; \ln(1) = 0.
+\end{equation}
+Thus, even when the mathematically correct value is
+\begin{equation}
+  g(T,E_k) \simeq T\,e^{-(E_k-\mu)/T},
+\end{equation}
+the numerical evaluation of $g$ yields \emph{exactly zero} for all modes
+with $(E_k-\mu)/T$ above some model--dependent threshold. In other words,
+for sufficiently low $T$ the logarithm artificially treats the Fermi
+surface as if it were infinitely sharp, and the pressure integral is
+effectively evaluated in the strict $T=0$ limit even though $T$ is still
+finite. This leads to an unphysical downturn of $P(T)$ at low $T$.
+
+By contrast, the number density involves only the Fermi--Dirac function
+\begin{equation}
+  f(E_k)
+  = \frac{1}{1 + e^{(E_k-\mu)/T}}
+\end{equation}
+without any logarithm. In that case the underflow
+$e^{(E_k-\mu)/T}\to\infty$ or $e^{-(E_k-\mu)/T}\to 0$ simply drives
+$f(E_k)$ to $0$ or $1$, which is physically correct, and no cancellation
+inside a logarithm occurs. As a result, the number--density integral
+remains numerically stable even at very low temperatures (down to
+$T\sim\text{keV}$ in our tests), while the pressure integral becomes
+unreliable once $T \lesssim 0.1~\mathrm{MeV}$ for typical Fermi energies
+of interest.
+
+To remove this artefact we combine the exact $T=0$ formula with the
+finite--temperature integral using an \emph{adaptive temperature
+switch}.  For given $(\mu,m)$ we determine two temperatures,
+$T_{\rm lo}(\mu,m)$ and $T_{\rm hi}(\mu,m)$, such that
+\begin{itemize}
+  \item for $T \leq T_{\rm lo}$ the $T=0$ expression $P_0(\mu,m)$
+        approximates the full integral to within a chosen relative
+        tolerance $\epsilon$;
+  \item for $T \geq T_{\rm hi}$ the full finite--temperature integral
+        $P_{\rm int}(T;\mu,m)$ is used;
+  \item the interval $[T_{\rm lo},T_{\rm hi}]$ serves as a smooth
+        blending band between the two.
+\end{itemize}
+Because the degeneracy parameter
+\(
+(\mu-m)/T
+\)
+enters exponentially in the Fermi--Dirac factors, the physically
+relevant transition is intrinsically \emph{logarithmic} in $T$: equal
+multiplicative changes in $T$ correspond to equal changes in the shape
+of the Fermi surface. To reflect this, we define a normalized
+logarithmic temperature coordinate
+\begin{equation}
+  x(T)
+  \equiv
+  \frac{\ln T - \ln T_{\rm lo}}
+       {\ln T_{\rm hi}-\ln T_{\rm lo}},
+  \qquad 0 \le x \le 1,
+\end{equation}
+and we interpolate in $x$ rather than in $T$ itself. This avoids
+unnecessary numerical stiffness when $(T_{\rm hi}/T_{\rm lo})$ spans
+several orders of magnitude.
+
+We then construct a smooth, monotonic blending function
+\begin{equation}
+  w(T) = S\!\bigl(x(T)\bigr),
+\end{equation}
+where $S$ is the cubic ``smoothstep''
+\begin{equation}
+  S(x) = 3x^{2} - 2x^{3}, \qquad x\in[0,1].
+\end{equation}
+This kernel satisfies
+\begin{equation}
+  S(0)=0,\quad S(1)=1,\qquad
+  S'(0)=S'(1)=0,\qquad
+  S''(0)=S''(1)=0,
+\end{equation}
+and therefore yields a blending that is $C^2$ at both ends of the
+switch band. Since the reaction front velocity depends on second
+derivatives of the pressure with respect to~$\mu$, this smoothness is
+essential.
+
+Let $P_0(\mu,m)$ denote the analytic $T=0$ pressure and
+$P_{\rm int}(T;\mu,m)$ the finite--temperature pressure obtained from
+the momentum integral. Our final prescription is
+\begin{equation}
+  P(T;\mu,m)
+  =
+  \bigl[1-w(T)\bigr]\,P_0(\mu,m)
+  \;+\;
+  w(T)\,P_{\rm int}(T;\mu,m) ,
+\end{equation}
+with $w(T)$ given by the smoothstep above. Outside the band
+$[T_{\rm lo},T_{\rm hi}]$ we simply use the appropriate endpoint:
+$P(T)=P_0$ for $T\leq T_{\rm lo}$ and $P(T)=P_{\rm int}$ for
+$T\geq T_{\rm hi}$. This procedure removes the unphysical downturn of
+$P(T)$ at low~$T$, while maintaining full smoothness and numerical
+stability over the entire temperature range relevant for our calculation.
+
+\section*{Sommerfeld expansion and the choice of switching scale}
+
+The finite--temperature pressure of a free relativistic fermion of mass $m$
+and chemical potential $\mu$ can be written in two algebraically equivalent
+ways.
+
+First, in terms of a momentum integral with the usual logarithm structure,
+\begin{align}
+P(T,\mu)
+&= \frac{1}{\pi^2}
+   \int_0^\infty \! k^2\,
+   T \ln\!\bigl(1 + e^{-(E_k-\mu)/T}\bigr)\, dk
+\nonumber\\
+&\quad + \frac{1}{\pi^2}
+   \int_0^\infty \! k^2\,
+   T \ln\!\bigl(1 + e^{-(E_k+\mu)/T}\bigr)\, dk,
+\label{eq:P-log-form}
+\end{align}
+where $E_k = \sqrt{k^2+m^2}$ and the two terms correspond to particles and
+antiparticles.  This is the form we use directly in the numerical
+implementation, and it is precisely here that the logarithm
+$\ln(1+e^{-(E_k-\mu)/T})$ becomes numerically delicate at low~$T$, as
+discussed in the previous subsection.
+
+Alternatively, the same pressure can be written as an integral over energy
+with the Fermi--Dirac distribution $f(E)$, in a form suitable for
+Sommerfeld expansion.  Using spherical symmetry and the standard
+relativistic expression for $T^{ii}$, one finds the equivalent form
+(see e.g.\ Kapusta \& Gale, \emph{Finite--Temperature Field Theory})
+\begin{equation}
+P(T,\mu)
+ = \frac{1}{3\pi^2}\int_m^\infty dE\,
+   \frac{\bigl(E^2-m^2\bigr)^{3/2}}{E}\,
+   f(E;\mu,T),
+\label{eq:P-FD-form}
+\end{equation}
+with
+\begin{equation}
+f(E;\mu,T) \equiv \frac{1}{1+e^{(E-\mu)/T}} ,
+\end{equation}
+and an analogous term for antiparticles if they are included explicitly.
+In this representation the integrand is of the canonical
+``smooth function $\times$ Fermi–Dirac'' type, so the Sommerfeld expansion
+applies directly.
+
+\medskip
+
+At low temperature the Sommerfeld expansion expresses the integral
+\begin{equation}
+I(T) = \int_0^\infty \phi(E)\, f(E;\mu,T)\, dE
+\end{equation}
+in terms of its $T=0$ value and derivatives of the smooth function
+$\phi(E)$ at the Fermi surface:
+\begin{equation}
+I(T) = I(0) + \frac{\pi^2}{6}T^2\,\phi'(\mu) + \mathcal{O}(T^4).
+\end{equation}
+For the pressure, comparing with Eq.~\eqref{eq:P-FD-form} we have
+\begin{equation}
+\phi(E)
+= \frac{1}{3\pi^2}\,\frac{\bigl(E^2-m^2\bigr)^{3/2}}{E},
+\qquad
+P(T,\mu) = \int_m^\infty \phi(E)\, f(E;\mu,T)\, dE,
+\end{equation}
+so that
+\begin{equation}
+P(T,\mu)
+= P_0(\mu,m) + \frac{\pi^2}{6}\,T^2\, f_P(\mu,m)
+  + \mathcal{O}(T^4),
+\label{eq:Sommerfeld-P}
+\end{equation}
+where $P_0(\mu,m)$ is the exact $T=0$ pressure and
+\begin{equation}
+f_P(\mu,m) \equiv \phi'(\mu)
+\end{equation}
+is the Sommerfeld coefficient.
+
+A straightforward calculation shows that the derivative of
+$\phi(E)$ at $E=\mu$ can be expressed in terms of the Fermi momentum
+$k_F = \sqrt{\mu^2 - m^2}$:
+\begin{equation}
+f_P(\mu,m)
+ = \frac{\mu\,k_F}{\pi^2},
+\label{eq:fP-result}
+\end{equation}
+with the massless limit
+$f_P(\mu,0)=\mu^2/\pi^2$.
+Inserting Eq.~\eqref{eq:fP-result} into Eq.~\eqref{eq:Sommerfeld-P}
+gives the explicit low--temperature expansion
+\begin{equation}
+P(T,\mu)
+\simeq
+P_0(\mu,m)
++ \frac{\pi^2}{6}T^2\,\frac{\mu\,k_F}{\pi^2}
+= P_0(\mu,m) + \frac{\mu\,k_F}{6}\,T^2
++ \mathcal{O}(T^4),
+\end{equation}
+valid as long as $T \ll \mu-m$.
+
+\subsection*{Estimating the switching temperature}
+
+The adaptive switching scheme introduced above uses the Sommerfeld
+correction to estimate a temperature scale $T_0(\mu,m)$ below which the
+finite--$T$ correction is negligible compared to $P_0$.
+We choose $T_0$ such that the leading $T^2$ correction is smaller than a
+desired relative tolerance~$\epsilon$:
+\begin{equation}
+\left|
+  \frac{\pi^2}{6}T_0^2 f_P(\mu,m)
+\right|
+\;\le\;
+\epsilon\, |P_0(\mu,m)| .
+\end{equation}
+Solving for $T_0$, and inserting Eq.~\eqref{eq:fP-result}, we obtain
+\begin{equation}
+T_0(\mu,m)
+=
+\sqrt{
+\frac{6\,\epsilon\,|P_0(\mu,m)|}{\pi^2\,f_P(\mu,m)}
+}
+=
+\sqrt{
+\frac{6\,\epsilon\,|P_0(\mu,m)|}{\mu\,k_F}
+}.
+\label{eq:T0-general}
+\end{equation}
+This $T_0$ is then used as the center of the logarithmic switching band
+$[T_{\rm lo},T_{\rm hi}]$, with
+$T_{\rm lo} = T_0/\Lambda$ and $T_{\rm hi} = \Lambda T_0$ for some fixed
+factor $\Lambda>1$ (in the code we use $\Lambda\simeq 1.25$).
+Inside this band we blend between the analytic $T=0$ expression and the
+finite--temperature integral using the smoothstep kernel
+\[
+w(T) = S\!\bigl(x(T)\bigr),
+\qquad
+x(T) =
+\frac{\ln T - \ln T_{\rm lo}}
+     {\ln T_{\rm hi}-\ln T_{\rm lo}},
+\qquad
+S(x)=3x^2-2x^3,
+\]
+while outside the band we evaluate either $P_0(\mu,m)$ (for
+$T\le T_{\rm lo}$) or the full finite--$T$ integral (for $T\ge T_{\rm hi}$).
+
+For a typical strongly degenerate nucleon in dense matter, one may take
+for example
+\[
+m = 939~\mathrm{MeV},\qquad
+\mu \approx 1100~\mathrm{MeV},
+\]
+for which
+\[
+k_F = \sqrt{\mu^2 - m^2} \approx 570~\mathrm{MeV}.
+\]
+Using the exact $T=0$ formula for $P_0(\mu,m)$, one finds
+$P_0 \sim 8\times 10^7~\mathrm{MeV}^4$ and
+$f_P(\mu,m) \approx 6.3\times 10^4~\mathrm{MeV}^2$.
+With a relative tolerance $\epsilon = 10^{-6}$, the estimate
+\eqref{eq:T0-general} gives
+\[
+T_0 \;\approx\;
+\sqrt{
+\frac{6\,\epsilon\,P_0}{\mu\,k_F}
+}
+\;\sim\;
+3\times 10^{-2}~\mathrm{MeV},
+\]
+i.e.\ $T_0 \sim 0.03$~MeV.
+This is in excellent agreement with the temperature at which the naive
+finite--$T$ pressure integral (in the logarithmic form
+\eqref{eq:P-log-form}) begins to suffer from the loss of precision
+discussed above.
+Our adaptive scheme therefore switches to the $T=0$ expression at
+precisely the temperatures where the logarithm becomes numerically
+unreliable, while remaining fully smooth and well controlled in the
+mid--$T$ regime where the finite--temperature effects are important.
+
+
+
+\section{Coll's condition derivation}
+
+We consider a stationary planar discontinuity (shock or combustion front) in its rest frame.
+The upstream state is hadronic matter (H), and the downstream state is quark matter (Q).
+Throughout we use units $c=1$.
+
+The perfect-fluid stress-energy tensor and baryon current are
+\begin{equation}
+T^{\mu\nu} = (\varepsilon + p) u^\mu u^\nu + p g^{\mu\nu}
+\equiv w\, u^\mu u^\nu + p g^{\mu\nu},
+\qquad
+N^\mu = n\, u^\mu ,
+\end{equation}
+where $\varepsilon$ is the energy density, $p$ the pressure, $n$ the baryon density,
+and $w \equiv \varepsilon + p$ the enthalpy density.
+The four-velocity is
+\begin{equation}
+u^\mu = \gamma (1, v, 0, 0), \qquad \gamma = (1-v^2)^{-1/2}.
+\end{equation}
+
+We also define the enthalpy per baryon
+\begin{equation}
+h \equiv \frac{w}{n} = \frac{\varepsilon + p}{n},
+\end{equation}
+and the standard variable
+\begin{equation}
+X \equiv \frac{w}{n^2}.
+\end{equation}
+
+\subsection*{Rankine--Hugoniot Conditions}
+
+Across a stationary planar discontinuity, the normal fluxes of baryon number, energy,
+and momentum must be continuous:
+\begin{equation}
+[N^x]=0, \qquad [T^{0x}]=0, \qquad [T^{xx}]=0,
+\end{equation}
+where $[A]\equiv A_Q-A_H$.
+
+\textbf{Baryon Flux}
+
+\begin{equation}
+[N^x]=0
+\quad \Rightarrow \quad
+n_H \gamma_H v_H = n_Q \gamma_Q v_Q \equiv j ,
+\end{equation}
+which defines the invariant baryon flux $j$.
+
+\textbf{Energy Flux}
+
+\begin{equation}
+[T^{0x}]=0
+\quad \Rightarrow \quad
+w_H \gamma_H^2 v_H = w_Q \gamma_Q^2 v_Q .
+\end{equation}
+Using $j = n \gamma v$, this becomes
+\begin{equation}
+w_H \frac{j}{n_H} \gamma_H = w_Q \frac{j}{n_Q} \gamma_Q
+\quad \Rightarrow \quad
+h_H \gamma_H = h_Q \gamma_Q .
+\label{eq:hgamma}
+\end{equation}
+
+\textbf{Momentum Flux (Rayleigh Relation)}
+
+\begin{equation}
+[T^{xx}]=0
+\quad \Rightarrow \quad
+w_H \gamma_H^2 v_H^2 + p_H = w_Q \gamma_Q^2 v_Q^2 + p_Q .
+\end{equation}
+Since $\gamma^2 v^2 = (\gamma v)^2 = (j/n)^2$, we obtain
+\begin{equation}
+p_Q - p_H
+=
+j^2 \left( \frac{w_H}{n_H^2} - \frac{w_Q}{n_Q^2} \right)
+=
+j^2 (X_H - X_Q) .
+\label{eq:rayleigh}
+\end{equation}
+
+\subsection*{Taub Adiabat (Relativistic Hugoniot Relation)}
+
+From Eq.~\eqref{eq:hgamma}, $h_H \gamma_H = h_Q \gamma_Q$.
+Squaring and using
+\begin{equation}
+\gamma^2 = 1 + (\gamma v)^2 = 1 + \left(\frac{j}{n}\right)^2 ,
+\end{equation}
+we find
+\begin{equation}
+h_H^2 \left( 1 + \frac{j^2}{n_H^2} \right)
+=
+h_Q^2 \left( 1 + \frac{j^2}{n_Q^2} \right).
+\end{equation}
+Rearranging,
+\begin{equation}
+h_Q^2 - h_H^2
+=
+j^2 \left( \frac{h_H^2}{n_H^2} - \frac{h_Q^2}{n_Q^2} \right).
+\end{equation}
+Eliminating $j^2$ using Eq.~\eqref{eq:rayleigh}, we obtain the Taub adiabat:
+\begin{equation}
+h_Q^2 - h_H^2
+=
+(p_Q - p_H)(X_H + X_Q).
+\label{eq:taub}
+\end{equation}
+This equation defines the Hugoniot curve: the set of downstream states compatible with
+the upstream state across a discontinuity.
+
+\subsection*{Coll's Condition}
+
+We are interested in the existence of a \emph{self-sustained hydrodynamic conversion mode},
+i.e.\ a fast combustion front that does not require external mechanical forcing.
+This corresponds to the quasi-isobaric (weak-front) limit,
+\begin{equation}
+p_Q = p_H = p .
+\end{equation}
+
+At fixed pressure $p$, define the enthalpy per baryon of each phase:
+\begin{equation}
+h_H(p) = \frac{\varepsilon_H(p)+p}{n_H(p)},
+\qquad
+h_Q(p) = \frac{\varepsilon_Q(p)+p}{n_Q(p)} .
+\end{equation}
+
+A necessary condition for hydrodynamic propagation is that the conversion lowers the
+enthalpy per baryon at equal pressure:
+\begin{equation}
+\boxed{
+h_H(p) > h_Q(p)
+}
+\end{equation}
+This inequality is known as \emph{Coll's condition}.
+If it is satisfied, conversion is hydrodynamically ``exothermic'' and fast modes
+(deflagration or detonation) are possible.
+If it is violated, hydrodynamic propagation is not possible without additional
+compression, and conversion must proceed via diffusion and weak interactions.
+
+
+
+\appendix
+
+
+%\clearpage
+%\twocolumngrid
+\bibliographystyle{JHEP}
+\bibliography{reflist}
+
+\end{document}
+
+
+

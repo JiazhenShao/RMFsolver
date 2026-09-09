@@ -1,0 +1,661 @@
+\documentclass[10pt,superscriptaddress,
+amsmath,aps,prl,twocolumn,nofootinbib]{revtex4-1}
+\DeclareUnicodeCharacter{03C9}{$\omega$}
+\DeclareUnicodeCharacter{03C3}{$\sigma$}
+
+\usepackage{amssymb}  % \gtrsim, \geqslant, etc: see amsguide.ps
+\usepackage{graphicx}
+\usepackage{exscale}
+\usepackage{textcomp}
+\usepackage{enumerate}
+%\usepackage[spanish]{babel}
+\usepackage{amsmath}
+\usepackage{amssymb}
+%\usepackage[compat=1.1.0]{tikz-feynhand} 
+\usepackage{multirow}
+\usepackage{orcidlink}
+%\usepackage{float}
+\usepackage{subcaption}
+\usepackage{float}
+%\usepackage{cite}
+%\usepackage{bm}
+% \addtolength{\topmargin}{2cm}
+%\usepackage[utf8]{inputenc}
+%\usepackage[T1]{fontenc}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%    This is our standard definitions of abbreviations        %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\usepackage{color}
+\newcommand{\com}[1]{{\sf\color[rgb]{0,0,1}[#1]}}
+% Marking old and new text:
+\usepackage[normalem]{ulem}  % \sout{old text} for strikeout
+\newcommand{\mga}[1]{{\color[rgb]{0.8,0,0}#1}}
+\newcommand{\mgacom}[1]{\textsf{\color[rgb]{0.6,0,0}[\textsuperscript{MGA} #1]}}
+%\newcommand{\new}[1]{#1}
+\newcommand{\old}[1]{{\color[rgb]{0.7,0.7,0.7}\sout{#1}}}
+\newcommand{\new}[1]{{\color[rgb]{0.7,0,0.7}#1}}
+
+\newcommand{\AH}[1]{{\color{cyan}#1}}
+\newcommand{\AHcom}[1]{\textsf{\color{cyan}{\textsuperscript{AH}#1}}}
+
+\newcommand{\LB}[1]{{\color{brown}#1}}
+\newcommand{\LBcom}[1]{\textsf{\color{brown}[\textsuperscript{LB}#1]}}
+
+\newcommand{\JS}[1]{{\color{violet}#1}}
+\newcommand{\JScom}[1]{\textsf{\color{violet} [\textsuperscript{JS}#1]}}
+
+%%%%%%%%%% Journal Styles for APS
+%\newcommand\NCA{Nuovo Cimento}
+%\newcommand\NPBPS{{Nucl. Phys.} B (Proc. Suppl.)}
+%\newcommand\RMP{Rev. Mod. Phys.}
+%\newcommand\PTP{{Prog. Theor. Phys.}}
+%\newcommand\PTPS{{Prog. Theor. Phys. Suppl.}}
+%\newcommand\ZPA{{Z. Phys.} A}
+%\newcommand\EPJA{{Eur. Phys. J.} A}
+\newcommand{\AP}[3]{Ann.\ Phys.\ {\bf #1},\ #2 (#3)}
+\newcommand{\NPA}[3]{Nucl.\ Phys.\ {\bf A#1},\ #2 (#3)}
+\newcommand{\NPB}[3]{Nucl.\ Phys.\ {\bf B#1},\ #2 (#3)} 
+\newcommand{\PLA}[3]{Phys.\ Lett.\ A\ {\bf #1},\ #2 (#3)}
+\newcommand{\PLB}[3]{Phys.\ Lett.\ B\ {\bf #1},\ #2 (#3)}
+\newcommand{\PR}[3]{Phys.\ Rep.\ {\bf #1},\ #2 (#3)}
+\newcommand{\PRL}[3]{Phys.\ Rev.\ Lett.\ {\bf #1},\ #2 (#3)}
+\newcommand{\PRB}[3]{Phys.\ Rev.\ B\ {\bf #1},\ #2 (#3)}
+\newcommand{\PRC}[3]{Phys.\ Rev.\ C\ {\bf #1},\ #2 (#3)}
+\newcommand{\PRD}[3]{Phys.\ Rev.\ D\ {\bf #1},\ #2 (#3)}
+\newcommand{\JPG}[3]{J.\ Phys.\ G\ {\bf #1},\ #2 (#3)}
+\newcommand{\RPP}[3]{Rep.\ Prog.\ Phys.\ {\bf #1},\ #2 (#3)}
+\newcommand{\ZPC}[3]{Z.\ Phys.\ C\ {\bf #1},\ #2 (#3)}
+\newcommand{\EPJC}[3]{Eur.\ Phys.\ J.\ C\ {\bf #1},\ #2 (#3)}
+\newcommand{\PPNP}[3]
+{Prog.\ Part.\ Nucl.\ Phys.\ {\textbf #1},\ #2 (#3)}
+\newcommand{\APPB}[3]{Acta.\ Phys.\ Polon.\ B\ {\bf #1},\ #2 (#3)}
+
+\newcommand{\ibid}[3]{{\bf #1},\ #2 (#3)}
+%%%%%%%%%% End Journal Definitions
+
+%%%%%%%%%% Greek alphabets
+\renewcommand\a{\alpha}
+\renewcommand\b{\beta}
+\newcommand\g{\gamma}
+\renewcommand\d{\delta}
+\newcommand\e{\epsilon}
+\newcommand\ve{\varepsilon}
+\newcommand\z{\zeta}
+\newcommand\h{\eta}
+\newcommand\q{\theta}
+\renewcommand\i{\iota}
+\renewcommand\k{\kappa}
+\renewcommand\l{\lambda}
+%\newcommand\m{\mu}
+\newcommand\n{\nu}
+\newcommand\x{\xi}
+%\newcommand\p{\pi}
+\newcommand\rr{\rho}
+%\newcommand\s{\sigma}
+\renewcommand\t{\tau}
+\renewcommand\u{\upsilon}
+\newcommand\f{\phi}
+\renewcommand\c{\chi}
+\renewcommand\j{\psi}
+\renewcommand\o{\omega}
+
+\newcommand{\al}{\alpha}
+\newcommand{\be}{\beta}
+\newcommand{\ga}{\gamma}
+\newcommand{\Ga}{\Gamma}
+\newcommand{\de}{\delta}
+\newcommand{\De}{\Delta}
+\newcommand{\ep}{\varepsilon}
+
+\newcommand{\eps}{\epsilon}
+\newcommand{\ze}{\zeta}
+\newcommand{\ka}{\kappa}
+\newcommand{\la}{\lambda}
+\newcommand{\La}{\Lambda}
+\newcommand{\ph}{\varphi}
+\newcommand{\del}{\nabla}
+\newcommand{\si}{\sigma}
+\newcommand{\Si}{\Sigma}
+\renewcommand{\th}{\theta}   % LaTeX: \th already defined
+\newcommand{\Up}{\Upsilon}
+\newcommand{\om}{\omega}
+\newcommand{\Om}{\Omega}
+
+%%%%%%%%%% End Greek alphabets
+
+%%%  A few capitals
+\newcommand\D{\Delta}
+\newcommand\G{\Gamma}
+\renewcommand\L{\Lambda}
+\newcommand\J{\Psi}
+\newcommand\U{\Upsilon}
+
+%%%%%%%%%%  Some abbreviations
+
+%\newcommand{\Del}{\nabla}
+%\newcommand{\eqn}[1]{(\ref{#1})}
+%\newcommand{\sliver}{\kern 0.07em} % like italic correction \/
+
+\newcommand{\m}{\text{m}}
+\newcommand{\km}{\text{km}}
+\newcommand{\s}{\text{s}}
+\newcommand{\gram}{\text{g}}
+\newcommand{\MeV}{\text{MeV}}
+\newcommand{\kHz}{\text{kHz}}
+\newcommand{\nsat}{\ensuremath{n_{0}}}
+\newcommand{\aQstar}{\ensuremath{a_{Q^*}}}
+\newcommand{\vb}{\ensuremath{v_{N\to Q}}}
+\newcommand{\Nbar}{{\ensuremath{\bar N}}}
+\newcommand{\Qbar}{{\ensuremath{\bar Q}}}
+
+
+\newcommand{\tfinal}{\ensuremath{t_\text{eq}}}
+
+%\newcommand{\half} {{\textstyle \frac{1}{2}}}
+%\newcommand\deriv[3]{{\dfrac{\partial #1}{\partial #2}}\biggr|_{#3}}
+%\newcommand{\p}{\partial}
+
+
+\begin{document}
+
+\title{Quark Matter Phase Boundary Evolution in Neutron Star Mergers}
+ \author{M.~G.~Alford \,\orcidlink{0000-0001-9675-7005}}
+ \email{alford@physics.wustl.edu}
+ \affiliation{Department of Physics, Washington University in St.~Louis, St.~Louis, MO 63130, USA}
+ \author{L.~Brodie\,\orcidlink{0000-0001-7708-2073}}
+ \email{b.liam@wustl.edu}
+ \affiliation{Department of Physics, Washington University in St.~Louis, St.~Louis, MO 63130, USA}
+ \author{A.~Haber\,\orcidlink{0000-0002-5511-9565}}
+ \email{a.haber@soton.ac.uk}
+ \affiliation{Mathematical Sciences and STAG Research Centre,
+University of Southampton, Southampton SO17 1BJ, United Kingdom}
+ \affiliation{Department of Physics, Washington University in St.~Louis, St.~Louis, MO 63130, USA}
+ \author{J. Shao\,\orcidlink{0009-0004-9698-0177}}
+ \email{jan.shao@wustl.edu}
+ \affiliation{Department of Physics, Washington University in St.~Louis, St.~Louis, MO 63130, USA}
+ \affiliation{McDonnell Center for the Space Sciences, Washington University in St.~Louis, St.~Louis, MO 63130, USA}
+
+\date{\today}
+
+\begin{abstract}
+PRL abstract/body length limit and other info: \url{https://journals.aps.org/prl/authors}
+\end{abstract}
+
+\maketitle
+
+\section{Introduction}
+
+Neutron star mergers provide a rare opportunity to study the dynamics of neutron star matter on the millisecond timescale. It is hoped that this information will help us to map the phases of ultra-dense matter. For example, if there were a first-order phase transition from nuclear matter to quark matter at some critical pressure, would it produce observable signatures in the gravitational or electromagnetic waves emitted, either during the inspiral or after the merger? In both scenarios, the speed at which the boundary moves is an essential factor.
+
+\AH{In the inspiral phase, \mga{a phase boundary between nuclear and quark matter
+can create observable signatures via excitation of its ``interface mode'' \mgacom{citation}.
+Such excitations,}
+%this transition from nuclear matter to quark matter could lead to the excitation of the so-called interface mode. This interface mode, 
+which would provide strong evidence for the existence of quark matter, are potentially detectable with the current LVK network, and certainly within reach of next-generation detectors like Cosmic Explorer or the Einstein Telescope \cite{Counsell:2025hcv,Pereira:2025xsi}. However, the existence and frequency of the interface mode critically depend on the conversion timescale, i.e.,~the speed with which the phase boundary between nuclear and quark matter can move \mga{via conversion of metastable nuclear matter to quark matter, or vice versa}. If the phase boundary can move too fast, the restoring force for the interface mode and thus the mode itself vanish. All recent analyses \mgacom{citation} thus set this velocity to zero and assume that on the millisecond timescale of the oscillation, the phase content is frozen.}
+
+\mga{In the post-merger phase there are also possible signatures of
+a nuclear-quark phase boundary.}
+Several recent works have addressed this question using model equations of state that include a nuclear/quark transition \cite{Most:2018eaw,Bauswein:2018bma,Espino:2023llj,Weih:2019xvw,Harada:2023eyg,Bauswein:2020ggy,Haque:2022dsc,Fujimoto:2022xhv,Christian:2023hez,Fujimoto:2024ymt},
+\mga{looking for features of the gravitational wave emission arising}
+from the redistribution of mass
+as regions of the denser phase grow or shrink in response to pressure gradients in the violent collision between the stars. 
+Current simulations assume that if a region of nuclear matter is compressed to a pressure above the critical pressure $p_\text{crit}$ where quark matter becomes favored, it will immediately convert to quark matter,
+%If we neglect the problem of nucleating the new phase, and assume that there is already a neighboring region of quark matter, then the conversion occurs by the quark matter phase growing and consuming the (now metastable) nuclear matter. 
+so there will be no significant regions of metastable nuclear matter
+\mga{or out-of-equilibrium quark matter}. This assumes that the phase boundary can travel distances of order kilometers in milliseconds, i.e., at speeds of order $10^6\,\m\s^{-1}$. However, it is known that since weak interactions are required to create strange quarks, the boundary speed is limited.
+
+%as noted in the earliest work on the formation of strange stars \cite{Olinto:1986je},  conversion of nuclear matter to quark matter requires weak interactions to create strange quarks, so there will be a limit on how fast the conversion of one phase to another can occur. 
+
+In this Letter, we estimate how fast a region of metastable nuclear matter could be converted to quark matter \mga{via a deflagration arising from a gradual (compared to microscopic timescales) increase in pressure \mgacom{could cite the existing literature here; \cite{Furusawa:2015gjj} has a bunch of references in its intro.}. Detonation-type conversion induced by a shock is a separate phenomenon \cite{Furusawa:2015gjj} whose treatment we defer to future work.}
+\mgacom{This is the minimal treatment. We could get in to a discussion of when detonation is physically realized, but for that we'd have to understand the physics better.}%\JScom{How likely will the referees ask why not do calculations in detonation as well and make a holistic analysis?}
+
+We first estimate the maximum speed at which the phase boundary could travel, and then the timescale on which the boundary will reach its equilibrium position. We find that the speeds are generally slow on the timescale of a merger, leading us to conclude that \mga{post-merger} simulations of matter with such transitions should take into account the finite speed of the boundary. 
+\mga{For the inspiral phase, the speed may be slow enough to allow} interface modes. \mgacom{Moved discussion of phase conversion dissipation to the conclusions}
+We do not consider the reverse process, conversion of quark matter to nuclear matter, %\AH{and the calculation of the phase conversion dissipation,} 
+leaving that to future work.\LBcom{Should we also move this to the conclusions, where we can also mention including hyperons?}
+We use natural units, $\hbar=c=k_B=1$.
+
+\JScom{Just had an idea. $\rm NM\to \Lambda NM \to SQM$ where hyperonic NM serves as intermediate stage.}
+
+%\JScom{Could add this to address Furusawa and Ouyed?}
+%\JS{Previous studies of hadron–quark conversion in compact stars have largely focused on shock- or hydrodynamically driven scenarios, where the propagation speed of the conversion front is determined by global fluid dynamics rather than by microphysics alone. In this context, reactive hydrodynamical analyses have classified possible combustion modes using Hugoniot constructions and have demonstrated that detonation-like conversion may occur under sufficiently strong compression. Complementary numerical studies have explored such scenarios in proto-neutron stars and quark-nova models using dedicated hydrodynamical codes.
+
+%However, these approaches typically assume the presence of strong hydrodynamic forcing and do not address the limiting case in which the conversion proceeds without shocks or externally imposed compression. In particular, the conversion speed is often treated as an input or emergent hydrodynamical parameter rather than being derived from microphysical transport and weak interaction rates. In contrast, neutron-star mergers generically contain extended regions that evolve quasi-hydrostatically after the initial collision, where such forcing may be absent. In this work, we therefore focus on the diffusion-limited regime and derive conservative, microphysics-based bounds on the conversion speed, independent of assumptions about shock formation or large-scale fluid dynamics.}
+
+
+\section{Methods}
+
+Our goal is to obtain an estimated upper limit on the speed at which a phase boundary between metastable nuclear matter and quark matter could move. For this we adopt the following model: \\
+(1) We model the nuclear phase as pure neutron matter, 
+described by the QMC-RMF3 model~\cite{Alford:2022bpp, Alford:2023rgp,qmc_rmf3}. \\
+(2) We model the quark phase as a degenerate gas of free massless up, down, and strange quarks (MIT bag model \cite{Chodos:1974je,Farhi:1984qu}).\\
+(3) \mga{We assume that the surface tension of the phase boundary is large enough to disfavor any mixed phase regions}. \mgacom{This is to eliminate Model B of \cite{Furusawa:2015vfn}}\\
+(4) \mga{We assume that the material near the boundary is always in thermal equilibrium with its surroundings at a fixed temperature $T$.}
+\mgacom{Could add: "The reliability of this assumption depends on the latent heat of the transition and the thermal conductivity of the medium; we expect it to be most reliable
+at the later stages of the transition when the nuclear matter is only slightly metastable so the latent heat is small."
+But that would get deeper into this than we want to. Maybe better to say the minimum and only worry about it if a referee complains. If they do, I suppose we could calculate the difference in entropy between the phases using $p=\mu_i n_i + Ts - \eps$ and use some standard estimate of the thermal conductivity.}\\
+(5) We consider a one-dimensional geometry, and work in the rest frame of the phase boundary which is an infinite plane located at $x=0$. In this frame, metastable neutron matter flows in to the boundary from $x<0$, strange quark matter (SQM) flows out to $x>0$. \JScom{could add why this is justified by saying that the conversion region from Fig.~\ref{fig:a(x)_Profile} is hundreds of nanometers, far smaller than merger km scale}\\
+(6) We neglect electromagnetism and electrons.
+We therefore also neglect Urca processes, so there is no equilibration of the up quarks. In this approximation flavor is equilibrated by the nonleptonic process $d\ u \leftrightarrow u\ s$. Since the Urca processes are generally slower than the nonleptonic one \cite{Alford:2006gy,Alford:2025tbp,Sad:2007afd}, we expect that including the equilibration of up-ness via Urca processes would make the conversion of nuclear matter to quark matter even slower, so this approximation
+is consistent with our goal of obtaining an upper limit on the boundary propagation speed.
+
+The  conversion of metastable neutron matter to quark matter \mga{via deflagration} has been analyzed previously \cite{Olinto:1986je,horvath:1988stability,Heiselberg:1992dx,lugones:1994combustion,Pagliara:2013tza,Alford:2014jha,Drago:2015fpa,Furusawa:2015vfn}.
+\mgacom{References that discuss detonation can be dropped or moved to the Intro where we mention that.} 
+\mgacom{\cite{Furusawa:2015gjj} has a bunch of references in its intro.}
+When the neutron matter arrives at the phase boundary, it can immediately be converted to some form of quark matter, since deconfinement occurs via strong interactions. However, the quark matter at $x=0^+$ is not just $udd$ quark matter, but already has some strangeness fraction, although not the fully beta equilibrated flavor balance of $uds$. On the quark matter side there is a ``conversion region'' where the weak interaction $d\ u \leftrightarrow u\ s$ creates strangeness, and a flavor concentration gradient diffuses strangeness to the boundary. The combination of these processes determines how fast the boundary can move, so, as we will describe below,  its speed will depend on a weak interaction rate and a diffusion coefficient.
+
+To describe the composition in the phase conversion region, we define a kaon-ness number density $n_K$ and chemical potential $\mu_K=\mu_d-\mu_s$, and a normalized kaon-ness fraction $a$,
+\begin{equation}
+n_K(x) = \frac{n_d(x) - n_s(x)}{2}\ ,\quad a(x) = \frac{n_K(x) - n_K^\Qbar}{n_B^\Qbar} \ ,
+\label{eq:def_of_a}
+\end{equation}
+where $n_u,n_d,n_s,n_B$ are the up, down, strange, and baryon number densities, 
+%$n_B$ is baryon number density and 
+and the superscript $\Qbar$ indicates beta-equilibrated quark matter, which is found far behind the moving boundary, at $x \rightarrow \infty$. By definition $a(+\infty)=a_\Qbar=0$, and in our approximations, $\mu_K^\Qbar=n_K^\Qbar=0$.
+On the neutron matter side, at $x<0$, $a(x)=a_\Nbar$, independent of $x$,
+and in our approximations $n_K^\Nbar=n_B$.
+
+In the bag model, the pressure of quark matter is
+\begin{equation}
+\begin{array}{rl}
+ P_\text{QM}(\mu_q,\mu_K,T) &= P_q(\mu_q,T)
+ + P_q(\mu_q{+}\mu_K/2,T)  \\[1ex]
+  & +\ P_q(\mu_q{-}\mu_K/2,T) - U_\text{bag} \ ,
+\end{array}
+%  \dfrac{1}{32\pi^2}\bigl( 24\mu_q^4 + 24 \mu_q^2\mu_K^2 + \mu_K^4\bigr) 
+ \label{eq:QM-bag-EoS}
+\end{equation}
+
+where $\mu_q=\mu_B/3$ is the quark chemical potential and $P_q$ is the pressure of a free Fermi gas of three colors of a single quark flavor.%\JScom{Should we be consistent, using sub index $Q$ instead of $q$ indicating ``quark matter'', since we have them in $D_Q, \gamma_Q, \eta_Q, \mathcal{R}_Q(a), \mu_Q$ and so on? Index $Q$ also indicates equilibriated strange quark matter at $x=\infty$, so people may get confused whether $Q$ means just quark matter or equilibriated quark matter}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=1.0\linewidth]{a(x)_Profile.pdf}
+    \caption{\mgacom{The bar over the N is hard to see. And the one over the Q.} Kaon-ness fraction $a(x)$ near the moving phase boundary, showing conversion region where $a(x)$ relaxes from $\aQstar$ at the boundary to beta-equilibrated quark matter $(a=0)$ as $x\to\infty$. For details see text. 
+    }
+    \label{fig:a(x)_Profile}
+\end{figure}
+
+
+The spatial variation of $a$ on the quark matter side is determined by the steady-state transport equation, written in the rest frame of the boundary \cite{Olinto:1986je,Alford:2014jha}, %\JScom{a small thought about sub index $Q$. In $D_Q, \gamma_Q, \eta_Q, \mathcal{R}_Q(a), \mu_Q$ and so on, they indicate ``quark matter'' in general, and we also have letter $Q$ in super index meaning equilibriated strange quark matter at $x=\infty$, so people may get confused whether index $Q$ means just quark matter or equilibriated strange quark matter. So I'm thinking just like in Eq.~\eqref{eq:QM-bag-EoS}, we use sub index $q$ to label quark matter in general, i.e. use $D_q, \gamma_q, \eta_q, \mathcal{R}_q(a), \mu_q$.}
+%
+\begin{equation}
+D_Q \,\partial_x^2 a(x) - \vb\,\partial_xa(x) - \mathcal{R}_Q(a(x)) = 0 \ , 
+\label{eq:Diff_eq}
+\end{equation}
+with boundary conditions
+\begin{equation}
+ a(0) = \aQstar\ ,\quad a(\infty)=0 \ ,
+\label{eq:bc}
+\end{equation}
+%
+where $D_Q$ is the flavor diffusion coefficient in quark matter, $\vb$ is the phase boundary velocity, and $\mathcal{R}_Q$ is the rate of the weak interaction process $ud\leftrightarrow us$. 
+We will discuss below how we constrain the value of $\aQstar$, the kaon-ness fraction at the quark matter side of the boundary. Eq.~\eqref{eq:Diff_eq} is an eigenvalue problem: there is only one value of $\vb$ that yields a solution obeying the boundary conditions.
+Fig.~\ref{fig:a(x)_Profile} shows an example of a solution $a(x)$, explained in the Results section below.
+
+For the flavor diffusion coefficient we use the perturbative estimate (Eq.~(28) and (36) in Ref.~\cite{Haensel:1992zz})
+\begin{equation}
+D_Q^{-1} = \frac{24~N_f~\alpha_s^2}{3 \pi} \Bigg(h \frac{T^{5/3}}{q_D^{2/3}} + \frac{\pi^3 T^2}{12 q_D} \Bigg),
+\label{eq:diffusion_coeff}
+\end{equation}
+where $N_f=3$ is the number of quark flavors, $h \simeq 1.81$ is a numerical prefactor, $q_D$ is the Debye wavenumber $q_D^2=g^2 N_f \mu_q^2/(2\pi^2)$, $g^2=4\pi\alpha_s$, and $\alpha_s$ is the strong interaction coupling which we take to be $0.3$ in our calculations;
+%$\mu_q$ is the quark chemical potential, and 
+$T$ is the temperature. In the temperature range that we study, the second term in $D_Q^{-1}$,  is generally comparable to or smaller than the first, with the ratio dropping to about 0.2 at $T\sim 1\,\MeV$.
+
+The $du\leftrightarrow us$ net strangeness creation rate, 
+including both the subthermal and suprathermal contributions \cite{Madsen:1993xx}, can be written in terms of $a$ as
+\begin{align}
+ \mathcal{R}_Q(a) &= \gamma_Q(a^3 + \eta_Q a)\ ,
+ \quad\eta_Q = \frac{9\pi^2 T^2}{\mu_q^2}\ , \\
+ \gamma_Q &= \frac{128}{27\times 5\pi^3} G_F^2\sin^2\theta_C \cos^2\theta_C \mu_q^5 \ ,
+    \label{eq:Rq}
+\end{align}
+where
+$G_F=(\pi/\sqrt{2}) \cdot \alpha_w/M_W^2 = 1.16{\times}10^{-11}\,\MeV^{-2}$ is Fermi's constant and $\theta_C=0.222$ is the Cabibbo angle.
+
+We can obtain an approximate analytic solution (see derivation in the supplemental material) to the eigenvalue problem,
+\begin{equation}
+\vb^2 = \frac{D_Q\gamma_Q}{2} \,
+\frac{\aQstar^4 + 2\eta_Q \aQstar^2}{(a_\Nbar + \xi \aQstar)(a_\Nbar - \aQstar)} \ ,
+\label{eq:v_analytical}
+\end{equation} 
+
+in terms of a parameter $\xi \in (-1,1)$, whose value depends on the precise shape of the solution $a(x)$ in the quark matter region. For
+reasonably smooth shapes we expect $\xi$ to be close to zero.
+Our results presented below are obtained by using Eq.~\eqref{eq:v_analytical}. %to give physical interpretations of the results. %\JScom{We use Eq.~\eqref{eq:v_analytical} to obtain the results. } 
+We find that Eq.~\eqref{eq:v_analytical} with $\xi=0$ agrees with numerically solving the full eigenvalue problem to within $1\%$ for $T>10\,\MeV$, and within $10\%$ for $T<10\,\MeV$, \JS{with the additional advantage of computation time.} \JScom{I tried numerically solving the eigen value problem by truncating the interval $x\in[0, \infty)$ fo $x\in[0,L]$ and adaptively choosing $L$ from Robin boundary conditions and linearization instead of rescaling. The result is that Eq.~\eqref{eq:v_analytical} gives results bigger than the actual velocity. } \AHcom{bigger by how much? Is the 10\% statement still correct?}\JScom{Eq.~\eqref{eq:v_analytical} with $\epsilon=0$ can be twice bigger than the numerical value. But I'm very sure the numerical value isn't accurate itself. In addition, the $10\%$ accuracy comes from me manually doing the shooting method where I see $a(x)$ has a flat tail.}
+
+We do not know the value of $\aQstar$, the flavor content of the quark matter at the boundary, but $\vb$ is a monotonically increasing function of $\aQstar$ \JS{in the domain $0<\aQstar<a_\Nbar$}, so we will obtain an upper bound on the boundary speed $\vb^\text{max}$ by setting $\aQstar$ to $\aQstar^\text{max}$, which is the value of $\aQstar$ at which the quarks at the boundary have the same average chemical potential $\mu_{B}^{Q^*} + (n_K^{Q^*}\mu_K^{Q^*})/n_B^{Q^*}$ as the quarks in the baryons. 
+Quark matter with $\aQstar>\aQstar^\text{max}$ would have insufficient strangeness to make it favored over neutron matter \cite{Alford:2014jha}. 
+
+In our plots we calculate $\aQstar^{\text{max}}$ numerically, but
+Taylor-expanding the quark matter EoS around its beta-equilibrated state, we can obtain an approximate formula that in the parameter range that we explored agrees with the numerical result to within 1\%,
+\begin{equation}
+\aQstar^{\mathrm{max}} \approx \sqrt{ \dfrac{2 \bigl(\mu_B^\Nbar - \mu_B^\Qbar\bigr)}{n_B^\Qbar}\left. \dfrac{\partial^2 P_\text{QM}}{\partial\mu_K^2}\right|_{\Qbar}} \ .
+\label{eq:aQmax}
+\end{equation}
+
+
+
+\section{Results}
+
+%\JScom{the analytical approximation and numerical shooting method disagree more and more as temperature decrease, but numerical shooting method doesn't work well for $T<0.3$ MeV: solver just returns initial guess and there's no iteration going on, the solver just went nuts.}
+
+
+In our calculations we determine the critical pressure $p_\text{crit}$, at which zero-temperature neutron matter 
+and beta-equilibrated ($\mu_K=0$)  quark matter are in equilibrium,  by tuning the bag constant $U_\text{bag}$ in the quark matter EoS (Eq.~\eqref{eq:QM-bag-EoS}).
+We are interested in the scenario where the boundary is temporarily located at a higher pressure where neutron matter is metastable, with baryon density $n_B^\Nbar$  and kaon-ness density $n_K^\Nbar$. This determines $\aQstar^\text{max}$ and hence the maximum boundary speed as a function of $n_B^\Nbar-n_B^\text{crit}$ (which determines how metastable the neutron matter is) and $T$, which determines the diffusion and flavor relaxation rates.
+
+For better understanding, see (Figs.~\ref{fig:muB_muK_Plane} and \ref{fig:a(x)_Profile}) in Supplemental Material for the $(\mu_B,\mu_K)$–plane illustration and the $a(x)$ profile used in our setup. 
+
+
+\subsection{Phase boundary speed}
+
+\begin{figure}
+\includegraphics[width=1.0\linewidth]{3n0_single_pannel.pdf}
+\caption{
+Contour plot of the maximum speed of the phase boundary in $\m\,\s^{-1}$ as a function of 
+$n^{\Nbar}_B - n_B^{\mathrm{crit}}$ (which measures how far from equilibrium the neutron matter at the phase boundary is) and temperature.
+\old{Note that for} \AH{For the inspiral, the lower part of the plot in the sub MeV regime is relevant, while for the post-}merger, the upper half of the plot ($T>1\,\MeV$) is the relevant region.
+} 
+\label{fig:speed-contours}
+\end{figure}
+
+In Fig.~\ref{fig:speed-contours} we show the 
+maximum speed of the phase boundary as a function of $n_B^\Nbar-n_B^\text{crit}(T)$ and $T$, for representative critical density 
+$n_B^\text{crit}=3\,\nsat$. We have checked that varying the critical density does not change the typical range of speeds significantly. The plot
+covers a range of temperatures from those expected in isolated neutron star cores \AH{and the inspiral} to those expected in neutron star mergers. The contours show $\vb^\text{max}$ in meters per second.  We note the following features.\\
+(1) At merger temperatures $T\gtrsim 1\,\MeV$ the maximum boundary speed is generally in the range of
+$10^2$ to $10^3 \,\m\,\s^{-1}$. This is understandable from Eq.~\eqref{eq:v_analytical}: the kaon-ness fractions
+are expected to be of order 1, so typically $\vb^\text{max}\sim \sqrt{\gamma_Q D_Q}$ which in the low temperature regime is of order $0.03\,(\alpha_w/\alpha_s) (\mu_q/M_W)^2(\mu_q/T)^{5/6}$, so even at the lowest temperatures we study it is heavily suppressed by the mass of the W boson, i.e., by the slowness of the weak interaction. 
+%\mgacom{I dropped a factor of $\alpha_s^{1/6}$ because it's close to 1} 
+For example, under plausible merger conditions such as $\mu_q=300\,\MeV$ and $T = 5\,\MeV$ we obtain  $\vb^\text{max} \sim 400\,\m\,\s^{-1}$. %\JScom{I plugged in numbers: $\alpha_w = 0.034, M_W = 80$GeV, and got $v\sim 430\,\m\,\s^{-1}$} \mgacom{Yes I get something around 350.}
+\\
+%
+(2) At the edge of the plot is a region, shaded in grey, where setting $\aQstar=\aQstar^\text{max}$ leads to unphysical results. As one approaches this region, the upper limit on the speed of the boundary diverges because $\aQstar^\text{max}$ approaches $a_\Nbar$, meaning that $n_K^\Nbar = n_K^{Q^*}$. This is because as $T$ increases at fixed $n_B^\Nbar-n_B^\text{crit}(T)$ or vice versa, $a_\Nbar$ drops and $\aQstar^\text{max}$ rises. But we should remember that we are calculating an upper bound on $\vb$ by assuming that the quark matter at the boundary has the maximum kaon-ness fraction that would still be favored over neutron matter. We hope future work that addresses the physics of the phase boundary itself might yield a stronger upper bound on the speed.\\
+%
+(3) Away from the divergence mentioned above, $\vb$ decreases with temperature. This is mainly because the leading term in $D_Q$ is $\propto T^{-5/3}$. This can be counteracted by the
+subthermal (temperature-dependent) part of $\mathcal{R}(a)$, but
+the downward trend persists until the divergence mentioned above
+reverses it at $T\sim 60\,\MeV$.\\
+%
+(4) As $n_B^\Nbar - n_B^\text{crit}\to 0$, $\vb\to 0$, i.e., the boundary moves more slowly as it comes closer to its equilibrium position. This follows from Eq.~\eqref{eq:v_analytical} and \eqref{eq:aQmax}.
+In order to reach its equilibrium position where $n_B^\Nbar=n_B^\text{crit}$, the boundary must traverse the regime where $n_B^\Nbar-n_B^\text{crit}$ and the maximum value of $\vb$ are both small. This allows us to estimate the fastest possible timescale on which that equilibration process could occur.
+
+\subsection{\mga{Time required for completion of the transition}}
+
+\begin{figure}
+    \includegraphics[width=1.0\linewidth]{z_t_new_n.pdf}
+    \caption{
+    Time evolution of the displacement $z$ of the phase boundary from its equilibrium position, shown for various temperatures and critical densities. Initial displacement is
+     set to $1$\,km. }
+    \label{fig:z(t)}
+\end{figure}
+
+We will now use the results from the previous section to estimate the shortest time in which a region of metastable neutron matter could be converted to quark matter
+by the progression of the phase boundary to the place where it is in equilibrium, i.e., to where the local pressure is the critical pressure, so the neutron matter
+at the boundary has density $n_B^\text{crit}$. 
+%\JScom{For consistency with Fig.~\ref{fig:speed-contours} I set $n_B^{\rm crit}(T=0) = 3\,n_0$ in Fig.~\ref{fig:z(t)}. Note that Fig.~\ref{fig:z(t)} isn't inconsistent with Fig.~\ref{fig:speed-contours} (it might confuse the audience because the red $T=50\,\MeV$ curve in Fig.~\ref{fig:z(t)} decent faster than the green $T=10\,\MeV$ curve, but in Fig.~\ref{fig:speed-contours}, $T=50\,\MeV$ velocity is slower than that for $T = 10\,\MeV$.) The reason for this ``inconsistency'' is that to obtain Fig.~\ref{fig:z(t)}, we are actually looking at a different contour plot when x axis isn't $\Delta n$, but $\Delta P$, because we build our $z(t)$ based on pressure profile, not density profile. I checked the velocity contour plot when x axis is $\Delta P$, and found out that in the $\Delta P$ contour indeed $T=50\,\MeV$ has higher velocity than $T = 10\,\MeV$. Should we address this in the main text?}
+In the planar geometry that we use throughout this work, we consider a uniform density gradient $dn_B/dz > 0$, such that the plane $z=0$ is where \mga{neutron matter would be} at the critical density $n^\text{crit}_B$, \mga{in equilibrium with flavor-equilibrated quark matter.} At time $t=0$ the phase boundary is at $z=z_0$, where the pressure is higher, so the region
+$0 < z < z_0$  contains metastable neutron matter. The phase boundary will move from $z=z_0$ towards $z=0$, obeying
+\begin{equation}
+    \dfrac{dz}{dt} = -\vb(z)\ ,
+    \label{eq:z-evolution}
+\end{equation}
+% converting nuclear matter to quark matter, 
+until at $t=\tfinal$ it reaches $z=0$, at which point the \mga{phase transition has completed and} the system is in equilibrium.
+
+In Fig.~\ref{fig:z(t)} we show the result of numerically solving
+\eqref{eq:z-evolution} for $z_0=1\,\km$, i.e., we have chosen the initial position of the phase boundary to be $1\,\km$ away from its equilibrium position, \mga{assuming this is a typical size of regions that transition to quark matter in a merger.}
+We choose a characteristic \JS{density gradient $|dn_B/dz| = 0.3\ n_0\,\mathrm{km}^{-1}$}, which is typical in neutron and hybrid stars.  
+%\mgacom{Could say more, e.g. at each time step do we calculate $\vb$ by solving the full eigenvalue problem, or do we use the approximation \eqref{eq:v_analytical}? If so, how do we get $\aQstar^\text{max}$ etc? }
+To accelerate the differential-equation solver, we interpolate $\vb(z)$ from discrete $(z,\vb)$ points,
+\mga{calculated by solving the eigenvalue problem Eq.~\eqref{eq:Diff_eq},\eqref{eq:bc} numerically as described for Fig.~\ref{fig:speed-contours}.} 
+%a direct evaluation of Eq.~\eqref{eq:v_analytical} with full numerical precision, for example, without using the approximation Eq.~\eqref{eq:aQmax} for $\aQstar$, requires $\mathcal{O}(10\mathrm{s})$ per point and would otherwise render the computation prohibitively slow.}
+We see that the time for the boundary to reach equilibrium, \tfinal, is in the 1 -- \JS{3}0\,s range for merger temperatures. 
+
+We can understand this time scale by considering the last part of the evolution, where $z$ is small, meaning the phase boundary is close to its equilibrium position.
+In this limit, the difference between the baryon chemical potentials in the two phases at the boundary tends to zero, so $\aQstar^{\rm max}$ and $\vb$ also go to zero (Eq.~\eqref{eq:aQmax}). 
+We can then expand Eq.~\eqref{eq:v_analytical} to leading order in $\aQstar$, 
+\begin{equation}
+    \vb^2 = D_Q\eta_Q\gamma_Q\left(\frac{\aQstar}{a_\Nbar}\right)^2\ ,
+    \label{eq:vb-a}
+\end{equation}
+and from Eq.~\eqref{eq:aQmax} we obtain the small-$z$ result,
+\begin{align}
+ \frac{dz}{dt} &= -C\,z^{1/2} \ , \\
+ C^2 &= 
+\frac{2D_Q\gamma_Q\eta_Q}{a_\Nbar^2} \,
+\frac{\chi_K^\Qbar}{(n_B^\Qbar)^2}\,
+\frac{\De n_B}{n_{B}^\Nbar} \,
+\frac{\partial P}{\partial z} \ ,
+ \label{eq:v_asymptotic}
+\end{align}
+where $\De n_B$ is the baryon density discontinuity at the critical point, $\chi_K\mga{=dn_K/d\mu_K|_{\mu_B}}$ is the kaon-ness susceptibility, and quantities labeled with \Nbar\ or \Qbar\ are evaluated at the critical point. The solution is
+\begin{equation}
+    z(t) = \Bigl(z_0^{1/2} - \frac{C}{2}t \Bigr)^2 ,\;\label{eq:z(t)_analytical}
+\end{equation}
+and since $\tfinal$ is defined by $z(\tfinal)=0$ we obtain
+\begin{equation}
+\tfinal = \dfrac{2 z_0^{1/2}}{C} \ .
+\end{equation}
+
+This solution makes it explicit that the interface decelerates as it evolves but nonetheless reaches its equilibrium position in a finite time.
+To see why $\tfinal$ is in the range of tens of seconds we make the following estimates. \mga{we write the prefactor in \eqref{eq:vb-a} as
+$D_Q\ga_Q\eta_Q \approx 5{\times}10^{-4} (\mu_q/M_W)^4\,(T/\mu_q)^{1/3}$, the susceptibility factor $\chi_K^\Qbar/(n_B^\Qbar)^2 \sim 15.0/\mu_q^4$ \mgacom{Check this! I'd like to give a rough expression in terms of $\mu_q$ or a typical value in $\MeV^{-4}$}, and the pressure gradient
+$dP/dz\sim 10^8\,\MeV^4/\km$ \mgacom{Is this typical?}.
+For $\mu_q\approx 300\,\MeV$ this yields
+\begin{equation}
+    \tfinal \sim (100\,\s)\, \Bigl(\dfrac{z_0}{1\,\km}\Bigr)^{\!1/2}
+    \Bigl(\dfrac{T}{1\,\MeV}\Bigr)^{\!-1/6} \, .
+    \label{eq:tfinal}
+\end{equation}
+}
+%$\frac{\chi_K^{\Qbar}}{n_B^{\Qbar}}\Big(\frac{1}{n_B^{\Nbar}}-\frac{1}{n_B^{\Qbar}}\Big)
+%\frac{\partial P}{\partial z}$ evaluates to $\sim0.1\,\mathrm{km}^{-1}$, and $\eta_Q\sim 0.1$.
+%As discussed above, at merger temperatures $T\gtrsim1\,\MeV$ one has $\sqrt{D_Q\gamma_Q}\sim0.4\,\mathrm{km\,s^{-1}}$, so Eq.~\eqref{eq:v_asymptotic} yields $C\sim 0.4\,\km\,\s^{-1}\times \sqrt{0.1^2}\,\km^{-1/2}\sim 0.04\,\km^{1/2}\,\s^{-1}.$
+%For an initial displacement $z_0\sim0.1\,\mathrm{km}$, this implies an equilibration time $\tfinal = 2z_0^{1/2}/C\sim \sqrt{0.1}\,\km^{1/2}/(0.04\,\km^{1/2}\,\s^{-1}) \sim 10\,\s$, i.e.\ of order tens of seconds.
+
+
+
+\section{Conclusions}
+
+In astrophysical scenarios where the dynamical conversion of nuclear matter to quark matter is used to probe the high-density region of the phase diagram, it is essential to know the rate at which the conversion can proceed. 
+
+In the post-merger phase, where kilometer-sized regions of nuclear matter would have to convert to quark matter in milliseconds, the phase boundary would have to move at millions of meters per second for the assumption of instantaneous conversion to be reasonable.  We find that at typical post-merger temperatures $T\gtrsim 1\,\MeV$, the maximum speed of a boundary where the neutron matter
+density is tens of percent above the critical value (see Fig.~\ref{fig:speed-contours}) is in the range
+of $10^2$--$10^3\,\m\s^{-1}$, which is much too slow for the phase conversion to be treated as instantaneous.
+Moreover, as the interface approaches its equilibrium position its speed decreases. Even if it travels at the upper-bound value of its speed, we estimate (see Fig.~\ref{fig:z(t)} and Eq.~\eqref{eq:tfinal}) that a boundary that starts off $1\,\km$ from its equilibrium position would take several seconds or longer to reach its equilibrium position.
+
+
+\mga{In the inspiral, where interface modes typically have frequencies in the $\approx700$ Hz range and
+amplitudes that would require the interface to move distances of order meters \mgacom{correct?} the speed may be slow enough to allow the mode to exist. However}
+\AH{its finiteness can lead to a dissipative effect called phase conversion dissipation \cite{Alford:2014jha} which could damp the interface mode in the inspiral, or oscillations in the post-merger.} 
+%\mga{This would be an interesting question to pursue in future research.}
+
+Our calculation made simplifying assumptions, aimed where possible at favoring fast conversion and thereby obtaining an upper bound on the boundary speed. A natural next step would be to push beyond these assumptions, for example by including protons, electrons, and Urca processes, including quark masses, \mga{incorporating heat transport, and allowing for} \AH{a non-trivial profile on the nuclear side.}
+\mga{One could also explore} non-perturbative calculations of the diffusion coefficient, e.g. from lattice QCD \cite{Meyer:2007ic,Francis:2015daa}, functional renormalization group \cite{Tripolt:2013jra}, or gauge-gravity duality \cite{Policastro:2001yc,Herzog:2006gh}.
+\mgacom{Add more to-do items based on what \cite{Furusawa:2015vfn} did, e.g detonation?}
+
+%\JS{So far, lattice QCD calculations have provided robust determinations of diffusion coefficients at strong coupling using Kubo relations and spectral reconstructions, but primarily for heavy quarks at temperatures $T>T_c$ \cite{Meyer:2007ic,Francis:2015daa}. Functional renormalization group (FRG) methods allow access to finite chemical potential and have been used to study quark diffusion and critical dynamics beyond mean-field approximations, but with truncation-dependent uncertainties \cite{Tripolt:2013jra}. Gauge/gravity duality yields valuable benchmarks for diffusion in deconfined plasmas \cite{Policastro:2001yc,Herzog:2006gh}, but these models rely on SUSY settings and do not correspond to full QCD.%, while lattice QCD remains limited by the sign problem at low temperature and high baryon density.
+
+Our upper bound could be tightened by a more careful treatment of the boundary, providing a proper calculation of the kaon-ness fraction of the quark matter at the boundary, where we just employed the maximum allowed value of this quantity. 
+It would also be interesting to analyze the speed of the opposite process: metastable quark matter converting back to nuclear matter. A more immediate task is to investigate practical ways of implementing in merger simulations the finite growth rate of quark matter domains, since this is an essential aspect of the dynamics of equations of state that feature a first-order transition to quark matter.
+
+
+
+
+\section{Acknowledgements} We thank Nils Andersson and Suprovo Ghosh for valuable feedback and discussions.
+MGA, LB, and AH are partly supported by the U.S. Department of Energy, Office of Science, Office of Nuclear Physics, under Award No.~\#DE-FG02-05ER41375. A.H.~furthermore acknowledges financial support by the UKRI under the Horizon Europe Guarantee project EP/Z000939/1.
+
+
+% ---- Bibliography at the very end so it covers main + SM ----
+\bibliographystyle{JHEP}
+\bibliography{reflist}
+
+
+% =======================
+%  SUPPLEMENTAL MATERIAL
+% =======================
+\clearpage
+\onecolumngrid
+
+\begin{center}
+\textbf{\large Supplemental Material}
+\end{center}
+
+% Reset counters and prefix with S
+\setcounter{section}{0}
+\setcounter{equation}{0}
+\setcounter{figure}{0}
+\setcounter{table}{0}
+\renewcommand{\thesection}{S\arabic{section}}
+\renewcommand{\theequation}{S\arabic{equation}}
+\renewcommand{\thefigure}{S\arabic{figure}}
+\renewcommand{\thetable}{S\arabic{table}}
+
+\section{Chemical potential profile of boundary}
+\label{sec:additional_fig}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.65\linewidth]{muB_muK_Plane.pdf}
+    \caption{
+    Conversion from NM to QM on the $(\mu_B,\mu_K)$ plane for
+    $T=15$ MeV \mgacom{Couldn't we do it at $T=0$?}, $n_{crit}=2.5n_0$, and $n_{N} - n_{crit}=n_0/8$.\JScom{add more text/explanation, x axis need to be less dense, also the $\Delta P$}
+    }
+    \label{fig:muB_muK_Plane}
+\end{figure}
+
+\mgacom{Add explanation}
+
+%\section{Thermal gradients}
+%\label{sec:thermal_gradients}
+% Can we estimate what thermal gradient would be needed to maintain the phase boundary in a steady state?
+
+
+
+\section{Velocity formula derivation}
+\label{sec:v_analytical_derivation}
+
+\JScom{Tighten up the derivation}
+We start from the stationary front equation
+\begin{equation}
+    D_Q a''(x) = v\,a'(x) + \mathcal{R}(a(x)),
+    \qquad
+    \mathcal{R}(a) = \gamma_Q\bigl(a^3 + \eta_Q a\bigr),
+    \label{eq:front}
+\end{equation}
+with $a(0^-)=a_\Nbar$, $a(0^+)=\aQstar$ and $a'(\infty)=0$.
+Integrating \eqref{eq:front} on $[0^-,0^+]$,
+\begin{equation}
+    D_Q\bigl[a'(0^+) - a'(0^-)\bigr]
+    = v\bigl(\aQstar-a_\Nbar\bigr).
+\end{equation}
+Since $a(x<0)=\mathrm{const.}$, this gives
+\begin{equation}
+    a'(0^+) = \frac{v}{D_Q}\bigl(\aQstar-a_\Nbar\bigr),
+    \label{eq:S5}
+\end{equation}
+
+Multiplying \eqref{eq:front} by $a'(x)$ gives
+\begin{equation}
+    \frac{D_Q}{2}\frac{d}{dx}\bigl(a'^2\bigr)
+    = v\,a'^2 + \mathcal{R}(a)a',
+    \label{eq:energyform}
+\end{equation}
+Integrating \eqref{eq:energyform} from $0^+$ to $\infty$ yields
+\begin{equation}
+    -\frac{v^2}{2D_Q}\bigl(\aQstar-a_\Nbar\bigr)^2
+    = v\,\int_{0}^{\infty}a'^2dx
+      +\int^{0}_{\aQstar}\mathcal{R}(a)\,da,
+    \label{eq:balance}
+\end{equation}
+where we used $a'(\infty)=0$ and Eq.~\eqref{eq:S5} to evaluate the left-hand side.
+
+To evaluate the first term on the right of \eqref{eq:balance}, since $a(0^+)=\aQstar$ and
+$a(\infty)=0$, the (Cauchy) mean-value theorem implies that there exists a point
+$\hat{x}$ in the transition region such that
+\begin{equation}
+    \int_{0}^{\infty} a'^2\,dx
+    = a'(\hat{x})\int_{0}^{\infty} a'\,dx
+    = a'(\hat{x})\big(a(\infty) - \aQstar\big) 
+    = -a'(\hat{x})\aQstar ,
+    \label{eq:MVT_step}
+\end{equation}
+where $0<\hat{x}<\infty$.
+
+From Eq.~\eqref{eq:S5}, $a'(x)$ continuously decreases from
+\begin{equation}
+    a'(0^+) = \frac{v}{D_Q}\bigl(\aQstar-a_\Nbar\bigr)
+\end{equation}
+to $a'(\infty)=0$, so there exists a dimensionless parameter
+\begin{equation}
+    0<\lambda<1
+\end{equation}
+such that
+\begin{equation}
+    a'(\hat{x})=\lambda\,\frac{v}{D_Q}\bigl(\aQstar-a_\Nbar\bigr).
+    \label{eq:lambda_def}
+\end{equation}
+Substituting \eqref{eq:lambda_def} into \eqref{eq:MVT_step} gives
+\begin{equation}
+    \int_{0}^{\infty} a'^2\,dx
+    = -\,\lambda\,\frac{v}{D_Q}\bigl(\aQstar-a_\Nbar\bigr) \aQstar.
+    \label{eq:int_a_prime_sq_lambda}
+\end{equation}
+Inserting \eqref{eq:int_a_prime_sq_lambda} into the balance equation
+\eqref{eq:balance}, we find
+\begin{equation}
+    -\frac{v^2}{2D_Q}\bigl(\aQstar-a_\Nbar\bigr)^2
+    = -\,\lambda\,\frac{v^2}{D_Q}\bigl(\aQstar-a_\Nbar\bigr)\aQstar
+      +\int^{0}_{\aQstar}\mathcal{R}(a)\,da.
+    \label{eq:balance_lambda}
+\end{equation}
+For the cubic reaction term \eqref{eq:front}, the integral is
+\begin{equation}
+    \int^{0}_{\aQstar}\mathcal{R}(a)\,da
+    = \gamma_Q\int_{\aQstar}^{0}\bigl(a^3+\eta_Q a\bigr)\,da
+    = -\,\frac{\gamma_Q}{4}\left(\aQstar^4+2\eta_Q \aQstar^2\right).
+    \label{eq:R_integral}
+\end{equation}
+Combining \eqref{eq:balance_lambda} and \eqref{eq:R_integral} and solving for $v^2$
+gives
+\begin{equation}
+    v_{N\to Q}^2
+    = \frac{D_Q\gamma_Q\,\bigl(\aQstar^4+2\eta_Q\aQstar^2\bigr)}
+           {2\bigl(a_\Nbar-\aQstar\bigr)\bigl(a_\Nbar+(2\lambda-1)\aQstar\bigr)}.
+    \label{eq:v_lambda_final}
+\end{equation}
+It is convenient to introduce $\xi \equiv 2\lambda-1, \ -1<\xi<1,$ so that \eqref{eq:v_lambda_final} can be written as
+\begin{equation}
+    v_{N\to Q}^2
+    = \frac{D_Q\gamma_Q}{2}\,
+      \frac{\aQstar^4+2\eta_Q \aQstar^2}
+           {\bigl(a_\Nbar+\xi \aQstar\bigr)\bigl(a_\Nbar-\aQstar\bigr)},
+    \qquad -1<\xi<1,
+    \label{eq:v_xi_final}
+\end{equation}
+which is the form used in the main text.
+
+
+% (add any SM derivations/sections here, if desired)
+
+
+\end{document}
+
+
+We now estimate what thermal gradient would be required to dissipate any heat produced or absorbed by a nuclear$\to$quark phase transition.  In the planar geometry we set the rate of heat creation/absorption or towards by the moving phase boundary to the rate of heat conduction away from the boundary,
+\begin{equation}
+ |\De \eps| \vb = \ka \Bigl|\dfrac{dT}{dz}\Bigr| \ ,
+\end{equation}
+where $\De\eps$ is the latent heat per unit volume of the transition, $\ka$ is the thermal conductivity, and $dT/dz$ is the thermal gradient.
+In reality the work required to create the quark phase from the nuclear phase is mostly supplied by gravitational energy from contraction of the star, but to obtain an order of magnitude we take the value of $\De\eps$ to be a typical energy density difference between nuclear and quark matter, $\De\eps\sim 100\,MeV\fm^{-3}$ \mgacom{is this a typical value?}.
+The thermal conductivity of the electrons in quark or nuclear matter is $\ka\approx n_e^2/\alpha$
+(\cite{Shternin:2007ee}, eq~(40)); taking $\mu_e\approx 50\MeV$ in quark matter,
+this yields
+\begin{equation}
+ \Bigl|\dfrac{dT}{dz}\Bigr|
+ \sim 2{\times}10^4\,\MeV\nm^{-1} \dfrac{\vb}{(1000\,\m\s^{-1})}
+\end{equation}

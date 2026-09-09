@@ -4986,9 +4986,10 @@ def solve_front_isothermal(
     """Solve the fixed-T front as a compact BVP in physical nK and J_K.
 
     ``a_0plus`` is the local interface fraction nK(0+)/nB(0+).  The BVP
-    transports the physical K density and current, reconstructs the local EOS
-    state at fixed T and momentum flux, and evaluates both D_K and the exact
-    nonleptonic rate at every node.
+    transports separately scaled internal representations of the physical K
+    density and current, reconstructs the physical fields before each local
+    EOS solve, and evaluates both D_K and the exact nonleptonic rate at every
+    node. Returned endpoint and profile fields remain in physical units.
 
     Passing ``a_0plus=nan`` (the default) resolves it from
     :func:`_solve_a_0plus_max` instead of taking a prescribed value, giving the
@@ -5332,8 +5333,8 @@ def solve_front_isothermal(
         dyds = np.empty_like(y)
         guess = (state["muB_0plus"], state["muK_0plus"])
         for index in range(y.shape[1]):
-            nK_value = float(y[0, index])
-            jK_value = float(y[1, index])
+            nK_value = float(y[0, index]) * bvp_nK_scale
+            jK_value = float(y[1, index]) * bvp_jK_scale
             try:
                 thermo = _solve_local_quark_state_from_nK_T_and_Pi(
                     nK_value,
@@ -5372,8 +5373,9 @@ def solve_front_isothermal(
                     (thermo["u"] * nK_value - jK_value)
                     * micro["invD"]
                     * dx_ds
+                    / bvp_nK_scale
                 )
-                dyds[1, index] = -rate * dx_ds
+                dyds[1, index] = -rate * dx_ds / bvp_jK_scale
             except Exception as exc:
                 stats["local_state_failures"] += 1
                 last_failure["message"] = str(exc)
@@ -5385,6 +5387,18 @@ def solve_front_isothermal(
         state = state_or_none(float(p[0]))
         if state is None:
             return np.full(3, 1.0e12, dtype=float)
+        ya_physical = np.array(
+            [
+                float(ya[0]) * bvp_nK_scale,
+                float(ya[1]) * bvp_jK_scale,
+            ]
+        )
+        yb_physical = np.array(
+            [
+                float(yb[0]) * bvp_nK_scale,
+                float(yb[1]) * bvp_jK_scale,
+            ]
+        )
         nK_scale = max(
             abs(state["nK_0plus"] - state["nK_inf"]),
             abs(state["nK_0plus"]),
@@ -5396,15 +5410,15 @@ def solve_front_isothermal(
             1.0,
         )
         tail_residual = float(
-            yb[1]
+            yb_physical[1]
             - state["jK_inf"]
             - state["tail_coefficient"]
-            * (yb[0] - state["nK_inf"])
+            * (yb_physical[0] - state["nK_inf"])
         )
         return np.array(
             [
-                (ya[0] - state["nK_0plus"]) / nK_scale,
-                (ya[1] - state["jK_0plus"]) / jK_scale,
+                (ya_physical[0] - state["nK_0plus"]) / nK_scale,
+                (ya_physical[1] - state["jK_0plus"]) / jK_scale,
                 tail_residual / jK_scale,
             ],
             dtype=float,
@@ -5412,6 +5426,20 @@ def solve_front_isothermal(
 
     theta_guess = parameter_from_jB(jB_guess)
     state0 = build_global_state(theta_guess)
+    bvp_scale_nK_0plus = float(state0["nK_0plus"])
+    bvp_scale_nK_inf = float(state0["nK_inf"])
+    bvp_scale_jB = float(state0["jB"])
+    bvp_scale_jK_inf = float(state0["jK_inf"])
+    bvp_nK_scale = max(
+        abs(bvp_scale_nK_0plus),
+        abs(bvp_scale_nK_inf),
+        1.0,
+    )
+    bvp_jK_scale = max(
+        abs(bvp_scale_jB),
+        abs(bvp_scale_jK_inf),
+        1.0,
+    )
     s_mesh = np.linspace(0.0, s_end, int(n_mesh))
     tail_shape = np.maximum(1.0 - s_mesh, tail_eps) ** kappa_factor
     nK_guess = state0["nK_inf"] + (
@@ -5425,7 +5453,12 @@ def solve_front_isothermal(
         (1.0 - blend) * state0["jK_0plus"]
         + blend * stable_jK_guess
     )
-    y_guess = np.vstack((nK_guess, jK_guess_profile))
+    y_guess = np.vstack(
+        (
+            nK_guess / bvp_nK_scale,
+            jK_guess_profile / bvp_jK_scale,
+        )
+    )
     diag(
         f"starting compact BVP with jB_guess={jB_guess:.6g}, "
         f"a_0plus={a_0plus:.6g}, tail_eps={tail_eps:.3g}"
@@ -5469,8 +5502,8 @@ def solve_front_isothermal(
             **{key: int(value) for key, value in stats.items()},
         }
 
-    nK_end = float(sol.y[0, -1])
-    jK_end = float(sol.y[1, -1])
+    nK_end = float(sol.y[0, -1]) * bvp_nK_scale
+    jK_end = float(sol.y[1, -1]) * bvp_jK_scale
     end_thermo = _solve_local_quark_state_from_nK_T_and_Pi(
         nK_end,
         T,
@@ -5549,6 +5582,13 @@ def solve_front_isothermal(
         "tail_eps": tail_eps,
         "kappa_factor": kappa_factor,
         "compact_scale": float(kappa_factor / state["lambda_inf"]),
+        "bvp_nK_scale": float(bvp_nK_scale),
+        "bvp_jK_scale": float(bvp_jK_scale),
+        "bvp_scale_nK_0plus": bvp_scale_nK_0plus,
+        "bvp_scale_nK_inf": bvp_scale_nK_inf,
+        "bvp_scale_jB": bvp_scale_jB,
+        "bvp_scale_jK_inf": bvp_scale_jK_inf,
+        "bvp_field_scaling": "separate_initial_endpoint_scales",
         "s_end": s_end,
         "x_end": float(state["x_end"]),
         "nK_end": nK_end,
@@ -5577,8 +5617,14 @@ def solve_front_isothermal(
     if return_profile:
         try:
             s_profile = np.asarray(sol.x, dtype=float)
-            nK_profile = np.asarray(sol.y[0], dtype=float)
-            jK_profile = np.asarray(sol.y[1], dtype=float)
+            nK_profile = (
+                np.asarray(sol.y[0], dtype=float) * bvp_nK_scale
+            )
+            jK_profile = (
+                np.asarray(sol.y[1], dtype=float) * bvp_jK_scale
+            )
+            nK_profile[0] = float(state["nK_0plus"])
+            jK_profile[0] = float(state["jK_0plus"])
             x_profile = (
                 -kappa_factor
                 * np.log1p(-s_profile)
@@ -5638,8 +5684,8 @@ def solve_front_isothermal(
                     * np.maximum(1.0 - s_profile, np.finfo(float).tiny)
                 )
             )
-            dnK_dx = dy_ds[0] / dx_ds
-            djK_dx = dy_ds[1] / dx_ds
+            dnK_dx = dy_ds[0] * bvp_nK_scale / dx_ds
+            djK_dx = dy_ds[1] * bvp_jK_scale / dx_ds
             constitutive_residual = (
                 fields["u"] * nK_profile
                 - fields["D_K"] * dnK_dx

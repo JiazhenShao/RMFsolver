@@ -1,7 +1,7 @@
 ---
 summary: Append-only chronology of wiki operations. Grep the "## [" prefix for a timeline.
 status: current
-updated: 2026-08-26
+updated: 2026-09-09
 tags: [meta, log]
 ---
 
@@ -239,3 +239,41 @@ Replaced `solve_front_isothermal`'s separate pressure and energy RMF solves plus
 The automatic composition ceiling now reuses the accepted $\mu_B(0^-)$ and upstream thermodynamics, matching `analytic_velocity_isothermal`.
 The high-angle inner corner's first trial fell from 71.9 s to 4.18 s with the same $23.7242\ \mathrm{m\,s^{-1}}$ result and no warnings; the low-temperature outer failure fell from 154.9 s to 54.9 s.
 Three corner trials still fail or time out after upstream recovery, so dynamic quark-state recovery and the near-ceiling current bound remain separate open issues.
+
+## [2026-08-26] diagnose | Numerical isothermal BVP residual overflow is a low-temperature scaling failure
+
+Traced the cluster's `scipy.integrate._bvp.py:569--573` overflow warnings to runaway collocation residuals, not to the RMF momentum quadratures.
+On outward shell 13, low-temperature states combine physical $n_K(0^+)\sim7\times10^6$, currents of only $O(10)$--$O(10^2)$, and compact-coordinate factors as large as $dx/ds\sim2\times10^{13}$, while the isothermal BVP passes unscaled physical fields to SciPy.
+Fallback trials at $T(0^-)=2.17$ and $3.73$ MeV drove $j_B$ to the artificial $10^{-12}$ lower bound, grew to 8074 and 2692 nodes, and terminated with singular Jacobians; colder trials timed out, whereas representative 31--85 MeV cells on the same shell converged cleanly in 5.8--9.2 s.
+The low-angle analytical seed is also clipped by the wrapper's current upper bound, from $6580$ to $555$ at the first shell-13 cell.
+No code was changed; the completed numerical payload still needs a status/attempt audit because warnings from rejected disposable trials are not themselves evidence of corrupted saved results.
+
+## [2026-08-27] fix | Numerical isothermal BVP now uses separately scaled physical fields
+
+Transferred the internal field-scaling pattern from `solve_front_energy_conserving_uNmax` to `solve_front_isothermal` without changing the physical $n_K,J_K$ formulation or public profile units.
+SciPy now receives $n_K/n_{K,\mathrm{scale}}$ and $J_K/J_{K,\mathrm{scale}}$; EOS and rate calls reconstruct physical values, ODE derivatives use the inverse scales, and endpoint/profile reconstruction restores physical units.
+A regression test captured the pre-fix initial collocation density at $2.63\times10^6$ and now verifies both initial fields are order unity; 11 focused numerical-isothermal tests pass.
+The very large low-temperature compact-coordinate factor and the cluster's clipping current bounds remain open and require a production rerun before declaring the earlier overflow/timeouts resolved.
+
+## [2026-08-27] diagnose | Completed numerical isothermal payload separates three failure mechanisms
+
+Audited all 600 records in the completed pre-field-scaling `26-08-25/isothermal_numeric/isothermal-numerical.npy`: 358 succeeded, 218 exhausted the 900 s cell budget, and 24 failed, with 23 retained singular-Jacobian BVP results.
+All terminal failures lie below $T(0^-)=0.89$ MeV, but high-temperature timeouts persist on the outermost $a(0^+)\simeq0.993$--$0.997$ shell.
+The attempt history contains 1172 trial timeouts and about 66.7 aggregate trial CPU-hours; 321 successes occurred on candidate one, 35 on candidate two, only 2 on candidate three, and none later.
+All 93 cells whose analytical current exceeded the global `1e-4*nB_0minus` bound were non-successes, while another 149 below-bound cells timed out, proving that field scaling, current-bracket repair, and retry-policy reduction must be tested as separate changes.
+For the 357 successes with finite analytical seeds, the accepted numerical current was 0.739--1.594 times the analytical current, providing a measured basis for an analytical-centered per-cell bracket.
+The shell scheduler also caps live cell supervisors at the 30 angular rays, so the advertised 64-CPU allocation cannot run more than 30 BVP trials concurrently.
+
+## [2026-08-27] implement | Failed-cell-only normalized isothermal repair workflow
+
+Created `new_paper_calculations/26-08-27/` from the validated 26-08-25 numerical workflow and copied its compatible domain, analytical seeds, and completed numerical checkpoint.
+The one-command runner preserves all 358 saved successes and resets only the 242 non-success cells before calling the current separately normalized `solve_front_isothermal`; repeated commands preserve newly accepted cells and retry only those still unresolved.
+The original bounds, candidates, timeouts, mesh, and shell ordering remain unchanged so the rerun isolates the field-scaling update.
+A portability regression now ignores only the absolute `phase_velocity_file` location while still rejecting any functional API-signature difference, and an in-memory real-payload check confirmed exact 358/242 selection with unchanged accepted grids.
+
+## [2026-09-09] revise | Thermal transport and limits in the hydrodynamic manuscript
+
+Added heat-current terms to the stress-energy tensor, a neutrino loss four-vector, and the slow-flow Fourier model before the general steady-front equations.
+Specified that infinite conductivity gives the isothermal limit for finite heat flux and thermal contact, while the adiabatic limit requires both zero conductivity and zero neutrino cooling.
+Reused the existing isothermal figure and derivation in the earlier isothermal section, made the three systems' equation labels distinct, and retained all PI text and author comments.
+Added INSPIRE-HEP exports for Eckart and Lander--Andersson; recorded the limiting assumptions and Wolfram component check in [[thermal-limits]].

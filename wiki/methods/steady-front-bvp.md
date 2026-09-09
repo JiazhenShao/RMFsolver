@@ -1,7 +1,7 @@
 ---
 summary: The energy-conserving and isothermal fronts are reduced reaction-diffusion BVPs in physical nK and JK with pointwise EOS reconstruction.
 status: current
-updated: 2026-08-18
+updated: 2026-08-27
 tags: [method, bvp, numerical, front]
 ---
 
@@ -54,6 +54,12 @@ $$
 and reconstructs the local state from $n_K$, $T(0^-)$, $j_B$, and $\Pi$.
 Both branches then evaluate the local $D_K$ and exact $\Gamma_K(\mu_B,\mu_K,T,m_s)$ for the two ODEs.
 In particular, fixed temperature does not make $D_K$ constant because $D_K$ also depends on $\mu_B$ through the quark chemical potential.
+
+The physical choice of $n_K,J_K$ does not require passing their raw magnitudes to the collocation algorithm.
+`solve_front_isothermal` and `solve_front_energy_conserving_uNmax` evolve separately scaled internal fields $n_K/n_{K,\mathrm{scale}}$ and $J_K/J_{K,\mathrm{scale}}$ while reconstructing physical values before every EOS and microphysics evaluation.
+The initial endpoint densities set the density scale, and the initial $j_B,J_K(\infty)$ set the current scale.
+ODE derivatives are divided by the same scales and returned profiles are converted back to physical units, so this is purely numerical preconditioning and does not change the local-fraction convention or the equations above.
+The general `solve_front_energy_conserving_nK` branch has not yet adopted this internal scaling.
 
 See [[diffusion-limited-front]], [[quark-matter-eos]], [[strangeness-reaction-diffusion]], and [[isothermal-analytic-front-speed]].
 

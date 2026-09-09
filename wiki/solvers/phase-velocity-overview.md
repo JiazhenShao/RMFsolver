@@ -1,7 +1,7 @@
 ---
 summary: Map of the phase_velocity.py public API, including automatic-ceiling analytical and physical-nK numerical isothermal solvers, and which solver answers which question.
 status: current
-updated: 2026-08-26
+updated: 2026-08-27
 tags: [solver, api, map]
 ---
 
@@ -70,6 +70,8 @@ The PNM path uses the same direct fixed-$n_B(0^-)$ branch validator as the analy
 
 At every node the solver closes the quark EOS at fixed $T$, $j_B$, and momentum flux, then evaluates the exact $\mu_K$-dependent nonleptonic rate and the local $D_K[\mu_B(x),T]$.
 It uses the standard compactified `solve_bvp` formulation with `jB` as the one scalar eigenvalue.
+The physical differential variables remain $n_K$ and $J_K$, but SciPy's internal collocation fields are separately scaled to order unity using fixed density and current scales from the initial endpoint state.
+The solver reconstructs physical fields before every EOS/rate call and returns only physical endpoint/profile values; `bvp_nK_scale`, `bvp_jK_scale`, and their initial-state inputs are included as numerical diagnostics.
 The downstream condition is $\mu_K(\infty)=0$; finite `ms` is supported, so the equilibrated `nK_inf` and `jK_inf` are not assumed to vanish.
 
 This numerical API deliberately performs no $\Delta\mu_B$ phase-stability gate.
