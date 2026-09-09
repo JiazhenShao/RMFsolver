@@ -7,45 +7,45 @@ Database file #2: ../reflist.bib
 Warning--I didn't find a database entry for "Alford:2025jtm"
 Warning--I didn't find a database entry for "Alford:2026kwd"
 Warning--I didn't find a database entry for "Most:2022yhe"
-You've used 45 entries,
+You've used 47 entries,
             2188 wiz_defined-function locations,
-            907 strings with 13164 characters,
-and the built_in function-call counts, 16066 in all, are:
-= -- 1679
-> -- 681
+            923 strings with 13480 characters,
+and the built_in function-call counts, 16829 in all, are:
+= -- 1768
+> -- 696
 < -- 0
-+ -- 194
-- -- 149
-* -- 1363
-:= -- 2171
-add.period$ -- 45
-call.type$ -- 45
-change.case$ -- 45
++ -- 199
+- -- 152
+* -- 1425
+:= -- 2270
+add.period$ -- 47
+call.type$ -- 47
+change.case$ -- 47
 chr.to.int$ -- 0
-cite$ -- 45
-duplicate$ -- 832
-empty$ -- 1327
-format.name$ -- 149
-if$ -- 4208
+cite$ -- 47
+duplicate$ -- 868
+empty$ -- 1397
+format.name$ -- 152
+if$ -- 4405
 int.to.chr$ -- 0
-int.to.str$ -- 45
-missing$ -- 175
-newline$ -- 138
-num.names$ -- 45
-pop$ -- 93
+int.to.str$ -- 47
+missing$ -- 183
+newline$ -- 144
+num.names$ -- 47
+pop$ -- 96
 preamble$ -- 1
 purify$ -- 0
 quote$ -- 0
-skip$ -- 724
+skip$ -- 756
 stack$ -- 0
-substring$ -- 793
-swap$ -- 479
+substring$ -- 865
+swap$ -- 499
 text.length$ -- 0
 text.prefix$ -- 0
 top$ -- 0
 type$ -- 0
 warning$ -- 0
-while$ -- 114
-width$ -- 47
-write$ -- 479
+while$ -- 122
+width$ -- 49
+write$ -- 500
 (There were 3 warnings)

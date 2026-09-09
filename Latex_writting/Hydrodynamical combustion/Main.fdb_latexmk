@@ -1,15 +1,15 @@
 # Fdb version 4
-["bibtex Main"] 1788987103.53311 "Main.aux" "Main.bbl" "Main" 1788987104.79876 0
+["bibtex Main"] 1788987355.4864 "Main.aux" "Main.bbl" "Main" 1788987356.77242 0
   "../reflist.bib" 1788983210.10725 83175 06596100f5ac2a45f1e7c23c34f3042d ""
   "./JHEP.bst" 1781322022 19417 a7ed04a9ced0771914c1489d07a03c3a ""
-  "./MainNotes.bib" 1788987104.10907 0 d41d8cd98f00b204e9800998ecf8427e ""
-  "Main.aux" 1788987104.41807 19842 37ca053fc16b9098dfebdf8aeaec027c "pdflatex"
+  "./MainNotes.bib" 1788987356.08674 0 d41d8cd98f00b204e9800998ecf8427e ""
+  "Main.aux" 1788987356.40533 19829 a1ff71043f85b84ee88945902097a7a7 "pdflatex"
   (generated)
   "Main.bbl"
   "Main.blg"
   (rewritten before read)
-["pdflatex"] 1788987103.64555 "/Users/janshao/NSM_related/Latex_writting/Hydrodynamical combustion/Main.tex" "Main.pdf" "Main" 1788987104.79898 0
-  "/Users/janshao/NSM_related/Latex_writting/Hydrodynamical combustion/Main.tex" 1788987100.64451 110573 113055a018e0fc5140d8b95ecd8c0ce1 ""
+["pdflatex"] 1788987355.60002 "/Users/janshao/NSM_related/Latex_writting/Hydrodynamical combustion/Main.tex" "Main.pdf" "Main" 1788987356.77259 0
+  "/Users/janshao/NSM_related/Latex_writting/Hydrodynamical combustion/Main.tex" 1788987352.72766 112612 8b441086a7a042c9aa4c41d47cb1acbf ""
   "/usr/local/texlive/2024/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc" 1136849721 2900 1537cc8184ad1792082cd229ecc269f4 ""
   "/usr/local/texlive/2024/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
   "/usr/local/texlive/2024/texmf-dist/fonts/tfm/jknappen/ec/tcrm1000.tfm" 1136768653 1536 e07581a4bb3136ece9eeb4c3ffab8233 ""
@@ -37,6 +37,7 @@
   "/usr/local/texlive/2024/texmf-dist/fonts/tfm/public/cm/cmsy6.tfm" 1136768653 1116 933a60c408fc0a863a92debe84b2d294 ""
   "/usr/local/texlive/2024/texmf-dist/fonts/tfm/public/cm/cmsy8.tfm" 1136768653 1120 8b7d695260f3cff42e636090a8002094 ""
   "/usr/local/texlive/2024/texmf-dist/fonts/tfm/public/cm/cmsy9.tfm" 1136768653 1116 25a7bf822c58caf309a702ef79f4afbb ""
+  "/usr/local/texlive/2024/texmf-dist/fonts/tfm/public/cm/cmti10.tfm" 1136768653 1480 aa8e34af0eb6a2941b776984cf1dfdc4 ""
   "/usr/local/texlive/2024/texmf-dist/fonts/tfm/public/cm/cmti9.tfm" 1136768653 1476 cccc6cc4935c18ec3d5623b77ecb8b74 ""
   "/usr/local/texlive/2024/texmf-dist/fonts/tfm/public/cm/cmtt10.tfm" 1136768653 768 1321e9409b4137d6fb428ac9dc956269 ""
   "/usr/local/texlive/2024/texmf-dist/fonts/tfm/public/cm/cmtt9.tfm" 1136768653 764 c98a2af25c99b73a368cf7336e255190 ""
@@ -59,6 +60,7 @@
   "/usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb" 1248133631 32569 5e5ddc8df908dea60932f3c484a54c0d ""
   "/usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy6.pfb" 1248133631 32587 1788b0c1c5b39540c96f5e42ccd6dae8 ""
   "/usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb" 1248133631 32716 08e384dc442464e7285e891af9f45947 ""
+  "/usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmti10.pfb" 1248133631 37944 359e864bd06cde3b1cf57bb20757fb06 ""
   "/usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmti9.pfb" 1248133631 36310 f5ddc6715cc60deb16d9db5ded6a9391 ""
   "/usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt10.pfb" 1248133631 31099 c85edf1dd5b9e826d67c9c7293b6786c ""
   "/usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt9.pfb" 1248133631 29078 718ea4567ceff944262b0f5b0800e1d9 ""
@@ -210,10 +212,10 @@
   "Hydrodynamical combustion/Plots/Contour-diff-meth.pdf" 1786720467.4755 34479 4cef198ed6571d7104f555235bc1ab8c ""
   "Hydrodynamical combustion/Plots/Numerical-T0plus-compare-fixT.pdf" 1786724897.95428 23175 772633266e0333ecabd8e43c2ff6aa5a ""
   "Hydrodynamical combustion/Plots/Numerical-T0plus-compare-fixnB.pdf" 1786724898.15991 22280 6c2a942d38b609b686985fc43ef63966 ""
-  "Main.aux" 1788987104.41807 19842 37ca053fc16b9098dfebdf8aeaec027c "pdflatex"
-  "Main.bbl" 1788987103.643 13579 1b04e0d5d23e0a014e06360a7341536d "bibtex Main"
-  "Main.out" 1788987104.41918 4662 92b10a7f3cd780721ae09ccfdb2a99d4 "pdflatex"
-  "Main.tex" 1788987100.64451 110573 113055a018e0fc5140d8b95ecd8c0ce1 ""
+  "Main.aux" 1788987356.40533 19829 a1ff71043f85b84ee88945902097a7a7 "pdflatex"
+  "Main.bbl" 1788987355.59732 14095 40f69b127de51c4ad06cc6f00e46a482 "bibtex Main"
+  "Main.out" 1788987356.4065 4412 ee25ebebfbbe64698f588c6773a17a8f "pdflatex"
+  "Main.tex" 1788987352.72766 112612 8b441086a7a042c9aa4c41d47cb1acbf ""
   "Plots/Numerical-contour.pdf" 1787593296.91431 29771 5daca5d70b10459fc887c77881205a42 ""
   "Plots/T_a_constant_pressure.pdf" 1786069766.21419 27165 42307094555ab5b14c2bd99e49248b7d ""
   "Plots/boundary_schematic.pdf" 1782708261.3733 12587 41f68e21ad69f967c63a32f5b26e29c0 ""

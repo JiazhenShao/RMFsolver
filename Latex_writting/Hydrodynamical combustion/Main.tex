@@ -231,7 +231,8 @@ Detonation would require a separate shock-driven mechanism outside the regime co
 
 \JS{A more violent version of this process, the quark-nova, is the hypothesized runaway conversion of an entire neutron star into a quark star, invoked as an energy source for superluminous supernovae and other high-energy transients \cite{Leahy:2007we,Ouyed:2022toz}. The microphysical boundary speed derived here is the starting point for such global conversion scenarios; extending our steady, planar treatment to the turbulent, whole-star regime of a quark-nova is left for future work.}
 \AHcom{also duplicate content partially}
-In Sec.~\ref{sec:speed}, we give an overview of the assumptions and calculational framework, present the calculation of the speed, set up the equations for a steady-state propagating phase boundary in a form that can be solved numerically, and also provide an approximate analytic expression for the boundary speed.
+\JS{In Sec.~\ref{sec:formalism}, we present our assumptions and the steady hydrodynamic equations.
+Sections~\ref{sec:speed-isothermal} and \ref{sec:speed} describe the isothermal and adiabatic calculations of the boundary speed, respectively.}
 In Sec.~\ref{sec:results} we present our results, and in Sec.~\ref{sec:conclusion} we summarize our conclusions and describe directions for future work.
 Our calculations use natural units, $\hbar=c=k_B=1\,.$
 
@@ -249,7 +250,7 @@ Our calculations use natural units, $\hbar=c=k_B=1\,.$
   \includegraphics[width=0.65\columnwidth]{Plots/pressure_mu_pos.pdf}%
   \caption{ \mga{Pressure of chemically equilibrated nuclear matter and $uds$ quark matter, and also $ud$ quark matter. We study the regime of pressure
   $P$ between $P_{uds}$ and $P_{ud}$, where $uds$ quark matter is favored over nuclear matter, but
-  $ud$ quark matter is not.}\LBcom{I think the 930 MeV transition is only for isospin equilibrated matter, not for beta eq.}
+  $ud$ quark matter is not.}
   } \label{fig:pressure-mu}
 \end{figure}
 
@@ -322,13 +323,23 @@ From these one can, via the nuclear and quark equations of state (see Appendix~\
 which relaxes towards zero via the weak interaction
 \eqref{eq:nonleptonic}.
 
+\JS{We also define the local K fraction}
+\begin{equation}
+ a(x)\equiv\frac{n_K(x)}{n_B(x)}\ .
+ \label{eq:a_definition}
+\end{equation}
+
 \subsection{Hydrodynamic equations}
+\label{sec:hydro-thermal}
 
 
-We use ideal hydrodynamics, where the system is described by stress-energy tensor
+\JS{We work in the phase boundary rest frame and include heat transport while neglecting viscous stresses, so the stress-energy tensor is}
 \AHcom{what would a dissipative correction look like as this would also be a result of the same weak interactions I think? du us BV is resonant at very low temperatures}
 \begin{equation}
-    T^{\mu\nu}=(P+\eps) U^\mu U^\nu+P g^{\mu\nu} \, ,
+    \begin{aligned}
+    T^{\mu\nu}={}&(P+\eps) U^\mu U^\nu+P g^{\mu\nu}\\
+    &\JS{{}+U^\mu q_{\rm th}^\nu+q_{\rm th}^\mu U^\nu}\,,
+    \end{aligned}
     \label{eq:stress_tensor}
 \end{equation}
 and baryon current
@@ -336,15 +347,31 @@ and baryon current
     J_B^\mu=n_B U^\mu \,,
 \end{equation}
 where $U^\mu = (\gamma,u,0,0)$ is the four-velocity with $u=\gamma v$ and Lorentz factor $\gamma=1/\sqrt{1-v^2}$.
-We impose baryon current and energy-momentum conservation
+\JS{The heat four current $q_{\rm th}^\mu$ satisfies $U_\mu q_{\rm th}^\mu=0$ and is purely spatial in the local fluid rest frame~\cite{Eckart:1940te}.}
+\JS{Baryon number is conserved, while escaping neutrinos can carry energy and momentum out of the fluid:}
 \begin{equation}
 \begin{aligned}
-    \partial_\mu T^{\mu\nu}&=0 \, ,\\
+    \partial_\mu T^{\mu\nu}&=\JS{-\mathcal S^\nu} \, ,\\
     \partial_\mu J_B^\mu&=0 \, .
 \end{aligned}
 \end{equation}
 
 \mgacom{Is this where we introduce terms corresponding to thermal conduction and radiative energy loss?}
+
+\JS{Here $\mathcal S^\nu$ is the neutrino energy-momentum loss per unit spacetime volume, with $Q_\nu\equiv\mathcal S^0\geq0$ the energy loss per unit volume and time in the phase boundary rest frame.
+We impose steady planar flow, so all fields depend only on $x$.
+For the slow flows considered here, we model the conductive heat flux by Fourier's law,
+\begin{equation}
+    q_{\rm th}^x=-\kappa_{\rm th}\frac{dT}{dx}\,,
+    \label{eq:fourier_heat_flux}
+\end{equation}
+where $\kappa_{\rm th}\geq0$ is the thermal conductivity.
+The minus sign directs heat toward lower temperature.
+This approximation assumes that the heat current relaxes on a time scale short compared with changes experienced by the fluid~\cite{Lander:2018cvq}.
+We retain the leading conductive energy flux and neglect the acceleration correction to the relativistic heat law and the heat-current contribution to the momentum flux.
+We also neglect neutrino momentum loss, which is suppressed by the fluid speed for isotropic emission in the local rest frame.
+In quark matter, $\kappa_{\rm th}$ is determined by quark scattering~\cite{Heiselberg:1993cr}.%; it is a separate transport coefficient from the K diffusion coefficient $D_K$.
+}
 
 Weak interactions violate the conservation of the K current,
 \begin{equation}
@@ -382,53 +409,6 @@ $U^\mu$ is the relativistic fluid element four velocity, and $V^\mu$ is the spac
 }\AHcom{not every current is conserved, the K current in fact should not be conserved but has a source term}
 }
 
-The hydrodynamic equations then take the form
-\mgacom{add in thermal diffusion and radiation terms}
-%
-\begin{subequations}\label{eq:front_system}
-\begin{align}
-\frac{d}{dx}(u n_B)&= 0\,, 
-\label{eq:baryon_conservation}\\
-\frac{d}{dx}((P+\eps) u \gamma) &=0\,,
-\label{eq:energy_conservation}\\
- \frac{d}{dx}((P+\eps) u^2+P)&=0\,,
- \label{eq:momentum_conservation}\\
- \frac{d}{dx}J_K &= -\Gamma_K.
-    \label{eq:K_conservation}
-\end{align}
-\end{subequations}
-
-\section{Boundary propagation speed: isothermal case}
-\label{sec:speed}
-
-\mgacom{Need to write this}
-
-We now describe how to calculate $u(0^-)$, the speed at which the nuclear/quark phase boundary propagates through neutron matter, in the limit where there is a single uniform temperature across both phases.
-
-To obtain this we look for a steady state solution to the equations that describe the propagation of a deflagration front. 
-
-\section{Boundary propagation speed: adiabatic case}
-\label{sec:speed}
-
-
-\subsection{Adiabatic hydrodynamic equations}
-\label{sec:hydro-equations}
-
-We work in the frame that co-moves with a planar phase boundary and impose the steady state condition, i.e., set time derivatives to zero. The hydrodynamic equations reduce to
-%
-\begin{subequations}\label{eq:front_system}
-\begin{align}
-\frac{d}{dx}(u n_B)&= 0\,, 
-\label{eq:baryon_conservation}\\
-\frac{d}{dx}((P+\eps) u \gamma) &=0\,,
-\label{eq:energy_conservation}\\
- \frac{d}{dx}((P+\eps) u^2+P)&=0\,,
- \label{eq:momentum_conservation}\\
- \frac{d}{dx}J_K &= -\Gamma_K.
-    \label{eq:K_conservation}
-\end{align}
-\end{subequations}
-%
 The spatial component of the K current $J_K\equiv J_K^1$ is
 \LB{
 \begin{equation}
@@ -437,6 +417,167 @@ The spatial component of the K current $J_K\equiv J_K^1$ is
 }
 \LBcom{in the relativistic formalism, there is a $\gamma^2$ factor in front of the $D_K$ coefficient so this may need to be propagated forward in the paper.}
 where $D_K$ is the strong-interaction-driven K diffusion coefficient, described in Appendix~\ref{sec:K-diffusion}.
+\JS{In the transport equations below we use $\gamma^2\simeq1$, appropriate to $u\ll1$, while retaining the relativistic form of the ideal-fluid fluxes.}
+
+\JS{The time component of the energy-momentum balance gives $dT^{x0}/dx=-Q_\nu$.
+To leading order in the heat-transport corrections, $T^{x0}$ is the sum of the advective flux $(P+\eps)u\gamma$ and the conductive flux $-\kappa_{\rm th}T'$.
+Weak equilibration converts chemical energy into heat within the fluid; this energy is included in the equation of state, so $\Gamma_K$ does not enter as an additional source of total energy.
+The steady hydrodynamic equations, with heat transport treated in this slow-flow approximation, are}
+\mgacom{add in thermal diffusion and radiation terms}
+%
+\begin{subequations}\label{eq:front_system_thermal}
+\begin{align}
+\frac{d}{dx}(u n_B)&= 0\,, 
+\label{eq:baryon_conservation_thermal}\\
+\frac{d}{dx}\Big((P+\eps) u \gamma - \kappa_{\rm th}\frac{dT}{dx}\Big) &=-Q_\nu\,,
+\label{eq:energy_conservation_thermal}\\
+ \frac{d}{dx}\big((P+\eps) u^2+P\big)&=0\,,
+ \label{eq:momentum_conservation_thermal}\\
+ \frac{d}{dx}J_K &= -\Gamma_K\,.
+    \label{eq:K_conservation_thermal}
+\end{align}
+\end{subequations}
+
+\JS{We use two limits of Eq.~\eqref{eq:front_system_thermal} to study the effect of heat transport.
+For $\kappa_{\rm th}\to\infty$ and $Q_\nu=0\ $, $dT/dx\to0$ in each phase.
+Assuming thermal contact with no temperature jump at the interface gives a single temperature across both phases, the isothermal case of Sec.~\ref{sec:speed-isothermal}.
+The conductive flux can remain finite in this limit and balance changes in the advective flux.
+For $\kappa_{\rm th}=0$ and $Q_\nu=0$, Eq.~\eqref{eq:energy_conservation_thermal} instead gives $d[(P+\eps)u\gamma]/dx=0$, the adiabatic case of Sec.~\ref{sec:speed}.
+Here \emph{adiabatic} excludes conductive and radiative heat loss; weak reactions can still produce entropy.
+We set $Q_\nu=0$ in both calculations, consistent with our omission of neutrinos and Urca processes.
+}
+
+\section{Boundary propagation speed: isothermal case}
+\label{sec:speed-isothermal}
+
+\mgacom{Need to write this}
+
+We now describe how to calculate $u(0^-)$, the speed at which the nuclear/quark phase boundary propagates through neutron matter, in the limit where there is a single uniform temperature across both phases.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\linewidth]{Plots/isothermal_muB_muK_plane.pdf}
+    \caption{Caption}
+    \label{fig:isothermal_constant_pressure_trajectory}
+\end{figure}
+
+\JS{
+This is the $\kappa_{\rm th}\to\infty$ limit described in Sec.~\ref{sec:hydro-thermal}, with finite heat transport maintaining a uniform temperature.\JScom{citations}
+\LBcom{Are we sure we cannot impose energy conservation $hu=const$ as well as have constant temperature? I am not sure what the additional unknown quantity would be though.}
+The energy balance in Eq.~\eqref{eq:energy_conservation_thermal} still includes conductive transport, so it does not require the advective flux $(P+\eps)u\gamma$ to be constant.
+This idealization allows heat exchange with the surroundings to maintain the common temperature.
+We solve for the matter profile using $T(x)=T(0^-)$ in place of the energy equation:
+%
+\begin{subequations}\label{eq:front_system_isothermal}
+\begin{align}
+\frac{d}{dx}(u n_B)&= 0\,, 
+\label{eq:baryon_conservation_isothermal}\\
+\frac{d}{dx}T(x) &=0\,,
+\label{eq:isothermal_condition}\\
+ \frac{d}{dx}((P+\eps) u^2+P)&=0\,,
+ \label{eq:momentum_conservation_isothermal}\\
+ \frac{d}{dx}J_K &= -\Gamma_K.
+    \label{eq:K_conservation_isothermal}
+\end{align}
+\end{subequations}
+%
+
+Most of the piecewise-constant derivation of Sec.~\ref{sec:hydro_analytic} survives this replacement, with one subtlety being that $\mu_B$ and $n_B$ for $x>0$ are no longer constant, but their change is still quite small.  
+So figuratively, see Fig.~\ref{fig:isothermal_constant_pressure_trajectory}, when we go from $x=0^+$ to $x = \infty$ in the isothermal limit, instead of moving along the isobar of quark matter on $(T, \mu_K)$ plane for constant $\mu_B\ $, we move along the isobar on $(\mu_B, \mu_K)$ plane for constant $T\ $. 
+
+Along this isobar, $\mu_B$ and $\mu_K$ are not independent.
+At fixed $T$, the Gibbs--Duhem relation $dP=n_Bd\mu_B+n_Kd\mu_K$ gives
+\begin{equation}
+ \left.\dfrac{d\mu_B}{d\mu_K}\right|_{P,T}=-\dfrac{n_K}{n_B}=-a\,,
+\label{eq:isobar_gibbs_duhem}
+\end{equation}
+Therefore, $\mu_B$ increases as weak reactions reduce $\mu_K$, but the change becomes smaller as the matter approaches flavor equilibrium.
+For the representative profile with $T=10\,\MeV$, $n_B(0^-)=3n_0$, $B^{1/4}=189.2\,\MeV$, and $a(0^+)=0.146$, $\mu_B$ and $n_B$ increase by only $0.24\%$ between $0^+$ and $x\to\infty$.
+Since $a=n_K/n_B$, its exact derivative is $a'=n_K'/n_B-a n_B'/n_B\,.$
+Along the same trajectory, the approximation $a'\simeq n_K'/n_B$ differs from the exact derivative by at most $0.47\%$.
+We therefore neglect the small variation of $n_B$ in the analytical approximation below.
+
+Baryon and momentum flux conservation are unchanged, so the interface gradient in Eq.~\eqref{eq:interface_gradient}, the integrated K-ness balance in Eq.~\eqref{eq:integrals}, the estimate of $I_1$ in Eq.~\eqref{eq:I1-result}, and the general speed relation in Eq.~\eqref{eq:speed_general} carry over to the isothermal case.
+The only remaining change is the evaluation of $I_2$.
+
+As in the piecewise-constant treatment, we fix $\mu_q$ at a representative value.
+The coefficients $D_K$, $\gamma_K$, and $\eta$ are then constant, and Eq.~\eqref{eq:I2_definition} reduces to
+\begin{equation}
+\begin{array}{rl}
+ I_2 &= D_K\gamma_K\dsp\int_0^{a(0^+)}\left(a^3+\eta a\right)da \\[2ex]
+ &= \dfrac{D_K\gamma_K\,a^2(0^+)\left[a^2(0^+)+2\eta\right]}{4}\,.
+\end{array}
+\label{eq:I2_isothermal}
+\end{equation}
+This integral is simpler than its counterpart in Sec.~\ref{sec:hydro_analytic}, where $T(x)$ follows the isobar in Eq.~\eqref{eq:constant_pressure_path}.
+In that case, $D_K[T(a)]$ remains inside the integral and produces the $A^{7/3}$ prefactor and the fractional powers in Eq.~\eqref{eq:speed_modified}.
+
+Substituting Eq.~\eqref{eq:I2_isothermal} into Eq.~\eqref{eq:speed_general} gives
+\begin{equation}
+ u^2(0^-)=\frac{D_K\gamma_K\,a^2(0^+)\left[a^2(0^+)+2\eta\right]}
+ {2\lambda_n^2\left[1-a(0^+)\right]\left[1+\xi a(0^+)\right]}\,,
+\label{eq:speed_isothermal}
+\end{equation}
+where $\eta=9\pi^2T^2/\mu_q^2$, and $\lambda_n$ and $\xi$ are defined in Eqs.~\eqref{eq:lambda-def} and \eqref{eq:I1-result}, respectively.
+The two terms in brackets arise from the cubic and linear contributions to the weak source in Eq.~\eqref{eq:cubic_rate}.
+The cubic contribution dominates when $a(0^+)\gg\sqrt{\eta}$, while the thermal contribution dominates at smaller $a(0^+)\,.$
+
+The parameter $A$ does not appear in the isothermal result because its defining condition, $T(0^+)=0$, belongs to the temperature-varying isobar used in Sec.~\ref{sec:hydro_analytic}.
+%Here, the upper limit on $a(0^+)$ must instead be obtained from the static interface condition $P(0^+)=P(0^-)$.
+%Moreover, Eq.~\eqref{eq:speed_isothermal} vanishes only as $a(0^+)\to0$ and therefore does not, by itself, determine a zero-speed density.
+
+%To obtain an upper limit on the velocity, since in the isothermal limit, $D_K, \gamma_K, \eta$ and $\lambda_n$ are all constants to very good approximation, the only variable left to tune is $a(0^+)$, and the speed increases with increasing $a(0^+)\ $.
+%An obvious upper limit on $a(0^+)$ is $a(0^+)\leq1$, which corresponds to the K fraction in neutron matter, where the velocity blows up. 
+
+Unlike in the energy-conserving case Eq.~\eqref{eq:front_system} and consequently Eq.~\eqref{eq:speed_modified}, where we can maximize the velocity by setting $a(0^+)=A$ where $T(0^+) = 0\ $, in the isothermal limit there's only one obvious upper limit on $a(0^+)$, which is $a(0^+)\leq1$, corresponding to no strangeness in quark matter at $x = 0^+\ $, where the velocity blows up.
+Therefore, we cannot maximize the velocity simply by setting $a(0^+)=1\ $. 
+
+We do not know the value of $a(0^+)\ $, but $u(0^-)$ is a monotonically increasing function of $a(0^+)$ in the domain $0<a(0^+)<a(0^-)=1$ for $\xi = 0\ $, so to obtain an upper bound on the isothermal boundary speed $u_\text{max}(0^-)$ we need to find the $a_\text{max}(0^+)$ in the isothermal limit, which we denote by $A'$, and it's the value of $a(0^+)$ at which the quarks at the boundary have the same average chemical potential $\mu_B(0^+) + n_K(0^+)\mu_K(0^+)/n_B(0^+)$ as the quarks in the baryons. 
+Quark matter with $a(0^+)>A'$ would have insufficient strangeness to make it favored over neutron matter \cite{Alford:2014jha}. 
+
+%In our plots we calculate $a_{\text{max}}(0^+)$ numerically, but
+Taylor-expanding the quark matter EoS around its beta-equilibrated state, we can obtain an approximate formula that in the parameter range that we explored agrees with the numerical result to within 1\%,
+\begin{equation}
+A' \approx \sqrt{ \dfrac{2 \bigl(\mu_B(0^-) - \mu_B(\infty)\bigr)}{n_B(\infty)}\left. \dfrac{\partial^2 P_\text{QM}}{\partial\mu_K^2}\right|_{\infty}} \ .
+\label{eq:a0plus_max}
+\end{equation}
+
+Since Eq.~\eqref{eq:speed_isothermal} has monotonic dependence on $a(0^+)$, and we know that $0<a(0^+) < A'<1$, similar to Eq.~\eqref{eq:speed_scaling}, we can do the same thing for Eq.~\eqref{eq:speed_isothermal}
+\begin{equation}
+\begin{aligned}
+u_{\max}(0^-)\simeq&(98\, {\rm m/s})
+\frac{n_B(\infty)}{n_B(0^-)}\\
+&\times\left(\frac{\mu_B(0^+)}{1200\ {\rm MeV}}\right)^\frac{17}{6}
+\left(\frac{10\ {\rm MeV}}{T}\right)^\frac{5}{6}\\
+&\times\frac{A'\sqrt{(A')^2+162\pi^2T^2/\mu_B^2(0^+)}}
+{\alpha_s^{5/6}\sqrt{1-A'}\sqrt{1+\xi A'}}\ .
+\end{aligned}
+\label{eq:isothermal_speed_scaling}
+\end{equation}
+}
+
+\section{Boundary propagation speed: adiabatic case}
+\label{sec:speed}
+
+
+\subsection{Adiabatic hydrodynamic equations}
+\label{sec:hydro-equations}
+
+\JS{Setting $\kappa_{\rm th}=0$ and $Q_\nu=0$ in Eq.~\eqref{eq:front_system_thermal} gives the adiabatic steady-front equations}
+%
+\begin{subequations}\label{eq:front_system}
+\begin{align}
+\frac{d}{dx}(u n_B)&= 0\,, 
+\label{eq:baryon_conservation}\\
+\frac{d}{dx}((P+\eps) u \gamma) &=0\,,
+\label{eq:energy_conservation}\\
+ \frac{d}{dx}((P+\eps) u^2+P)&=0\,,
+ \label{eq:momentum_conservation}\\
+ \frac{d}{dx}J_K &= -\Gamma_K.
+    \label{eq:K_conservation}
+\end{align}
+\end{subequations}
+%
 
 %\AHcom{mix of j and J?}
 % and $D$ is the strong-interaction-driven K diffusion coefficient, described in Appendix~\ref{sec:K-diffusion}
@@ -541,11 +682,7 @@ so the $x$-independent velocity of the quark matter is
 u^{(+)} =\Bratio u(0^-)\,.
 \label{eq:uplus-def}
 \end{equation}
-Since $n_B$ is independent of $x$, it is natural to work in terms of the local K fraction $a(x)$ defined by
-\begin{equation}
- a(x)\equiv\frac{n_K(x)}{n_B(x)}\ .
- \label{eq:a_definition}
-\end{equation}
+\JS{Since $n_B$ is independent of $x$, it is natural to work in terms of the local K fraction $a(x)$ defined in Eq.~\eqref{eq:a_definition}.}
 
 To find the speed $u(0^-)$ we use Eq.~\eqref{eq:jump_K-}
 along with
@@ -745,7 +882,7 @@ This supports our use of the planar approximation, since the typical curvature o
 \JS{
 
 \subsection{Thermal conductivity}
-\LBcom{This subsection seems like it is just for our viewing, not for the paper.}
+
 Currently we are setting $T(0^+) = 0$ exactly to maximize velocity. Although this can be done in the analytical or semi-analytical approach, numerically I kept running into difficulties. I think now I have a better understanding: $T(0^+) = 0$ leads to $D_K(0^+)\to \infty$ and $D_K^{-1}(0^+) = 0$, which according to Eq.~\eqref{eq:reduced_BVP}, leads to $n_K'(0^+) = 0$. Although there's no infinities and everything seems fine, zero initial condition in derivatives is what people call non-Lipschitz initial condition. 
 
 Why this is problematic? To break it down, this is what the numerical solver sees for $T(0^+) = 0\ $:
@@ -785,116 +922,6 @@ where Eq. (62) in \cite{Heiselberg:1993cr} gives a very similar expression for $
 %This expression Eq.~\eqref{eq:speed_modified} retains the physical case $a(0^+)<A$; setting $a(0^+)=A$ gives the zero-temperature endpoint.  
 %Besides the piecewise-constant hydrodynamic background, the approximations are the quadratic equation-of-state expansion, omission of the subleading $T^2$ term in $D_K^{-1}\,,$ and the profile parameter $\xi\,.$ 
 
-\begin{figure}
-    \centering
-    \includegraphics[width=\linewidth]{Plots/isothermal_muB_muK_plane.pdf}
-    \caption{Caption}
-    \label{fig:isothermal_constant_pressure_trajectory}
-\end{figure}
-
-\JS{
-
-\section{Isothermal BOUNDARY PROPAGATION SPEED}
-
-\LBcom{This section should be moved up to sec 3 ``boundary propagation speed: isothermal case''?}
-Our hydrodynamic model Eq.~\eqref{eq:front_system} imposes energy conservation in Eq.~\eqref{eq:energy_conservation}. 
-However, thermal conductivity can even out the entropy production and hence leading to a less steep temperature rise in quark matter side, and neutrino emission can take away the heat produced by the non-leptonic weak reaction. 
-So realistically, we expect the $T(x)$ profile to be less steep and spread beyond the scale set by $L_{\text{conv}}$ given in Eq.~\eqref{eq:conversion-thickness}. 
-But how much will thermal conductivity and neutrino emission actually affect the phase boundary speed? 
-
-To better understand the effect of thermal conductivity and neutrino emission on the phase boundary speed in a cheaper way without including Urca processes and modeling thermal conductivity, we consider a limit where entropy production is effectively taken away by neutrinos and energy isn't conserved. 
-In addition, we also want to see the limit when thermal conductivity happens at a speed way faster than the phase boundary speed limited by the non-leptonic weak reaction \JScom{citations} to the point that temperature profile is roughly constant. 
-
-In this case, we replace Eq.~\eqref{eq:energy_conservation} by $T(x) = const.$ which gives us the following set of hydrodynamic equations:
-\LBcom{Are we sure we cannot impose energy conservation $hu=const$ as well as have constant temperature? I am not sure what the additional unknown quantity would be though.}
-%
-\begin{subequations}\label{eq:front_system_isothermal}
-\begin{align}
-\frac{d}{dx}(u n_B)&= 0\,, 
-\label{eq:baryon_conservation}\\
-\frac{d}{dx}T(x) &=0\,,
-\label{eq:energy_conservation}\\
- \frac{d}{dx}((P+\eps) u^2+P)&=0\,,
- \label{eq:momentum_conservation}\\
- \frac{d}{dx}J_K &= -\Gamma_K.
-    \label{eq:K_conservation}
-\end{align}
-\end{subequations}
-%
-
-Most of the piecewise-constant derivation of Sec.~\ref{sec:hydro_analytic} survives this replacement, with one subtlety being that $\mu_B$ and $n_B$ for $x>0$ are no longer constant, but their change is still quite small.  
-So figuratively, see Fig.~\ref{fig:isothermal_constant_pressure_trajectory}, when we go from $x=0^+$ to $x = \infty$ in the isothermal limit, instead of moving along the isobar of quark matter on $(T, \mu_K)$ plane for constant $\mu_B\ $, we move along the isobar on $(\mu_B, \mu_K)$ plane for constant $T\ $. 
-
-Along this isobar, $\mu_B$ and $\mu_K$ are not independent.
-At fixed $T$, the Gibbs--Duhem relation $dP=n_Bd\mu_B+n_Kd\mu_K$ gives
-\begin{equation}
- \left.\dfrac{d\mu_B}{d\mu_K}\right|_{P,T}=-\dfrac{n_K}{n_B}=-a\,,
-\label{eq:isobar_gibbs_duhem}
-\end{equation}
-Therefore, $\mu_B$ increases as weak reactions reduce $\mu_K$, but the change becomes smaller as the matter approaches flavor equilibrium.
-For the representative profile with $T=10\,\MeV$, $n_B(0^-)=3n_0$, $B^{1/4}=189.2\,\MeV$, and $a(0^+)=0.146$, $\mu_B$ and $n_B$ increase by only $0.24\%$ between $0^+$ and $x\to\infty$.
-Since $a=n_K/n_B$, its exact derivative is $a'=n_K'/n_B-a n_B'/n_B\,.$
-Along the same trajectory, the approximation $a'\simeq n_K'/n_B$ differs from the exact derivative by at most $0.47\%$.
-We therefore neglect the small variation of $n_B$ in the analytical approximation below.
-
-Baryon and momentum flux conservation are unchanged, so the interface gradient in Eq.~\eqref{eq:interface_gradient}, the integrated K-ness balance in Eq.~\eqref{eq:integrals}, the estimate of $I_1$ in Eq.~\eqref{eq:I1-result}, and the general speed relation in Eq.~\eqref{eq:speed_general} carry over to the isothermal case.
-The only remaining change is the evaluation of $I_2$.
-
-As in the piecewise-constant treatment, we fix $\mu_q$ at a representative value.
-The coefficients $D_K$, $\gamma_K$, and $\eta$ are then constant, and Eq.~\eqref{eq:I2_definition} reduces to
-\begin{equation}
-\begin{array}{rl}
- I_2 &= D_K\gamma_K\dsp\int_0^{a(0^+)}\left(a^3+\eta a\right)da \\[2ex]
- &= \dfrac{D_K\gamma_K\,a^2(0^+)\left[a^2(0^+)+2\eta\right]}{4}\,.
-\end{array}
-\label{eq:I2_isothermal}
-\end{equation}
-This integral is simpler than its counterpart in Sec.~\ref{sec:hydro_analytic}, where $T(x)$ follows the isobar in Eq.~\eqref{eq:constant_pressure_path}.
-In that case, $D_K[T(a)]$ remains inside the integral and produces the $A^{7/3}$ prefactor and the fractional powers in Eq.~\eqref{eq:speed_modified}.
-
-Substituting Eq.~\eqref{eq:I2_isothermal} into Eq.~\eqref{eq:speed_general} gives
-\begin{equation}
- u^2(0^-)=\frac{D_K\gamma_K\,a^2(0^+)\left[a^2(0^+)+2\eta\right]}
- {2\lambda_n^2\left[1-a(0^+)\right]\left[1+\xi a(0^+)\right]}\,,
-\label{eq:speed_isothermal}
-\end{equation}
-where $\eta=9\pi^2T^2/\mu_q^2\ $.
-The two terms in brackets arise from the cubic and linear contributions to the weak source in Eq.~\eqref{eq:cubic_rate}.
-The cubic contribution dominates when $a(0^+)\gg\sqrt{\eta}$, while the thermal contribution dominates at smaller $a(0^+)\,.$
-
-The parameter $A$ does not appear in the isothermal result because its defining condition, $T(0^+)=0$, belongs to the temperature-varying isobar used in Sec.~\ref{sec:hydro_analytic}.
-%Here, the upper limit on $a(0^+)$ must instead be obtained from the static interface condition $P(0^+)=P(0^-)$.
-%Moreover, Eq.~\eqref{eq:speed_isothermal} vanishes only as $a(0^+)\to0$ and therefore does not, by itself, determine a zero-speed density.
-
-%To obtain an upper limit on the velocity, since in the isothermal limit, $D_K, \gamma_K, \eta$ and $\lambda_n$ are all constants to very good approximation, the only variable left to tune is $a(0^+)$, and the speed increases with increasing $a(0^+)\ $.
-%An obvious upper limit on $a(0^+)$ is $a(0^+)\leq1$, which corresponds to the K fraction in neutron matter, where the velocity blows up. 
-
-Unlike in the energy-conserving case Eq.~\eqref{eq:front_system} and consequently Eq.~\eqref{eq:speed_modified}, where we can maximize the velocity by setting $a(0^+)=A$ where $T(0^+) = 0\ $, in the isothermal limit there's only one obvious upper limit on $a(0^+)$, which is $a(0^+)\leq1$, corresponding to no strangeness in quark matter at $x = 0^+\ $, where the velocity blows up.
-Therefore, we cannot maximize the velocity simply by setting $a(0^+)=1\ $. 
-
-We do not know the value of $a(0^+)\ $, but $u(0^-)$ is a monotonically increasing function of $a(0^+)$ in the domain $0<a(0^+)<a(0^-)=1$ for $\xi = 0\ $, so to obtain an upper bound on the isothermal boundary speed $u_\text{max}(0^-)$ we need to find the $a_\text{max}(0^+)$ in the isothermal limit, which we denote by $A'$, and it's the value of $a(0^+)$ at which the quarks at the boundary have the same average chemical potential $\mu_B(0^+) + n_K(0^+)\mu_K(0^+)/n_B(0^+)$ as the quarks in the baryons. 
-Quark matter with $a(0^+)>A'$ would have insufficient strangeness to make it favored over neutron matter \cite{Alford:2014jha}. 
-
-%In our plots we calculate $a_{\text{max}}(0^+)$ numerically, but
-Taylor-expanding the quark matter EoS around its beta-equilibrated state, we can obtain an approximate formula that in the parameter range that we explored agrees with the numerical result to within 1\%,
-\begin{equation}
-A' \approx \sqrt{ \dfrac{2 \bigl(\mu_B(0^-) - \mu_B(\infty)\bigr)}{n_B(\infty)}\left. \dfrac{\partial^2 P_\text{QM}}{\partial\mu_K^2}\right|_{\infty}} \ .
-\label{eq:a0plus_max}
-\end{equation}
-
-Since Eq.~\eqref{eq:speed_isothermal} has monotonic dependence on $a(0^+)$, and we know that $0<a(0^+) < A'<1$, similar to Eq.~\eqref{eq:speed_scaling}, we can do the same thing for Eq.~\eqref{eq:speed_isothermal}
-\begin{equation}
-\begin{aligned}
-u_{\max}(0^-)\simeq&(98\, {\rm m/s})
-\frac{n_B(\infty)}{n_B(0^-)}
-\left(\frac{\mu_B(0^+)}{1200\ {\rm MeV}}\right)^\frac{17}{6}
-\left(\frac{10\ {\rm MeV}}{T}\right)^\frac{5}{6}\\
-&\times \frac{A'\sqrt{(A')^2+162\pi^2T^2/\mu_B^2(0^+)}}
-{\alpha_s^{5/6}\sqrt{1-A'}\sqrt{1+\xi A'}}\ .
-\end{aligned}
-\label{eq:isothermal_speed_scaling}
-\end{equation}
-}
 
 \section{Results}
 \label{sec:results}
@@ -1488,6 +1515,3 @@ The piecewise-constant approximation removes variation that is numerically invis
 
 
 \end{document}
-
-
-
