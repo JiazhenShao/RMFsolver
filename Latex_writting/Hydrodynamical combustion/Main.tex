@@ -347,7 +347,8 @@ and baryon current
     J_B^\mu=n_B U^\mu \,,
 \end{equation}
 where $U^\mu = (\gamma,u,0,0)$ is the four-velocity with $u=\gamma v$ and Lorentz factor $\gamma=1/\sqrt{1-v^2}$.
-\JS{The heat four current $q_{\rm th}^\mu$ satisfies $U_\mu q_{\rm th}^\mu=0$ and is purely spatial in the local fluid rest frame~\cite{Eckart:1940te}.}
+\JS{We define $U^\mu$ by the baryon current, the baryon (Eckart) frame, so there is no baryon diffusion in the local fluid rest frame.
+The nonadvective energy current $q_{\rm th}^\mu$ satisfies $U_\mu q_{\rm th}^\mu=0$ and is purely spatial in that frame~\cite{Eckart:1940te,Harutyunyan:2023nvt}.}
 \JS{Baryon number is conserved, while escaping neutrinos can carry energy and momentum out of the fluid:}
 \begin{equation}
 \begin{aligned}
@@ -360,7 +361,7 @@ where $U^\mu = (\gamma,u,0,0)$ is the four-velocity with $u=\gamma v$ and Lorent
 
 \JS{Here $\mathcal S^\nu$ is the neutrino energy-momentum loss per unit spacetime volume, with $Q_\nu\equiv\mathcal S^0\geq0$ the energy loss per unit volume and time in the phase boundary rest frame.
 We impose steady planar flow, so all fields depend only on $x$.
-For the slow flows considered here, we model the conductive heat flux by Fourier's law,
+For the slow flows considered here, we approximate this energy current by the conductive heat flux from Fourier's law,
 \begin{equation}
     q_{\rm th}^x=-\kappa_{\rm th}\frac{dT}{dx}\,,
     \label{eq:fourier_heat_flux}
@@ -368,6 +369,7 @@ For the slow flows considered here, we model the conductive heat flux by Fourier
 where $\kappa_{\rm th}\geq0$ is the thermal conductivity.
 The minus sign directs heat toward lower temperature.
 This approximation assumes that the heat current relaxes on a time scale short compared with changes experienced by the fluid~\cite{Lander:2018cvq}.
+We use this closure only for stationary profiles, not for causal time-dependent evolution.
 We retain the leading conductive energy flux and neglect the acceleration correction to the relativistic heat law and the heat-current contribution to the momentum flux.
 We also neglect neutrino momentum loss, which is suppressed by the fluid speed for isotropic emission in the local rest frame.
 In quark matter, $\kappa_{\rm th}$ is determined by quark scattering~\cite{Heiselberg:1993cr}.%; it is a separate transport coefficient from the K diffusion coefficient $D_K$.
@@ -409,6 +411,10 @@ $U^\mu$ is the relativistic fluid element four velocity, and $V^\mu$ is the spac
 }\AHcom{not every current is conserved, the K current in fact should not be conserved but has a source term}
 }
 
+\JS{We use independent density-gradient Fick and temperature-gradient Fourier laws, neglecting thermodiffusion (the Soret effect) and composition-driven heat flow (the Dufour effect).
+We also neglect energy carried by K interdiffusion, so the nonadvective energy current in Eq.~\eqref{eq:stress_tensor} is approximated by conduction alone.
+These are additional transport assumptions, not consequences of slow flow, and they are retained in both thermal limits.}
+
 The spatial component of the K current $J_K\equiv J_K^1$ is
 \LB{
 \begin{equation}
@@ -439,7 +445,7 @@ The steady hydrodynamic equations, with heat transport treated in this slow-flow
 \end{subequations}
 
 \JS{We use two limits of Eq.~\eqref{eq:front_system_thermal} to study the effect of heat transport.
-For $\kappa_{\rm th}\to\infty$ and $Q_\nu=0\ $, $dT/dx\to0$ in each phase.
+For $\kappa_{\rm th}\to\infty$ at finite conductive flux and with $Q_\nu=0$, $dT/dx\to0$ in each phase.
 Assuming thermal contact with no temperature jump at the interface gives a single temperature across both phases, the isothermal case of Sec.~\ref{sec:speed-isothermal}.
 The conductive flux can remain finite in this limit and balance changes in the advective flux.
 For $\kappa_{\rm th}=0$ and $Q_\nu=0$, Eq.~\eqref{eq:energy_conservation_thermal} instead gives $d[(P+\eps)u\gamma]/dx=0$, the adiabatic case of Sec.~\ref{sec:speed}.
@@ -454,18 +460,17 @@ We set $Q_\nu=0$ in both calculations, consistent with our omission of neutrinos
 
 We now describe how to calculate $u(0^-)$, the speed at which the nuclear/quark phase boundary propagates through neutron matter, in the limit where there is a single uniform temperature across both phases.
 
-\begin{figure}
-    \centering
-    \includegraphics[width=\linewidth]{Plots/isothermal_muB_muK_plane.pdf}
-    \caption{Caption}
-    \label{fig:isothermal_constant_pressure_trajectory}
-\end{figure}
+\subsection{Isothermal hydrodynamic equations}
+\label{sec:isothermal-equations}
 
 \JS{
 This is the $\kappa_{\rm th}\to\infty$ limit described in Sec.~\ref{sec:hydro-thermal}, with finite heat transport maintaining a uniform temperature.\JScom{citations}
-\LBcom{Are we sure we cannot impose energy conservation $hu=const$ as well as have constant temperature? I am not sure what the additional unknown quantity would be though.}
+\LBcom{Are we sure we cannot impose energy conservation $hu=const$ as well as have constant temperature? I am not sure what the additional unknown quantity would be though.}\JScom{We cannot. Addressed on Sep 9 meeting. }
 The energy balance in Eq.~\eqref{eq:energy_conservation_thermal} still includes conductive transport, so it does not require the advective flux $(P+\eps)u\gamma$ to be constant.
-This idealization allows heat exchange with the surroundings to maintain the common temperature.
+With $Q_\nu=0$, vanishing conductive flux at both $0^-$ and $\infty$ would require the advective energy flux to have the same value at these endpoints.
+This is an additional compatibility condition that need not hold at the prescribed temperature.
+Our isothermal model instead allows heat exchange with an external reservoir to maintain the common temperature.
+The matter is therefore not treated as an energetically closed system; energy conservation applies to the matter and reservoir together.
 We solve for the matter profile using $T(x)=T(0^-)$ in place of the energy equation:
 %
 \begin{subequations}\label{eq:front_system_isothermal}
@@ -481,9 +486,115 @@ We solve for the matter profile using $T(x)=T(0^-)$ in place of the energy equat
 \end{align}
 \end{subequations}
 %
+}
 
-Most of the piecewise-constant derivation of Sec.~\ref{sec:hydro_analytic} survives this replacement, with one subtlety being that $\mu_B$ and $n_B$ for $x>0$ are no longer constant, but their change is still quite small.  
-So figuratively, see Fig.~\ref{fig:isothermal_constant_pressure_trajectory}, when we go from $x=0^+$ to $x = \infty$ in the isothermal limit, instead of moving along the isobar of quark matter on $(T, \mu_K)$ plane for constant $\mu_B\ $, we move along the isobar on $(\mu_B, \mu_K)$ plane for constant $T\ $. 
+\JS{Eqs.~\eqref{eq:baryon_conservation_isothermal} and \eqref{eq:momentum_conservation_isothermal} state that the baryon and momentum fluxes, with $h=P+\eps$,}
+\begin{equation}
+\left.
+\begin{array}{rl}
+ J_B &=n_Bu \,, \\[1ex]
+ \Pi &=hu^2+P \,.
+\end{array}
+\right\}\parbox{6em}{Independent of $x$}
+\label{eq:conserved_fluxes}
+\end{equation}
+have fixed values at all $x$, while other thermodynamic and compositional properties will vary through the boundary and relaxation region.
+
+To obtain the profile of the moving phase boundary we only need to solve the remaining Eq.~\eqref{eq:K_conservation_isothermal}, a second-order differential equation that can be recast as two first-order differential equations for the K density and current
+\begin{subequations}
+\label{eq:reduced_BVP}
+\begin{align}
+ \frac{d}{dx}n_K &=\frac{un_K-J_K}{D_K}\,,\JS{\quad x>0\,,}
+\label{eq:BVP_nK}\\
+ \frac{d}{dx}J_K &=-\Gamma_K\,.
+\label{eq:BVP_jK}
+\end{align}
+\end{subequations}
+\JS{Diffusion of quarks and hence K-ness is only possible in deconfined quark matter at $x>0\ $, so Eq.~\eqref{eq:BVP_nK} is only defined for $x>0\ $.
+For $x<0\ $, we have $dn_K/dx = 0$ and $J_K = un_K\ $.}
+\mgacom{Our assumption that the nuclear matter is all neutrons makes K diffusion nonexistent there.}
+There is now a well defined procedure for constructing a solution to these differential equations. 
+Assume we have solved them up to some position $x$, giving $n_K(x)$ and $J_K(x)$.
+We can combine this with the already-specified values of the conserved fluxes \eqref{eq:conserved_fluxes} and the quark matter equation of state (Appendix~\ref{sec:bag_model}) \JS{at the prescribed temperature} to solve for the remaining properties of the matter at $x$, such as $n_B(x)$, $u(x)$, $\mu_B(x)$, $\mu_K(x)$, etc.
+This allows us to calculate $D_K(x)$ and $\Gamma_K(x)$ (see Appendices~\ref{sec:K-creation} and \ref{sec:K-diffusion}) and thereby obtain $n_K(x+\de x)$ and $J_K(x+\de x)$.
+
+\subsection{Boundary conditions}
+\label{sec:boundary_conditions}
+
+To construct the boundary profile we need 5 initial conditions  specifying the state of the incoming nuclear matter: $n_B(0^-)$, $n_K(0^-)$, $dn_K/dx(0^-)$, $T(0^-)$, $u(0^-)$.
+However, since we assumed the incoming matter is  neutron matter, for which $n_K=n_d/2$, we have
+\begin{equation}
+  n_K(0^-)=n_B(0^-)\,,
+  \label{eq:nK-nuclear}
+\end{equation}
+and since we have assumed the neutron matter is homogeneous,
+\begin{equation}
+  \dfrac{dn_K}{dx}(0^-)=0\,,
+  \label{eq:dnKdx-nuclear}
+\end{equation}
+so we only need to specify $n_B(0^-)$,  $T(0^-)$, $u(0^-)$, which fixes the conserved fluxes $J_B$ and $\Pi$ for the whole solution.
+
+The first step in solving the equations is to relate the K density and current at $x=0^+$ to the initial conditions at $x=0^-$, after which we can evolve the solution to $x=+\infty$ using \eqref{eq:front_system_isothermal}.
+
+\JS{%Only one of the two equations in \eqref{eq:reduced_BVP} is a genuine conservation law. Eq.~\eqref{eq:BVP_jK}, $dJ_K/dx=-\Gamma_K$, has $J_K$ as its conserved current, so integrating it across the interface leaves $J_K$ continuous, since the source term contributes nothing as the interface width goes to zero. Eq.~\eqref{eq:BVP_nK} is not a conservation law for $n_K$: it is a constitutive relation, defining $J_K$ in terms of $n_K$ and its gradient
+\mgacom{I don't think this is an essential difference. It's still an equation of the form $dF/dx = RHS$. In order for there to be a discontinuity in $F$ there must be a delta-function in $RHS$. I think the essential point is that we know the RHS of \eqref{eq:BVP_jK} doesn't have a delta fn, but we can't rule it out for the RHS of \eqref{eq:BVP_nK}}
+\JScom{I think the problem is $D_K$ in Eq.~\eqref{eq:BVP_nK} is not even defined for $x\leq 0$, so I don't think we can claim $n_K(0^-)\neq n_K(0^+)$ implies $J_K$ have delta fn part. The only meaningful equation that can be integrated across $x=0$ is Eq.~\eqref{eq:BVP_jK}, and we need to make it clear that Eq.~\eqref{eq:BVP_nK} is only defined for $x>0\ $, and that $J_K = n_K u$ for $x<0$ and $J_K = n_K u - D_K n_K'$ for $x>0\ $.}
+\mgacom{You are focusing on the right side of (13a), saying it only takes that form in quark matter. That's true, but it avoids the key question, which is whether the true right side of (13a) could have a delta function at $x=0$. If there is a discontinuity in $n_K$ then the true RHS of (13a) must have such a delta function.}
+%through the quark-matter diffusion coefficient $D_K$, which has no counterpart on the nuclear side. Nothing therefore forces $n_K$ to be continuous across the interface, consistent with deconfinement reprocessing the composition of the newly formed quark matter instantaneously.
+}
+
+Integrating Eqs.~\eqref{eq:reduced_BVP} across the sharp interface yields the hydrodynamic jump condition
+\begin{equation}
+ u(0^+)n_K(0^+)
+ -\left[D_K\frac{dn_K}{dx}\right]_{0^+}
+ =u(0^-)n_K(0^-)\,.
+\label{eq:jump_K-}
+\end{equation}
+We do not need to know the K diffusion coefficient on the nuclear side because we have assumed there is no gradient there.
+%(or equivalently $a(0^+)$) 
+Eq.~\eqref{eq:jump_K-} fixes $dn_K/dx(0^+)$ in terms of $n_K(0^+)$ but we have no constraint on $n_K(0^+)$ so we have to treat it as an additional parameter of the system.
+In our calculations we will choose the value of $n_K(0^+)$ that maximizes the speed of the boundary.
+
+Since the solution must yield equilibrated quark matter as $x\to\infty$, we also impose the boundary condition $\mu_K(\infty)=0$, which for our model of quark matter is equivalent to $n_K(\infty)=0$.
+This turns \eqref{eq:reduced_BVP} into an eigenvalue problem, where for given $n_B(0^-)$, $T(0^-)$, \JS{and $n_K(0^+)$} there is only one value of the incoming neutron matter velocity $u(0^-)$ that yields a valid solution.
+This will yield our desired result, the speed at which the boundary propagates through neutron matter, as a function of the density and temperature of the neutron matter.
+
+We can now obtain the boundary speed in terms of the density and temperature of the neutron matter and the K fraction in the freshly created quark matter.
+We do this by solving \eqref{eq:reduced_BVP} as described in Sec.~\ref{sec:isothermal-equations} using the boundary conditions described above.
+
+One approach is to solve the differential equations numerically, as described in Appendix~\ref{sec:numerical}.
+However, as we now describe, one can also formulate an approximate analytic solution, which is helpful for interpreting the results.
+
+
+
+\subsection{Piecewise-constant analytical approximation}
+\label{sec:isothermal_analytic}
+
+\mgacom{Could we think of a more informative name for this approximation? E.g. "constant pressure" or similar.}
+
+\JS{For the analytical approximation, we treat $n_B\,,$ $u\,,$ $\mu_B\,,$ $P\,,$ and $h$ as independent of $x$ on the quark matter side, while retaining the $x$ dependence of the K density $n_K(x)$.
+The temperature is fixed throughout the isothermal profile.}
+
+We write the $x$-independent baryon density in the quark matter as
+\begin{equation}
+n_B^{(+)} \equiv n_B(x) \quad \forall x>0 \,,
+\label{eq:nBplus-def}
+\end{equation}
+\mgacom{I am open to alternative notations for the constant quantities}
+and define $\Bratio$ (which will always be less than 1) as the ratio of neutron matter to quark matter baryon density at the transition,
+\begin{equation}
+    \Bratio \equiv \dfrac{n_B(0^-)}{n_B^{(+)}} \,,
+    \label{eq:lambda-def}
+\end{equation}
+so the $x$-independent velocity of the quark matter is
+\begin{equation}
+u^{(+)} =\Bratio u(0^-)\,.
+\label{eq:uplus-def}
+\end{equation}
+\JS{Since $n_B$ is independent of $x$, it is natural to work in terms of the local K fraction $a(x)$ defined in Eq.~\eqref{eq:a_definition}.}
+
+\JS{
+At fixed $T$, the quark matter follows an isobar in the $(\mu_B,\mu_K)$ plane, as shown in Fig.~\ref{fig:isothermal_constant_pressure_trajectory}.
 
 Along this isobar, $\mu_B$ and $\mu_K$ are not independent.
 At fixed $T$, the Gibbs--Duhem relation $dP=n_Bd\mu_B+n_Kd\mu_K$ gives
@@ -497,10 +608,88 @@ Since $a=n_K/n_B$, its exact derivative is $a'=n_K'/n_B-a n_B'/n_B\,.$
 Along the same trajectory, the approximation $a'\simeq n_K'/n_B$ differs from the exact derivative by at most $0.47\%$.
 We therefore neglect the small variation of $n_B$ in the analytical approximation below.
 
-Baryon and momentum flux conservation are unchanged, so the interface gradient in Eq.~\eqref{eq:interface_gradient}, the integrated K-ness balance in Eq.~\eqref{eq:integrals}, the estimate of $I_1$ in Eq.~\eqref{eq:I1-result}, and the general speed relation in Eq.~\eqref{eq:speed_general} carry over to the isothermal case.
-The only remaining change is the evaluation of $I_2$.
+}
 
-As in the piecewise-constant treatment, we fix $\mu_q$ at a representative value.
+\begin{figure}
+    \centering
+    \includegraphics[width=\linewidth]{Plots/isothermal_muB_muK_plane.pdf}
+    \caption{Caption}
+    \label{fig:isothermal_constant_pressure_trajectory}
+\end{figure}
+
+To find the speed $u(0^-)$ we use Eq.~\eqref{eq:jump_K-} along with \eqref{eq:nBplus-def}, \eqref{eq:lambda-def}, \eqref{eq:uplus-def} to obtain
+\begin{equation}
+% \dfrac{D_K(0^+)}{n_B(0^-)}\dfrac{d n_K}{dx}\biggr|_{0^+}
+%\biggl( \dfrac{n_K(0^+)}{n_B(0^+)} - \dfrac{n_K(0^-)}{n_B(0^-)} \biggr)^{\!-1}
+\begin{array}{rl}
+u(0^-)  &= -\dfrac{D_K(0^+)a'(0^+)}{\Bratio \bigl(1-a(0^+)\bigr)}  \,,\\[3ex]
+a'(x) &\equiv \dfrac{da}{dx} = \dfrac{1}{n_B^{(+)}} \dfrac{dn_K}{dx} \,.
+ \end{array}
+\label{eq:interface_gradient}
+\end{equation}
+The boundary conditions determine $\Bratio$ and $a(0^+)$, but $D_K(0^+)a'(0^+)$ is determined by the requirement that $a(\infty)=0$.
+To impose this exactly we would have to evolve $a(x)$ from $x=0^+$ to infinity using the K current equation Eq.~\eqref{eq:reduced_BVP}.
+
+We cannot solve this equation exactly in full generality, but we can make a good estimate of the result.
+\JS{The following transport identities also allow $D_K$ and $\Gamma_K$ to vary with $x$.}
+Multiplying Eq.~\eqref{eq:BVP_jK} by $D_K(x)a'(x)$, using Eq.~\eqref{eq:BVP_nK} to eliminate $J_K$, and integrating from $x=0^+$ to infinity, we find
+\hide{
+\begin{equation}
+\begin{array}{rl}
+ \dfrac{1}{2} \Bigl( D_K(0^+)\,n_K'(0^+)\Bigr)^{\!2}
+ = &-\,u^{(+)}\!\!\dsp\int_{0^+}^\infty \!\!\!  D_K(x)\,\bigl(n_K'(x)\bigr)^2 \, dx\\[2ex] 
+  -&\dsp\int_{0^+}^\infty \!\!\! D_K(x)\,n_K'(x) \Gamma_K(x) \, dx
+\end{array}
+\end{equation}
+}
+\begin{equation}
+ \dfrac{1}{2} \Bigl( D_K(0^+)\,a'(0^+)\Bigr)^{\!2} = -u^{(+)}I_1 + I_2 \,,
+ \label{eq:integrals}
+\end{equation}
+where $I_1$ and $I_2$ are positive dimensionless integrals over $x$ which can be rewritten as integrals over $a$, since $a(x)$ is expected to be a monotonically decreasing function over $0^+\leqslant x < \infty$ as the quark matter equilibrates in the conversion region behind the boundary.
+\begin{equation}
+\begin{array}{rl}
+I_1 &= \dsp \int_{0^+}^\infty D_K(x) \bigl(a'(x)\bigr)^2\,dx \,, \\[2ex]
+  &= -\dsp\int_0^{a(0^+)} D_K a'\,da \,.
+  \end{array}
+  \label{eq:I1_definition}
+\end{equation}
+%
+\begin{equation}
+\begin{array}{rl}
+I_2 &=-\dfrac{1}{n_B^{(+)}}\dsp\int_{0^+}^\infty  D_K \Ga_K a'\,dx \,, \\[2ex]
+&= \dfrac{1}{n_B^{(+)}}\dsp\int_0^{a(0^+)} D_K \Ga_K\,da \,.
+ \end{array}
+\label{eq:I2_definition}
+\end{equation}
+In an exact calculation both integrands should be obtained from the solution to Eq.~\eqref{eq:reduced_BVP}, but we will now show how one can obtain reasonable approximations to both integrals without knowing the solution.
+
+
+We first estimate $I_1$ because the estimate will turn out to depend on our desired result $u(0^-)$, requiring regrouping of Eq.~\ref{eq:interface_gradient}.
+We assume that, as we see in the numerical solutions, the actual profile has $D_K(x) a'(x)$ increasing monotonically from its value $-\Bratio u(0^-)[1-a(0^+)]$ at $x=0^+$ (from Eq.~\eqref{eq:interface_gradient}) to zero at $x=\infty$.
+This is expected because $a(x)$ decreases monotonically to zero, and any variation in the diffusion constant $D_K$, which depends mainly on the temperature, is too weak to overcome that.
+We can then parameterize the integral in terms of a ``sharpness'' factor $\xi$:
+\begin{equation}
+\begin{array}{rl}
+ I_1 &= -\dfrac{1+\xi}{2}\,D_K(0^+) a'(0^+)\, a(0^+) \\[2ex]
+  &= \dfrac{1+\xi}{2}\,
+ \Bratio u(0^-)\,[1-a(0^+)]\,a(0^+)\,.
+ \end{array}
+ \label{eq:I1-result}
+\end{equation}
+Here $-1<\xi<1$ characterizes the shape of the diffusion profile.
+\JS{For details of this sharpness factor $\xi$ and derivation of Eq.~\eqref{eq:I1-result}, see Appendix~\ref{sec:xi-shape}.}
+%\mgacom{Explain this in an appendix?}\JScom{Added Appendix~\ref{sec:xi-shape}.}
+Substituting this relation into \eqref{eq:integrals} and \eqref{eq:interface_gradient} yields
+\begin{align}
+ u^2(0^-)&= \frac{2 I_2}
+ {\Bratio^2[1-a(0^+)][1+\xi a(0^+)]}\,,
+\label{eq:speed_general}
+\end{align}
+
+
+\JS{
+To evaluate $I_2$ at fixed $T$, we use the cubic rate in Eq.~\eqref{eq:cubic_rate} of Appendix~\ref{sec:K-creation} and fix $\mu_q=\mu_B/3$ at a representative value.
 The coefficients $D_K$, $\gamma_K$, and $\eta$ are then constant, and Eq.~\eqref{eq:I2_definition} reduces to
 \begin{equation}
 \begin{array}{rl}
@@ -509,8 +698,6 @@ The coefficients $D_K$, $\gamma_K$, and $\eta$ are then constant, and Eq.~\eqref
 \end{array}
 \label{eq:I2_isothermal}
 \end{equation}
-This integral is simpler than its counterpart in Sec.~\ref{sec:hydro_analytic}, where $T(x)$ follows the isobar in Eq.~\eqref{eq:constant_pressure_path}.
-In that case, $D_K[T(a)]$ remains inside the integral and produces the $A^{7/3}$ prefactor and the fractional powers in Eq.~\eqref{eq:speed_modified}.
 
 Substituting Eq.~\eqref{eq:I2_isothermal} into Eq.~\eqref{eq:speed_general} gives
 \begin{equation}
@@ -522,18 +709,17 @@ where $\eta=9\pi^2T^2/\mu_q^2$, and $\lambda_n$ and $\xi$ are defined in Eqs.~\e
 The two terms in brackets arise from the cubic and linear contributions to the weak source in Eq.~\eqref{eq:cubic_rate}.
 The cubic contribution dominates when $a(0^+)\gg\sqrt{\eta}$, while the thermal contribution dominates at smaller $a(0^+)\,.$
 
-The parameter $A$ does not appear in the isothermal result because its defining condition, $T(0^+)=0$, belongs to the temperature-varying isobar used in Sec.~\ref{sec:hydro_analytic}.
 %Here, the upper limit on $a(0^+)$ must instead be obtained from the static interface condition $P(0^+)=P(0^-)$.
 %Moreover, Eq.~\eqref{eq:speed_isothermal} vanishes only as $a(0^+)\to0$ and therefore does not, by itself, determine a zero-speed density.
 
 %To obtain an upper limit on the velocity, since in the isothermal limit, $D_K, \gamma_K, \eta$ and $\lambda_n$ are all constants to very good approximation, the only variable left to tune is $a(0^+)$, and the speed increases with increasing $a(0^+)\ $.
-%An obvious upper limit on $a(0^+)$ is $a(0^+)\leq1$, which corresponds to the K fraction in neutron matter, where the velocity blows up. 
+%An obvious upper limit on $a(0^+)$ is $a(0^+)\leq1$, which corresponds to the K fraction in neutron matter, where the velocity blows up.
 
-Unlike in the energy-conserving case Eq.~\eqref{eq:front_system} and consequently Eq.~\eqref{eq:speed_modified}, where we can maximize the velocity by setting $a(0^+)=A$ where $T(0^+) = 0\ $, in the isothermal limit there's only one obvious upper limit on $a(0^+)$, which is $a(0^+)\leq1$, corresponding to no strangeness in quark matter at $x = 0^+\ $, where the velocity blows up.
-Therefore, we cannot maximize the velocity simply by setting $a(0^+)=1\ $. 
+The obvious composition bound is $a(0^+)\leq1$, corresponding to no strangeness in quark matter at $x=0^+$, but the velocity diverges as this bound is approached.
+Therefore, we cannot maximize the velocity simply by setting $a(0^+)=1\ $.
 
-We do not know the value of $a(0^+)\ $, but $u(0^-)$ is a monotonically increasing function of $a(0^+)$ in the domain $0<a(0^+)<a(0^-)=1$ for $\xi = 0\ $, so to obtain an upper bound on the isothermal boundary speed $u_\text{max}(0^-)$ we need to find the $a_\text{max}(0^+)$ in the isothermal limit, which we denote by $A'$, and it's the value of $a(0^+)$ at which the quarks at the boundary have the same average chemical potential $\mu_B(0^+) + n_K(0^+)\mu_K(0^+)/n_B(0^+)$ as the quarks in the baryons. 
-Quark matter with $a(0^+)>A'$ would have insufficient strangeness to make it favored over neutron matter \cite{Alford:2014jha}. 
+We do not know the value of $a(0^+)\ $, but $u(0^-)$ is a monotonically increasing function of $a(0^+)$ in the domain $0<a(0^+)<a(0^-)=1$ for $\xi = 0\ $, so to obtain an upper bound on the isothermal boundary speed $u_\text{max}(0^-)$ we need to find the $a_\text{max}(0^+)$ in the isothermal limit, which we denote by $A'$, and it's the value of $a(0^+)$ at which the quarks at the boundary have the same average chemical potential $\mu_B(0^+) + n_K(0^+)\mu_K(0^+)/n_B(0^+)$ as the quarks in the baryons.
+Quark matter with $a(0^+)>A'$ would have insufficient strangeness to make it favored over neutron matter \cite{Alford:2014jha}.
 
 %In our plots we calculate $a_{\text{max}}(0^+)$ numerically, but
 Taylor-expanding the quark matter EoS around its beta-equilibrated state, we can obtain an approximate formula that in the parameter range that we explored agrees with the numerical result to within 1\%,
@@ -542,7 +728,7 @@ A' \approx \sqrt{ \dfrac{2 \bigl(\mu_B(0^-) - \mu_B(\infty)\bigr)}{n_B(\infty)}\
 \label{eq:a0plus_max}
 \end{equation}
 
-Since Eq.~\eqref{eq:speed_isothermal} has monotonic dependence on $a(0^+)$, and we know that $0<a(0^+) < A'<1$, similar to Eq.~\eqref{eq:speed_scaling}, we can do the same thing for Eq.~\eqref{eq:speed_isothermal}
+Since Eq.~\eqref{eq:speed_isothermal} has monotonic dependence on $a(0^+)$ and $0<a(0^+)<A'<1$, setting $a(0^+)=A'$ and inserting the leading term of Eq.~\eqref{eq:diffusion_coefficient} gives
 \begin{equation}
 \begin{aligned}
 u_{\max}(0^-)\simeq&(98\, {\rm m/s})
@@ -567,7 +753,7 @@ u_{\max}(0^-)\simeq&(98\, {\rm m/s})
 %
 \begin{subequations}\label{eq:front_system}
 \begin{align}
-\frac{d}{dx}(u n_B)&= 0\,, 
+\frac{d}{dx}(u n_B)&= 0\,,
 \label{eq:baryon_conservation}\\
 \frac{d}{dx}((P+\eps) u \gamma) &=0\,,
 \label{eq:energy_conservation}\\
@@ -582,182 +768,29 @@ u_{\max}(0^-)\simeq&(98\, {\rm m/s})
 %\AHcom{mix of j and J?}
 % and $D$ is the strong-interaction-driven K diffusion coefficient, described in Appendix~\ref{sec:K-diffusion}
 
-Eqs.~\eqref{eq:baryon_conservation}, \eqref{eq:energy_conservation}, \eqref{eq:momentum_conservation}
-are flux conservation laws, stating that the baryon, momentum, and energy fluxes
+\JS{The baryon and momentum fluxes remain those in Eq.~\eqref{eq:conserved_fluxes}, while Eq.~\eqref{eq:energy_conservation} fixes the advective energy flux,
 \begin{equation}
-\left.
-\begin{array}{rl}
- J_B &=n_Bu \,, \\[1ex]
- \Pi &=hu^2+P \,, \\[1ex]
- E &=hu\sqrt{1+u^2}\,.
-\end{array}
-\right\}\parbox{6em}{Independent of $x$}
-\label{eq:conserved_fluxes}
+ E=hu\sqrt{1+u^2}\,.
+ \label{eq:energy_flux_adiabatic}
 \end{equation}
-have fixed values at all $x$, while other thermodynamic and compositional properties will vary through the boundary and relaxation region.
-
-To obtain the profile of the moving phase boundary we only need to solve the remaining Eq.~\eqref{eq:K_conservation}, a second-order differential equation that can be recast as two first-order differential equations for the K density and current
-\begin{subequations}
-\label{eq:reduced_BVP}
-\begin{align}
- \frac{d}{dx}n_K &=\frac{un_K-J_K}{D_K}\,,\JS{\quad x>0\,,}
-\label{eq:BVP_nK}\\
- \frac{d}{dx}J_K &=-\Gamma_K\,.
-\label{eq:BVP_jK}
-\end{align}
-\end{subequations}
-\JS{However, it's worth noting that diffusion of quarks and hence K-ness is only possible in deconfined quark matter at $x>0\ $, so Eq.~\eqref{eq:BVP_nK} is only defined for $x>0\ $. For $x<0\ $, we have $dn_K/dx = 0$ and $J_K = un_K\ $.}
-\mgacom{Our assumption that the nuclear matter is all neutrons makes K diffusion nonexistent there.}
-There is now a well defined procedure for constructing a solution to these differential equations. 
-Assume we have solved them up to some position $x$, giving $n_K(x)$ and $J_K(x)$. We can combine this with the already-specified values of the conserved fluxes \eqref{eq:conserved_fluxes} and the quark matter equation of state (Appendix~\ref{sec:bag_model}) to solve for the remaining properties of the matter at $x$, such as $n_B(x)$, $u(x)$, $\mu_B(x)$, $\mu_K(x)$, \mga{$T(x)$}, etc. This allows us to calculate $D_K(x)$ and $\Gamma_K(x)$ (see Appendices~\ref{sec:K-creation} and \ref{sec:K-diffusion}) and thereby obtain $n_K(x+\de x)$ and $J_K(x+\de x)$.
-
-
-\subsection{Boundary conditions}
-
-To construct the boundary profile we need 5 initial conditions  specifying the state of the incoming nuclear matter: $n_B(0^-)$, $n_K(0^-)$, $dn_K/dx(0^-)$, $T(0^-)$, $u(0^-)$. However, since we assumed the incoming matter is  neutron matter, for which $n_K=n_d/2$, we have
-\begin{equation}
-  n_K(0^-)=n_B(0^-)\,,
-  \label{eq:nK-nuclear}
-\end{equation}
-and since we have assumed the neutron matter is homogeneous,
-\begin{equation}
-  \dfrac{dn_K}{dx}(0^-)=0\,,
-  \label{eq:dnKdx-nuclear}
-\end{equation}
-so we only need to specify $n_B(0^-)$,  $T(0^-)$, $u(0^-)$, which fixes the conserved fluxes $J_B$, $\Pi$, and $E$ for the whole solution.  
-
-Since the solution must yield equilibrated quark matter as $x\to\infty$, we also impose the boundary condition $\mu_K(\infty)=0$, which for our model of quark matter is equivalent to $n_K(\infty)=0$. This turns \eqref{eq:reduced_BVP} into an eigenvalue problem, where for given 
-$n_B(0^-)$ and $T(0^-)$ there is only one value of the incoming neutron matter velocity $u(0^-)$ that yields a valid solution.
-This will yield our desired result, the speed at which the boundary propagates through neutron matter, as a function of the density and temperature of the neutron matter.
-
-The first step in solving the equations is to relate the K density and current at $x=0^+$ to the initial conditions at $x=0^-$, after which we can evolve the solution to $x=+\infty$ using \eqref{eq:front_system}.
-
-\JS{%Only one of the two equations in \eqref{eq:reduced_BVP} is a genuine conservation law. Eq.~\eqref{eq:BVP_jK}, $dJ_K/dx=-\Gamma_K$, has $J_K$ as its conserved current, so integrating it across the interface leaves $J_K$ continuous, since the source term contributes nothing as the interface width goes to zero. Eq.~\eqref{eq:BVP_nK} is not a conservation law for $n_K$: it is a constitutive relation, defining $J_K$ in terms of $n_K$ and its gradient
-\mgacom{I don't think this is an essential difference. It's still an equation of the form $dF/dx = RHS$. In order for there to be a discontinuity in $F$ there must be a delta-function in $RHS$. I think the essential point is that we know the RHS of \eqref{eq:BVP_jK} doesn't have a delta fn, but we can't rule it out for the RHS of \eqref{eq:BVP_nK}}
-\JScom{I think the problem is $D_K$ in Eq.~\eqref{eq:BVP_nK} is not even defined for $x\leq 0$, so I don't think we can claim $n_K(0^-)\neq n_K(0^+)$ implies $J_K$ have delta fn part. The only meaningful equation that can be integrated across $x=0$ is Eq.~\eqref{eq:BVP_jK}, and we need to make it clear that Eq.~\eqref{eq:BVP_nK} is only defined for $x>0\ $, and that $J_K = n_K u$ for $x<0$ and $J_K = n_K u - D_K n_K'$ for $x>0\ $.}
-\mgacom{You are focusing on the right side of (13a), saying it only takes that form in quark matter. That's true, but it avoids the key question, which is whether the true right side of (13a) could have a delta function at $x=0$. If there is a discontinuity in $n_K$ then the true RHS of (13a) must have such a delta function.}
-%through the quark-matter diffusion coefficient $D_K$, which has no counterpart on the nuclear side. Nothing therefore forces $n_K$ to be continuous across the interface, consistent with deconfinement reprocessing the composition of the newly formed quark matter instantaneously.
-}
-
-Integrating Eqs.~\eqref{eq:reduced_BVP} across the sharp interface yields the hydrodynamic jump condition
-\begin{equation}
- u(0^+)n_K(0^+)
- -\left[D_K\frac{dn_K}{dx}\right]_{0^+}
- =u(0^-)n_K(0^-)\,.
-\label{eq:jump_K-}
-\end{equation}
-We do not need to know the K diffusion coefficient on the nuclear side because we have assumed there is no gradient there. Eq.~\eqref{eq:jump_K-} fixes $dn_K/dx(0^+)$ in terms of $n_K(0^+)$ but we have no constraint on $n_K(0^+)$ so we have to treat it 
-%(or equivalently $a(0^+)$) 
-as an additional parameter of the system. In our calculations we will choose the value of $n_K(0^+)$ that maximizes the speed of the boundary.
-
-We can now obtain the boundary speed in terms of the density and temperature of the neutron matter and the K fraction in the freshly created quark matter. We do this by solving \eqref{eq:reduced_BVP} as described in Sec.~\ref{sec:hydro-equations} using the boundary conditions described above.
-
-One approach is to solve the differential equations numerically, as described in  Appendix~\ref{sec:numerical}, and this is how most of our results in Sec.~\ref{sec:results} were obtained. However, as we now describe, one can also formulate an approximate analytic solution, which is helpful for interpreting the results. 
-
-
+The upstream values $n_B(0^-)$, $T(0^-)$, and $u(0^-)$ fix $E$ for the whole solution.
+We solve the same K transport equations \eqref{eq:reduced_BVP}, with the boundary conditions of Sec.~\ref{sec:boundary_conditions}.
+The reconstruction described in Sec.~\ref{sec:isothermal-equations} now also determines }\mga{$T(x)$}\JS{ from energy conservation, rather than prescribing it.}
+\JS{Most of our results in Sec.~\ref{sec:results} were obtained by solving these adiabatic equations numerically.}
 
 \subsection{Piecewise-constant analytical approximation}
 \label{sec:hydro_analytic}
 
-\mgacom{Could we think of a more informative name for this approximation? E.g. "constant pressure" or similar.}
-
-If the boundary propagation speed is much less than the speed of light, then, as we see in our full numerical calculations (see Fig.~\ref{fig:numerical}) the boundary profile exhibits noticeable simplifying features. One can treat $n_B\,,$ $u\,,$ $\mu_B\,,$ $P\,,$ and
-$h$ as independent of $x$ on the quark matter side, while retaining the $x$ dependence of temperature $T(x)\,,$ and K density $n_K(x)\ $.%(and hence $\mu_K(x)$ and $a(x)$).
+If the boundary propagation speed is much less than the speed of light, then, as we see in our full numerical calculations (see Fig.~\ref{fig:numerical}) the boundary profile exhibits noticeable simplifying features.
+One can treat $n_B\,,$ $u\,,$ $\mu_B\,,$ $P\,,$ and $h$ as independent of $x$ on the quark matter side, while retaining the $x$ dependence of temperature $T(x)\,,$ and K density $n_K(x)\ $.%(and hence $\mu_K(x)$ and $a(x)$).
 %\LBcom{This is the first time we mention $a(x)$ so it is not obvious what this means.}\JScom{We could just move this somewhere after Eq.~\eqref{eq:a_definition}.}
 As we will now show, this allows us to find an analytic expression for the speed of the boundary.
 
-We write the $x$-independent baryon density in the quark matter as
-\begin{equation}
-n_B^{(+)} \equiv n_B(x) \quad \forall x>0 \,,
-\label{eq:nBplus-def}
-\end{equation}
-\mgacom{I am open to alternative notations for the constant quantities}
-and define $\Bratio$ (which will always be less than 1) as the ratio of neutron matter to quark matter baryon density at the transition,
-\begin{equation}
-    \Bratio \equiv \dfrac{n_B(0^-)}{n_B^{(+)}} \,,
-    \label{eq:lambda-def}
-\end{equation}
-so the $x$-independent velocity of the quark matter is
-\begin{equation}
-u^{(+)} =\Bratio u(0^-)\,.
-\label{eq:uplus-def}
-\end{equation}
-\JS{Since $n_B$ is independent of $x$, it is natural to work in terms of the local K fraction $a(x)$ defined in Eq.~\eqref{eq:a_definition}.}
+\JS{The density and velocity definitions in Eqs.~\eqref{eq:nBplus-def}--\eqref{eq:uplus-def}, the interface gradient in Eq.~\eqref{eq:interface_gradient}, and the general speed relation in Eq.~\eqref{eq:speed_general} apply here as well.}
 
-To find the speed $u(0^-)$ we use Eq.~\eqref{eq:jump_K-}
-along with
-\eqref{eq:nBplus-def}, \eqref{eq:lambda-def}, \eqref{eq:uplus-def} to obtain
-\begin{equation}
-% \dfrac{D_K(0^+)}{n_B(0^-)}\dfrac{d n_K}{dx}\biggr|_{0^+}
-%\biggl( \dfrac{n_K(0^+)}{n_B(0^+)} - \dfrac{n_K(0^-)}{n_B(0^-)} \biggr)^{\!-1}
-\begin{array}{rl}
-u(0^-)  &= -\dfrac{D_K(0^+)a'(0^+)}{\Bratio \bigl(1-a(0^+)\bigr)}  \,,\\[3ex]
-a'(x) &\equiv \dfrac{da}{dx} = \dfrac{1}{n_B^{(+)}} \dfrac{dn_K}{dx} \,.
- \end{array}
-\label{eq:interface_gradient}
-\end{equation}
-The boundary conditions determine $\Bratio$ and $a(0^+)$, but
-$D_K(0^+)a'(0^+)$ is determined by the requirement 
-that $a(\infty)=0$. To impose this exactly we would have to evolve $a(x)$  from $x=0^+$ to infinity using the K current equation Eq.~\eqref{eq:reduced_BVP}.
-
-We cannot solve this equation exactly in full generality, but we can make a good estimate of the result. Multiplying Eq.~\eqref{eq:BVP_jK} by $D_K(x)a'(x)$, using Eq.~\eqref{eq:BVP_nK} to eliminate $J_K$, and integrating from $x=0^+$ to infinity, we find 
-\hide{
-\begin{equation}
-\begin{array}{rl}
- \dfrac{1}{2} \Bigl( D_K(0^+)\,n_K'(0^+)\Bigr)^{\!2}
- = &-\,u^{(+)}\!\!\dsp\int_{0^+}^\infty \!\!\!  D_K(x)\,\bigl(n_K'(x)\bigr)^2 \, dx\\[2ex] 
-  -&\dsp\int_{0^+}^\infty \!\!\! D_K(x)\,n_K'(x) \Gamma_K(x) \, dx
-\end{array}
-\end{equation}
-}
-\begin{equation}
- \dfrac{1}{2} \Bigl( D_K(0^+)\,a'(0^+)\Bigr)^{\!2} = -u^{(+)}I_1 + I_2 \,,
- \label{eq:integrals}
-\end{equation}
-where $I_1$ and $I_2$ are positive dimensionless integrals over $x$ which can be rewritten as
-integrals over $a$, since $a(x)$ is expected to be a monotonically decreasing function over $0^+\leqslant x < \infty$ as the quark matter equilibrates in the conversion region behind the boundary.
-\begin{equation}
-\begin{array}{rl}
-I_1 &= \dsp \int_{0^+}^\infty D_K(x) \bigl(a'(x)\bigr)^2\,dx \,, \\[2ex]
-  &= -\dsp\int_0^{a(0^+)} D_K a'\,da \,.
-  \end{array}
-  \label{eq:I1_definition}
-\end{equation}
-%
-\begin{equation}
-\begin{array}{rl}
-I_2 &=-\dfrac{1}{n_B^{(+)}}\dsp\int_{0^+}^\infty  D_K \Ga_K a'\,dx \,, \\[2ex]
-&= \dfrac{1}{n_B^{(+)}}\dsp\int_0^{a(0^+)} D_K \Ga_K\,da \,.
- \end{array}
-\label{eq:I2_definition}
-\end{equation}
-In an exact calculation both integrands should be obtained from the solution to 
-Eq.~\eqref{eq:reduced_BVP}, but we will now show how one can obtain reasonable approximations to both integrals without knowing the solution.
-
-
-We first estimate $I_1$ because the estimate will turn out to depend on our desired result $u(0^-)$, requiring regrouping of Eq.~\ref{eq:interface_gradient}. We assume that, as we see in the numerical solutions, the
-actual profile has $D_K(x) a'(x)$ increasing monotonically from its value $-\Bratio u(0^-)[1-a(0^+)]$ at $x=0^+$ (from Eq.~\eqref{eq:interface_gradient}) to zero at $x=\infty$. This is expected because $a(x)$ decreases monotonically to zero, and any variation in the diffusion constant $D_K$, which depends mainly on the temperature, is too weak to overcome that. We can then parameterize the integral in terms of a ``sharpness'' factor $\xi$:
-\begin{equation}
-\begin{array}{rl}
- I_1 &= -\dfrac{1+\xi}{2}\,D_K(0^+) a'(0^+)\, a(0^+) \\[2ex]
-  &= \dfrac{1+\xi}{2}\,
- \Bratio u(0^-)\,[1-a(0^+)]\,a(0^+)\,.
- \end{array}
- \label{eq:I1-result}
-\end{equation}
-Here $-1<\xi<1$ characterizes the shape of the diffusion profile. \JS{For details of this sharpness factor $\xi$ and derivation of Eq.~\eqref{eq:I1-result}, see Appendix~\ref{sec:xi-shape}.}
-%\mgacom{Explain this in an appendix?}\JScom{Added Appendix~\ref{sec:xi-shape}.}
-Substituting this relation into \eqref{eq:integrals} and \eqref{eq:interface_gradient} yields
-\begin{align}
- u^2(0^-)&= \frac{2 I_2}
- {\Bratio^2[1-a(0^+)][1+\xi a(0^+)]}\,,
-\label{eq:speed_general}
-\end{align}
-
-
-The final step is to evaluate $I_2$, for which we need to know how the K diffusion coefficient $D_K$ and K creation rate $\Gamma_K$ vary though the conversion region. In the piecewise constant approximation the pressure and baryon chemical potential have constant values $P^{(+)}\approx\Pi$ and $\mu_B^{(+)}$ in that region, so the system follows an isobar in the $\mu_K$-$T$ plane.  Moreover, 
-since $\mu_K/\mu_B^{(+)}$ is typically of order 0.1 and $T/\mu_B^{(+)}$ is of order 0.03, we can expand the quark matter EoS to quadratic order \eqref{eq:QM-EoS-2nd-order}, so
-the isobar takes the form of a quadrant of an ellipse in the $\mu_K$-$T$ plane.
+To evaluate $I_2$, we need to know how the K diffusion coefficient $D_K$ and K creation rate $\Gamma_K$ vary through the conversion region.
+In the piecewise constant approximation the pressure and baryon chemical potential have constant values $P^{(+)}\approx\Pi$ and $\mu_B^{(+)}$ in that region, so the system follows an isobar in the $\mu_K$-$T$ plane.
+Moreover, since $\mu_K/\mu_B^{(+)}$ is typically of order 0.1 and $T/\mu_B^{(+)}$ is of order 0.03, we can expand the quark matter EoS to quadratic order \eqref{eq:QM-EoS-2nd-order}, so the isobar takes the form of a quadrant of an ellipse in the $\mu_K$-$T$ plane.
 %defined by }
 %\begin{equation}
 % T(x)^2= T(\infty)^2 - \frac{\mu_K(x)^2}{2\pi^2}\,.\label{eq:ellipse}
@@ -821,6 +854,8 @@ for $\Ga_K(a,T)$ and $D_K(a,T)$ (keeping only the first term), and using \eqref{
  \dfrac{A^{7/3}\ga_K}{\al_s^{5/3} h_D \mu_B^{(+)}}\ \times\notag \\
  &\biggl[ 8 + \Bigl(1-\dfrac{a(0^+)^2}{A^2}\Bigr)^{\!1/6}\,\Bigl(\dfrac{a(0^+)^2}{A^2} - 8\Bigr) \biggr] \,.
 \end{align}
+\JS{Unlike the isothermal result in Eq.~\eqref{eq:I2_isothermal}, here $D_K[T(a)]$ remains inside the integral and produces the $A^{7/3}$ prefactor and the fractional powers.}
+
 
 %
 So from \eqref{eq:speed_general},
@@ -879,6 +914,7 @@ This supports our use of the planar approximation, since the typical curvature o
 
 \mgacom{Edited up to here}
 
+\iffalse
 \JS{
 
 \subsection{Thermal conductivity}
@@ -921,7 +957,7 @@ where Eq. (62) in \cite{Heiselberg:1993cr} gives a very similar expression for $
 
 %This expression Eq.~\eqref{eq:speed_modified} retains the physical case $a(0^+)<A$; setting $a(0^+)=A$ gives the zero-temperature endpoint.  
 %Besides the piecewise-constant hydrodynamic background, the approximations are the quadratic equation-of-state expansion, omission of the subleading $T^2$ term in $D_K^{-1}\,,$ and the profile parameter $\xi\,.$ 
-
+\fi
 
 \section{Results}
 \label{sec:results}
@@ -1368,8 +1404,8 @@ Substituting Eq.~\eqref{eq:cubic_rate_expansion} into the exact rate in Eqs.~\eq
 \end{subequations}
 }
 
-For the analytic approximation in Sec.~\ref{sec:hydro_analytic}, we use the quadratic approximation of Sec.~\ref{sec:bag_model} to express the rate
-in terms of the K fraction. Using \eqref{eq:a-muK},
+For the analytic approximations in \JS{Secs.~\ref{sec:isothermal_analytic} and \ref{sec:hydro_analytic}}, we use the quadratic approximation of Sec.~\ref{sec:bag_model} to express the rate in terms of the K fraction.
+Using \eqref{eq:a-muK},
 \begin{equation}
 \begin{array}{rl}
  \Gamma_K(a,T) &=n_B\gamma_K\left(a^3+\eta a\right)\,, \\[1ex]
@@ -1401,7 +1437,7 @@ Debye wavenumber defined by $q_D^2=g^2N_f\mu_q^2/(2\pi^2)\,,$ and $g^2=4\pi\alph
 In our numerical calculations we set $\al_s=0.3$
 \mgacom{Can we find some standard citation about the running of the QCD coupling that would show that this is an appropriate value at energy scales of order $400\,\MeV$?}\JS{\cite{Farhi:1984qu,Madsen:1998uh}}\ .
 
-In \eqref{eq:diffusion_coefficient} the first term comes from the interaction mediated by Landau-damped transverse gluons, and the second term comes from Debye-screened longitudinal \mgacom{and transverse?} gluons. The first term is larger at temperatures up to $0.5 \sqrt{\al_s}\mu_q$ which is of order $70\,\MeV$, but because both terms have such similar $T$ dependence they are already of comparable size (to within at factor of 2) when the temperature rises above $0.04 \sqrt{\al_s}\mu_q$ which is of order $7\,\MeV$. In neutron stars mergers the temperature can range from below $1\,\MeV$ (early inspiral) to about $70\,\MeV$, so for our numerical calculations we use the full expression, but for the analytic approximation of Sec.~\ref{sec:hydro_analytic} we only use the Landau damping term.
+In \eqref{eq:diffusion_coefficient} the first term comes from the interaction mediated by Landau-damped transverse gluons, and the second term comes from Debye-screened longitudinal \mgacom{and transverse?} gluons. The first term is larger at temperatures up to $0.5 \sqrt{\al_s}\mu_q$ which is of order $70\,\MeV$, but because both terms have such similar $T$ dependence they are already of comparable size (to within at factor of 2) when the temperature rises above $0.04 \sqrt{\al_s}\mu_q$ which is of order $7\,\MeV$. In neutron stars mergers the temperature can range from below $1\,\MeV$ (early inspiral) to about $70\,\MeV$, so for our numerical calculations we use the full expression, but for the analytic approximations of \JS{Secs.~\ref{sec:isothermal_analytic} and \ref{sec:hydro_analytic}} we only use the Landau damping term.
 
  \AHcom{shall I add the derivation of K diffusion from individual quark currents that I have typed up in the notes?}
 
@@ -1446,6 +1482,7 @@ We use $\xi = -0.5$ in Eq.~\eqref{eq:speed_general} and Eq.~\eqref{eq:speed_modi
 
 \mgacom{If we want to keep this appendix then we should flesh it out with some info about how to solve the equations, e.g. about shooting with trial values of $u(0^-)$ to find the right value.}
 
+\JS{We solve Eq.~\eqref{eq:reduced_BVP} at fixed temperature in the isothermal case, or at fixed energy flux \eqref{eq:energy_flux_adiabatic} in the adiabatic case.}
 We compactify the semi-infinite quark region using
 \begin{equation}
  x=-L_0\ln(1-s)\,,
@@ -1459,9 +1496,8 @@ $\epsilon_{\rm tail}\,.$  We first attempt the requested $a(0^+)$ directly;
 if necessary, we continue from a smaller interface fraction and use each
 converged profile as the initial guess for the next step.  States with negative
 temperature, nonpositive density, a failed equation-of-state closure, or
-nonphysical transport coefficients are rejected.  These profiles provide the
-numerical reference against which the piecewise-constant result in
-Eq.~\eqref{eq:speed_modified} is tested.
+nonphysical transport coefficients are rejected.
+\JS{For the adiabatic case,} these profiles provide the numerical reference against which the piecewise-constant result in Eq.~\eqref{eq:speed_modified} is tested.
 
 \section{Local thermal equilibrium}
 \label{sec:thermal-equilibrium}

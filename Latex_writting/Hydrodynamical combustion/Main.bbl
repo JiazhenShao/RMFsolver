@@ -123,6 +123,9 @@ B.~A. Sa'd, I.~A. Shovkovy and D.~H. Rischke, \emph{{Bulk viscosity of strange q
 \bibitem{Eckart:1940te}
 C.~Eckart, \emph{{The Thermodynamics of irreversible processes. 3.. Relativistic theory of the simple fluid}}, \href{http://dx.doi.org/10.1103/PhysRev.58.919}{\emph{Phys. Rev.} {\bf 58} (1940) 919--924}.
 
+\bibitem{Harutyunyan:2023nvt}
+A.~Harutyunyan and A.~Sedrakian, \emph{{Phenomenological Relativistic Second-Order Hydrodynamics for Multiflavor Fluids}}, \href{http://dx.doi.org/10.3390/sym15020494}{\emph{Symmetry} {\bf 15} (2023) 494}, [\href{https://arxiv.org/abs/2302.09596}{{\tt 2302.09596}}].
+
 \bibitem{Lander:2018cvq}
 S.~K. Lander and N.~Andersson, \emph{{Heat conduction in rotating relativistic stars}}, \href{http://dx.doi.org/10.1093/mnras/sty1725}{\emph{Mon. Not. Roy. Astron. Soc.} {\bf 479} (2018) 4207--4215}, [\href{https://arxiv.org/abs/1804.01520}{{\tt 1804.01520}}].
 
@@ -134,6 +137,15 @@ J.~Madsen, \emph{{Physics and astrophysics of strange quark matter}}, \href{http
 
 \bibitem{Zhao:2025pgx}
 T.~Zhao, P.~B. Rau, A.~Haber, S.~P. Harris, C.~Constantinou and S.~Han, \emph{{Suppression of Composition g-modes in Chemically Equilibrating Warm Neutron Stars}}, \href{http://dx.doi.org/10.3847/1538-4357/ae0198}{\emph{Astrophys. J.} {\bf 993} (2025) 161}, [\href{https://arxiv.org/abs/2504.12230}{{\tt 2504.12230}}].
+
+\bibitem{Alford:2025jtm}
+M.~G. Alford, L.~Brodie, M.~Buballa, H.~Gholami, A.~Haber and M.~Hofmann, \emph{{Neutrino absorption in two-flavor color-superconducting quark matter}},  \href{https://arxiv.org/abs/2509.04240}{{\tt 2509.04240}}.
+
+\bibitem{Alford:2026kwd}
+M.~G. Alford, L.~Brodie, F.~Foucart and A.~Haber, \emph{{Thermalization of neutrinos in a neutron star merger simulation}}, \href{http://dx.doi.org/10.1103/37ys-qs4h}{\emph{Phys. Rev. D} {\bf 114} (2026) 043033}, [\href{https://arxiv.org/abs/2603.06788}{{\tt 2603.06788}}].
+
+\bibitem{Most:2022yhe}
+E.~R. Most, A.~Haber, S.~P. Harris, Z.~Zhang, M.~G. Alford and J.~Noronha, \emph{{Emergence of Microphysical Bulk Viscosity in Binary Neutron Star Postmerger Dynamics}}, \href{http://dx.doi.org/10.3847/2041-8213/ad454f}{\emph{Astrophys. J. Lett.} {\bf 967} (2024) L14}, [\href{https://arxiv.org/abs/2207.00442}{{\tt 2207.00442}}].
 
 \bibitem{Madsen:1993xx}
 J.~Madsen, \emph{{Rate of the weak reaction s + u to u + d in quark matter}}, \href{http://dx.doi.org/10.1103/PhysRevD.47.325}{\emph{Phys. Rev. D} {\bf 47} (1993) 325--330}.

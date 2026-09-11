@@ -1,15 +1,15 @@
 # Fdb version 4
-["bibtex Main"] 1788987355.4864 "Main.aux" "Main.bbl" "Main" 1788987356.77242 0
-  "../reflist.bib" 1788983210.10725 83175 06596100f5ac2a45f1e7c23c34f3042d ""
+["bibtex Main"] 1789140049.86976 "Main.aux" "Main.bbl" "Main" 1789140262.24653 0
+  "../reflist.bib" 1789070889.54356 84910 b5471cc092e12f8c049f4f8c827911c5 ""
   "./JHEP.bst" 1781322022 19417 a7ed04a9ced0771914c1489d07a03c3a ""
-  "./MainNotes.bib" 1788987356.08674 0 d41d8cd98f00b204e9800998ecf8427e ""
-  "Main.aux" 1788987356.40533 19829 a1ff71043f85b84ee88945902097a7a7 "pdflatex"
+  "./MainNotes.bib" 1789140261.69271 0 d41d8cd98f00b204e9800998ecf8427e ""
+  "Main.aux" 1789140261.95244 20403 a7f70474ac4ad4a77324e23dfd8a4f34 "pdflatex"
   (generated)
   "Main.bbl"
   "Main.blg"
   (rewritten before read)
-["pdflatex"] 1788987355.60002 "/Users/janshao/NSM_related/Latex_writting/Hydrodynamical combustion/Main.tex" "Main.pdf" "Main" 1788987356.77259 0
-  "/Users/janshao/NSM_related/Latex_writting/Hydrodynamical combustion/Main.tex" 1788987352.72766 112612 8b441086a7a042c9aa4c41d47cb1acbf ""
+["pdflatex"] 1789140261.1643 "/Users/janshao/NSM_related/Latex_writting/Hydrodynamical combustion/Main.tex" "Main.pdf" "Main" 1789140262.2467 0
+  "/Users/janshao/NSM_related/Latex_writting/Hydrodynamical combustion/Main.tex" 1789140260.86693 114273 9b4858c716876c812dad250bfd7374ae ""
   "/usr/local/texlive/2024/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc" 1136849721 2900 1537cc8184ad1792082cd229ecc269f4 ""
   "/usr/local/texlive/2024/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
   "/usr/local/texlive/2024/texmf-dist/fonts/tfm/jknappen/ec/tcrm1000.tfm" 1136768653 1536 e07581a4bb3136ece9eeb4c3ffab8233 ""
@@ -212,10 +212,10 @@
   "Hydrodynamical combustion/Plots/Contour-diff-meth.pdf" 1786720467.4755 34479 4cef198ed6571d7104f555235bc1ab8c ""
   "Hydrodynamical combustion/Plots/Numerical-T0plus-compare-fixT.pdf" 1786724897.95428 23175 772633266e0333ecabd8e43c2ff6aa5a ""
   "Hydrodynamical combustion/Plots/Numerical-T0plus-compare-fixnB.pdf" 1786724898.15991 22280 6c2a942d38b609b686985fc43ef63966 ""
-  "Main.aux" 1788987356.40533 19829 a1ff71043f85b84ee88945902097a7a7 "pdflatex"
-  "Main.bbl" 1788987355.59732 14095 40f69b127de51c4ad06cc6f00e46a482 "bibtex Main"
-  "Main.out" 1788987356.4065 4412 ee25ebebfbbe64698f588c6773a17a8f "pdflatex"
-  "Main.tex" 1788987352.72766 112612 8b441086a7a042c9aa4c41d47cb1acbf ""
+  "Main.aux" 1789140261.95244 20403 a7f70474ac4ad4a77324e23dfd8a4f34 "pdflatex"
+  "Main.bbl" 1789140183.40405 15287 ff8b9124495591afd06b898dc8ec2160 "bibtex Main"
+  "Main.out" 1789140261.95339 4758 fbeab318e1bc398456b76b7517b3f07b "pdflatex"
+  "Main.tex" 1789140260.86693 114273 9b4858c716876c812dad250bfd7374ae ""
   "Plots/Numerical-contour.pdf" 1787593296.91431 29771 5daca5d70b10459fc887c77881205a42 ""
   "Plots/T_a_constant_pressure.pdf" 1786069766.21419 27165 42307094555ab5b14c2bd99e49248b7d ""
   "Plots/boundary_schematic.pdf" 1782708261.3733 12587 41f68e21ad69f967c63a32f5b26e29c0 ""
