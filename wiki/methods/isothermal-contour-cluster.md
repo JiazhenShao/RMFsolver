@@ -1,11 +1,15 @@
 ---
 summary: The restored analytical isothermal contour keeps 600 cells, uses a 0.01-to-20-degree logarithmic angular block, and solves each boundary on 24 Chebyshev rays.
 status: current
-updated: 2026-08-26
+updated: 2026-09-16
 tags: [method, cluster, contour, isothermal]
 ---
 
 # Isothermal contour cluster workflow
+
+The latest targeted numerical repair is `new_paper_calculations/26-09-16/isothermal_numeric_repair/`; see [[isothermal-contour-repair]].
+It preserves the completed 26-08-27 result (362 successes, 194 timeouts, 44 failures) and adds numerical contour points with lightweight profile continuation.
+The older workflows below remain the source of its immutable domain and baseline data.
 
 `new_paper_calculations/26-08-20/` compares `analytic_velocity_isothermal` with the physical-$n_K,J_K$ `solve_front_isothermal` BVP at identical physical points.
 From that directory the production entry point is `python3 run_isothermal_all.py`.

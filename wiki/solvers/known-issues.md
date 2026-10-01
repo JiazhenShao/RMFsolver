@@ -1,7 +1,7 @@
 ---
 summary: Live solver and performance traps, including numerical-isothermal low-temperature recovery and current bounds, cold quadrature, finite-ms cost, GIL-bound threads, and asymmetric bisection depth.
 status: current
-updated: 2026-08-27
+updated: 2026-09-16
 tags: [solver, bugs, performance]
 ---
 
@@ -63,8 +63,10 @@ SciPy now evolves $n_K/n_{K,\mathrm{scale}}$ and $J_K/J_{K,\mathrm{scale}}$, wit
 Every EOS/rate evaluation reconstructs physical fields, each ODE derivative is divided by its corresponding scale, and endpoints, residual diagnostics, and returned profiles are converted back to physical units.
 The general `solve_front_energy_conserving_nK` branch remains unscaled; only its $u_{\max}(0^-)$ counterpart supplied this reference implementation.
 
-The large compact-coordinate factor and cluster current bounds remain open and may still cause low-temperature timeouts.
-A production rerun is required before claiming that the SciPy overflow warnings or all contour holes are eliminated.
+The large compact-coordinate factor and cluster current bounds remain important sources of low-temperature timeouts.
+The completed 26-08-27 scaling repair, inspected on 2026-09-16, preserved 358 successes and recovered only four more: 362 successes, 194 cell timeouts and 44 failures.
+This supersedes the earlier pending-rerun status; field scaling alone did not eliminate the contour holes.
+The new [[isothermal-contour-repair]] code adds profile continuation, local current brackets and targeted radial/angular refinement, but its production cold recovery remains to be run on the cluster.
 
 The completed pre-scaling 26-08-25 numerical payload contains 358 successes, 218 hard cell timeouts, and 24 terminal failures.
 All 24 terminal failures lie below $T(0^-)=0.89$ MeV; 23 retained a `bvp_status=2` singular-Jacobian result, with downstream decay rates as small as $6.43\times10^{-12}$.

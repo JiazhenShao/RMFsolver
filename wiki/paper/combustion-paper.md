@@ -1,7 +1,7 @@
 ---
 summary: The front-speed paper — where the files live, house conventions, and what still blocks submission.
 status: current
-updated: 2026-08-17
+updated: 2026-09-17
 tags: [paper, writing, hub]
 ---
 
@@ -20,6 +20,13 @@ The project's primary output. Alford / Brodie / Haber / Shao. PRC two-column, na
 | `Latex_writting/Hydrodynamical combustion/Plots/` | figures |
 
 Notation: $p_{\rm crit}$, $u = \gamma v$, $\gamma_K$, $\lambda_n$.
+
+## Appendix order
+
+As of 2026-09-17, Heat Transport follows Strangeness diffusion; its previous position as Appendix A is superseded.
+The compiled order is A: Bag model of quark matter; B: Strangeness creation; C: Strangeness diffusion; D: Heat Transport; E: Shape of the diffusive flux profile; F: Numerical method; G: Local thermal equilibrium.
+Use the existing section and equation labels for references rather than literal appendix letters.
+The move leaves appendix content unchanged apart from replacing two hard-coded references in author comments.
 
 ## Physics content
 

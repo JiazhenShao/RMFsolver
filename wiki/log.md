@@ -277,3 +277,256 @@ Added heat-current terms to the stress-energy tensor, a neutrino loss four-vecto
 Specified that infinite conductivity gives the isothermal limit for finite heat flux and thermal contact, while the adiabatic limit requires both zero conductivity and zero neutrino cooling.
 Reused the existing isothermal figure and derivation in the earlier isothermal section, made the three systems' equation labels distinct, and retained all PI text and author comments.
 Added INSPIRE-HEP exports for Eckart and Lander--Andersson; recorded the limiting assumptions and Wolfram component check in [[thermal-limits]].
+
+## [2026-09-10] revise | State the thermal model's transport approximations
+
+Named the baryon Eckart frame and explicitly stated neglected K-interdiffusion energy transport, Soret/Dufour cross-effects, and the stationary scope of the Fourier closure.
+Clarified the finite-flux isothermal limit and the external-reservoir energy balance while preserving all equations and author comments.
+Did not adopt the review's universal per-mille estimate: interface-current matching gives a different conditional chemical-energy scale, checked with Wolfram and recorded in [[thermal-limits]].
+Added four verbatim INSPIRE exports, including the three previously unresolved references; latexmk succeeds with no undefined citations or references, and the edited pages were visually inspected.
+
+## [2026-09-11] reorganize | Introduce shared front equations in the isothermal section
+
+Moved the common baryon/momentum flux definitions, reduced K transport system, boundary conditions, and analytical derivation through $I_1$, $I_2$, $\xi$, and the general speed relation into the earlier isothermal section.
+Separated conserved adiabatic energy flux from the shared flux display; the adiabatic section now refers back before deriving its variable-temperature trajectory and integral.
+Reused existing prose, removed anticipatory references to undefined adiabatic quantities, updated shared appendix references, and preserved all author comments and physical formulas.
+Independent ordering review, equation/comment preservation checks, isolated and regular latexmk builds, and visual inspection passed; see [[thermal-limits]] for the section and label map.
+
+## [2026-09-11] revise | Derive Fourier conduction from the Eckart heat law
+
+Replaced the thermal-model presentation-choice comment with a cited covariant Eckart law, its exact flat steady-front component, and the slow-flow reduction to Fourier conduction.
+Stated short heat-current relaxation and negligible acceleration as separate assumptions; stationarity alone does not imply either, and the idealized thermal limits follow the reduction.
+Wolfram verified the components and orthogonality; latexmk and visual inspection of the revised two-column page passed without undefined references or overfull boxes.
+Recorded the limitations and references in [[thermal-limits]].
+
+## [2026-09-11] verify | Separate isothermal chemical-potential and density drifts
+
+Recovered five actual samples from the saved T=10 MeV, nB(0-)=3n0 isothermal profile and reconstructed densities with the live charge-neutral EOS; pressure constancy and interface composition agree with the saved solution.
+Wolfram gives endpoint fractional increases of 0.2399168% for muB and 0.2365807% for nB, with ratio 0.9860947; both previously rounded to 0.24%.
+Updated the manuscript and [[isothermal-analytic-front-speed]] with separate values and the role of the simultaneous composition change.
+The isolated latexmk build resolves all references and citations with no overfull boxes.
+
+## [2026-09-16] implement | Targeted numerical isothermal contour repair
+
+Created `new_paper_calculations/26-09-16/isothermal_numeric_repair/` with hash-verified copies of the completed 26-08-27 inputs and immutable preservation of all 362 successful records.
+Added actual numerical contour tracing, local current brackets, profile-seeded continuation, bounded subdivision, per-evaluation atomic checkpoints, explicit gaps and separate completion/convergence states.
+Extended only the isothermal public solver with optional lightweight continuation input/output; the adapted mesh and physical fields are transferred without a plotting-profile EOS pass.
+Updated `26SU-14.ipynb` to consume the repair overlay while preserving the current contour style, and documented the method in [[isothermal-contour-repair]].
+Verification passed 23 fast repair tests, 20 existing non-production isothermal regressions, one bounded warm continuation comparison and one bounded spawned-worker anchor check; both visualization paths and the read-only production preflight passed.
+The two live warm checks took approximately nine seconds combined on one core; no production cold scan or four-target cluster smoke was run locally.
+Recorded the completed scaling-repair outcome (362 successes, 194 timeouts, 44 failures) and the remaining cluster verification in [[known-issues]].
+
+## [2026-09-16] improve | Repair progress display and solver identification
+
+Added a display-only adapter with a full target progress bar, adaptive totals, separate saved-evaluation counts and a four-check validation bar.
+Kept checkpoint-bound search and common modules unchanged so existing cluster repair checkpoints remain compatible.
+Startup now reports the resolved solver path and SHA-256; the successful second cluster launch establishes continuation API compatibility, not remote file identity.
+Three display tests and 23 existing lightweight tests passed; two opt-in live tests were skipped, and the read-only startup preflight passed. No BVP run was launched.
+
+## [2026-09-17] verify | Conductive momentum stress and slow-flow accuracy
+
+Wolfram verified the exact steady Eckart heat-current components, energy and momentum fluxes, and algebraic momentum closure after eliminating the heat current; five residual checks returned zero.
+Recorded in [[thermal-limits]] that conductive stress is of the same velocity order as ideal ram pressure when heat and advective energy fluxes are comparable, although both can be negligible on the thermodynamic pressure scale.
+On one saved 26SU-10 thermal profile, the omitted stress reaches 1.13% of ram pressure but only 3.05e-14 of pressure; this is a diagnostic on the reduced solution, with its existing large-Knudsen warning, not a covariant BVP validation.
+Updated the context index; no solver or manuscript equations were modified.
+
+## [2026-09-17] derive | Separate conductivity endpoints from the slow-velocity limit
+
+Checked the active manuscript's Eq. (11), Eq. (12), and complete heat-transport appendix.
+Wolfram verified the exact identity q_th^x = -kappa_th gamma (gamma T)' and the inverse-Lorentz-factor expansion.
+Recorded in [[thermal-limit-ordering]] that infinite conductivity first gives constant gamma T at finite heat flux, then constant T and P at leading slow velocity; the adiabatic endpoint gives constant P and h/nB at the same velocity order.
+Clarified finite heat flux, boundary energy compatibility, and the nonuniformity of dropping acceleration before the infinite-conductivity limit; linked the result from [[thermal-limits]] and the index.
+No manuscript or solver equations were changed.
+
+## [2026-09-17] revise | Substitute the heat law into second-order fluxes
+
+Updated the main manuscript system by substituting the acceleration-neglected heat law into the exact energy and momentum fluxes before expanding at fixed kappa_th*T'.
+Wolfram verified the energy conduction factor 1+5*u^2/2 and momentum conduction term -2*u*kappa_th*T'.
+Clarified that steady flow does not imply u'=0, and that neglecting acceleration is a separate approximation.
+Recorded the difference from the earlier conversion-driven heat-flux ordering in [[thermal-limits]] and updated the index.
+No solver changes were made.
+
+## [2026-09-17] reorganize | Move heat transport after strangeness diffusion
+
+Moved the complete Heat Transport appendix after Strangeness diffusion without changing its content.
+The compiled appendix sequence is bag model A, strangeness creation B, strangeness diffusion C, heat transport D, flux shape E, numerical method F, and local thermal equilibrium G.
+Converted the two hard-coded appendix references in author comments to labels; all section and equation references resolve after rebuilding.
+Verified that the manuscript changes consist only of the block move and those reference substitutions; the rendered transition has no layout defects.
+Recorded the new order in [[combustion-paper]] and the index.
+
+## [2026-09-17] revise | Align the main system with direct Fourier conduction
+
+Changed the conductive energy factor in Eq. (16) from 1+5*u^2/2 to 1+3*u^2/2 after the user switched the main constitutive law to Fourier conduction.
+Wolfram verified the stress-tensor prefactor expansion; the momentum equation is unchanged.
+Reduced the introduction to one sentence stating the Fourier law, slow-velocity expansion through second order, and zero neutrino source.
+Updated [[thermal-limits]] and the index to distinguish the current Fourier model from the superseded acceleration-neglected Eckart substitution.
+
+## [2026-09-17] implement | Add the heat-flux elimination proof to Appendix D
+
+Added exact energy and momentum flux integrals, eliminated the heat current, and derived pressure departures of order enthalpy density times squared velocity under the conversion-driven heat-flux ordering.
+Explained that infinite Fourier conductivity permits finite heat current: total energy remains conserved while the advective contribution can vary.
+Added a short Appendix D reference after the main-text exact balances (9)–(10); the reduced system (16) is unchanged.
+Wolfram verified the elimination and series expansion, and the manuscript compiled with resolved references.
+Updated [[thermal-limit-ordering]] and the index; no solver changes were made.
+
+## [2026-09-17] simplify | Move the isobaric derivation into the isothermal subsection
+
+Replaced the isothermal subsection's opening with a direct elimination of the heat flux, pressure alone on the left, and the velocity expansion on the right.
+Kept one sentence specifying conversion-driven energy-flux scaling, then took infinite conductivity at finite heat current in the user's current main heat law to obtain constant temperature.
+Commented out the former Appendix D proof and made the following leading-order momentum-flux definition consistent with constant pressure.
+Wolfram verified the isolated-pressure identity and Taylor series; the manuscript compiles with resolved references.
+Preserved all user edits in the general hydrodynamic-equations subsection, including the newly restored acceleration-neglected Eckart law; recorded its remaining coefficient mismatch with the reduced thermal energy equation in [[thermal-limit-ordering]].
+
+## [2026-09-21] implement | Bounded designated isothermal shots
+
+Added `new_paper_calculations/26-09-21/isothermal_targeted/`: twenty initial targets, fixed-temperature density correction, reuse of the existing profile cache, and a persistent 120-call ceiling including four tighter checks.
+Warm extension/connection precedes local bend checks and a 1 MeV cold endpoint; no full angular scan, recursive auxiliary BVP chain, or new solver physics is introduced.
+Midpoint speed/curvature checks now govern new line connectivity; unresolved attempted intervals remain visible gaps and accepted roots are displayed immediately.
+Input snapshots, save-before-progress reservations, child-owned timeouts, and interruption recovery preserve work and prevent restarted runs from resetting budgets or repeating completed checks.
+Updated `26SU-14.ipynb` to consume the new optional overlay and refreshed its numerical outputs from the existing 738-trial checkpoint, showing its 119 accepted contour roots.
+Verified 43 new synthetic/read-only tests plus 26 existing lightweight regressions; two opt-in live tests remained skipped.
+No real EOS/BVP recovery was run locally, and `RMFsolver/phase_velocity.py` and the old cluster sources/data were left unchanged.
+Documented the cluster command, retained-cache requirement, exact targets, cost bounds, and remaining cluster verification in [[isothermal-targeted-shots]].
+
+## [2026-09-21] fix | Isothermal contour lines follow the angular schedule
+
+Diagnosed the broken numerical isothermal curves in `26SU-14.ipynb`: markers and lines came from two different code paths, and only the marker path worked.
+`connected_segments` gated ray-to-ray connection on `within_spacing`, whose `density_step` = 0.05 and `temperature_step` = 2 MeV are continuation step sizes, while the production 30-node angular sweep places neighbouring roots 0.11--0.24 and 3--8 MeV apart; all 109 links were cut and the repair layer contributed no line geometry above 100 m/s.
+Connectivity now follows adjacency on `domain["theta_axis_rad"]`, breaking only at a failed ray, an unscheduled node or a branch-count change; the new `connectable` vetoes only a gross jump.
+Result: single continuous 50/100/200/500 m/s curves and a near-complete 1000 m/s curve, with the repair arcs superseding every baseline grid arc.
+Residual 1000/2000/5000 m/s gaps are unscheduled or failed rays — missing data, not plotting — and still need [[isothermal-targeted-shots]] to run.
+Added `local_analysis_results/All_Plots_new/isothermal_contour_data/export_isothermal_contour_archive.py` because `All_Plots_new.ipynb` reads a frozen hash-checked `.npz` rather than recomputing the merge, and gave its cell 16 the tuning block it had been inheriting from leaked kernel state.
+Details in [[isothermal-contour-repair]].
+
+## [2026-09-21] fix | Interpolated bridges across unscheduled contour angles
+
+Added `interpolated_bridges`/`targeted_bridges`: an interior gap between two accepted roots is filled by interpolating the radial fraction in angle and mapping back through `ray_coordinates`, which follows the domain geometry instead of cutting the chord (worth ~0.17 in density divided by saturation density on the 2000 m/s gap).
+Bridges are fabricated geometry, so they are returned separately, drawn dashed by every caller, trimmed wherever a certified targeted interval covers them, and never extrapolated past an open end.
+2000 m/s is now continuous to the density axis and 5000 m/s is a single arc; 1000 m/s still stops at its open end above 86 MeV.
+Also made `26SU-14.ipynb` cell 4 drop the workflow helpers from `sys.modules`, after a live kernel silently kept serving pre-fix modules through repeated Run All.
+Details in [[isothermal-contour-repair]].
+
+## [2026-09-22] fix | One solid, smooth curve per level for the paper figure
+
+`All_Plots_new.ipynb` needed continuous solid contours with no markers, so added `continuous_level_curves`: interior gaps filled as before, open ends continued where the level is bracketed by a lower and a higher level, and the whole curve resampled onto 361 angles with a monotone cubic that passes through every scheduled node exactly.
+The end continuation interpolates linearly in log(1 - radial fraction) against log(speed), which reproduces solved 1000 m/s roots to within 0.34 MeV wherever 500/1000/2000 are all solved; 1000 and 2000 m/s now reach the density axis at 94.54 and 94.64 MeV, bracketed by the solved 500 m/s endpoint at 94.10.
+5000 m/s has nothing above it to bracket against and stays a four-node fragment.
+Also fixed two defects in that figure: 50 and 2000 m/s shared the colour `#1f77b4`, and `clabel` stacked the 1000/2000 labels where those curves converge, so labels are now placed manually per level.
+`26SU-14.ipynb` keeps markers and dashed interpolation as the diagnostic view; the split is documented in [[isothermal-contour-repair]].
+
+## [2026-09-23] fix | Explicit weak-rate thermal factor in baryon notation
+
+Updated the hydrodynamical manuscript to expand the thermal factor in the weak source, isothermal integral, and speed formula, and express the common quark chemical potential through the baryon chemical potential throughout.
+Wolfram verified the rate prefactor, the factors 81 and 162 in the rate and integrated speed, and the corrected cubic-dominance condition `a(0+) >> 9*pi*T/mu_B`.
+Updated the bag-model and Debye-scale expressions consistently; the distinct electric-charge chemical potential and the unresolved neutrality-model discussion were left unchanged.
+Preserved resolved PI requests as source comments, checked the rendered equations, and verified an isolated `latexmk` build with no undefined references or overfull boxes.
+Recorded the formulas and the factor-of-three crossover correction in [[strangeness-reaction-diffusion]].
+
+## [2026-09-23] fix | Consistent heat-current factors
+
+Corrected only two equation factors in the hydrodynamical manuscript: `1/gamma` became `(1+2*u^2)/gamma` in `eq:energy_balance_exact`, and `3/2` became `5/2` in `eq:energy_conservation_thermal`.
+Wolfram verified the stress-tensor components and their expansion under the existing acceleration-neglected Eckart closure.
+A consistent change of metric signature does not produce the erroneous exact factor.
+An isolated `latexmk` build passed without undefined references or overfull boxes.
+Updated [[thermal-limits]] and [[thermal-limit-ordering]] to mark the earlier Fourier-based manuscript status as superseded.
+
+## [2026-09-23] calc | Cold endpoints close the 1000/2000/5000 m/s contours
+
+Added `new_paper_calculations/26-09-23/isothermal_cold_endpoints/`, which solves the two scheduled angles below the coldest accepted root of each of 1000, 2000 and 5000 m/s.
+All six rays converged in 140--410 s and matched their target speeds to better than 0.25 m/s, although the cluster had reported every one of them as `target_budget_exhausted` -- the difference is that their neighbours now exist to anchor the continuation.
+`continuous_level_curves` gained `extra=` to merge later checkpoints without touching the 26-09-16 payload, and `cold_anchor=True` to end every contour at (3 n0, 0), which the analytic grid and the solved 50--500 m/s roots both confirm is their common endpoint.
+Resampling is now per node interval rather than uniform in angle, since the angular axis is geometric near zero and the cold tail is where the curve moves fastest.
+Interpolated tails are now under 1.3 MeV long and agree with the independent analytic contour to 0.018/0.051/0.260 in density divided by saturation density.
+Details in [[isothermal-contour-repair]].
+
+## [2026-09-24] notation | Mostly-minus metric in the current manuscript
+
+Converted `Latex_writting/Main.tex` to signature (+---), including the velocity normalization, stress-tensor pressure term, K-diffusion projector, covariant Eckart law, and explanatory comments.
+The older hydrodynamical-subfolder copy and all solver files were left unchanged.
+Wolfram verified orthogonality and equality of the physical currents and stress-tensor components before and after conversion; the one-dimensional equations were preserved.
+An isolated `latexmk` build passed without undefined references, citations, or overfull boxes, and the affected equation pages were inspected.
+Recorded the convention and the newer manuscript's exact-flux form in [[thermal-limits]].
+
+## [2026-09-28] cluster | Fixed-interface full/semi-analytical comparison
+
+Added `new_paper_calculations/26-09-28/` with unchanged copies of the 26-08-21 analytical engine and ray helper, plus the saved domain and consolidated 26-08-24 numerical input.
+The 630-point union preserves the 540 displayed numerical coordinates and both exact angular endpoints; paired analytical evaluations share upstream recovery.
+Bounded adaptive refinement resolves a semi-analytical 5000 m/s bracket per ray, with atomic point-level checkpoints, resumable provenance checks, explicit failures, and no full-analytical 5000 m/s requirement.
+Syntax checks and 15 tests passed, including a mocked 690-point run with 30/30 target brackets; all six real evaluations at three representative points succeeded.
+Verification used an isolated SciPy 1.18.1 wheel because the local 1.15.2 binary failed the macOS loader; the project environment and RMFsolver files were unchanged.
+No production cluster scan was launched. Usage and output contracts are in [[fixed-interface-analytical-contours]].
+
+## [2026-09-28] visualization | Downloaded fixed-interface comparison
+
+Added and executed the 0.1 MeV three-method comparison in `All_Plots_new.ipynb`, immediately after the existing numerical contour, using the 5 MeV reference's plotting sizes and style.
+The downloaded result has 634/702 accepted points for each analytical method; 67 paired timeouts and one upstream inversion failure remain masked.
+The semi-analytical 5000 m/s bracket covers 29/30 rays, with theta index 1 unresolved; the plot does not bridge that gap.
+Exported PNG and PDF to `local_analysis_results/All_Plots_new/T0plus0p1-three-method-comparison.*`, validated notebook structure and masks, and visually inspected the rendered figure.
+Updated [[fixed-interface-analytical-contours]]; numerical data and existing notebook cells were preserved.
+
+## [2026-09-28] diagnosis | Analytical endpoint gaps
+
+Verified xi=-0.5 for both methods and confirmed that both endpoint rays were attempted: original-grid successes are 20/20 at 0 degrees and 9/20 at 90 degrees, with only 5/20 on the neighboring 3.103-degree ray.
+Diagnosed legacy upstream inversion cost, a shared watchdog discarding paired results, a reproduced false density rejection caused by an unvalidated forward branch, and adaptive probes trapped below a failed coordinate.
+Four failed points succeed locally using the existing direct-density upstream helper and unchanged analytical methods; additional probes verify both a 5000 m/s upper anchor and the need for smaller inner fractions to bracket 50 m/s near 90 degrees.
+Filed evidence paths and environment caveats in [[fixed-interface-analytical-contours]]. Production code and contour data were not changed by this diagnosis.
+
+## [2026-09-29] recovery | Local analytical retries and refreshed comparison
+
+At the user's request, recovered all 68 failed paired cluster samples using the existing direct-density PNM helper and unchanged analytical formulas, with independent per-method time caps and point-level atomic checkpoints.
+Added 30 inner samples and two bracket-refinement points: both methods now accept 734/734 points, and all 30 semi-analytical 5000 m/s brackets are complete.
+Preserved the original NPY in a byte-identical pre-local-repair backup; verified exact retention of 634 previous successful records per method, the numerical reference and gray boundaries.
+Updated and executed only the fixed-0.1-MeV comparison cell in All_Plots_new, retaining its style and exports. Verified connected analytical contours from theta=0 to theta=90 and filed provenance/evidence in [[fixed-interface-analytical-contours]].
+
+## [2026-09-29] visualization | Matching-velocity comparison bands
+
+Added translucent level-colored bands between numerical and full-analytical contour paths in All_Plots_new, clipped to their common angular coverage without extrapolation.
+Bands cover 50 through 1000 m/s; 2000 and 5000 m/s remain unshaded because the full-analytical contours are absent in the calculated domain.
+Regenerated notebook and LaTeX PDFs, synchronized both manuscript captions, and verified four geometry tests plus all five real band polygons. Solver data were unchanged; see [[fixed-interface-analytical-contours]].
+
+## [2026-09-29] visualization | High-speed band preview
+
+Added the requested 2000 and 5000 m/s bands using numerical-to-semi-analytical contours because corresponding full-analytical contours are unavailable, keeping alpha=0.16.
+Notebook notes and both LaTeX captions identify this distinction explicitly. Six tests and execution checks verify all seven bands; plot exports were regenerated without changing solver data. See [[fixed-interface-analytical-contours]].
+
+## [2026-09-29] visualization | Separate unshaded and shaded comparisons
+
+Replaced the crowded seven-band preview with two figures in All_Plots_new: unshaded contours through 5000 m/s, and contours with numerical-to-full-analytical bands only through 1000 m/s.
+Exported both PDFs to the manuscript Plots folder, retaining the unshaded version at the existing manuscript figure path and correcting its caption in both Main.tex copies.
+Seven tests and executed-figure checks verify the requested limits, band counts and connected contours. Solver data were unchanged; see [[fixed-interface-analytical-contours]].
+
+## [2026-09-29] diagnosis | State-dependent adiabatic shape factor
+
+Compared 540 exactly matched plotted states and extracted diffusive-flux areas from 614 saved numerical profiles.
+Measured xi becomes more negative at high speed; replacing -0.5 with the measured profile value reduces semi-analytical speed errors to below 0.1% on the matched plot grid.
+Eight live endpoint checks distinguish exact speed-matching xi from the frozen-endpoint shortcut; full analytical requires xi below -1 at high speeds because additional interface-composition and integral approximations remain.
+Saved CSV diagnostics, two diagnostic figures, reproducible scripts and explanation under local_analysis_results/26-09-29/xi-comparison/; filed conclusions in [[adiabatic-xi-diagnostics]] and superseded the old xi=0 warning.
+No production solver, cluster payload, notebook, or manuscript was changed by this diagnosis.
+
+## [2026-09-30] visualization | Clearer banded-contour labels
+
+Enlarged the five banded-comparison contour labels from 11 to 14 points and added compact white backgrounds at alpha=0.85 to fade crossing curves locally.
+Kept the unshaded variant's labels and both variants' data, bands and curves unchanged.
+Refreshed All_Plots_new comparison outputs and local/LaTeX exports; eight tests pass, and rendered-artist checks verify both variants' label settings. See [[fixed-interface-analytical-contours]].
+
+## [2026-09-30] diagnosis | Full numerical isothermal probes at 0.01 MeV
+
+Ran 14 bounded single-worker physical trials over seven densities, including initialization comparisons and two tighter checks.
+The default BVP initialization found no accepted result within 40 seconds; a layer-resolved initial mesh/profile recovered 74.535, 771.979 and 4139.965 m/s at density ratios 3.001, 3.01 and 3.05.
+Verified positive monotone density profiles, local EOS and endpoint flux residuals; the tighter 3.001 check agrees to 1.08e-10 relatively, while the tighter 3.05 check and higher-density retries remain time-limited.
+Saved raw point diagnostics, continuation states, audited JSON/CSV and reproduction scripts in local_analysis_results/isothermal_low_temperature_probe/.
+No production solver, cluster checkpoint or notebook was changed. See [[isothermal-cold-numerical-probes]] for the evidence, separate SciPy runtime used, and limited log-temperature contour feasibility conclusion.
+
+## [2026-10-01] verification | Neutral versus symmetric-chemical-potential composition plots
+
+Derived the exact massless local-fraction curves at muB=1200 MeV and reproduced both constraints with approximate screenshot samples overlaid.
+The neutral screenshot matches; the simple screenshot is inconsistent with the established definitions, predicting about 1.42 near muK=500 MeV against the exact 1.18969.
+Verified finite a=1 endpoints at 669.007999 MeV (neutral, flavor ratio 1:2:0) and 344.127767 MeV (simple, residual strange density).
+Checked Wolfram algebra, inverse composition mapping, charge residuals, and 28 live SQMsolver states; agreement in a is within 1.23e-15. Saved reproducible code, derivation, PNG/PDF figures and CSV data under local_analysis_results/26-10-01/composition_constraints/ and filed [[composition-constraint-plot-audit]].
+
+## [2026-10-01] visualization | Revised PI simple composition comparison
+
+The revised PI simple screenshot resolves the earlier mismatch with the exact massless EOS at muB=1200 MeV and T=0.
+Independently digitized ten revised screenshot points, with maximum absolute difference in a of 0.00845, consistent with screenshot resolution and calibration.
+Saved the standalone plotting script, separate revised samples, and visually checked PNG/PDF comparison under local_analysis_results/26-10-01/composition_constraints/; preserved the original audit artifacts.
+Updated [[composition-constraint-plot-audit]] and its index entry to distinguish the resolved discrepancy from the original screenshot. No solver code changed.

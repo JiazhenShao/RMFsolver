@@ -4965,6 +4965,43 @@ def _solve_front_isothermal_normalized_legacy(
     return result
 
 
+def _isothermal_continuation_initial_guess(guess, state, s_end, n_mesh, max_nodes):
+    """Transfer a physical-field seed without repeating profile EOS recovery."""
+    old_s = np.asarray(guess["s"], dtype=float)
+    old_nK = np.asarray(guess["nK"], dtype=float)
+    old_jK = np.asarray(guess["jK"], dtype=float)
+    if (
+        old_s.ndim != 1 or old_s.size < 2
+        or old_nK.shape != old_s.shape or old_jK.shape != old_s.shape
+        or not np.all(np.isfinite(old_s))
+        or not np.all(np.isfinite(old_nK)) or not np.all(np.isfinite(old_jK))
+        or old_s[0] != 0.0 or not 0.0 < old_s[-1] < 1.0
+        or np.any(np.diff(old_s) <= 0.0)
+    ):
+        raise ValueError("Invalid isothermal continuation mesh or physical fields")
+    old_nK_inf = float(guess["nK_inf"])
+    old_jK_inf = float(guess["jK_inf"])
+    delta_nK = float(old_nK[0] - old_nK_inf)
+    delta_jK = float(old_jK[0] - old_jK_inf)
+    if not np.all(np.isfinite([delta_nK, delta_jK])) or min(delta_nK, delta_jK) <= 0.0:
+        raise ValueError("Isothermal continuation seed requires positive endpoint contrasts")
+    transferred_s = old_s * (float(s_end) / old_s[-1])
+    mesh = np.unique(np.concatenate((np.linspace(0.0, s_end, int(n_mesh)), transferred_s)))
+    if mesh.size >= int(max_nodes):
+        raise ValueError("Continuation seed mesh exceeds max_nodes; raise max_nodes")
+    nK = state["nK_inf"] + (state["nK_0plus"] - state["nK_inf"]) * np.interp(
+        mesh, transferred_s, (old_nK - old_nK_inf) / delta_nK
+    )
+    jK = state["jK_inf"] + (state["jK_0plus"] - state["jK_inf"]) * np.interp(
+        mesh, transferred_s, (old_jK - old_jK_inf) / delta_jK
+    )
+    # Match the new linear tail relation while retaining the inherited shape.
+    tail_jK = state["jK_inf"] + state["tail_coefficient"] * (nK[-1] - state["nK_inf"])
+    jK += (tail_jK - jK[-1]) * mesh / s_end
+    nK[0], jK[0] = state["nK_0plus"], state["jK_0plus"]
+    return mesh, nK, jK
+
+
 def solve_front_isothermal(
     T,
     nB_0minus,
@@ -4982,6 +5019,8 @@ def solve_front_isothermal(
     kappa_factor=1.0,
     return_profile=False,
     verb=False,
+    continuation_guess=None,
+    return_continuation=False,
 ):
     """Solve the fixed-T front as a compact BVP in physical nK and J_K.
 
@@ -4990,6 +5029,11 @@ def solve_front_isothermal(
     density and current, reconstructs the physical fields before each local
     EOS solve, and evaluates both D_K and the exact nonleptonic rate at every
     node. Returned endpoint and profile fields remain in physical units.
+
+    ``continuation_guess`` accepts the lightweight ``continuation_state`` from
+    a nearby accepted solution. ``return_continuation=True`` returns the raw
+    adapted mesh and physical fields without the extra local EOS evaluations
+    needed by ``return_profile=True``. Existing scalar calls are unchanged.
 
     Passing ``a_0plus=nan`` (the default) resolves it from
     :func:`_solve_a_0plus_max` instead of taking a prescribed value, giving the
@@ -5101,7 +5145,11 @@ def solve_front_isothermal(
         )
 
     if jB_guess is None:
-        jB_guess = 1.0e-6 * nB_0minus
+        jB_guess = (
+            continuation_guess["jB"]
+            if continuation_guess is not None
+            else 1.0e-6 * nB_0minus
+        )
     jB_guess = float(jB_guess)
     if (not np.isfinite(jB_guess)) or jB_guess <= 0.0:
         raise RuntimeError("jB_guess must be positive and finite")
@@ -5453,6 +5501,10 @@ def solve_front_isothermal(
         (1.0 - blend) * state0["jK_0plus"]
         + blend * stable_jK_guess
     )
+    if continuation_guess is not None:
+        s_mesh, nK_guess, jK_guess_profile = _isothermal_continuation_initial_guess(
+            continuation_guess, state0, s_end, n_mesh, max_nodes
+        )
     y_guess = np.vstack(
         (
             nK_guess / bvp_nK_scale,
@@ -5589,6 +5641,7 @@ def solve_front_isothermal(
         "bvp_scale_jB": bvp_scale_jB,
         "bvp_scale_jK_inf": bvp_scale_jK_inf,
         "bvp_field_scaling": "separate_initial_endpoint_scales",
+        "continuation_used": continuation_guess is not None,
         "s_end": s_end,
         "x_end": float(state["x_end"]),
         "nK_end": nK_end,
@@ -5613,6 +5666,21 @@ def solve_front_isothermal(
         "bvp_nodes": int(sol.x.size),
         **{key: int(value) for key, value in stats.items()},
     }
+
+    if return_continuation and success:
+        result["continuation_state"] = {
+            "s": np.asarray(sol.x, dtype=float).copy(),
+            "nK": np.asarray(sol.y[0], dtype=float) * bvp_nK_scale,
+            "jK": np.asarray(sol.y[1], dtype=float) * bvp_jK_scale,
+            **{key: float(state[key]) for key in (
+                "jB", "nK_0plus", "nK_inf", "jK_0plus", "jK_inf",
+                "muB_0plus", "muK_0plus", "muB_inf", "lambda_inf",
+            )},
+            "T_0minus": T,
+            "nB_0minus": nB_0minus,
+            "tail_eps": tail_eps,
+            "kappa_factor": kappa_factor,
+        }
 
     if return_profile:
         try:

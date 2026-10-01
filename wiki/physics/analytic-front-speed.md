@@ -1,11 +1,17 @@
 ---
 summary: Slow-front scale separation reduces the quark layer to a constant hydrodynamic background and yields an analytic speed controlled by the weak rate, flavor diffusion, the interface fraction and a profile-shape factor.
 status: current
-updated: 2026-08-17
+updated: 2026-09-29
 tags: [physics, analytic, front-speed, approximation]
 ---
 
 # Piecewise-constant analytic front speed
+
+**2026-09-29 qualification:** constant density does not establish constant
+chemical potential. The current semi-analytical calculation follows the
+conserved pressure/enthalpy trajectory with variable muB; the full analytical
+calculation makes additional approximations. The saved adiabatic profiles have
+up to 6.01% variation in muB. See [[adiabatic-xi-diagnostics]].
 
 For $u_N\ll1$, the numerical solutions vary appreciably only in composition and temperature. Across the quark conversion layer, the manuscript reports relative variations no larger than $10^{-10}$ in $n_B$ and $10^{-12}$ in $P$. The analytic approximation therefore holds $n_B$, $u$, $\mu_B$, $P$ and $h$ constant for $x>0$ while retaining $a(x)$, $T(x)$ and $\mu_K(x)$.
 
@@ -70,9 +76,14 @@ $$L_{\rm conv}\approx\frac{\mu_B^{(+)}}{9\pi T(\infty)}\sqrt{\frac{D_K}{\gamma_K
 
 for the manuscript's reference scales. This is many orders of magnitude below kilometer curvature scales and is the quantitative planar-front justification.
 
-## ⚠ The $\xi=0$ claim needs reconciliation
+## Shape-factor assessment updated on 2026-09-29
 
-The prose says smooth numerical profiles motivate the linear-ramp choice $\xi=0$. A diagnostic figure in the same active manuscript says $\xi=0$ is a poor approximation, especially near $A=1$. Treat $\xi$ as an uncertainty/shape parameter until the text, diagnostics and numerical comparison agree.
+The earlier warning concerned inconsistent manuscript claims about $\xi=0$;
+that specific warning is superseded. Both current adiabatic comparison methods
+and the manuscript now use $\xi=-0.5$. However, this constant is not accurate
+throughout the domain: measured profile values approach -1 at high speeds.
+[[adiabatic-xi-diagnostics]] quantifies the resulting errors and distinguishes
+the physical profile shape from a full-analytical speed fit outside its allowed range.
 
 ## Sources
 

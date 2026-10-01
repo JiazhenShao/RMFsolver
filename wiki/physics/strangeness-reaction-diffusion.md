@@ -1,7 +1,7 @@
 ---
 summary: The front is driven by d+u<->u+s weak relaxation and flavor diffusion; $\alpha_s=0.3$ is a phenomenological bag-model input, not controlled running at 400 MeV.
 status: current
-updated: 2026-08-14
+updated: 2026-09-23
 tags: [physics, weak-rates, diffusion, transport]
 ---
 
@@ -20,12 +20,17 @@ $$\Gamma_K=\mathcal A_K\mu_u^5\mu_K(\mu_K^2+4\pi^2T^2),$$
 
 $$\mathcal A_K=\frac{16}{5\pi^5}G_F^2\sin^2\theta_C\cos^2\theta_C.$$
 
-In the quadratic [[quark-matter-eos|EOS]] approximation this becomes
+In the quadratic [[quark-matter-eos|EOS]] approximation, with `mu_u = mu_B/3`, this becomes
 
-$$\Gamma_K=n_B\gamma_K(a^3+\eta a),$$
+```text
+Gamma_K = n_B*gamma_K*(a^3 + 81*pi^2*T^2*a/mu_B^2)
+gamma_K = 128*G_F^2*sin(theta_C)^2*cos(theta_C)^2*mu_B^5/(3^8*5*pi^3)
+```
 
-$$\gamma_K=\frac{128}{27\times5\pi^3}G_F^2\sin^2\theta_C\cos^2\theta_C\,\mu_q^5,
-\qquad \eta=\frac{9\pi^2T^2}{\mu_q^2}.$$
+The manuscript now writes the thermal factor explicitly and uses the baryon chemical potential throughout; this replaces the former common quark chemical potential and thermal-factor shorthand without changing the rate.
+At constant temperature and baryon chemical potential, integrating from zero to the interface fraction gives `I2 = D_K*gamma_K*a(0+)^2*(a(0+)^2 + 162*pi^2*T^2/mu_B^2)/4`.
+The cubic rate term dominates for `a(0+) >> 9*pi*T/mu_B`, not `3*pi*T/mu_B`; the latter was a factor-of-three error corrected on 2026-09-23.
+Wolfram verified the rate substitution and the integral exactly.
 
 The cubic term is suprathermal; the term linear in $a$ is the finite-temperature subthermal contribution. The analytic formula uses this expansion, whereas the numerical calculation is intended to use the full thermodynamic rate.
 
@@ -38,7 +43,10 @@ $$D_K^{-1}=\frac{8N_f\alpha_s^2}{\pi}
 
 with $N_f=3$, $\alpha_s=0.3$, $h_D\simeq1.81$ and
 
-$$q_D^2=\frac{g^2N_f\mu_q^2}{2\pi^2},\qquad g^2=4\pi\alpha_s.$$
+```text
+q_D^2 = g^2*N_f*mu_B^2/(18*pi^2)
+g^2 = 4*pi*alpha_s
+```
 
 The $T^{5/3}$ term comes from Landau-damped transverse gluons and dominates the analytic low-temperature treatment. The full numerical calculation keeps both displayed terms because they become comparable in the merger-temperature range.
 

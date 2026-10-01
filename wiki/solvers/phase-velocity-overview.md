@@ -1,7 +1,7 @@
 ---
 summary: Map of the phase_velocity.py public API, including automatic-ceiling analytical and physical-nK numerical isothermal solvers, and which solver answers which question.
 status: current
-updated: 2026-08-27
+updated: 2026-09-16
 tags: [solver, api, map]
 ---
 
@@ -63,6 +63,10 @@ The present function requires `NM_type="PNM"` and `ms=0`; see [[isothermal-analy
 ## Isothermal numerical entry point
 
 `solve_front_isothermal(T, nB_0minus, B_one_forth, a_0plus=np.nan, ms=0, ..., NM_type="PNM", ...)` is the exact fixed-temperature BVP counterpart.
+
+Optional `continuation_guess` and `return_continuation` arguments now transfer a nearby accepted solution's adapted compact mesh and physical $n_K,J_K$ profiles.
+The returned `continuation_state` avoids the extra EOS reconstruction performed by `return_profile=True`; existing default calls are unchanged.
+The targeted workflow and preservation/validation contract are described in [[isothermal-contour-repair]].
 Its two differential fields are the physical `nK` and `jK`; the profile key `a` is always reconstructed as the local ratio $n_K/n_B$.
 An explicit `a_0plus` solves the requested composition; omitting it on the PNM branch resolves the same static-isobar ceiling and reports `a_0plus_source="maximum"`.
 For PNM, SYM, and beta-equilibrated upstream matter, the interface K-current is fixed by $j_K(0^+)=j_B[1-Y_p(0^-)/2]$.

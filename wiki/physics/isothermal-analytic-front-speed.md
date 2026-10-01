@@ -1,7 +1,7 @@
 ---
 summary: The fixed-temperature speed uses the local K fraction; along the representative isobar, neglecting the baryon-density derivative changes a' by at most 0.47%.
 status: current
-updated: 2026-08-25
+updated: 2026-09-11
 tags: [physics, analytic, front-speed, isothermal]
 ---
 
@@ -43,7 +43,11 @@ The static-isobar Taylor ceiling and its substituted maximum-speed expression ar
 ## Fixed-isobar density drift
 
 At fixed $(P,T)$, Gibbs--Duhem gives $d\mu_B/d\mu_K=-n_K/n_B=-a$.
-For the representative profile with $T=10$ MeV, $n_B(0^-)=3n_0$, $B^{1/4}=189.2$ MeV, and $a(0^+)=0.146$, both $\mu_B$ and $n_B$ rise by about $0.24\%$ between $0^+$ and infinity.
+For the representative profile with $T=10$ MeV, $n_B(0^-)=3n_0$, $B^{1/4}=189.1566$ MeV, and $a(0^+)\simeq0.1461$, $\mu_B$ rises by $0.2399168\%$ and $n_B$ by $0.2365807\%$ between $0^+$ and infinity, each relative to its interface value.
+The previous wording rounded both changes to $0.24\%$; this was not exact equality.
+Reconstruction from `local_analysis_results/All_Plots_new/isothermal_numerical_T10_nB3n0_B189p1566.npz` using the live neutral EOS gives $\mu_B(0^+)=1184.96232825$ MeV, $\mu_B(\infty)=1187.80525178$ MeV, $n_B(0^+)/n_0=5.13561404$, and $n_B(\infty)/n_0=5.14776391$.
+Wolfram evaluated the ratio of fractional changes as $0.9860947$; intermediate saved profile samples give ratios from $0.9831205$ to $0.9857811$.
+The density depends on the changing $\mu_K$ as well as $\mu_B$, so the fixed-composition estimate of three times the fractional chemical-potential change does not apply along this isobar.
 The exact local-fraction derivative is $a'=n_K'/n_B-a n_B'/n_B$.
 Using $a'\simeq n_K'/n_B$ changes the derivative by at most $0.47\%$ along this trajectory, which supports dropping the density-derivative correction in the body of the analytical treatment.
 

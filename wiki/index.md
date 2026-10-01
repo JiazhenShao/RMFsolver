@@ -1,7 +1,7 @@
 ---
 summary: Catalog of every wiki page. Read this first; drill down from here.
 status: current
-updated: 2026-09-09
+updated: 2026-10-01
 tags: [meta, index]
 ---
 
@@ -21,17 +21,20 @@ The nuclear→quark combustion front project. **This is the only page loaded by 
 |---|---|
 | [[diffusion-limited-front]] | Physical regime, assumptions, fluxes, variables and boundary conditions |
 | [[analytic-front-speed]] | Constant-background speed estimate, scaling, layer thickness and formal endpoint limits |
-| [[isothermal-analytic-front-speed]] | Fixed-$T$ speed, the local-fraction current jump, and the sub-percent fixed-isobar density-drift approximation |
+| [[isothermal-analytic-front-speed]] | Fixed-$T$ speed, local-fraction current jump, and separately verified chemical-potential/density drifts along the saved isobar |
 | [[isothermal-maximum-speed]] | Static-isobar composition ceiling, maximum-speed substitution, and the low-$T$ $T^{-5/6}a_{\max}^2(0^+)$ scaling |
 | [[front-speed-phenomenology]] | Fixed-$T(0^+)$ numerical contour, zero-speed boundary, and tail-dominated $z(t)$ evolution |
 | [[quark-matter-eos]] | Bag-model EOS, chemical-potential basis and quadratic analytic expansion |
-| [[strangeness-reaction-diffusion]] | Weak source, flavor diffusion, and the phenomenological status of $\alpha_s=0.3$ |
+| [[charge-neutral-quark-eos]] | Neutral EOS expansion and exact density-variable parameterization |
+| [[composition-constraint-plot-audit]] | Neutral and revised simple PI plots match; exact a=1 endpoints are 669.01 and 344.13 MeV at mu_B=1200 MeV |
+| [[strangeness-reaction-diffusion]] | Weak source with explicit thermal factors in baryon notation; flavor diffusion and the phenomenological coupling choice |
 | [[interface-closure]] | Why a fourth relation is needed and which one is authoritative |
 | [[thermal-transparent-closure]] | The baseline $T(0^+)=T(0^-)$ — and why "adiabatic" is the wrong word |
 | [[lte-composition-bound]] | $\beta_{\rm LTE}=5u(0^-)\lambda_n$, the exact-local-isobar correction, the coefficient trap |
 | [[interface-temperature-jump]] | The signed observable $\Delta T=T(0^-)-T_{\rm LTE}(0^+)$ and its payload contract |
 | [[quark-transport]] | HP93 coefficients — and why $\kappa_{\rm th}$ and $D_K$ do **not** share a relaxation time |
-| [[thermal-limits]] | Conductive energy balance, finite-flux isothermal limit, and the zero-cooling condition for adiabatic flow |
+| [[thermal-limits]] | Current (+---) convention, invariant physical fluxes, and Eckart coefficient 5/2 versus Fourier's 3/2 |
+| [[thermal-limit-ordering]] | Isothermal subsection now isolates pressure and expands in velocity; former Appendix D proof is commented out; finite heat flow survives infinite conductivity |
 | [[kapitza-resistance]] | The honest gap: $G_{\rm int}$ has no dense-matter literature value |
 
 ## Solvers
@@ -47,13 +50,18 @@ The nuclear→quark combustion front project. **This is the only page loaded by 
 
 ## Methods
 
+- [[fixed-interface-analytical-contours]] — Fixed 0.1 MeV comparison, xi=-0.5; 734/734 per method and all 30 semi-analytical 5000 m/s brackets; unshaded through 5000 and shaded through 1000 m/s, with enlarged locally backed labels in the shaded figure.
+- [[adiabatic-xi-diagnostics]] — Measured profile xi approaches -1 at high speeds; it fixes semi-analytical speeds to within 0.1%, while full analytical retains composition and integral errors.
 - [[steady-front-bvp]] — the physical-$n_K,J_K$ reaction-diffusion BVPs, flux eigenvalues, EOS reconstruction and compactification.
 - [[isothermal-contour-cluster]] — Piecewise-angular 600-cell isothermal domain, analytical workflow, numerical shell continuation, and failed-cell-only normalized-BVP repair.
+- [[isothermal-targeted-shots]] — Latest bounded follow-up: 20 designated targets, a persistent 120-call ceiling, numerical midpoint connectivity checks, and per-target plots.
+- [[isothermal-cold-numerical-probes]] — Full BVP solutions at 0.01 MeV recovered at three near-coexistence densities with a layer-resolved initial guess; one tighter check passes, higher-density robustness remains unresolved.
+- [[isothermal-contour-repair]] — Predecessor adaptive repair: preserves 362 baseline successes, supplies numerical roots/profiles for the bounded follow-up, and defines contour connectivity by angular adjacency.
 - [[two-block-contour-scans]] — the adaptive mesh every contour uses, the 80 MeV seam, and why blocks are never concatenated.
 
 ## Paper
 
-- [[combustion-paper]] — hub.
+- [[combustion-paper]] — manuscript hub and appendix order; Heat Transport follows Strangeness diffusion as Appendix D.
 - [[gw-observables-section]] — settled notation, taiji geometry, the six calibrated cases, recurring citation error.
 
 ## Sources
@@ -68,7 +76,7 @@ The nuclear→quark combustion front project. **This is the only page loaded by 
 4. Reconciling the $3\,\mathrm{Le}$ coefficient generalisation with the corrected HP93 reading ([[lte-composition-bound]]).
 5. Whether the relativistic $\gamma_v^2$ factor belongs in every K-diffusion BVP and jump equation ([[diffusion-limited-front]]).
 6. Reconciling the electron-free quark EOS with the numerical exact-rate charge-neutrality condition ([[quark-matter-eos]]).
-7. Determining or bounding the diffusive-flux shape parameter $\xi$; the manuscript's prose and diagnostic disagree ([[analytic-front-speed]]).
+7. Predicting the state-dependent diffusive-flux shape parameter $\xi$ without an existing BVP profile; measured values explain the semi-analytical error ([[adiabatic-xi-diagnostics]]).
 8. Replacing the prescribed $T(0^+)=5$ MeV slice with a physical thermal interface closure ([[front-speed-phenomenology]]).
 9. Which change retired the 196/202/228 m/s reference triple, and what $X_q$ should be recomputed with — the three analytic entry points now differ by up to 30% ([[phase-velocity-overview]], [[gw-observables-section]]).
 
