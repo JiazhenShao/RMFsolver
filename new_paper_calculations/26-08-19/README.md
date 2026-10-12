@@ -31,6 +31,10 @@ this order:
 5. `Numerical contour scan` (600 individual `(i,j)` points)
 6. Plotting
 
+The launcher uses the currently activated Python environment when it provides
+the required scientific packages. A repository-local `bin/python3` is only an
+optional fallback and is not required on the cluster.
+
 Each progress bar advances after one point, not after a row or column. Before
 each increment, the parent process stores that result and atomically replaces
 the corresponding `.npy` checkpoint. Worker processes never write shared

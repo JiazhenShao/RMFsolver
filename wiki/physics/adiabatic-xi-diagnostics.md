@@ -1,7 +1,7 @@
 ---
-summary: Profile xi approaches -1 at high adiabatic speeds; replacing -0.5 fixes the semi-analytical discrepancy, but full-analytical trajectory and integral errors remain.
+summary: Profile xi approaches -1 at high adiabatic speeds; the best single constant for both analytical methods over 50-2000 m/s is xi≈-0.86 (basin -0.845 to -0.89), so -0.85 is already optimal; full-analytical errors are not xi errors.
 status: current
-updated: 2026-09-29
+updated: 2026-10-12
 tags: [physics, adiabatic, analytical, xi, validation]
 ---
 
@@ -88,7 +88,32 @@ At the smallest speeds full analytical is still about 10-13% high even though
 the contour displacement looks small. This analysis isolates the combined
 full-analytical errors, not each microphysical approximation individually.
 
+## Best single constant xi (2026-10-12)
+
+Both public analytical methods were evaluated at $\xi=-0.85$ on all 618 successful numerical upstream states (wavefront core, $\rho=0.86$ shell, adaptive 5000 m/s bracket); 617 succeed, the excluded one being the diagnosed cold upstream-recovery point.
+Because $a(0^+)$, $I_2$ and $\lambda_n$ do not depend on $\xi$ (the endpoint depends on $u(0^-)$ only at relativistic order), every other $\xi$ follows exactly from
+$$u(0^-;\xi)=u(0^-;-0.85)\sqrt{\frac{1-0.85\,a(0^+)}{1+\xi\,a(0^+)}}.$$
+Live solves at $\xi=-0.5$ and $-0.95$ confirm this to $4\times10^{-10}$.
+
+Error is the RMS of $\ln(u_{\rm analytic}/u_{\rm numerical})$ at fixed upstream state, with equal weight per method and per displayed contour interval:
+
+| Speed range [m/s] | Full analytical best | Semi-analytical best | Joint best (1% basin) |
+| --- | ---: | ---: | ---: |
+| 50-1000 | -0.82 | -0.755 | -0.765 (-0.785, -0.745) |
+| **50-2000 (figure)** | ≤ -0.99 | -0.83 | **-0.865 (-0.89, -0.845)** |
+| 50-5000 | ≤ -0.99 | -0.91 | -0.945 (-0.96, -0.925) |
+
+For the displayed 50-2000 m/s range the joint RMS is 0.1443 at the optimum, 0.1449 at $\xi=-0.85$ and 0.276 at $-0.5$; pointwise RMS (-0.86), mean absolute error (-0.845) and bracketed contour displacement for 50-1000 m/s (-0.855) agree.
+So **$\xi=-0.85$ is already optimal within 0.5%**; the answer moves mainly with the chosen speed range.
+
+The per-band optimum tracks $a(0^+)$, confirming the visual trade-off: semi-analytical prefers -0.49, -0.56, -0.70, -0.80, -0.875, -0.94 for bands 50-100, 100-200, 200-500, 500-1000, 1000-2000, 2000-5000 m/s (mean numerical $a(0^+)$ 0.25 to 0.93).
+Full analytical prefers $\xi\geq-0.3$ below 200 m/s but the $-1$ limit above 500 m/s, and still has RMS 0.24 in 1000-2000 m/s at $\xi=-0.99$.
+⚠ No constant removes the full-analytical high-speed deficit; it is the composition and closed-form $I_2$ error above, so a fit that pushes $\xi$ toward $-1$ is compensation, not a shape factor.
+
 ## Evidence
+
+- `local_analysis_results/26-10-12/xi-optimum/README.md`: 2026-10-12 constant-xi scan,
+  per-state JSONL results, `report.py`, `band_report.py` and their outputs.
 
 - `local_analysis_results/26-09-29/xi-comparison/README.md`: complete definitions,
   reproducible scripts, Wolfram algebra verification input, environment caveat.
@@ -99,5 +124,5 @@ full-analytical errors, not each microphysical approximation individually.
   `_analytic_layer_trajectory`, `_analytic_I2_numerical`.
 
 No production solver, cluster data, manuscript, or notebook was changed by
-this diagnosis. Any future predictive xi calibration needs held-out validation;
-do not replace -0.5 by another universal constant based on this scan alone.
+this diagnosis. Any future predictive xi calibration needs held-out validation.
+The 2026-10-12 constant is a best fit for this one $T(0^+)=0.1$ MeV comparison, not a predictive closure.

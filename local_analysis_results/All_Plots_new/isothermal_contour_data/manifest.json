@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "created_utc": "2026-09-23T20:59:04.641683+00:00",
+  "source_files": {
+    "isothermal-domain.npy": {
+      "source": "new_paper_calculations/26-09-16/isothermal_numeric_repair/isothermal-domain.npy",
+      "sha256": "bc2d509cde1b9c47eed9b1a43b772ceaa11039501c182872df95245c18e5c6ed"
+    },
+    "isothermal-numerical.npy": {
+      "source": "new_paper_calculations/26-09-16/isothermal_numeric_repair/isothermal-numerical.npy",
+      "sha256": "03b34a86b8076e8c579a9315344d4cf005583a62c4e7562c847790730cf7483b"
+    },
+    "isothermal-contour-repair.npy": {
+      "source": "new_paper_calculations/26-09-16/isothermal_numeric_repair/isothermal-contour-repair.npy",
+      "sha256": "3a9cd43fd5d61a4bef66bd98bf0248a93094b26db84ecb284ebfe3ee3b0f3203"
+    },
+    "isothermal-cold-endpoints.npy": {
+      "source": "new_paper_calculations/26-09-23/isothermal_cold_endpoints/isothermal-cold-endpoints.npy",
+      "sha256": "d7ef4d83659d8a6202deede0dccc65f82d12b60d06e19a2f388b0069ce5428d1"
+    }
+  },
+  "cold_endpoint_rays": 6,
+  "baseline_successes": 362,
+  "baseline_cells": 600,
+  "repair_evaluations": 738,
+  "repair_solutions": 396,
+  "accepted_contour_roots": 119,
+  "interpolated_bridges": 3,
+  "continuous_curve_nodes": {
+    "50": [
+      22,
+      23
+    ],
+    "100": [
+      22,
+      23
+    ],
+    "200": [
+      22,
+      23
+    ],
+    "500": [
+      22,
+      23
+    ],
+    "1000": [
+      19,
+      23
+    ],
+    "2000": [
+      13,
+      22
+    ],
+    "5000": [
+      5,
+      7
+    ]
+  },
+  "targeted_present": false,
+  "domain_fingerprint": "2784ce79172551729a29ef87b947c677240c4342d46c5da7871d4bbffbe1ee84",
+  "B_one_forth_MeV": 189.1565957288247,
+  "ms_MeV": 0.0,
+  "NM_type": "PNM",
+  "note": "Numerical baseline plus accepted repair roots; only validated connected segments. No new BVP solves. The separate bridge_* arrays are interpolated across scheduled angles that hold no accepted root and must be drawn dashed. The curve_* arrays are one solid polyline per level with interior gaps and bracketed open ends filled, resampled with a monotone cubic through every scheduled angle; curve_solved_* marks which of those angles are accepted BVP roots. Every curve is anchored at the cold corner nB(0-) = 3 n0, T(0-) = 0, where the delta-muB = 0 boundary meets the temperature axis and the front speed vanishes.",
+  "plot_archive_sha256": "9960e28dc01650bfb42410d8f7ae3840575fd65ff01c9d087a4daf05af8d0872"
+}

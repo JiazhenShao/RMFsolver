@@ -5002,6 +5002,59 @@ def _isothermal_continuation_initial_guess(guess, state, s_end, n_mesh, max_node
     return mesh, nK, jK
 
 
+def _isothermal_layer_resolved_initial_guess(state, s_end, n_mesh, kappa_factor):
+    """Build a physical core-to-tail seed; raise ValueError when unsupported."""
+    keys = (
+        "lambda_inf", "jK_0plus", "nK_0plus", "u_0plus", "D_K_0plus",
+        "x_end", "nB_inf", "nB_0plus", "D_K_inf", "jB",
+        "tail_coefficient", "nK_inf",
+    )
+    values = {key: float(state[key]) for key in keys}
+    if not np.all(np.isfinite(list(values.values()))):
+        raise ValueError("layer-resolved seed requires finite endpoint state")
+    if values["nK_inf"] != 0.0:
+        raise ValueError("layer-resolved seed requires zero equilibrium nK")
+    if min(values[key] for key in (
+        "lambda_inf", "nK_0plus", "D_K_0plus", "D_K_inf",
+        "nB_inf", "nB_0plus", "jB", "x_end",
+    )) <= 0.0:
+        raise ValueError("layer-resolved seed requires positive physical scales")
+    lam = values["lambda_inf"]
+    slope = (
+        values["jK_0plus"] / values["nK_0plus"] - values["u_0plus"]
+    ) / values["D_K_0plus"]
+    if not np.isfinite(slope) or slope <= lam:
+        raise ValueError("layer-resolved seed requires a positive core scale")
+    x_core = 0.5 / (slope - lam)
+    if not np.isfinite(x_core) or x_core <= 0.0:
+        raise ValueError("layer-resolved seed requires a positive core scale")
+    x_mesh = np.r_[0.0, np.geomspace(x_core * 1.0e-3, values["x_end"], int(n_mesh) - 1)]
+    s_mesh = -np.expm1(-lam * x_mesh / kappa_factor)
+    if (
+        not np.all(np.isfinite(s_mesh))
+        or np.any(np.diff(s_mesh) <= 0.0)
+        or not np.isclose(s_mesh[-1], s_end, rtol=1.0e-10, atol=1.0e-12)
+    ):
+        raise ValueError("layer-resolved seed has a degenerate compact mesh")
+    fraction = np.exp(-lam * x_mesh) / np.sqrt(1.0 + x_mesh / x_core)
+    nK = values["nK_0plus"] * fraction
+    nB_seed = values["nB_inf"] + (
+        values["nB_0plus"] - values["nB_inf"]
+    ) * fraction**2
+    diffusion_seed = values["D_K_inf"] + (
+        values["D_K_0plus"] - values["D_K_inf"]
+    ) * fraction**2
+    jK = nK * (
+        values["jB"] / nB_seed
+        + diffusion_seed * (lam + 0.5 / (x_core + x_mesh))
+    )
+    jK[0] = values["jK_0plus"]
+    jK[-1] = values["tail_coefficient"] * nK[-1]
+    if not np.all(np.isfinite(nK)) or not np.all(np.isfinite(jK)):
+        raise ValueError("layer-resolved seed has nonfinite physical fields")
+    return s_mesh, nK, jK
+
+
 def solve_front_isothermal(
     T,
     nB_0minus,
@@ -5021,6 +5074,7 @@ def solve_front_isothermal(
     verb=False,
     continuation_guess=None,
     return_continuation=False,
+    initial_guess_mode="default",
 ):
     """Solve the fixed-T front as a compact BVP in physical nK and J_K.
 
@@ -5046,7 +5100,16 @@ def solve_front_isothermal(
     ``NM_type='PNM'`` and raises for ``'SYM'`` or ``'Beta_eq'``: the ceiling's
     chemical-potential balance presumes an upstream with no muK
     (``a_0minus=1``), which PNM satisfies but SYM and Beta_eq do not.
+
+    ``initial_guess_mode="layer_resolved"`` opts into a stretched core-to-tail
+    seed for cold massless fronts. A supplied continuation profile takes
+    precedence; invalid layer scales fall back to the unchanged default seed
+    with an explicit diagnostic. This changes initialization only, not the
+    local transport equations. ``bvp_max_rms_residual`` reports the maximum
+    residual returned by SciPy (NaN if the BVP fails before producing one).
     """
+    if initial_guess_mode not in ("default", "layer_resolved"):
+        raise ValueError("initial_guess_mode must be 'default' or 'layer_resolved'")
     T = float(T)
     nB_0minus = float(nB_0minus)
     B_one_forth = float(B_one_forth)
@@ -5501,10 +5564,23 @@ def solve_front_isothermal(
         (1.0 - blend) * state0["jK_0plus"]
         + blend * stable_jK_guess
     )
+    initial_guess_mode_used = "default"
+    initial_guess_fallback_reason = None
     if continuation_guess is not None:
         s_mesh, nK_guess, jK_guess_profile = _isothermal_continuation_initial_guess(
             continuation_guess, state0, s_end, n_mesh, max_nodes
         )
+        initial_guess_mode_used = "continuation"
+    elif initial_guess_mode == "layer_resolved":
+        try:
+            if ms != 0.0:
+                raise ValueError("layer-resolved seed supports ms=0 only")
+            s_mesh, nK_guess, jK_guess_profile = _isothermal_layer_resolved_initial_guess(
+                state0, s_end, n_mesh, kappa_factor
+            )
+            initial_guess_mode_used = "layer_resolved"
+        except (ValueError, OverflowError, FloatingPointError) as exc:
+            initial_guess_fallback_reason = str(exc)
     y_guess = np.vstack(
         (
             nK_guess / bvp_nK_scale,
@@ -5551,6 +5627,10 @@ def solve_front_isothermal(
             "rate_model": "exact_nonleptonic",
             "diffusion_model": "local_muB_fixed_T",
             "bvp_status": -999,
+            "initial_guess_mode_requested": initial_guess_mode,
+            "initial_guess_mode_used": initial_guess_mode_used,
+            "initial_guess_fallback_reason": initial_guess_fallback_reason,
+            "bvp_max_rms_residual": float("nan"),
             **{key: int(value) for key, value in stats.items()},
         }
 
@@ -5642,6 +5722,9 @@ def solve_front_isothermal(
         "bvp_scale_jK_inf": bvp_scale_jK_inf,
         "bvp_field_scaling": "separate_initial_endpoint_scales",
         "continuation_used": continuation_guess is not None,
+        "initial_guess_mode_requested": initial_guess_mode,
+        "initial_guess_mode_used": initial_guess_mode_used,
+        "initial_guess_fallback_reason": initial_guess_fallback_reason,
         "s_end": s_end,
         "x_end": float(state["x_end"]),
         "nK_end": nK_end,
@@ -5664,6 +5747,9 @@ def solve_front_isothermal(
         "bvp_message": str(sol.message),
         "bvp_niter": int(getattr(sol, "niter", -1)),
         "bvp_nodes": int(sol.x.size),
+        "bvp_max_rms_residual": float(np.max(np.asarray(
+            getattr(sol, "rms_residuals", [np.nan]), dtype=float
+        ))),
         **{key: int(value) for key, value in stats.items()},
     }
 

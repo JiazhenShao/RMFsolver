@@ -1,0 +1,29 @@
+{
+  "total_points": 734,
+  "original_points": 702,
+  "methods": {
+    "analytic": {
+      "original_successes_preserved": 634,
+      "cluster_failures_recovered": 68,
+      "accepted": 734,
+      "plot_shape": [
+        30,
+        21
+      ]
+    },
+    "semi_analytic": {
+      "original_successes_preserved": 634,
+      "cluster_failures_recovered": 68,
+      "accepted": 734,
+      "plot_shape": [
+        30,
+        21
+      ]
+    }
+  },
+  "complete_5000_bracket_rays": 30,
+  "numerical_reference_unchanged": true,
+  "gray_boundaries_unchanged": true,
+  "maximum_local_density_relative_error": 1.2576788499529812e-09,
+  "backup_sha256": "a41896fd353b13f222231d78b1fa10234ecab8cdaf94c5be988111f661557560"
+}

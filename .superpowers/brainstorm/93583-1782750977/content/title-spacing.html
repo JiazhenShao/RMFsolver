@@ -1,0 +1,140 @@
+<style>
+  .spacing-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+    margin-top: 24px;
+  }
+  .spacing-card {
+    border: 2px solid #d9dce3;
+    border-radius: 14px;
+    padding: 16px;
+    cursor: pointer;
+    background: #fff;
+    transition: border-color 140ms ease, box-shadow 140ms ease;
+  }
+  .spacing-card:hover {
+    border-color: #7f8aa3;
+    box-shadow: 0 8px 22px rgba(35, 42, 60, 0.10);
+  }
+  .spacing-card.selected {
+    border-color: #4969d1;
+    box-shadow: 0 0 0 3px rgba(73, 105, 209, 0.15);
+  }
+  .page-preview {
+    background: #fff;
+    border: 1px solid #e5e6eb;
+    border-radius: 6px;
+    padding: 12px;
+    min-height: 220px;
+  }
+  .title-bubble {
+    border: 2px solid #494949;
+    border-radius: 5px;
+    background: #f2f2f2;
+    padding: 11px 14px;
+    color: #111;
+    font: 25px/1.15 Arial, sans-serif;
+  }
+  .note-row {
+    display: grid;
+    grid-template-columns: 32% 4px 1fr;
+    gap: 12px;
+    align-items: start;
+  }
+  .topic-bubble {
+    border: 2px solid #ffb7bb;
+    border-radius: 5px;
+    background: #fff5f5;
+    padding: 9px;
+    color: #222;
+    font: 12px/1.2 Georgia, serif;
+  }
+  .red-rule {
+    min-height: 125px;
+    background: #ff747b;
+  }
+  .content-bubble {
+    border: 2px solid #e1e2fb;
+    border-radius: 5px;
+    background: #f5f5ff;
+    padding: 9px;
+    color: #222;
+    font: 12px/1.35 Georgia, serif;
+  }
+  .gap-compact { margin-top: 6px; }
+  .gap-balanced { margin-top: 18px; }
+  .gap-spacious { margin-top: 32px; }
+  .choice-label {
+    margin-top: 14px;
+  }
+  .choice-label h3 {
+    margin: 0 0 5px;
+  }
+  .choice-label p {
+    margin: 0;
+    color: #676d7c;
+  }
+  @media (max-width: 900px) {
+    .spacing-grid { grid-template-columns: 1fr; }
+  }
+</style>
+
+<h2>How much breathing room should the title have?</h2>
+<p class="subtitle">The current layout is closest to A. Option B restores the visual pause created by <code>\maketitle</code> while keeping the page compact.</p>
+
+<div class="spacing-grid">
+  <div class="spacing-card" data-choice="compact" onclick="toggleSelect(this)">
+    <div class="page-preview">
+      <div class="title-bubble">Hot and Cold Quark Matter</div>
+      <div class="note-row gap-compact">
+        <div class="topic-bubble">A bit of historic review</div>
+        <div class="red-rule"></div>
+        <div class="content-bubble">
+          nothing interesting here
+          <ul><li>1930's, Thompson experiment</li><li>Rutherford experiment</li></ul>
+        </div>
+      </div>
+    </div>
+    <div class="choice-label">
+      <h3>A — Compact</h3>
+      <p>Nearly the current density; only a small separation.</p>
+    </div>
+  </div>
+
+  <div class="spacing-card" data-choice="balanced" onclick="toggleSelect(this)">
+    <div class="page-preview">
+      <div class="title-bubble">Hot and Cold Quark Matter</div>
+      <div class="note-row gap-balanced">
+        <div class="topic-bubble">A bit of historic review</div>
+        <div class="red-rule"></div>
+        <div class="content-bubble">
+          nothing interesting here
+          <ul><li>1930's, Thompson experiment</li><li>Rutherford experiment</li></ul>
+        </div>
+      </div>
+    </div>
+    <div class="choice-label">
+      <h3>B — Balanced (recommended)</h3>
+      <p>A clear title pause comparable to the original <code>\maketitle</code>.</p>
+    </div>
+  </div>
+
+  <div class="spacing-card" data-choice="spacious" onclick="toggleSelect(this)">
+    <div class="page-preview">
+      <div class="title-bubble">Hot and Cold Quark Matter</div>
+      <div class="note-row gap-spacious">
+        <div class="topic-bubble">A bit of historic review</div>
+        <div class="red-rule"></div>
+        <div class="content-bubble">
+          nothing interesting here
+          <ul><li>1930's, Thompson experiment</li><li>Rutherford experiment</li></ul>
+        </div>
+      </div>
+    </div>
+    <div class="choice-label">
+      <h3>C — Spacious</h3>
+      <p>Strong separation, but uses more vertical space on every talk page.</p>
+    </div>
+  </div>
+</div>

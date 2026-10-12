@@ -19,16 +19,12 @@ B14 = 189.1566
 
 def _upstream(nB_over_n0, T):
     """Return (muB_0minus, P_0minus) on the branch-validated PNM branch."""
-    muB = float(
-        pv.muB_from_nB_physical(
-            nB_over_n0 * N0, T, param=para.paraQMCRMF3,
-            NM_type="PNM", auto_expand=True,
-        )
+    state = pv._validated_pnm_state_from_nB(
+        nB_over_n0 * N0,
+        T,
+        param=para.paraQMCRMF3,
     )
-    state = pv._analytic_nuclear_state(
-        muB, T, param=para.paraQMCRMF3, NM_type="PNM"
-    )
-    return muB, float(state["P_0minus"])
+    return float(state["muB_0minus"]), float(state["P_0minus"])
 
 
 class TestCeilingSolve(unittest.TestCase):

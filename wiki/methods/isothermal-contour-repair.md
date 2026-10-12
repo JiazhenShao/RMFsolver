@@ -1,7 +1,7 @@
 ---
 summary: Targeted numerical contour following preserves 362 baseline successes, adds full-profile continuation, and refines actual BVP points around the missing speed curves.
 status: current
-updated: 2026-09-21
+updated: 2026-10-02
 tags: [method, cluster, contour, isothermal, continuation]
 ---
 
@@ -90,7 +90,7 @@ These states must not be conflated.
 
 ## The paper figure is one solid curve per level
 
-`26SU-14.ipynb` is the diagnostic view: markers show every accepted root and interpolated stretches are dashed.
+`26-08-20.ipynb` is the diagnostic view: markers show every accepted root and interpolated stretches are dashed.
 `All_Plots_new.ipynb` is the paper view and shows neither, so `continuous_level_curves` returns a single solid polyline per level with interior gaps and open ends already filled.
 The interpolated fraction stays auditable through `curve_solved_*` in the archive, printed by the cell as e.g. "1000 m/s curve: 17/20 nodes are accepted BVP roots".
 
@@ -135,13 +135,13 @@ Before the solves the 5000 m/s tail was out by 0.68 and visibly crawled along th
 
 ## Visualization and verification status
 
-`26SU-14.ipynb` numerical cells 4--5 combine the original data with `isothermal-contour-repair.npy` when available, retaining the established square window, labels and gray shading.
+`26-08-20.ipynb` numerical cells 4--5 combine the original data with `isothermal-contour-repair.npy` when available, retaining the established square window, labels and gray shading.
 The supplementary grid diagnostics still describe the original 600 cells.
 The standalone runner saves a PNG/PDF and supports `--plot-only` and read-only `--dry-run`.
 `All_Plots_new.ipynb` cells 15--16 do *not* recompute the merge: they read pre-merged polylines from the hash-checked snapshot `local_analysis_results/All_Plots_new/isothermal_contour_data/isothermal-numerical-contour.npz`, so the notebook stays free of cluster folders and EOS/BVP imports.
-⚠ Any change to the merge logic therefore requires rerunning `export_isothermal_contour_archive.py` in that folder; otherwise the paper figure keeps the old geometry while `26SU-14.ipynb` shows the new one.
+⚠ Any change to the merge logic therefore requires rerunning `export_isothermal_contour_archive.py` in that folder; otherwise the paper figure keeps the old geometry while `26-08-20.ipynb` shows the new one.
 The archive carries bridges in separate `bridge_vertices_*`/`bridge_offsets_*` arrays for the same reason.
-⚠ A live Jupyter kernel keeps its first import of these workflow helpers, so editing them is invisible to Run All; `26SU-14.ipynb` cell 4 now drops them from `sys.modules` to make a plain re-run pick up the current source.
+⚠ A live Jupyter kernel keeps its first import of these workflow helpers, so editing them is invisible to Run All; `26-08-20.ipynb` cell 4 now drops them from `sys.modules` to make a plain re-run pick up the current source.
 
 The cluster `--smoke` mode targets the hot 500 extension, warm 1000 gap, a cold 200 point, and the 50 m/s contour at 0.01 MeV.
 Representative recovered points are checked with twice the initial mesh, a tenfold smaller tail gap, and tighter BVP tolerance; speeds must agree within 1%.

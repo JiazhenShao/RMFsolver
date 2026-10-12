@@ -1,0 +1,46 @@
+[
+  {
+    "key": "29:0.005000000000",
+    "point": {
+      "theta_index": 29,
+      "theta_rad": 1.5707963267948966,
+      "radial_fraction": 0.005,
+      "nB_0minus_over_n0": 1.0000000000000002,
+      "T_0minus_MeV": 60.67082185122363
+    },
+    "cluster_message": "not sampled in cluster run",
+    "direct_upstream_s": 0.2373200839792844,
+    "direct_density_relative_error": 7.776979060736267e-11,
+    "direct_muB_0minus": 928.6014924967714,
+    "analytic": {
+      "seconds": 0.5683641670038924,
+      "velocity_m_s": 33.013340570072124
+    },
+    "semi_analytic": {
+      "seconds": 7.67397804101347,
+      "velocity_m_s": 29.77274338312442
+    }
+  },
+  {
+    "key": "1:0.970000000000",
+    "point": {
+      "theta_index": 1,
+      "theta_rad": 0.054165390579134366,
+      "radial_fraction": 0.97,
+      "nB_0minus_over_n0": 5.224889592359392,
+      "T_0minus_MeV": 6.108449538797431
+    },
+    "cluster_message": "not sampled in cluster run",
+    "direct_upstream_s": 0.6250490829988848,
+    "direct_density_relative_error": -1.2956635764282964e-11,
+    "direct_muB_0minus": 1624.1470955583143,
+    "analytic": {
+      "seconds": 1.091472000000067,
+      "velocity_m_s": 1246.3685043515518
+    },
+    "semi_analytic": {
+      "seconds": 9.112498708011117,
+      "velocity_m_s": 6460.038288045869
+    }
+  }
+]

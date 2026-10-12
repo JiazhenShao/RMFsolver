@@ -1,0 +1,42 @@
+<h2>Real EOS example: fixed metastability m = 0.10</h2>
+<p class="subtitle">At each fixed temperature there is at most one root in m here. The two crossings occur when temperature varies at fixed m.</p>
+
+<div class="mockup">
+  <div class="mockup-header">Delta h(T, m = 0.10), evaluated with the cluster EOS and calibrated B</div>
+  <div class="mockup-body">
+    <svg viewBox="0 0 760 430" style="width:100%;height:auto;max-height:62vh">
+      <rect x="75" y="45" width="620" height="325" fill="#fff" stroke="#333"/>
+      <rect x="75" y="45" width="620" height="110" fill="#f9dddd" opacity=".75"/>
+      <line x1="75" y1="155" x2="695" y2="155" stroke="#222" stroke-width="2"/>
+      <line x1="220" y1="45" x2="220" y2="370" stroke="#d62728" stroke-dasharray="6 5"/>
+      <line x1="549" y1="45" x2="549" y2="370" stroke="#d62728" stroke-dasharray="6 5"/>
+      <path d="M75 199 L172 174 L220 155 L268 138 L365 102 L462 94 L510 114 L539 138 L549 155 L559 161 L607 241 L655 350" fill="none" stroke="#1f77b4" stroke-width="4" stroke-linejoin="round"/>
+      <path d="M220 155 L268 138 L365 102 L462 94 L510 114 L539 138 L549 155 Z" fill="#ef8a8a" opacity=".45"/>
+      <circle cx="220" cy="155" r="6" fill="#d62728"/>
+      <circle cx="549" cy="155" r="6" fill="#d62728"/>
+      <g font-size="14" fill="#333">
+        <text x="75" y="394" text-anchor="middle">10</text><text x="172" y="394" text-anchor="middle">20</text><text x="268" y="394" text-anchor="middle">30</text><text x="365" y="394" text-anchor="middle">40</text><text x="462" y="394" text-anchor="middle">50</text><text x="559" y="394" text-anchor="middle">60</text><text x="655" y="394" text-anchor="middle">70</text>
+        <text x="64" y="160" text-anchor="end">0</text><text x="64" y="85" text-anchor="end">+10</text><text x="64" y="235" text-anchor="end">-10</text><text x="64" y="310" text-anchor="end">-20</text>
+      </g>
+      <text x="385" y="424" text-anchor="middle" font-size="18">T [MeV]</text>
+      <text x="22" y="210" text-anchor="middle" font-size="18" transform="rotate(-90 22 210)">Delta h [MeV]</text>
+      <text x="385" y="74" text-anchor="middle" font-size="18" fill="#a11">Delta h &gt; 0: forbidden left lobe</text>
+      <text x="220" y="34" text-anchor="middle" font-size="15" fill="#a11">25.512 MeV</text>
+      <text x="549" y="34" text-anchor="middle" font-size="15" fill="#a11">59.532 MeV</text>
+    </svg>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Selected real values</h3>
+  <table style="width:100%;border-collapse:collapse">
+    <tr><th style="text-align:left;padding:6px">T [MeV]</th><th style="text-align:left;padding:6px">Delta h [MeV]</th><th style="text-align:left;padding:6px">classification</th></tr>
+    <tr><td style="padding:6px">20</td><td style="padding:6px">-2.548</td><td style="padding:6px;color:#287a45">allowed</td></tr>
+    <tr><td style="padding:6px">30</td><td style="padding:6px">+2.289</td><td style="padding:6px;color:#a11">forbidden</td></tr>
+    <tr><td style="padding:6px">50</td><td style="padding:6px">+8.159</td><td style="padding:6px;color:#a11">forbidden</td></tr>
+    <tr><td style="padding:6px">60</td><td style="padding:6px">-0.769</td><td style="padding:6px;color:#287a45">allowed again</td></tr>
+    <tr><td style="padding:6px">70</td><td style="padding:6px">-25.948</td><td style="padding:6px;color:#287a45">allowed</td></tr>
+  </table>
+</div>
+
+<p><strong>Therefore:</strong> the old inversion to one T_cut(m) necessarily discards the upper allowed interval for small m. A rectangular grid with a pointwise Delta h mask preserves both allowed intervals.</p>

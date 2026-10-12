@@ -1,7 +1,7 @@
 ---
 summary: Substituting the static-isobar composition ceiling gives the isothermal maximum-speed formula; at low temperature it scales as T^(-5/6) a_max(0+)^2 and retains the a_max(0+) -> 1 singularity.
 status: current
-updated: 2026-08-25
+updated: 2026-10-05
 tags: [physics, analytic, front-speed, isothermal, bound]
 ---
 
@@ -10,6 +10,8 @@ tags: [physics, analytic, front-speed, isothermal, bound]
 For fixed analytical coefficients, the positive branch of [[isothermal-analytic-front-speed]] increases monotonically with $a(0^+)$.  Its thermodynamic upper estimate is therefore obtained by substituting the static-isobar ceiling $a_{\max}(0^+)$.
 
 ## Static-isobar ceiling
+
+As of 2026-10-05, Eq. (35), `eq:a0plus_max`, in `Latex_writting/Main.tex` directly substitutes the neutral EOS into the ceiling below and uses the paper's constant quark-side notation $\mu_B^{(+)}$ in place of $\mu_B(\infty)$. The finite-temperature ratio is retained, and Wolfram verified that the explicit radicand equals the susceptibility-over-density expression. This is an algebraic substitution, not a new numerical validation of the Taylor ceiling.
 
 Expand the quark pressure about the equilibrated endpoint, where $\mu_K(\infty)=0$ and $n_K(\infty)=0$.  To quadratic order,
 

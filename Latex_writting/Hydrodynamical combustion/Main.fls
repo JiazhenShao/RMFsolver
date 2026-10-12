@@ -2,7 +2,7 @@ PWD /Users/janshao/NSM_related/Latex_writting/Hydrodynamical combustion
 INPUT /usr/local/texlive/2024/texmf.cnf
 INPUT /usr/local/texlive/2024/texmf-dist/web2c/texmf.cnf
 INPUT /usr/local/texlive/2024/texmf-var/web2c/pdftex/pdflatex.fmt
-INPUT /Users/janshao/NSM_related/Latex_writting/Hydrodynamical combustion/Main.tex
+INPUT Main.tex
 OUTPUT Main.log
 INPUT /usr/local/texlive/2024/texmf-dist/tex/latex/revtex4-1/revtex4-1.cls
 INPUT /usr/local/texlive/2024/texmf-dist/tex/latex/revtex4-1/revtex4-1.cls
@@ -318,18 +318,17 @@ INPUT ./Plots/boundary_schematic.pdf
 INPUT ./Plots/boundary_schematic.pdf
 INPUT ./Plots/boundary_schematic.pdf
 INPUT ./Plots/boundary_schematic.pdf
-INPUT /usr/local/texlive/2024/texmf-dist/fonts/tfm/public/cm/cmti10.tfm
 INPUT ./Plots/isothermal_muB_muK_plane.pdf
 INPUT ./Plots/isothermal_muB_muK_plane.pdf
 INPUT ./Plots/isothermal_muB_muK_plane.pdf
 INPUT ./Plots/isothermal_muB_muK_plane.pdf
 INPUT ./Plots/isothermal_muB_muK_plane.pdf
+INPUT /usr/local/texlive/2024/texmf-dist/fonts/tfm/public/cm/cmss8.tfm
 INPUT ./Plots/T_a_constant_pressure.pdf
 INPUT ./Plots/T_a_constant_pressure.pdf
 INPUT ./Plots/T_a_constant_pressure.pdf
 INPUT ./Plots/T_a_constant_pressure.pdf
 INPUT /usr/local/texlive/2024/texmf-dist/fonts/tfm/jknappen/ec/tcrm1000.tfm
-INPUT /usr/local/texlive/2024/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc
 INPUT /usr/local/texlive/2024/texmf-dist/fonts/tfm/public/cm/cmbx10.tfm
 INPUT ./Plots/Numerical-contour.pdf
 INPUT ./Plots/Numerical-contour.pdf
@@ -341,12 +340,12 @@ INPUT ./Plots/z-time-evolution.pdf
 INPUT ./Plots/z-time-evolution.pdf
 INPUT ./Plots/z-time-evolution.pdf
 INPUT ./Plots/z-time-evolution.pdf
-INPUT /usr/local/texlive/2024/texmf-dist/fonts/tfm/public/cm/cmss8.tfm
-INPUT ./Hydrodynamical combustion/Plots/Contour-diff-meth.pdf
-INPUT ./Hydrodynamical combustion/Plots/Contour-diff-meth.pdf
-INPUT ./Hydrodynamical combustion/Plots/Contour-diff-meth.pdf
-INPUT ./Hydrodynamical combustion/Plots/Contour-diff-meth.pdf
-INPUT ./Hydrodynamical combustion/Plots/Contour-diff-meth.pdf
+INPUT /usr/local/texlive/2024/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc
+INPUT ./Hydrodynamical combustion/Plots/Contour-diff-meth-0.1.pdf
+INPUT ./Hydrodynamical combustion/Plots/Contour-diff-meth-0.1.pdf
+INPUT ./Hydrodynamical combustion/Plots/Contour-diff-meth-0.1.pdf
+INPUT ./Hydrodynamical combustion/Plots/Contour-diff-meth-0.1.pdf
+INPUT ./Hydrodynamical combustion/Plots/Contour-diff-meth-0.1.pdf
 INPUT ./Hydrodynamical combustion/Plots/Numerical-T0plus-compare-fixT.pdf
 INPUT ./Hydrodynamical combustion/Plots/Numerical-T0plus-compare-fixT.pdf
 INPUT ./Hydrodynamical combustion/Plots/Numerical-T0plus-compare-fixT.pdf
@@ -382,7 +381,6 @@ INPUT /usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmss8.pf
 INPUT /usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb
 INPUT /usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy6.pfb
 INPUT /usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb
-INPUT /usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmti10.pfb
 INPUT /usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmti9.pfb
 INPUT /usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt10.pfb
 INPUT /usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt9.pfb

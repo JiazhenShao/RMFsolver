@@ -1,0 +1,425 @@
+{
+  "files": {
+    "inputs/isothermal-cold-endpoints.npy": {
+      "sha256": "d7ef4d83659d8a6202deede0dccc65f82d12b60d06e19a2f388b0069ce5428d1",
+      "source": "local_analysis_results/All_Plots_new/isothermal_contour_data/isothermal-cold-endpoints.npy"
+    },
+    "inputs/isothermal-contour-repair.npy": {
+      "sha256": "3a9cd43fd5d61a4bef66bd98bf0248a93094b26db84ecb284ebfe3ee3b0f3203",
+      "source": "local_analysis_results/All_Plots_new/isothermal_contour_data/isothermal-contour-repair.npy"
+    },
+    "inputs/isothermal-domain.npy": {
+      "sha256": "bc2d509cde1b9c47eed9b1a43b772ceaa11039501c182872df95245c18e5c6ed",
+      "source": "local_analysis_results/All_Plots_new/isothermal_contour_data/isothermal-domain.npy"
+    },
+    "inputs/isothermal-numerical-contour.npz": {
+      "sha256": "9960e28dc01650bfb42410d8f7ae3840575fd65ff01c9d087a4daf05af8d0872",
+      "source": "local_analysis_results/All_Plots_new/isothermal_contour_data/isothermal-numerical-contour.npz"
+    },
+    "inputs/isothermal-numerical.npy": {
+      "sha256": "03b34a86b8076e8c579a9315344d4cf005583a62c4e7562c847790730cf7483b",
+      "source": "local_analysis_results/All_Plots_new/isothermal_contour_data/isothermal-numerical.npy"
+    },
+    "inputs/profiles/core_mesh_T0.01_n3.001.npy": {
+      "point": {
+        "T_0minus": 0.01,
+        "jB": 0.9172451289924983,
+        "nB_0minus": 3689310.8900069557,
+        "nB_0minus_over_n0": 3.001,
+        "velocity_m_s": 74.53510425321224
+      },
+      "sha256": "785dc3d3651521c96c1694143715aaa1e0d74b76a8862a8a7c54284cf16b9ded",
+      "source": "local_analysis_results/isothermal_low_temperature_probe/core_mesh_T0.01_n3.001.npy",
+      "source_sha256": "d90dee4994f7c2920591970cbecc5310f7c966026eed0c27ae82dcc2485b28df"
+    },
+    "inputs/profiles/core_mesh_T0.01_n3.01.npy": {
+      "point": {
+        "T_0minus": 0.01,
+        "jB": 9.528630802107497,
+        "nB_0minus": 3700375.134595447,
+        "nB_0minus_over_n0": 3.01,
+        "velocity_m_s": 771.9789333848589
+      },
+      "sha256": "2098c0b1d5e18b6c2acdaa23e038533e66ad3b9e56dab156d52c7b503fd8991d",
+      "source": "local_analysis_results/isothermal_low_temperature_probe/core_mesh_T0.01_n3.01.npy",
+      "source_sha256": "d57368f643f1c0fb18006e190058ba2a4511f06890c977fd1917c6f204c386b2"
+    },
+    "inputs/profiles/core_mesh_T0.01_n3.05.npy": {
+      "point": {
+        "T_0minus": 0.01,
+        "jB": 51.77916506239639,
+        "nB_0minus": 3749549.554988742,
+        "nB_0minus_over_n0": 3.05,
+        "velocity_m_s": 4139.964797934248
+      },
+      "sha256": "6ea52de256948b4593149d7fb0e78f8c00acd7f4553bebe02e898cfae9a176d0",
+      "source": "local_analysis_results/isothermal_low_temperature_probe/core_mesh_T0.01_n3.05.npy",
+      "source_sha256": "90ec642ba652ea30727edeb0ddbc94b3c2a83c97d34d4418a05da501be3eb850"
+    },
+    "inputs/profiles/isothermal-cold-endpoints-profiles-062bbdb345b65a15f3e73344.npy": {
+      "point": {
+        "T_0minus": 4.037178305146592,
+        "id": "0x1.0261211d2e6bbp+2:0x1.336404a940290p+2",
+        "jB": 98.48240589431315,
+        "nB_0minus": 5904593.482872556,
+        "nB_0minus_over_n0": 4.802979626926245,
+        "velocity_m_s": 5000.2227273298695
+      },
+      "sha256": "68da7ec14d69e631f36d6241e0d7b917865f09280e828808fc95392b2eb363ed",
+      "source": "new_paper_calculations/26-09-23/isothermal_cold_endpoints/isothermal-cold-endpoints-profiles/062bbdb345b65a15f3e73344.npy",
+      "source_sha256": "68da7ec14d69e631f36d6241e0d7b917865f09280e828808fc95392b2eb363ed"
+    },
+    "inputs/profiles/isothermal-cold-endpoints-profiles-085e05c36f78c9d7ab3df45a.npy": {
+      "point": {
+        "T_0minus": 4.008528473327513,
+        "id": "0x1.008bbb0281b1dp+2:0x1.31a9d9737cb99p+2",
+        "jB": 92.91985039540792,
+        "nB_0minus": 5871415.696738646,
+        "nB_0minus_over_n0": 4.7759917857937575,
+        "velocity_m_s": 4744.455474174062
+      },
+      "sha256": "69019ab146118a56b2d4fc90cd5af2b13e3ebad7a4d1d39c35a893627c7ef314",
+      "source": "new_paper_calculations/26-09-23/isothermal_cold_endpoints/isothermal-cold-endpoints-profiles/085e05c36f78c9d7ab3df45a.npy",
+      "source_sha256": "69019ab146118a56b2d4fc90cd5af2b13e3ebad7a4d1d39c35a893627c7ef314"
+    },
+    "inputs/profiles/isothermal-cold-endpoints-profiles-1198a2a2549f3f888d99266e.npy": {
+      "point": {
+        "T_0minus": 0.46818369468043425,
+        "id": "0x1.df6b8be4b1107p-2:0x1.9fe8e3d436c30p+1",
+        "jB": 12.857559225122127,
+        "nB_0minus": 3994554.6350315255,
+        "nB_0minus_over_n0": 3.249294737453532,
+        "velocity_m_s": 964.9634655527872
+      },
+      "sha256": "be8ccfc72977e1bf74a011ab762311ba9a3419a3b4d669d285933f190ed28c51",
+      "source": "new_paper_calculations/26-09-23/isothermal_cold_endpoints/isothermal-cold-endpoints-profiles/1198a2a2549f3f888d99266e.npy",
+      "source_sha256": "be8ccfc72977e1bf74a011ab762311ba9a3419a3b4d669d285933f190ed28c51"
+    },
+    "inputs/profiles/isothermal-cold-endpoints-profiles-1cdc3926b72de29e400e4636.npy": {
+      "point": {
+        "T_0minus": 1.824511637382716,
+        "id": "0x1.d31331d5baecdp+0:0x1.fabdb7545192dp+1",
+        "jB": 33.14520240100741,
+        "nB_0minus": 4866933.365490036,
+        "nB_0minus_over_n0": 3.9589146768295422,
+        "velocity_m_s": 2041.6720247154215
+      },
+      "sha256": "b0452d0c1c47b61da382658f866d192507a84ba3c7f9300e5af28b1d41515300",
+      "source": "new_paper_calculations/26-09-23/isothermal_cold_endpoints/isothermal-cold-endpoints-profiles/1cdc3926b72de29e400e4636.npy",
+      "source_sha256": "b0452d0c1c47b61da382658f866d192507a84ba3c7f9300e5af28b1d41515300"
+    },
+    "inputs/profiles/isothermal-cold-endpoints-profiles-2633edc77c5ecb98e559cd62.npy": {
+      "point": {
+        "T_0minus": 2.1841197092968767,
+        "id": "0x1.17913c10fd539p+1:0x1.22b1f4eb13613p+2",
+        "jB": 93.80472729535353,
+        "nB_0minus": 5583892.651618145,
+        "nB_0minus_over_n0": 4.5421116157208585,
+        "velocity_m_s": 5036.262607193237
+      },
+      "sha256": "22d25c4b85369c953f39dbe26e83181381b9c1a7808e3ea3da5556b000badd81",
+      "source": "new_paper_calculations/26-09-23/isothermal_cold_endpoints/isothermal-cold-endpoints-profiles/2633edc77c5ecb98e559cd62.npy",
+      "source_sha256": "22d25c4b85369c953f39dbe26e83181381b9c1a7808e3ea3da5556b000badd81"
+    },
+    "inputs/profiles/isothermal-cold-endpoints-profiles-2bb310b9a248fd0c71338e36.npy": {
+      "point": {
+        "T_0minus": 2.1179033695152585,
+        "id": "0x1.0f17752613ffap+1:0x1.1bd287f4f55b2p+2",
+        "jB": 77.28603703777927,
+        "nB_0minus": 5451875.537966765,
+        "nB_0minus_over_n0": 4.434724797455987,
+        "velocity_m_s": 4249.871599040166
+      },
+      "sha256": "550ea9fb302e3276e50a8a48171a4e055e7a30b4e27f4f8b969d3bebe3afc229",
+      "source": "new_paper_calculations/26-09-23/isothermal_cold_endpoints/isothermal-cold-endpoints-profiles/2bb310b9a248fd0c71338e36.npy",
+      "source_sha256": "550ea9fb302e3276e50a8a48171a4e055e7a30b4e27f4f8b969d3bebe3afc229"
+    },
+    "inputs/profiles/isothermal-cold-endpoints-profiles-38d71a5461088954f8eb0347.npy": {
+      "point": {
+        "T_0minus": 0.471597814457326,
+        "id": "0x1.e2ea8997d6507p-2:0x1.a2025d9691e21p+1",
+        "jB": 13.873750805334959,
+        "nB_0minus": 4014719.164589163,
+        "nB_0minus_over_n0": 3.265697191734731,
+        "velocity_m_s": 1035.9992031999675
+      },
+      "sha256": "a315ae85e163b329d8e5297f1e4c0155da489434ea80bcad17d62e602c44fad4",
+      "source": "new_paper_calculations/26-09-23/isothermal_cold_endpoints/isothermal-cold-endpoints-profiles/38d71a5461088954f8eb0347.npy",
+      "source_sha256": "a315ae85e163b329d8e5297f1e4c0155da489434ea80bcad17d62e602c44fad4"
+    },
+    "inputs/profiles/isothermal-cold-endpoints-profiles-3ea91f68958bc8f9f491fa9d.npy": {
+      "point": {
+        "T_0minus": 4.042915997614384,
+        "id": "0x1.02bf22bd8ea7dp+2:0x1.33bc923a99382p+2",
+        "jB": 99.65507681180686,
+        "nB_0minus": 5911237.987273164,
+        "nB_0minus_over_n0": 4.8083844730616665,
+        "velocity_m_s": 5054.075049874025
+      },
+      "sha256": "52e1437dfa0deaff88c94eae26f982c4779741bd572cee275db92a8717071e21",
+      "source": "new_paper_calculations/26-09-23/isothermal_cold_endpoints/isothermal-cold-endpoints-profiles/3ea91f68958bc8f9f491fa9d.npy",
+      "source_sha256": "52e1437dfa0deaff88c94eae26f982c4779741bd572cee275db92a8717071e21"
+    },
+    "inputs/profiles/isothermal-cold-endpoints-profiles-44f97fc46f4d84758bccf566.npy": {
+      "point": {
+        "T_0minus": 0.9641234157744951,
+        "id": "0x1.eda195981e584p-1:0x1.d87b97b3b3dc8p+1",
+        "jB": 30.916245690333,
+        "nB_0minus": 4537903.716075087,
+        "nB_0minus_over_n0": 3.6912717463926334,
+        "velocity_m_s": 2042.4534911547637
+      },
+      "sha256": "7cf275df61da60df799b5f969dd9ba907cf81a61b6bcbca6f1ddabd0fe63e2d5",
+      "source": "new_paper_calculations/26-09-23/isothermal_cold_endpoints/isothermal-cold-endpoints-profiles/44f97fc46f4d84758bccf566.npy",
+      "source_sha256": "7cf275df61da60df799b5f969dd9ba907cf81a61b6bcbca6f1ddabd0fe63e2d5"
+    },
+    "inputs/profiles/isothermal-cold-endpoints-profiles-65160ece4dfa16f9cffe8ad0.npy": {
+      "point": {
+        "T_0minus": 0.7987011979897799,
+        "id": "0x1.98ef5d0948c4bp-1:0x1.9d608e361cfecp+1",
+        "jB": 7.332151674592388,
+        "nB_0minus": 3970231.0033720545,
+        "nB_0minus_over_n0": 3.2295091404175675,
+        "velocity_m_s": 553.6513545645523
+      },
+      "sha256": "995e5c3fbd8941ecac255a1ec26429c70440c43c07d13809109660ee40f434bf",
+      "source": "new_paper_calculations/26-09-23/isothermal_cold_endpoints/isothermal-cold-endpoints-profiles/65160ece4dfa16f9cffe8ad0.npy",
+      "source_sha256": "995e5c3fbd8941ecac255a1ec26429c70440c43c07d13809109660ee40f434bf"
+    },
+    "inputs/profiles/isothermal-cold-endpoints-profiles-700a0b68dfa21aa53a55f850.npy": {
+      "point": {
+        "T_0minus": 2.1776858889690884,
+        "id": "0x1.16be69450a9d3p+1:0x1.220701284409ep+2",
+        "jB": 92.02979801585512,
+        "nB_0minus": 5571065.388857512,
+        "nB_0minus_over_n0": 4.531677522012755,
+        "velocity_m_s": 4952.3452745382865
+      },
+      "sha256": "7cb0a49aa1f5e23de7c69c9fb87f6a985e910d509b641bd57865bc2ee88777dd",
+      "source": "new_paper_calculations/26-09-23/isothermal_cold_endpoints/isothermal-cold-endpoints-profiles/700a0b68dfa21aa53a55f850.npy",
+      "source_sha256": "7cb0a49aa1f5e23de7c69c9fb87f6a985e910d509b641bd57865bc2ee88777dd"
+    },
+    "inputs/profiles/isothermal-cold-endpoints-profiles-7d7e4ec45a4af641df232050.npy": {
+      "point": {
+        "T_0minus": 1.16905768613627,
+        "id": "0x1.2b475d5117bc0p+0:0x1.10da61f52e70cp+2",
+        "jB": 91.2685783496477,
+        "nB_0minus": 5241168.336390405,
+        "nB_0minus_over_n0": 4.263329019007653,
+        "velocity_m_s": 5220.521395483716
+      },
+      "sha256": "9a34f5c7e00297bdbc9863684fc425ab877ea5b9f3bf64e127cb6d7323528520",
+      "source": "new_paper_calculations/26-09-23/isothermal_cold_endpoints/isothermal-cold-endpoints-profiles/7d7e4ec45a4af641df232050.npy",
+      "source_sha256": "9a34f5c7e00297bdbc9863684fc425ab877ea5b9f3bf64e127cb6d7323528520"
+    },
+    "inputs/profiles/isothermal-cold-endpoints-profiles-80b61818d7b836b1d3ce9ef7.npy": {
+      "point": {
+        "T_0minus": 3.4605863592213986,
+        "id": "0x1.baf47e6aeb788p+1:0x1.10a1276d6c5c2p+2",
+        "jB": 35.63480286699384,
+        "nB_0minus": 5236874.231002409,
+        "nB_0minus_over_n0": 4.2598360603892065,
+        "velocity_m_s": 2039.9659549489168
+      },
+      "sha256": "cd4e49a12b22d6fa7ae373df48abe228886ae37c5983ea2a7a4a36962929dff9",
+      "source": "new_paper_calculations/26-09-23/isothermal_cold_endpoints/isothermal-cold-endpoints-profiles/80b61818d7b836b1d3ce9ef7.npy",
+      "source_sha256": "cd4e49a12b22d6fa7ae373df48abe228886ae37c5983ea2a7a4a36962929dff9"
+    },
+    "inputs/profiles/isothermal-cold-endpoints-profiles-81aede9a3c963bdf2db4129c.npy": {
+      "point": {
+        "T_0minus": 0.6697596886205432,
+        "id": "0x1.56eabded9bd74p-1:0x1.0def39e422b2ep+2",
+        "jB": 134.37232632064234,
+        "nB_0minus": 5185106.0373071395,
+        "nB_0minus_over_n0": 4.217726204670539,
+        "velocity_m_s": 7769.13908635079
+      },
+      "sha256": "952197eba1eee2ac05eaab4e655b961adf49967ec76414398bcce235be028abc",
+      "source": "new_paper_calculations/26-09-23/isothermal_cold_endpoints/isothermal-cold-endpoints-profiles/81aede9a3c963bdf2db4129c.npy",
+      "source_sha256": "952197eba1eee2ac05eaab4e655b961adf49967ec76414398bcce235be028abc"
+    },
+    "inputs/profiles/isothermal-cold-endpoints-profiles-969cc42e5e3bf0647a8dc73f.npy": {
+      "point": {
+        "T_0minus": 4.282499530380571,
+        "id": "0x1.121478e907acap+2:0x1.422e327684e84p+2",
+        "jB": 179.37440149634403,
+        "nB_0minus": 6188686.429606765,
+        "nB_0minus_over_n0": 5.034069648496033,
+        "velocity_m_s": 8689.257941235992
+      },
+      "sha256": "85c99b27596d5db035a4287ab8e1bc8ac5ee885999616f0f95092188aba74d9c",
+      "source": "new_paper_calculations/26-09-23/isothermal_cold_endpoints/isothermal-cold-endpoints-profiles/969cc42e5e3bf0647a8dc73f.npy",
+      "source_sha256": "85c99b27596d5db035a4287ab8e1bc8ac5ee885999616f0f95092188aba74d9c"
+    },
+    "inputs/profiles/isothermal-cold-endpoints-profiles-96d6ff36d815555b421a3d90.npy": {
+      "point": {
+        "T_0minus": 1.816654289743707,
+        "id": "0x1.d110416a965b4p+0:0x1.f91c29bca74f4p+1",
+        "jB": 32.36538290998723,
+        "nB_0minus": 4851267.981995894,
+        "nB_0minus_over_n0": 3.946171967617028,
+        "velocity_m_s": 2000.074564524138
+      },
+      "sha256": "ed31c4698c7a048e386e40ec125ec5c47508e952153b94e5861e7da4ce36074a",
+      "source": "new_paper_calculations/26-09-23/isothermal_cold_endpoints/isothermal-cold-endpoints-profiles/96d6ff36d815555b421a3d90.npy",
+      "source_sha256": "ed31c4698c7a048e386e40ec125ec5c47508e952153b94e5861e7da4ce36074a"
+    },
+    "inputs/profiles/isothermal-cold-endpoints-profiles-a0161b525d6eecc5a55dc0fd.npy": {
+      "point": {
+        "T_0minus": 0.8552623855457168,
+        "id": "0x1.b5e4f38ed5e97p-1:0x1.b196296bac89dp+1",
+        "jB": 13.89103408256614,
+        "nB_0minus": 4164329.7357162796,
+        "nB_0minus_over_n0": 3.3873950744392247,
+        "velocity_m_s": 1000.0234169820878
+      },
+      "sha256": "deb7d90b89899c006b358c9ccbdebcb051984e6578a459ee69dc927d48b7ca99",
+      "source": "new_paper_calculations/26-09-23/isothermal_cold_endpoints/isothermal-cold-endpoints-profiles/a0161b525d6eecc5a55dc0fd.npy",
+      "source_sha256": "deb7d90b89899c006b358c9ccbdebcb051984e6578a459ee69dc927d48b7ca99"
+    },
+    "inputs/profiles/isothermal-cold-endpoints-profiles-a2520dde3cf7ab1e195fa604.npy": {
+      "point": {
+        "T_0minus": 0.8513937202351288,
+        "id": "0x1.b3e9e0b0dbfb5p-1:0x1.b0344c5027f78p+1",
+        "jB": 13.399453111252086,
+        "nB_0minus": 4151053.793942487,
+        "nB_0minus_over_n0": 3.376596011294108,
+        "velocity_m_s": 967.7193270583616
+      },
+      "sha256": "44eb6db95126acae81b09a890e6c0dd96046936c4a10680c8639445c48df6db9",
+      "source": "new_paper_calculations/26-09-23/isothermal_cold_endpoints/isothermal-cold-endpoints-profiles/a2520dde3cf7ab1e195fa604.npy",
+      "source_sha256": "44eb6db95126acae81b09a890e6c0dd96046936c4a10680c8639445c48df6db9"
+    },
+    "inputs/profiles/isothermal-cold-endpoints-profiles-abf4ded8e76d0edd468c06f0.npy": {
+      "point": {
+        "T_0minus": 2.1813582525176867,
+        "id": "0x1.1736bf49b62a9p+1:0x1.22689518b2e8dp+2",
+        "jB": 93.03792995497247,
+        "nB_0minus": 5578387.068635697,
+        "nB_0minus_over_n0": 4.537633203620897,
+        "velocity_m_s": 5000.024086061721
+      },
+      "sha256": "a0ef838abefcd1961c4b4e4408aed63bb92291aeb02988402285796eb6d65ecb",
+      "source": "new_paper_calculations/26-09-23/isothermal_cold_endpoints/isothermal-cold-endpoints-profiles/abf4ded8e76d0edd468c06f0.npy",
+      "source_sha256": "a0ef838abefcd1961c4b4e4408aed63bb92291aeb02988402285796eb6d65ecb"
+    },
+    "inputs/profiles/isothermal-cold-endpoints-profiles-bce99892e442bbf33b909f3d.npy": {
+      "point": {
+        "T_0minus": 0.4698741786704049,
+        "id": "0x1.e126b25a7f3b5p-2:0x1.a0f304ad47e40p+1",
+        "jB": 13.358042526505551,
+        "nB_0minus": 4004538.9989701305,
+        "nB_0minus_over_n0": 3.257416329011704,
+        "velocity_m_s": 1000.0253222898428
+      },
+      "sha256": "a8e1c8ce15a81023b3beedd79b55b09e7a4306dd75d764553209de499087cb1d",
+      "source": "new_paper_calculations/26-09-23/isothermal_cold_endpoints/isothermal-cold-endpoints-profiles/bce99892e442bbf33b909f3d.npy",
+      "source_sha256": "a8e1c8ce15a81023b3beedd79b55b09e7a4306dd75d764553209de499087cb1d"
+    },
+    "inputs/profiles/isothermal-cold-endpoints-profiles-c03f5d45b4e8826a33a6bf5c.npy": {
+      "point": {
+        "T_0minus": 1.7982738852077162,
+        "id": "0x1.cc5bad6637cedp+0:0x1.f54b657c28601p+1",
+        "jB": 30.596782006547414,
+        "nB_0minus": 4814622.526167485,
+        "nB_0minus_over_n0": 3.9163634163130614,
+        "velocity_m_s": 1905.17209492421
+      },
+      "sha256": "5353057c936c08e71f1f98138df2efcc4efce94d670c413981d411e14ccaf90f",
+      "source": "new_paper_calculations/26-09-23/isothermal_cold_endpoints/isothermal-cold-endpoints-profiles/c03f5d45b4e8826a33a6bf5c.npy",
+      "source_sha256": "5353057c936c08e71f1f98138df2efcc4efce94d670c413981d411e14ccaf90f"
+    },
+    "inputs/profiles/isothermal-cold-endpoints-profiles-c8d57af2a9500a31c050ddcd.npy": {
+      "point": {
+        "T_0minus": 0.9517894295992798,
+        "id": "0x1.e750f1b19d63bp-1:0x1.d41369ad52934p+1",
+        "jB": 28.632003272052597,
+        "nB_0minus": 4495577.6761737345,
+        "nB_0minus_over_n0": 3.656842431669384,
+        "velocity_m_s": 1909.356095371553
+      },
+      "sha256": "1e7da9f713e2c07a276509f9d053996a889c796acbd2b3f7a52855b2671c49fc",
+      "source": "new_paper_calculations/26-09-23/isothermal_cold_endpoints/isothermal-cold-endpoints-profiles/c8d57af2a9500a31c050ddcd.npy",
+      "source_sha256": "1e7da9f713e2c07a276509f9d053996a889c796acbd2b3f7a52855b2671c49fc"
+    },
+    "inputs/profiles/isothermal-cold-endpoints-profiles-cc33d097656affba8c87db26.npy": {
+      "point": {
+        "T_0minus": 0.960239428033282,
+        "id": "0x1.eba4809777236p-1:0x1.d71853cd7d29bp+1",
+        "jB": 30.18560059447257,
+        "nB_0minus": 4524575.192937831,
+        "nB_0minus_over_n0": 3.6804299119342665,
+        "velocity_m_s": 2000.058571763059
+      },
+      "sha256": "378c160d9828487be404cb5d0f1eae167debcc486a291f5486d3365a93694e79",
+      "source": "new_paper_calculations/26-09-23/isothermal_cold_endpoints/isothermal-cold-endpoints-profiles/cc33d097656affba8c87db26.npy",
+      "source_sha256": "378c160d9828487be404cb5d0f1eae167debcc486a291f5486d3365a93694e79"
+    },
+    "inputs/profiles/isothermal-cold-endpoints-profiles-d002ff0d4a19cf190bb2f030.npy": {
+      "point": {
+        "T_0minus": 0.8586760587025162,
+        "id": "0x1.b7a4636bf8914p-1:0x1.b2ce686147ec2p+1",
+        "jB": 14.330403731876535,
+        "nB_0minus": 4176044.2993773953,
+        "nB_0minus_over_n0": 3.396924064159834,
+        "velocity_m_s": 1028.75991031198
+      },
+      "sha256": "a6293d41fafb4e96e6db3c666354d5fecf7e115605568a8c4f60a14b42889907",
+      "source": "new_paper_calculations/26-09-23/isothermal_cold_endpoints/isothermal-cold-endpoints-profiles/d002ff0d4a19cf190bb2f030.npy",
+      "source_sha256": "a6293d41fafb4e96e6db3c666354d5fecf7e115605568a8c4f60a14b42889907"
+    },
+    "inputs/profiles/isothermal-cold-endpoints-profiles-d9482458931aa4526962fb24.npy": {
+      "point": {
+        "T_0minus": 2.3834233329309913,
+        "id": "0x1.31140409bb207p+1:0x1.3761a08391294p+2",
+        "jB": 180.66053328932298,
+        "nB_0minus": 5981249.092931756,
+        "nB_0minus_over_n0": 4.865333679660257,
+        "velocity_m_s": 9055.07603381621
+      },
+      "sha256": "12d01d8ba83e4ead2546f22de4504156192d7792c66189c428d70c582c2aa4ff",
+      "source": "new_paper_calculations/26-09-23/isothermal_cold_endpoints/isothermal-cold-endpoints-profiles/d9482458931aa4526962fb24.npy",
+      "source_sha256": "12d01d8ba83e4ead2546f22de4504156192d7792c66189c428d70c582c2aa4ff"
+    }
+  },
+  "fingerprint": "2784ce79172551729a29ef87b947c677240c4342d46c5da7871d4bbffbe1ee84",
+  "n0": 1229360.5098323745,
+  "physics": {
+    "B_one_forth": 189.1565957288247,
+    "NM_type": "PNM",
+    "ms": 0.0,
+    "upB": 5000,
+    "xi": -0.5
+  },
+  "profiles": [
+    "inputs/profiles/isothermal-cold-endpoints-profiles-80b61818d7b836b1d3ce9ef7.npy",
+    "inputs/profiles/isothermal-cold-endpoints-profiles-7d7e4ec45a4af641df232050.npy",
+    "inputs/profiles/isothermal-cold-endpoints-profiles-65160ece4dfa16f9cffe8ad0.npy",
+    "inputs/profiles/isothermal-cold-endpoints-profiles-d002ff0d4a19cf190bb2f030.npy",
+    "inputs/profiles/isothermal-cold-endpoints-profiles-a2520dde3cf7ab1e195fa604.npy",
+    "inputs/profiles/isothermal-cold-endpoints-profiles-a0161b525d6eecc5a55dc0fd.npy",
+    "inputs/profiles/isothermal-cold-endpoints-profiles-2bb310b9a248fd0c71338e36.npy",
+    "inputs/profiles/isothermal-cold-endpoints-profiles-1cdc3926b72de29e400e4636.npy",
+    "inputs/profiles/isothermal-cold-endpoints-profiles-c03f5d45b4e8826a33a6bf5c.npy",
+    "inputs/profiles/isothermal-cold-endpoints-profiles-96d6ff36d815555b421a3d90.npy",
+    "inputs/profiles/isothermal-cold-endpoints-profiles-085e05c36f78c9d7ab3df45a.npy",
+    "inputs/profiles/isothermal-cold-endpoints-profiles-969cc42e5e3bf0647a8dc73f.npy",
+    "inputs/profiles/isothermal-cold-endpoints-profiles-3ea91f68958bc8f9f491fa9d.npy",
+    "inputs/profiles/isothermal-cold-endpoints-profiles-062bbdb345b65a15f3e73344.npy",
+    "inputs/profiles/isothermal-cold-endpoints-profiles-81aede9a3c963bdf2db4129c.npy",
+    "inputs/profiles/isothermal-cold-endpoints-profiles-38d71a5461088954f8eb0347.npy",
+    "inputs/profiles/isothermal-cold-endpoints-profiles-1198a2a2549f3f888d99266e.npy",
+    "inputs/profiles/isothermal-cold-endpoints-profiles-bce99892e442bbf33b909f3d.npy",
+    "inputs/profiles/isothermal-cold-endpoints-profiles-44f97fc46f4d84758bccf566.npy",
+    "inputs/profiles/isothermal-cold-endpoints-profiles-c8d57af2a9500a31c050ddcd.npy",
+    "inputs/profiles/isothermal-cold-endpoints-profiles-cc33d097656affba8c87db26.npy",
+    "inputs/profiles/isothermal-cold-endpoints-profiles-d9482458931aa4526962fb24.npy",
+    "inputs/profiles/isothermal-cold-endpoints-profiles-2633edc77c5ecb98e559cd62.npy",
+    "inputs/profiles/isothermal-cold-endpoints-profiles-700a0b68dfa21aa53a55f850.npy",
+    "inputs/profiles/isothermal-cold-endpoints-profiles-abf4ded8e76d0edd468c06f0.npy",
+    "inputs/profiles/core_mesh_T0.01_n3.001.npy",
+    "inputs/profiles/core_mesh_T0.01_n3.01.npy",
+    "inputs/profiles/core_mesh_T0.01_n3.05.npy"
+  ],
+  "schema": 1
+}

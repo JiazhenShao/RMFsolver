@@ -1,0 +1,55 @@
+{
+  "new_contours": [
+    {
+      "file": "isothermal-high-speed-extension.npy",
+      "sha256": "86f5ebfcf234534b06810b316b1d1165c7df94051019e41ee8912d79da80241d",
+      "counts": {
+        "success": 176,
+        "outside_window": 8
+      },
+      "evaluations": 660,
+      "max_speed_relative_error": 0.00497067062584633,
+      "max_momentum_flux_ratio": 1.185003237373061e-06,
+      "max_formula_relative_error": 4.374147663659131e-12,
+      "warning_count": 0
+    },
+    {
+      "file": "isothermal-outer-speed-extension.npy",
+      "sha256": "d582f52628a5f525289a5227b50af6c7b0389472c95b1602182a53fa80a50e9c",
+      "counts": {
+        "success": 132,
+        "outside_window": 6
+      },
+      "evaluations": 515,
+      "max_speed_relative_error": 0.004923441750483315,
+      "max_momentum_flux_ratio": 0.00011825222573554607,
+      "max_formula_relative_error": 1.299690413025828e-12,
+      "warning_count": 1
+    }
+  ],
+  "merged_targets": {
+    "success": 605,
+    "outside_window": 39
+  },
+  "numerical_levels": [
+    50.0,
+    100.0,
+    200.0,
+    500.0,
+    1000.0,
+    2000.0,
+    5000.0
+  ],
+  "source_hashes": {
+    "new_paper_calculations/26-10-02/adiabatic_xi_minus0p85/T0plus0p1-analytical-xi-minus0p85.npy": "efefdac49c1cf089570f98a8a9e67be477c3c041d24a5244ae564eae44e2b8fe",
+    "local_analysis_results/26-10-02/analytical-local-repair.npy": "7ea2cb223997695e93b31d2b6870fc28dce7ca10bda1cc2a3c91cba4fd811c26",
+    "local_analysis_results/26-10-02/isothermal-high-speed-extension.npy": "86f5ebfcf234534b06810b316b1d1165c7df94051019e41ee8912d79da80241d",
+    "local_analysis_results/26-10-02/isothermal-outer-speed-extension.npy": "d582f52628a5f525289a5227b50af6c7b0389472c95b1602182a53fa80a50e9c",
+    "new_paper_calculations/26-10-02/isothermal_analytic_logT/isothermal-analytic-logT.npy": "ebd9e720551725a157c0dac64d0bdf9ace88486115c1ebf2ab7134803dda10f9",
+    "new_paper_calculations/26-10-01/isothermal_numeric_logT/isothermal-logT.npy": "f6122f975a5828c61e816d44a9c3ff9febbb1727cdbe34f684cb0deb44a017f6",
+    "local_analysis_results/All_Plots_new/isothermal_contour_data/isothermal-numerical-contour.npz": "9960e28dc01650bfb42410d8f7ae3840575fd65ff01c9d087a4daf05af8d0872",
+    "local_analysis_results/All_Plots_new/isothermal_contour_data/isothermal-cold-endpoints.npy": "d7ef4d83659d8a6202deede0dccc65f82d12b60d06e19a2f388b0069ce5428d1"
+  },
+  "local_scipy_version": "1.18.1",
+  "numpy_version": "2.2.3"
+}

@@ -1,11 +1,14 @@
 ---
 summary: Local recovery yields 734/734 successes per analytical method at xi=-0.5, with endpoint-connected curves and all 30 semi-analytical 5000 m/s brackets complete.
 status: current
-updated: 2026-09-30
+updated: 2026-10-02
 tags: [method, cluster, analytical, fixed-interface-temperature]
 ---
 
 # Fixed-interface analytical comparison
+
+The separate $\xi=-0.85$ cluster experiment is now prepared in `26-10-02/adiabatic_xi_minus0p85/`, using direct fixed-density recovery and separate method timeouts; see [[analytical-xi-minus0p85-cluster]].
+The results and numerical comparison documented below remain the established $\xi=-0.5$ dataset and have not been overwritten.
 
 `new_paper_calculations/26-09-28/run_T0plus0p1_analytical.py` computes both
 fixed-interface analytical methods at $T(0^+)=0.1$ MeV. It reuses the saved
@@ -79,7 +82,7 @@ intervening samples prevent that isolated outer value from closing the gap.
 
 `All_Plots_new.ipynb` contains an executed three-method comparison immediately
 after the existing fixed-0.1-MeV numerical contour. Its size, fonts, colors,
-legend and gray boundaries follow the 5 MeV comparison in `26SU-11.ipynb`.
+legend and gray boundaries follow the 5 MeV comparison in `26-08-18-1.ipynb`.
 It draws the existing numerical result unchanged, the analytical body from the
 masked original grid, and the semi-analytical 5000 contour from its refined
 bracket strip. Neither missing cells nor the unresolved angular row are filled.

@@ -117,11 +117,13 @@ class AnalyticVelocityIsothermalApiTests(unittest.TestCase):
     def _call_with_static_candidate(self, muB_qm_candidate, *, temperature=10.0, a_0plus=0.4):
         nB_0minus = 2.0
         with (
-            patch.object(pv, "muB_from_nB_physical", return_value=1000.0),
             patch.object(
                 pv,
-                "_analytic_nuclear_state",
-                return_value=self._nuclear_state(nB_0minus),
+                "_validated_pnm_state_from_nB",
+                return_value={
+                    **self._nuclear_state(nB_0minus),
+                    "muB_0minus": 1000.0,
+                },
             ),
             patch.object(
                 pv,
@@ -170,6 +172,55 @@ class AnalyticVelocityIsothermalApiTests(unittest.TestCase):
             "a_0plus_equals_nK_0plus_over_nB_0plus",
         )
 
+    def test_analytic_path_uses_direct_density_state_instead_of_muB_scan(self):
+        nB_0minus = 2.0
+        direct_state = {
+            **self._nuclear_state(nB_0minus),
+            "muB_0minus": 1000.0,
+            "sigma_0minus": 60.0,
+            "upstream_rmf_scaled_residual": 2.0e-9,
+            "upstream_density_relative_residual": 3.0e-10,
+            "upstream_seed_count": 2,
+        }
+        with (
+            patch.object(
+                pv,
+                "muB_from_nB_physical",
+                side_effect=AssertionError("broad muB scan must not be used"),
+            ),
+            patch.object(
+                pv,
+                "_validated_pnm_state_from_nB",
+                return_value=direct_state,
+                create=True,
+            ) as direct_solve,
+            patch.object(
+                pv,
+                "_solve_muB_inf_at_muK0_for_given_Pi",
+                return_value=1010.0,
+            ),
+            patch.object(pv, "nB_QM", return_value=3.0),
+            patch.object(pv, "nK_QM", return_value=0.0),
+        ):
+            result = pv.analytic_velocity_isothermal(
+                10.0,
+                nB_0minus,
+                180.0,
+                0.4,
+            )
+
+        self.assertEqual(result["status"], "stable_neutron_matter")
+        self.assertIn("sigma_0minus", result)
+        self.assertEqual(result["sigma_0minus"], 60.0)
+        self.assertEqual(result["upstream_rmf_scaled_residual"], 2.0e-9)
+        self.assertEqual(result["upstream_density_relative_residual"], 3.0e-10)
+        self.assertEqual(result["upstream_seed_count"], 2)
+        direct_solve.assert_called_once_with(
+            nB_0minus,
+            10.0,
+            param=para.paraQMCRMF3,
+        )
+
     def test_delta_muB_within_tolerance_returns_coexistence_zero(self):
         result = self._call_with_static_candidate(1000.0 + 0.5e-6)
 
@@ -215,11 +266,13 @@ class AnalyticVelocityIsothermalApiTests(unittest.TestCase):
             "u_0minus_formula_squared": 4.0,
         }
         with (
-            patch.object(pv, "muB_from_nB_physical", return_value=1000.0),
             patch.object(
                 pv,
-                "_analytic_nuclear_state",
-                return_value=self._nuclear_state(nB_0minus),
+                "_validated_pnm_state_from_nB",
+                return_value={
+                    **self._nuclear_state(nB_0minus),
+                    "muB_0minus": 1000.0,
+                },
             ),
             patch.object(
                 pv,
@@ -285,11 +338,13 @@ class AnalyticVelocityIsothermalApiTests(unittest.TestCase):
             return 20.0 + 100.0 * u_0minus**2
 
         with (
-            patch.object(pv, "muB_from_nB_physical", return_value=1000.0),
             patch.object(
                 pv,
-                "_analytic_nuclear_state",
-                return_value=self._nuclear_state(nB_0minus),
+                "_validated_pnm_state_from_nB",
+                return_value={
+                    **self._nuclear_state(nB_0minus),
+                    "muB_0minus": 1000.0,
+                },
             ),
             patch.object(
                 pv,
@@ -432,7 +487,7 @@ class AnalyticVelocityIsothermalApiTests(unittest.TestCase):
     def test_current_analytic_model_rejects_non_pure_neutron_matter(self):
         with patch.object(
             pv,
-            "muB_from_nB_physical",
+            "_validated_pnm_state_from_nB",
             side_effect=AssertionError("EOS evaluation must not be reached"),
         ):
             with self.assertRaisesRegex(RuntimeError, "NM_type='PNM'"):
@@ -443,6 +498,97 @@ class AnalyticVelocityIsothermalApiTests(unittest.TestCase):
                     0.4,
                     NM_type="SYM",
                 )
+
+
+class DirectPnmDensityStateTests(unittest.TestCase):
+    @staticmethod
+    def _solution(sigma, muB, residual):
+        return [
+            [float(sigma), 20.0, -3.0, float(muB), 0.0, 0.0],
+            [float(residual)] * 4,
+            10.0,
+            2.0,
+            para.paraQMCRMF3,
+        ]
+
+    def test_rejects_bad_scaled_residual_then_stops_after_two_states_agree(self):
+        nB_0minus = 2.0
+        solutions = [
+            self._solution(70.0, 990.0, 10.0),
+            self._solution(60.0, 1100.0, 1.0e-9),
+            self._solution(60.0 + 1.0e-8, 1100.0 + 1.0e-7, 2.0e-9),
+        ]
+        with (
+            patch.object(pv, "RMFsolvePNM", side_effect=solutions) as solve,
+            patch.object(pv, "baryon_density_RMF", return_value=nB_0minus),
+            patch.object(pv, "pressure_RMF", return_value=20.0),
+            patch.object(pv, "edens_RMF", return_value=(None, 80.0, None)),
+        ):
+            result = pv._validated_pnm_state_from_nB(
+                nB_0minus,
+                10.0,
+                param=para.paraQMCRMF3,
+            )
+
+        self.assertEqual(solve.call_count, 3)
+        self.assertIn("upstream_seed_count", result)
+        self.assertEqual(result["upstream_seed_count"], 3)
+        self.assertAlmostEqual(result["muB_0minus"], 1100.0)
+        self.assertAlmostEqual(result["P_0minus"], 20.0)
+        self.assertAlmostEqual(result["e_0minus"], 80.0)
+        self.assertAlmostEqual(result["nB_0minus"], nB_0minus)
+
+    def test_requires_two_physical_density_solutions_to_agree(self):
+        solutions = [
+            self._solution(50.0 + index, 1000.0 + 10.0 * index, 1.0e-9)
+            for index in range(len(pv._PNM_BRANCH_SEEDS))
+        ]
+        with (
+            patch.object(pv, "RMFsolvePNM", side_effect=solutions),
+            patch.object(pv, "baryon_density_RMF") as forward_density,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "no two physical seeds agreed"):
+                pv._validated_pnm_state_from_nB(
+                    2.0,
+                    10.0,
+                    param=para.paraQMCRMF3,
+                )
+
+        forward_density.assert_not_called()
+
+    def test_rejects_an_agreed_state_that_fails_forward_density_validation(self):
+        solutions = [
+            self._solution(60.0, 1100.0, 1.0e-9),
+            self._solution(60.0 + 1.0e-8, 1100.0 + 1.0e-7, 2.0e-9),
+        ]
+        with (
+            patch.object(pv, "RMFsolvePNM", side_effect=solutions),
+            patch.object(pv, "baryon_density_RMF", return_value=2.1),
+            patch.object(pv, "pressure_RMF") as pressure,
+            patch.object(pv, "edens_RMF") as energy_density,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "forward-density validation"):
+                pv._validated_pnm_state_from_nB(
+                    2.0,
+                    10.0,
+                    param=para.paraQMCRMF3,
+                )
+
+        pressure.assert_not_called()
+        energy_density.assert_not_called()
+
+    def test_live_hot_low_density_state_skips_agreed_negative_pressure_branch(self):
+        n0 = 0.16 * const.MeV_fm**3
+        result = pv._validated_pnm_state_from_nB(
+            1.3823999071351403 * n0,
+            62.2009665054084,
+            param=para.paraQMCRMF3,
+        )
+
+        self.assertGreater(result["P_0minus"], 0.0)
+        self.assertAlmostEqual(result["sigma_0minus"], 36.42137702, places=5)
+        self.assertAlmostEqual(result["muB_0minus"], 962.01636463, places=5)
+        self.assertEqual(result["upstream_seed_count"], 4)
 
 
 if __name__ == "__main__":

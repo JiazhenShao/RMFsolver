@@ -1,0 +1,51 @@
+<h2>Two-block adaptive mesh at T = 80 MeV</h2>
+<p class="subtitle">Each block adapts in only one coordinate and is contoured separately. The seam is safely above the Delta h lobe and below A = 1.</p>
+
+<div class="mockup">
+  <div class="mockup-header">Physical domain decomposition</div>
+  <div class="mockup-body">
+    <svg viewBox="0 0 880 520" style="width:100%;height:auto;max-height:66vh">
+      <rect x="75" y="40" width="720" height="400" fill="#fff" stroke="#333" stroke-width="2"/>
+      <path d="M75 40 H795 V70 C610 74 430 80 245 91 Z" fill="#bdbdbd" opacity=".85"/>
+      <path d="M75 440 V440 C105 375 155 315 230 250 C285 201 325 155 350 120 C330 105 310 101 290 116 C245 151 190 210 140 276 C110 316 88 350 75 368 Z" fill="#d4d4d4"/>
+      <path d="M75 440 C105 375 155 315 230 250 C285 201 325 155 350 120 C330 105 310 101 290 116 C245 151 190 210 140 276 C110 316 88 350 75 368" fill="none" stroke="#f28e2b" stroke-width="4" stroke-dasharray="8 6"/>
+      <path d="M75 91 C300 85 545 77 795 70" fill="none" stroke="#555" stroke-width="4" stroke-dasharray="9 6"/>
+      <line x1="75" y1="120" x2="795" y2="120" stroke="#2d8a4b" stroke-width="4"/>
+
+      <g stroke="#79add0" stroke-width="1.3" opacity=".85">
+        <path d="M75 420 H795"/><path d="M89 385 H795"/><path d="M112 350 H795"/><path d="M140 315 H795"/><path d="M176 280 H795"/><path d="M218 245 H795"/><path d="M260 210 H795"/><path d="M301 175 H795"/><path d="M335 140 H795"/>
+      </g>
+      <g stroke="#8064a2" stroke-width="1.3" opacity=".9">
+        <path d="M95 120 V88"/><path d="M135 120 V87"/><path d="M175 120 V85"/><path d="M215 120 V83"/><path d="M255 120 V82"/><path d="M295 120 V80"/><path d="M335 120 V79"/><path d="M375 120 V78"/><path d="M415 120 V77"/><path d="M455 120 V76"/><path d="M495 120 V75"/><path d="M535 120 V74"/><path d="M575 120 V73"/><path d="M615 120 V72"/><path d="M655 120 V72"/><path d="M695 120 V71"/><path d="M735 120 V70"/><path d="M775 120 V70"/>
+      </g>
+
+      <text x="540" y="300" text-anchor="middle" font-size="25" fill="#2879a8">LOW BLOCK: T &lt; 80</text>
+      <text x="540" y="332" text-anchor="middle" font-size="18" fill="#2879a8">uniform T rows; m runs from m_gap(T) + epsilon_m to m_max</text>
+      <text x="540" y="102" text-anchor="middle" font-size="21" fill="#674890">HIGH BLOCK: T &gt; 80</text>
+      <text x="540" y="62" text-anchor="middle" font-size="16" fill="#674890">uniform m columns; T runs from 80 to T_A(m) - epsilon_T</text>
+      <text x="705" y="143" text-anchor="middle" font-size="17" fill="#2d8a4b">shared seam T = 80 MeV</text>
+      <text x="435" y="485" text-anchor="middle" font-size="21">metastability m</text>
+      <text x="25" y="240" text-anchor="middle" font-size="21" transform="rotate(-90 25 240)">temperature T</text>
+      <text x="130" y="405" text-anchor="middle" font-size="16">Delta h &gt; 0</text>
+      <text x="670" y="55" text-anchor="middle" font-size="16">A &gt;= 1</text>
+    </svg>
+  </div>
+</div>
+
+<h3>One continuation choice remains for the low block</h3>
+<div class="options">
+  <div class="option" data-choice="rowwise" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Row-wise from high m (recommended)</h3>
+      <p>Start each T row at stable m_max and propagate left through immediately adjacent m points toward the gap boundary. Process rows beginning near 10 MeV, then outward.</p>
+    </div>
+  </div>
+  <div class="option" data-choice="normalized_columns" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Normalized curvilinear columns</h3>
+      <p>Propagate in T at fixed normalized row coordinate. Physical m changes with T, so this does not preserve the earlier same-metastability continuation rule.</p>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,13 @@
+{
+  "cold_max_2d_analytic_relative_error": 5.140332604014475e-14,
+  "cold_max_3d_analytic_relative_error": 1.7160888154954534e-08,
+  "finite_3d_max_relative_error_n24": 3.1086244689504383e-15,
+  "detailed_balance_relative_error": -2.220446049250313e-16,
+  "equilibrium_rate": 0.0,
+  "sign_reversal_relative_error": 0.0,
+  "dimensional_scaling_relative_error": 0.0,
+  "eos_path_C2_max_corrected_relative_error": 9.708917247941429e-08,
+  "grid_max_relative_n24_to_n40": 1.7075230118734908e-13,
+  "grid_max_relative_tail48_to_tail64": 5.551115123125783e-15,
+  "wall_seconds": 195.8838288784027
+}

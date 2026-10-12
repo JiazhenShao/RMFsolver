@@ -1,0 +1,30 @@
+% ============================================================================
+% Companion appendix for gw_section_body.tex.
+% When merging into Main.tex, place this AFTER the host's \appendix switch,
+% alongside the existing appendices. It is the compressed, sign-checked
+% replacement for the level-set subsection of the original draft, retargeted
+% at simulators. Flat space, natural units, host conventions.
+% ============================================================================
+
+\section{Implementing finite-rate conversion in merger simulations}
+\label{sec:finite_rate_implementation}
+
+The finite-rate prescription of Sec.~\ref{sec:gw} can be added to a hydrodynamic merger simulation with one additional advected field.
+Let $\Phi(\boldsymbol{x},t)$ be a marker field whose zero surface is the phase boundary, with $\Phi>0$ in quark matter and $\Phi<0$ in nuclear matter, so that the conversion indicator is $Y_q=\Theta(\Phi)$.
+Only the zero surface and the sign of $\Phi$ are physical; its magnitude may be chosen for numerical convenience, e.g.\ by reinitializing $\Phi$ to the signed distance from the boundary.
+
+The boundary moves with the local fluid velocity $\boldsymbol{v}$ plus the conversion speed $u(0^-)$ along the normal $\widehat{\boldsymbol{n}}=-\boldsymbol{\nabla}\Phi/|\boldsymbol{\nabla}\Phi|$, which points from the quark phase into the nuclear phase.
+Requiring the zero surface to follow this velocity gives
+\begin{equation}
+\partial_t\Phi
++\boldsymbol{v}\boldsymbol{\cdot}\boldsymbol{\nabla}\Phi
+=u(0^-)\,\bigl|\boldsymbol{\nabla}\Phi\bigr|\,,
+\label{eq:marker_transport}
+\end{equation}
+a level-set equation whose source term converts matter at the calculated speed.
+Here $\boldsymbol{v}$ is the fluid velocity on the nuclear side, because $u(0^-)$ is defined relative to the nuclear matter flowing into the front; the boundary speed relative to the quark side differs by the density ratio through baryon-flux conservation (Sec.~\ref{sec:speed}).
+The speed $u(0^-)$ is evaluated pointwise on the boundary from the local values of $n_B(0^-)-n_B^{\rm crit}(T)$ and $T$, using the analytic boundary-speed formula of Sec.~\ref{sec:speed} or a tabulation of the numerical solutions.
+
+Two limitations of the prescription mirror the physics.
+First, $Y_q=\Theta(\Phi)$ builds in hysteresis: where the front has passed, a later pressure drop below $p_\text{crit}$ does not undo the conversion unless a reverse-conversion speed is supplied on the quark side of the boundary.
+Second, Eq.~\eqref{eq:marker_transport} transports existing boundaries only; where $P>p_\text{crit}$ but no boundary is present, conversion requires nucleation, which must be seeded explicitly.

@@ -1,0 +1,3129 @@
+{
+  "schema_version": 2,
+  "generated_at_utc": "2026-10-11T20:03:08.047167+00:00",
+  "model_names": [
+    "exact",
+    "eq23",
+    "sommerfeld_T2"
+  ],
+  "speed_ratio_relative_tolerance": 0.001,
+  "scope": "Independent EOS and integration coordinate; shared rates and diffusion; no BVP",
+  "source_sha256": {
+    "adiabatic_sensitivity.py": "40159f0ff95be159d9411138b4fba16c5955dd5499c7450dfacee1e49d3d7552",
+    "validate_rate.py": "11d5de3e48c3ec09ef4c5aefbf2ab6c94a803eb46224ee1992a27751ed3711cb",
+    "cold_sympy.py": "d34c6381c2b25e7a32da4a4c682b10d7efb9ac8590291613a6d744edab03b5f9",
+    "thermal_sympy.py": "cd2027784e98055f63801c5c903853517b74a574fafcaad86091f7b630cf9584"
+  },
+  "verifier_sha256": "b70bfa62fe3f7437de0c98f1fd325dc409bc4ef4ecdaf7d5524a018610086c7b",
+  "numpy_version": "2.2.3",
+  "mpmath_version": "1.3.0",
+  "cold_state_sweep": {
+    "count": 3025,
+    "z_min": 1e-07,
+    "z_max": 0.1,
+    "failures": [],
+    "max_pressure_relative_residual": 6.661338147750939e-16,
+    "max_density_relative_residual": 6.661338147750939e-16,
+    "passed": true
+  },
+  "independent_a_coordinate": [
+    {
+      "a_0plus": 0.005,
+      "cold_mu": 400.0,
+      "coordinate": "a=a_0plus*(1-y**6)",
+      "eos_decimal_digits": 40,
+      "eos_bisection_iterations": 100,
+      "outer_order": 18,
+      "phase_order": 16,
+      "tail": 48,
+      "max_pressure_relative_residual": 3.341255172984514e-33,
+      "integrals": [
+        1.0964259728976479e-18,
+        1.0989909023727985e-18,
+        1.0967388054909542e-18
+      ],
+      "reference_settings": {
+        "outer_order": 18,
+        "phase_order": 16,
+        "tail": 48
+      },
+      "reference_integrals": [
+        1.09642597287076e-18,
+        1.0989909023458072e-18,
+        1.0967387954662304e-18
+      ],
+      "integral_relative_difference": [
+        2.4523272301735233e-11,
+        2.4560131706152788e-11,
+        9.140484369396518e-09
+      ],
+      "speed_ratios": [
+        1.0,
+        1.0011689941776585,
+        1.000142649978133
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        1.00116899417764,
+        1.0001426454195022
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        1.84297022087776e-14,
+        4.558630806172914e-09
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        1.84297022087776e-14,
+        4.557980659569694e-09
+      ],
+      "max_abs_speed_ratio_relative_difference": 4.557980659569694e-09,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.146,
+      "cold_mu": 400.0,
+      "coordinate": "a=a_0plus*(1-y**6)",
+      "eos_decimal_digits": 40,
+      "eos_bisection_iterations": 100,
+      "outer_order": 18,
+      "phase_order": 16,
+      "tail": 48,
+      "max_pressure_relative_residual": 8.458327673517765e-32,
+      "integrals": [
+        2.3653842787907715e-15,
+        2.5435874804385645e-15,
+        2.381985186064878e-15
+      ],
+      "reference_settings": {
+        "outer_order": 18,
+        "phase_order": 28,
+        "tail": 64
+      },
+      "reference_integrals": [
+        2.365384278790751e-15,
+        2.543587480438539e-15,
+        2.3819845761652084e-15
+      ],
+      "integral_relative_difference": [
+        8.659739592076221e-15,
+        9.992007221626409e-15,
+        2.5604685927049786e-07
+      ],
+      "speed_ratios": [
+        1.0,
+        1.0369850286424525,
+        1.0035029998662672
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        1.0369850286424518,
+        1.0035028713944005
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        6.661338147750939e-16,
+        1.2847186670050803e-07
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        6.661338147750939e-16,
+        1.2802341720075106e-07
+      ],
+      "max_abs_speed_ratio_relative_difference": 1.2802341720075106e-07,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.5,
+      "cold_mu": 400.0,
+      "coordinate": "a=a_0plus*(1-y**6)",
+      "eos_decimal_digits": 40,
+      "eos_bisection_iterations": 100,
+      "outer_order": 18,
+      "phase_order": 16,
+      "tail": 48,
+      "max_pressure_relative_residual": 3.64547665100611e-31,
+      "integrals": [
+        3.1820383926649596e-14,
+        4.3306674004754174e-14,
+        3.2341153433047256e-14
+      ],
+      "reference_settings": {
+        "outer_order": 18,
+        "phase_order": 28,
+        "tail": 64
+      },
+      "reference_integrals": [
+        3.1820383926649685e-14,
+        4.3306674004754294e-14,
+        3.2341120837041334e-14
+      ],
+      "integral_relative_difference": [
+        -2.7755575615628914e-15,
+        -2.7755575615628914e-15,
+        1.007881145653755e-06
+      ],
+      "speed_ratios": [
+        1.0,
+        1.1666073484958523,
+        1.0081497453054433
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        1.1666073484958523,
+        1.0081492372582657
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        0.0,
+        5.08047177660842e-07
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        0.0,
+        5.039404473716758e-07
+      ],
+      "max_abs_speed_ratio_relative_difference": 5.039404473716758e-07,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.9,
+      "cold_mu": 400.0,
+      "coordinate": "a=a_0plus*(1-y**6)",
+      "eos_decimal_digits": 40,
+      "eos_bisection_iterations": 100,
+      "outer_order": 18,
+      "phase_order": 16,
+      "tail": 48,
+      "max_pressure_relative_residual": 5.766043962770916e-31,
+      "integrals": [
+        8.308673330146036e-14,
+        2.0247794187213834e-13,
+        8.385739449138067e-14
+      ],
+      "reference_settings": {
+        "outer_order": 18,
+        "phase_order": 28,
+        "tail": 64
+      },
+      "reference_integrals": [
+        8.308673330146046e-14,
+        2.0247794187213922e-13,
+        8.385716381323163e-14
+      ],
+      "integral_relative_difference": [
+        -1.2212453270876722e-15,
+        -4.3298697960381105e-15,
+        2.7508460642700072e-06
+      ],
+      "speed_ratios": [
+        1.0,
+        1.5610722968908504,
+        1.0046269864944823
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        1.5610722968908528,
+        1.0046256047102367
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        -2.4424906541753444e-15,
+        1.381784245690909e-06
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        -1.5543122344752192e-15,
+        1.3754220868911204e-06
+      ],
+      "max_abs_speed_ratio_relative_difference": 1.3754220868911204e-06,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.995,
+      "cold_mu": 400.0,
+      "coordinate": "a=a_0plus*(1-y**6)",
+      "eos_decimal_digits": 40,
+      "eos_bisection_iterations": 100,
+      "outer_order": 18,
+      "phase_order": 16,
+      "tail": 48,
+      "max_pressure_relative_residual": 6.1919956557280595e-31,
+      "integrals": [
+        8.000909189478497e-14,
+        3.3286961941185057e-13,
+        8.016228273717898e-14
+      ],
+      "reference_settings": {
+        "outer_order": 18,
+        "phase_order": 28,
+        "tail": 64
+      },
+      "reference_integrals": [
+        8.000909189478504e-14,
+        3.328696194118497e-13,
+        8.016194680783548e-14
+      ],
+      "integral_relative_difference": [
+        -9.992007221626409e-16,
+        2.6645352591003757e-15,
+        4.190633547063172e-06
+      ],
+      "speed_ratios": [
+        1.0,
+        2.03970522844679,
+        1.0009568761592245
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        2.0397052284467865,
+        1.0009547788440836
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        3.552713678800501e-15,
+        2.0973151408920643e-06
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        1.7763568394002505e-15,
+        2.095314578953733e-06
+      ],
+      "max_abs_speed_ratio_relative_difference": 2.095314578953733e-06,
+      "speed_ratios_pass": true
+    }
+  ],
+  "eos_iteration_checks": [
+    {
+      "a_0plus": 0.146,
+      "initial_iterations": 64,
+      "refined_iterations": 100,
+      "outer_order": 18,
+      "phase_order": 16,
+      "tail": 48,
+      "initial_integrals": [
+        2.365384278790751e-15,
+        2.543587480438539e-15,
+        2.3819845761652084e-15
+      ],
+      "refined_integrals": [
+        2.365384278790751e-15,
+        2.543587480438539e-15,
+        2.3819845761652084e-15
+      ],
+      "integral_relative_difference": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "speed_ratios": [
+        1.0,
+        1.0369850286424518,
+        1.0035028713944005
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        1.0369850286424518,
+        1.0035028713944005
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "max_abs_speed_ratio_relative_difference": 0.0,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.5,
+      "initial_iterations": 64,
+      "refined_iterations": 100,
+      "outer_order": 18,
+      "phase_order": 16,
+      "tail": 48,
+      "initial_integrals": [
+        3.1820383926649685e-14,
+        4.3306674004754294e-14,
+        3.2341120837041334e-14
+      ],
+      "refined_integrals": [
+        3.1820383926649685e-14,
+        4.3306674004754294e-14,
+        3.2341120837041334e-14
+      ],
+      "integral_relative_difference": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "speed_ratios": [
+        1.0,
+        1.1666073484958523,
+        1.0081492372582657
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        1.1666073484958523,
+        1.0081492372582657
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "max_abs_speed_ratio_relative_difference": 0.0,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.9,
+      "initial_iterations": 64,
+      "refined_iterations": 100,
+      "outer_order": 18,
+      "phase_order": 16,
+      "tail": 48,
+      "initial_integrals": [
+        8.308673330146045e-14,
+        2.0247794187213922e-13,
+        8.385716381323163e-14
+      ],
+      "refined_integrals": [
+        8.308673330146045e-14,
+        2.0247794187213922e-13,
+        8.385716381323163e-14
+      ],
+      "integral_relative_difference": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "speed_ratios": [
+        1.0,
+        1.561072296890853,
+        1.0046256047102367
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        1.561072296890853,
+        1.0046256047102367
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "max_abs_speed_ratio_relative_difference": 0.0,
+      "speed_ratios_pass": true
+    }
+  ],
+  "cutoff_checks": [
+    {
+      "cutoff_fraction": 0.001,
+      "raw_integrals": [
+        2.1160523327150763e-15,
+        2.2762046560452945e-15,
+        2.1326523222755446e-15
+      ],
+      "corrected_integrals": [
+        2.370804228362432e-15,
+        2.5493998174905005e-15,
+        2.3874042179229e-15
+      ],
+      "a_0plus": 0.146,
+      "phase_order": 24,
+      "log_temperature_order": 24,
+      "log_temperature_segments": 8,
+      "tail": 48,
+      "leading_cold_tail": [
+        2.5475189564735573e-16,
+        2.73195161445206e-16,
+        2.5475189564735573e-16
+      ],
+      "reference_integrals": [
+        2.365384278790751e-15,
+        2.543587480438539e-15,
+        2.3819845761652084e-15
+      ],
+      "reference_settings": {
+        "outer_order": 18,
+        "phase_order": 28,
+        "tail": 64
+      },
+      "raw_comparison": {
+        "integral_relative_difference": [
+          -0.10540864260886185,
+          -0.10512035715286072,
+          -0.10467416808007524
+        ],
+        "speed_ratios": [
+          1.0,
+          1.0371521013617448,
+          1.0039147332308318
+        ],
+        "reference_speed_ratios": [
+          1.0,
+          1.0369850286424518,
+          1.0035028713944005
+        ],
+        "speed_ratio_absolute_difference": [
+          0.0,
+          0.0001670727192930599,
+          0.00041186183643127094
+        ],
+        "speed_ratio_relative_difference": [
+          0.0,
+          0.00016111391647744,
+          0.0004104241733349223
+        ],
+        "max_abs_speed_ratio_relative_difference": 0.0004104241733349223,
+        "speed_ratios_pass": true
+      },
+      "corrected_comparison": {
+        "integral_relative_difference": [
+          0.002291361120592139,
+          0.002285094220922712,
+          0.0022752631616183017
+        ],
+        "speed_ratios": [
+          1.0,
+          1.0369817867252091,
+          1.0034948126534269
+        ],
+        "reference_speed_ratios": [
+          1.0,
+          1.0369850286424518,
+          1.0035028713944005
+        ],
+        "speed_ratio_absolute_difference": [
+          0.0,
+          -3.241917242657877e-06,
+          -8.058740973648781e-06
+        ],
+        "speed_ratio_relative_difference": [
+          0.0,
+          -3.126291270527659e-06,
+          -8.030610776921243e-06
+        ],
+        "max_abs_speed_ratio_relative_difference": 8.030610776921243e-06,
+        "speed_ratios_pass": true
+      }
+    },
+    {
+      "cutoff_fraction": 1e-05,
+      "raw_integrals": [
+        2.3107569210671042e-15,
+        2.4850052674398243e-15,
+        2.3273558506065717e-15
+      ],
+      "corrected_integrals": [
+        2.365641553200509e-15,
+        2.5438633807364656e-15,
+        2.3822404827399764e-15
+      ],
+      "a_0plus": 0.146,
+      "phase_order": 24,
+      "log_temperature_order": 24,
+      "log_temperature_segments": 8,
+      "tail": 48,
+      "leading_cold_tail": [
+        5.488463213340457e-17,
+        5.88581132966413e-17,
+        5.488463213340457e-17
+      ],
+      "reference_integrals": [
+        2.365384278790751e-15,
+        2.543587480438539e-15,
+        2.3819845761652084e-15
+      ],
+      "reference_settings": {
+        "outer_order": 18,
+        "phase_order": 28,
+        "tail": 64
+      },
+      "raw_comparison": {
+        "integral_relative_difference": [
+          -0.023094495982519114,
+          -0.023031334070182763,
+          -0.022934122288308156
+        ],
+        "speed_ratios": [
+          1.0,
+          1.0370185512802832,
+          1.0035852380396515
+        ],
+        "reference_speed_ratios": [
+          1.0,
+          1.0369850286424518,
+          1.0035028713944005
+        ],
+        "speed_ratio_absolute_difference": [
+          0.0,
+          3.3522637831406854e-05,
+          8.236664525096415e-05
+        ],
+        "speed_ratio_relative_difference": [
+          0.0,
+          3.232702199684745e-05,
+          8.207913260527278e-05
+        ],
+        "max_abs_speed_ratio_relative_difference": 8.207913260527278e-05,
+        "speed_ratios_pass": true
+      },
+      "corrected_comparison": {
+        "integral_relative_difference": [
+          0.00010876643261092944,
+          0.000108468963638364,
+          0.00010743418632030988
+        ],
+        "speed_ratios": [
+          1.0,
+          1.0369848744237786,
+          1.0035022030103866
+        ],
+        "reference_speed_ratios": [
+          1.0,
+          1.0369850286424518,
+          1.0035028713944005
+        ],
+        "speed_ratio_absolute_difference": [
+          0.0,
+          -1.542186731651185e-07,
+          -6.683840139132258e-07
+        ],
+        "speed_ratio_relative_difference": [
+          0.0,
+          -1.4871832176854838e-07,
+          -6.660509231926071e-07
+        ],
+        "max_abs_speed_ratio_relative_difference": 6.660509231926071e-07,
+        "speed_ratios_pass": true
+      }
+    },
+    {
+      "cutoff_fraction": 1e-07,
+      "raw_integrals": [
+        2.3535717436577005e-15,
+        2.5309197535329145e-15,
+        2.3701693695978728e-15
+      ],
+      "corrected_integrals": [
+        2.365396279199485e-15,
+        2.5436003496405256e-15,
+        2.381993905139657e-15
+      ],
+      "a_0plus": 0.146,
+      "phase_order": 24,
+      "log_temperature_order": 24,
+      "log_temperature_segments": 8,
+      "tail": 48,
+      "leading_cold_tail": [
+        1.1824535541784542e-17,
+        1.2680596107611087e-17,
+        1.1824535541784542e-17
+      ],
+      "reference_integrals": [
+        2.365384278790751e-15,
+        2.543587480438539e-15,
+        2.3819845761652084e-15
+      ],
+      "reference_settings": {
+        "outer_order": 18,
+        "phase_order": 28,
+        "tail": 64
+      },
+      "raw_comparison": {
+        "integral_relative_difference": [
+          -0.00499391800265514,
+          -0.00498025996866458,
+          -0.004960236386734707
+        ],
+        "speed_ratios": [
+          1.0,
+          1.0369921457487803,
+          1.0035198558696068
+        ],
+        "reference_speed_ratios": [
+          1.0,
+          1.0369850286424518,
+          1.0035028713944005
+        ],
+        "speed_ratio_absolute_difference": [
+          0.0,
+          7.117106328502487e-06,
+          1.6984475206260896e-05
+        ],
+        "speed_ratio_relative_difference": [
+          0.0,
+          6.863268159129632e-06,
+          1.6925188447869388e-05
+        ],
+        "max_abs_speed_ratio_relative_difference": 1.6925188447869388e-05,
+        "speed_ratios_pass": true
+      },
+      "corrected_comparison": {
+        "integral_relative_difference": [
+          5.073344251815826e-06,
+          5.0594689924299274e-06,
+          3.9164713920847305e-06
+        ],
+        "speed_ratios": [
+          1.0,
+          1.03698502144827,
+          1.0035022909345592
+        ],
+        "reference_speed_ratios": [
+          1.0,
+          1.0369850286424518,
+          1.0035028713944005
+        ],
+        "speed_ratio_absolute_difference": [
+          0.0,
+          -7.194181694814006e-09,
+          -5.804598413039486e-07
+        ],
+        "speed_ratio_relative_difference": [
+          0.0,
+          -6.9375946099015096e-09,
+          -5.784336625236364e-07
+        ],
+        "max_abs_speed_ratio_relative_difference": 5.784336625236364e-07,
+        "speed_ratios_pass": true
+      }
+    },
+    {
+      "cutoff_fraction": 0.001,
+      "raw_integrals": [
+        2.819439691003759e-14,
+        3.8305244793760685e-14,
+        2.8715117369418695e-14
+      ],
+      "corrected_integrals": [
+        3.19399073860917e-14,
+        4.347153626954617e-14,
+        3.2460627845472803e-14
+      ],
+      "a_0plus": 0.5,
+      "phase_order": 24,
+      "log_temperature_order": 24,
+      "log_temperature_segments": 8,
+      "tail": 48,
+      "leading_cold_tail": [
+        3.7455104760541086e-15,
+        5.1662914757854865e-15,
+        3.7455104760541086e-15
+      ],
+      "reference_integrals": [
+        3.1820383926649685e-14,
+        4.3306674004754294e-14,
+        3.2341120837041334e-14
+      ],
+      "reference_settings": {
+        "outer_order": 18,
+        "phase_order": 28,
+        "tail": 64
+      },
+      "raw_comparison": {
+        "integral_relative_difference": [
+          -0.11395170545303568,
+          -0.11548864755683019,
+          -0.11211743358843829
+        ],
+        "speed_ratios": [
+          1.0,
+          1.1655951089949625,
+          1.0091922186236455
+        ],
+        "reference_speed_ratios": [
+          1.0,
+          1.1666073484958523,
+          1.0081492372582657
+        ],
+        "speed_ratio_absolute_difference": [
+          0.0,
+          -0.0010122395008898,
+          0.0010429813653798359
+        ],
+        "speed_ratio_relative_difference": [
+          0.0,
+          -0.0008676779742514684,
+          0.0010345505673508004
+        ],
+        "max_abs_speed_ratio_relative_difference": 0.0010345505673508004,
+        "speed_ratios_pass": false
+      },
+      "corrected_comparison": {
+        "integral_relative_difference": [
+          0.0037561916197343947,
+          0.0038068558387507334,
+          0.0036952030522885426
+        ],
+        "speed_ratios": [
+          1.0,
+          1.1666367901595223,
+          1.0081186090478174
+        ],
+        "reference_speed_ratios": [
+          1.0,
+          1.1666073484958523,
+          1.0081492372582657
+        ],
+        "speed_ratio_absolute_difference": [
+          0.0,
+          2.944166366991574e-05,
+          -3.062821044830244e-05
+        ],
+        "speed_ratio_relative_difference": [
+          0.0,
+          2.523699487055886e-05,
+          -3.0380631474313802e-05
+        ],
+        "max_abs_speed_ratio_relative_difference": 3.0380631474313802e-05,
+        "speed_ratios_pass": true
+      }
+    },
+    {
+      "cutoff_fraction": 1e-05,
+      "raw_integrals": [
+        3.101917626545366e-14,
+        4.220154498780791e-14,
+        3.153984007263808e-14
+      ],
+      "corrected_integrals": [
+        3.1826122035602535e-14,
+        4.3314588745232733e-14,
+        3.234678584278696e-14
+      ],
+      "a_0plus": 0.5,
+      "phase_order": 24,
+      "log_temperature_order": 24,
+      "log_temperature_segments": 8,
+      "tail": 48,
+      "leading_cold_tail": [
+        8.069457701488807e-16,
+        1.1130437574248268e-15,
+        8.069457701488807e-16
+      ],
+      "reference_integrals": [
+        3.1820383926649685e-14,
+        4.3306674004754294e-14,
+        3.2341120837041334e-14
+      ],
+      "reference_settings": {
+        "outer_order": 18,
+        "phase_order": 28,
+        "tail": 64
+      },
+      "raw_comparison": {
+        "integral_relative_difference": [
+          -0.025179069587686898,
+          -0.025518676793906292,
+          -0.02477591201741902
+        ],
+        "speed_ratios": [
+          1.0,
+          1.1664041200043662,
+          1.0083576863024544
+        ],
+        "reference_speed_ratios": [
+          1.0,
+          1.1666073484958523,
+          1.0081492372582657
+        ],
+        "speed_ratio_absolute_difference": [
+          0.0,
+          -0.00020322849148612931,
+          0.0002084490441887077
+        ],
+        "speed_ratio_relative_difference": [
+          0.0,
+          -0.00017420470713491731,
+          0.00020676407468767088
+        ],
+        "max_abs_speed_ratio_relative_difference": 0.00020676407468767088,
+        "speed_ratios_pass": true
+      },
+      "corrected_comparison": {
+        "integral_relative_difference": [
+          0.00018032808674073308,
+          0.00018276029411934402,
+          0.00017516417486485025
+        ],
+        "speed_ratios": [
+          1.0,
+          1.1666087669547025,
+          1.0081466347273058
+        ],
+        "reference_speed_ratios": [
+          1.0,
+          1.1666073484958523,
+          1.0081492372582657
+        ],
+        "speed_ratio_absolute_difference": [
+          0.0,
+          1.4184588501553463e-06,
+          -2.602530959849858e-06
+        ],
+        "speed_ratio_relative_difference": [
+          0.0,
+          1.215883692173847e-06,
+          -2.5814937547607997e-06
+        ],
+        "max_abs_speed_ratio_relative_difference": 2.5814937547607997e-06,
+        "speed_ratios_pass": true
+      }
+    },
+    {
+      "cutoff_fraction": 1e-07,
+      "raw_integrals": [
+        3.164680106317748e-14,
+        4.306724611538322e-14,
+        3.2167395200651516e-14
+      ],
+      "corrected_integrals": [
+        3.1820652259195806e-14,
+        4.330704412363516e-14,
+        3.234124639666984e-14
+      ],
+      "a_0plus": 0.5,
+      "phase_order": 24,
+      "log_temperature_order": 24,
+      "log_temperature_segments": 8,
+      "tail": 48,
+      "leading_cold_tail": [
+        1.7385119601832436e-16,
+        2.3979800825194797e-16,
+        1.7385119601832436e-16
+      ],
+      "reference_integrals": [
+        3.1820383926649685e-14,
+        4.3306674004754294e-14,
+        3.2341120837041334e-14
+      ],
+      "reference_settings": {
+        "outer_order": 18,
+        "phase_order": 28,
+        "tail": 64
+      },
+      "raw_comparison": {
+        "integral_relative_difference": [
+          -0.00545508388183924,
+          -0.005528660301753807,
+          -0.0053716640578159724
+        ],
+        "speed_ratios": [
+          1.0,
+          1.166564194899504,
+          1.0081915168311426
+        ],
+        "reference_speed_ratios": [
+          1.0,
+          1.1666073484958523,
+          1.0081492372582657
+        ],
+        "speed_ratio_absolute_difference": [
+          0.0,
+          -4.3153596348322054e-05,
+          4.22795728769465e-05
+        ],
+        "speed_ratio_relative_difference": [
+          0.0,
+          -3.699067762941155e-05,
+          4.193781169936628e-05
+        ],
+        "max_abs_speed_ratio_relative_difference": 4.193781169936628e-05,
+        "speed_ratios_pass": true
+      },
+      "corrected_comparison": {
+        "integral_relative_difference": [
+          8.432724970974803e-06,
+          8.54646285763927e-06,
+          3.8823524124431685e-06
+        ],
+        "speed_ratios": [
+          1.0,
+          1.1666074148390184,
+          1.0081469435476866
+        ],
+        "reference_speed_ratios": [
+          1.0,
+          1.1666073484958523,
+          1.0081492372582657
+        ],
+        "speed_ratio_absolute_difference": [
+          0.0,
+          6.634316607190271e-08,
+          -2.293710579026609e-06
+        ],
+        "speed_ratio_relative_difference": [
+          0.0,
+          5.686846238361909e-08,
+          -2.2751696815426214e-06
+        ],
+        "max_abs_speed_ratio_relative_difference": 2.2751696815426214e-06,
+        "speed_ratios_pass": true
+      }
+    },
+    {
+      "cutoff_fraction": 0.001,
+      "raw_integrals": [
+        7.364964347374589e-14,
+        1.762217727659714e-13,
+        7.441995755887221e-14
+      ],
+      "corrected_integrals": [
+        8.347899376621124e-14,
+        2.035693064068639e-13,
+        8.424930785133758e-14
+      ],
+      "a_0plus": 0.9,
+      "phase_order": 24,
+      "log_temperature_order": 24,
+      "log_temperature_segments": 8,
+      "tail": 48,
+      "leading_cold_tail": [
+        9.829350292465363e-15,
+        2.7347533640892493e-14,
+        9.829350292465363e-15
+      ],
+      "reference_integrals": [
+        8.308673330146046e-14,
+        2.0247794187213922e-13,
+        8.385716381323163e-14
+      ],
+      "reference_settings": {
+        "outer_order": 18,
+        "phase_order": 28,
+        "tail": 64
+      },
+      "raw_comparison": {
+        "integral_relative_difference": [
+          -0.11358118742584733,
+          -0.12967421963794978,
+          -0.11253905838478107
+        ],
+        "speed_ratios": [
+          1.0,
+          1.5468366679211478,
+          1.0052159813861619
+        ],
+        "reference_speed_ratios": [
+          1.0,
+          1.5610722968908528,
+          1.0046256047102367
+        ],
+        "speed_ratio_absolute_difference": [
+          0.0,
+          -0.014235628969704983,
+          0.0005903766759252083
+        ],
+        "speed_ratio_relative_difference": [
+          0.0,
+          -0.009119134967712661,
+          0.0005876584004600449
+        ],
+        "max_abs_speed_ratio_relative_difference": 0.009119134967712661,
+        "speed_ratios_pass": false
+      },
+      "corrected_comparison": {
+        "integral_relative_difference": [
+          0.004721096246828704,
+          0.005390041624454334,
+          0.004676333186981463
+        ],
+        "speed_ratios": [
+          1.0,
+          1.5615918929953125,
+          1.0046032250582455
+        ],
+        "reference_speed_ratios": [
+          1.0,
+          1.5610722968908528,
+          1.0046256047102367
+        ],
+        "speed_ratio_absolute_difference": [
+          0.0,
+          0.0005195961044597297,
+          -2.2379651991144556e-05
+        ],
+        "speed_ratio_relative_difference": [
+          0.0,
+          0.0003328456378954847,
+          -2.2276609202731557e-05
+        ],
+        "max_abs_speed_ratio_relative_difference": 0.0003328456378954847,
+        "speed_ratios_pass": true
+      }
+    },
+    {
+      "cutoff_fraction": 1e-05,
+      "raw_integrals": [
+        8.098805761825482e-14,
+        1.966389390755157e-13,
+        8.175797074705945e-14
+      ],
+      "corrected_integrals": [
+        8.310572694331106e-14,
+        2.0253078659179097e-13,
+        8.387564007211569e-14
+      ],
+      "a_0plus": 0.9,
+      "phase_order": 24,
+      "log_temperature_order": 24,
+      "log_temperature_segments": 8,
+      "tail": 48,
+      "leading_cold_tail": [
+        2.1176693250562423e-15,
+        5.8918475162752735e-15,
+        2.1176693250562423e-15
+      ],
+      "reference_integrals": [
+        8.308673330146046e-14,
+        2.0247794187213922e-13,
+        8.385716381323163e-14
+      ],
+      "reference_settings": {
+        "outer_order": 18,
+        "phase_order": 28,
+        "tail": 64
+      },
+      "raw_comparison": {
+        "integral_relative_difference": [
+          -0.025258854209505244,
+          -0.028837722976810642,
+          -0.02503296046176262
+        ],
+        "speed_ratios": [
+          1.0,
+          1.5582038376333311,
+          1.0047420076636353
+        ],
+        "reference_speed_ratios": [
+          1.0,
+          1.5610722968908528,
+          1.0046256047102367
+        ],
+        "speed_ratio_absolute_difference": [
+          0.0,
+          -0.0028684592575216605,
+          0.00011640295339865325
+        ],
+        "speed_ratio_relative_difference": [
+          0.0,
+          -0.0018374928971801596,
+          0.00011586699846488635
+        ],
+        "max_abs_speed_ratio_relative_difference": 0.0018374928971801596,
+        "speed_ratios_pass": false
+      },
+      "corrected_comparison": {
+        "integral_relative_difference": [
+          0.00022860017593528958,
+          0.0002609900079146854,
+          0.00022033011902489186
+        ],
+        "speed_ratios": [
+          1.0,
+          1.5610975723429168,
+          1.004621451495613
+        ],
+        "reference_speed_ratios": [
+          1.0,
+          1.5610722968908528,
+          1.0046256047102367
+        ],
+        "speed_ratio_absolute_difference": [
+          0.0,
+          2.5275452063988624e-05,
+          -4.153214623547896e-06
+        ],
+        "speed_ratio_relative_difference": [
+          0.0,
+          1.6191083599625955e-05,
+          -4.134091948326812e-06
+        ],
+        "max_abs_speed_ratio_relative_difference": 1.6191083599625955e-05,
+        "speed_ratios_pass": true
+      }
+    },
+    {
+      "cutoff_fraction": 1e-07,
+      "raw_integrals": [
+        8.263138521719716e-14,
+        2.0121105782770203e-13,
+        8.340080522460189e-14
+      ],
+      "corrected_integrals": [
+        8.308762324278891e-14,
+        2.024804178954462e-13,
+        8.385704325019365e-14
+      ],
+      "a_0plus": 0.9,
+      "phase_order": 24,
+      "log_temperature_order": 24,
+      "log_temperature_segments": 8,
+      "tail": 48,
+      "leading_cold_tail": [
+        4.562380255917574e-16,
+        1.2693600677441643e-15,
+        4.562380255917574e-16
+      ],
+      "reference_integrals": [
+        8.308673330146046e-14,
+        2.0247794187213922e-13,
+        8.385716381323163e-14
+      ],
+      "reference_settings": {
+        "outer_order": 18,
+        "phase_order": 28,
+        "tail": 64
+      },
+      "raw_comparison": {
+        "integral_relative_difference": [
+          -0.005480394596947047,
+          -0.0062568990613169895,
+          -0.005442094245473705
+        ],
+        "speed_ratios": [
+          1.0,
+          1.5604627481670175,
+          1.0046449492978655
+        ],
+        "reference_speed_ratios": [
+          1.0,
+          1.5610722968908528,
+          1.0046256047102367
+        ],
+        "speed_ratio_absolute_difference": [
+          0.0,
+          -0.0006095487238353403,
+          1.9344587628866705e-05
+        ],
+        "speed_ratio_relative_difference": [
+          0.0,
+          -0.0003904679655447607,
+          1.925551920844981e-05
+        ],
+        "max_abs_speed_ratio_relative_difference": 0.0003904679655447607,
+        "speed_ratios_pass": true
+      },
+      "corrected_comparison": {
+        "integral_relative_difference": [
+          1.0710991912743495e-05,
+          1.2228607640274447e-05,
+          -1.4377190032943687e-06
+        ],
+        "speed_ratios": [
+          1.0,
+          1.5610734814316507,
+          1.00461950230404
+        ],
+        "reference_speed_ratios": [
+          1.0,
+          1.5610722968908528,
+          1.0046256047102367
+        ],
+        "speed_ratio_absolute_difference": [
+          0.0,
+          1.1845407978938738e-06,
+          -6.102406196584198e-06
+        ],
+        "speed_ratio_relative_difference": [
+          0.0,
+          7.587994483859717e-07,
+          -6.074308845027687e-06
+        ],
+        "max_abs_speed_ratio_relative_difference": 6.074308845027687e-06,
+        "speed_ratios_pass": true
+      }
+    }
+  ],
+  "production_provenance": {
+    "source_sha256": {
+      "adiabatic_sensitivity.py": "40159f0ff95be159d9411138b4fba16c5955dd5499c7450dfacee1e49d3d7552",
+      "validate_rate.py": "11d5de3e48c3ec09ef4c5aefbf2ab6c94a803eb46224ee1992a27751ed3711cb",
+      "cold_sympy.py": "d34c6381c2b25e7a32da4a4c682b10d7efb9ac8590291613a6d744edab03b5f9",
+      "thermal_sympy.py": "cd2027784e98055f63801c5c903853517b74a574fafcaad86091f7b630cf9584"
+    },
+    "numpy_version": "2.2.3",
+    "alpha_s": 0.3,
+    "H_D": 1.81317
+  },
+  "production_checkpoint_sha256": "83580132175a18ea4a85f166fccf396f2702bb33a2ec0ee58ea135580e3c426e",
+  "production_record_count": 143,
+  "saved_refinement_checks": [
+    {
+      "a_0plus": 0.005,
+      "parameter": "outer",
+      "initial_key": "0.005:12:16:48",
+      "refined_key": "0.005:18:16:48",
+      "integral_relative_difference": [
+        5.844214001626824e-12,
+        5.850431250564725e-12,
+        -2.0539410949815817e-08
+      ],
+      "speed_ratios": [
+        1.0,
+        1.0011689941776432,
+        1.0001426351454092
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        1.00116899417764,
+        1.0001426454195022
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        3.1086244689504383e-15,
+        -1.0274092909767774e-08
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        3.1086244689504383e-15,
+        -1.027262752639757e-08
+      ],
+      "max_abs_speed_ratio_relative_difference": 1.027262752639757e-08,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.02,
+      "parameter": "outer",
+      "initial_key": "0.02:12:16:48",
+      "refined_key": "0.02:18:16:48",
+      "integral_relative_difference": [
+        -5.029310301551959e-13,
+        -5.067057884389214e-13,
+        -8.015310049014346e-08
+      ],
+      "speed_ratios": [
+        1.0,
+        1.0047076480035977,
+        1.0005508137332668
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        1.0047076480035997,
+        1.0005508538316426
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        -1.9984014443252818e-15,
+        -4.0098375730934777e-08
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        -1.9984014443252818e-15,
+        -4.007629950120162e-08
+      ],
+      "max_abs_speed_ratio_relative_difference": 4.007629950120162e-08,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.05,
+      "parameter": "outer",
+      "initial_key": "0.05:12:16:48",
+      "refined_key": "0.05:18:16:48",
+      "integral_relative_difference": [
+        -6.139533326177116e-14,
+        -6.250555628639631e-14,
+        -1.9735569911638606e-07
+      ],
+      "speed_ratios": [
+        1.0,
+        1.011959432147459,
+        1.0013212597176204
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        1.0119594321474596,
+        1.001321358525833
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        -6.661338147750939e-16,
+        -9.880821250085603e-08
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        -6.661338147750939e-16,
+        -9.867782368999656e-08
+      ],
+      "max_abs_speed_ratio_relative_difference": 9.867782368999656e-08,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.075,
+      "parameter": "outer",
+      "initial_key": "0.075:12:16:48",
+      "refined_key": "0.075:18:16:48",
+      "integral_relative_difference": [
+        5.218048215738236e-14,
+        5.5289106626332796e-14,
+        -2.949402072571772e-07
+      ],
+      "speed_ratios": [
+        1.0,
+        1.0181968907585615,
+        1.0019280693356645
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        1.01819689075856,
+        1.0019282170901596
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        1.5543122344752192e-15,
+        -1.4775449508341865e-07
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        1.5543122344752192e-15,
+        -1.4747014065452646e-07
+      ],
+      "max_abs_speed_ratio_relative_difference": 1.4747014065452646e-07,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.1,
+      "parameter": "outer",
+      "initial_key": "0.1:12:16:48",
+      "refined_key": "0.1:18:16:48",
+      "integral_relative_difference": [
+        2.3092638912203256e-14,
+        2.3092638912203256e-14,
+        -3.9320359757066825e-07
+      ],
+      "speed_ratios": [
+        1.0,
+        1.024623996905671,
+        1.0025067455143646
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        1.024623996905671,
+        1.0025069426090638
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        0.0,
+        -1.970946992280176e-07
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        0.0,
+        -1.9660182970504536e-07
+      ],
+      "max_abs_speed_ratio_relative_difference": 1.9660182970504536e-07,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.146,
+      "parameter": "outer",
+      "initial_key": "0.146:12:16:48",
+      "refined_key": "0.146:18:16:48",
+      "integral_relative_difference": [
+        2.4424906541753444e-15,
+        3.3306690738754696e-15,
+        -5.770161654039541e-07
+      ],
+      "speed_ratios": [
+        1.0,
+        1.0369850286424522,
+        1.003502581875668
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        1.0369850286424518,
+        1.0035028713944005
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        4.440892098500626e-16,
+        -2.8951873254356997e-07
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        4.440892098500626e-16,
+        -2.8850812572311924e-07
+      ],
+      "max_abs_speed_ratio_relative_difference": 2.8850812572311924e-07,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.146,
+      "parameter": "phase",
+      "initial_key": "0.146:18:16:48",
+      "refined_key": "0.146:18:28:48",
+      "integral_relative_difference": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "speed_ratios": [
+        1.0,
+        1.0369850286424518,
+        1.0035028713944005
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        1.0369850286424518,
+        1.0035028713944005
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "max_abs_speed_ratio_relative_difference": 0.0,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.146,
+      "parameter": "tail",
+      "initial_key": "0.146:18:28:48",
+      "refined_key": "0.146:18:28:64",
+      "integral_relative_difference": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "speed_ratios": [
+        1.0,
+        1.0369850286424518,
+        1.0035028713944005
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        1.0369850286424518,
+        1.0035028713944005
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "max_abs_speed_ratio_relative_difference": 0.0,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.2,
+      "parameter": "outer",
+      "initial_key": "0.2:12:16:48",
+      "refined_key": "0.2:18:16:48",
+      "integral_relative_difference": [
+        1.1102230246251565e-15,
+        1.5543122344752192e-15,
+        -7.995996037513109e-07
+      ],
+      "speed_ratios": [
+        1.0,
+        1.0524731776431309,
+        1.0045610885439762
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        1.0524731776431306,
+        1.0045614901675417
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        2.220446049250313e-16,
+        -4.0162356551576295e-07
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        2.220446049250313e-16,
+        -3.997998823113136e-07
+      ],
+      "max_abs_speed_ratio_relative_difference": 3.997998823113136e-07,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.25,
+      "parameter": "outer",
+      "initial_key": "0.25:12:16:48",
+      "refined_key": "0.25:18:16:48",
+      "integral_relative_difference": [
+        5.10702591327572e-15,
+        6.217248937900877e-15,
+        -1.0140029977900866e-06
+      ],
+      "speed_ratios": [
+        1.0,
+        1.0678780661421994,
+        1.0054348664136539
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        1.0678780661421987,
+        1.0054353761710284
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        6.661338147750939e-16,
+        -5.09757374533848e-07
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        6.661338147750939e-16,
+        -5.070016299013602e-07
+      ],
+      "max_abs_speed_ratio_relative_difference": 5.070016299013602e-07,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.3,
+      "parameter": "outer",
+      "initial_key": "0.3:12:16:48",
+      "refined_key": "0.3:18:16:48",
+      "integral_relative_difference": [
+        6.661338147750939e-16,
+        6.661338147750939e-16,
+        -1.2380735897599138e-06
+      ],
+      "speed_ratios": [
+        1.0,
+        1.0844515018650605,
+        1.00620418263547
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        1.0844515018650605,
+        1.006204805513461
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        0.0,
+        -6.228779909633886e-07
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        0.0,
+        -6.19036986893029e-07
+      ],
+      "max_abs_speed_ratio_relative_difference": 6.19036986893029e-07,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.35,
+      "parameter": "outer",
+      "initial_key": "0.35:12:16:48",
+      "refined_key": "0.35:18:16:48",
+      "integral_relative_difference": [
+        -1.2212453270876722e-15,
+        -6.661338147750939e-16,
+        -1.4735827844614136e-06
+      ],
+      "speed_ratios": [
+        1.0,
+        1.1023669402673884,
+        1.0068654043037637
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        1.1023669402673881,
+        1.006866146154346
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        2.220446049250313e-16,
+        -7.418505822975874e-07
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        2.220446049250313e-16,
+        -7.367916630141025e-07
+      ],
+      "max_abs_speed_ratio_relative_difference": 7.367916630141025e-07,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.4,
+      "parameter": "outer",
+      "initial_key": "0.4:12:16:48",
+      "refined_key": "0.4:18:16:48",
+      "integral_relative_difference": [
+        0.0,
+        6.661338147750939e-16,
+        -1.7225693428324362e-06
+      ],
+      "speed_ratios": [
+        1.0,
+        1.121839056658394,
+        1.0074137931385676
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        1.1218390566583933,
+        1.0074146608097465
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        6.661338147750939e-16,
+        -8.676711789057379e-07
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        6.661338147750939e-16,
+        -8.612850425082641e-07
+      ],
+      "max_abs_speed_ratio_relative_difference": 8.612850425082641e-07,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.45,
+      "parameter": "outer",
+      "initial_key": "0.45:12:16:48",
+      "refined_key": "0.45:18:16:48",
+      "integral_relative_difference": [
+        4.440892098500626e-16,
+        1.3322676295501878e-15,
+        -1.9874729780822165e-06
+      ],
+      "speed_ratios": [
+        1.0,
+        1.1431375906579813,
+        1.0078436092231358
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        1.1431375906579806,
+        1.0078446107555987
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        6.661338147750939e-16,
+        -1.001532462963084e-06
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        6.661338147750939e-16,
+        -9.937369831458653e-07
+      ],
+      "max_abs_speed_ratio_relative_difference": 9.937369831458653e-07,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.5,
+      "parameter": "outer",
+      "initial_key": "0.5:12:16:48",
+      "refined_key": "0.5:18:16:48",
+      "integral_relative_difference": [
+        -4.440892098500626e-16,
+        -1.1102230246251565e-16,
+        -2.271300275746846e-06
+      ],
+      "speed_ratios": [
+        1.0,
+        1.1666073484958526,
+        1.0081480923527955
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        1.1666073484958523,
+        1.0081492372582657
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        2.220446049250313e-16,
+        -1.1449054702072914e-06
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        2.220446049250313e-16,
+        -1.1356507825244222e-06
+      ],
+      "max_abs_speed_ratio_relative_difference": 1.1356507825244222e-06,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.5,
+      "parameter": "phase",
+      "initial_key": "0.5:18:16:48",
+      "refined_key": "0.5:18:28:48",
+      "integral_relative_difference": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "speed_ratios": [
+        1.0,
+        1.1666073484958523,
+        1.0081492372582657
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        1.1666073484958523,
+        1.0081492372582657
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "max_abs_speed_ratio_relative_difference": 0.0,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.5,
+      "parameter": "tail",
+      "initial_key": "0.5:18:28:48",
+      "refined_key": "0.5:18:28:64",
+      "integral_relative_difference": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "speed_ratios": [
+        1.0,
+        1.1666073484958523,
+        1.0081492372582657
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        1.1666073484958523,
+        1.0081492372582657
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "max_abs_speed_ratio_relative_difference": 0.0,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.55,
+      "parameter": "outer",
+      "initial_key": "0.55:12:16:48",
+      "refined_key": "0.55:18:16:48",
+      "integral_relative_difference": [
+        4.440892098500626e-16,
+        -1.1102230246251565e-16,
+        -2.5778541574705827e-06
+      ],
+      "speed_ratios": [
+        1.0,
+        1.1926981063284694,
+        1.0083193403667645
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        1.1926981063284698,
+        1.0083206400193794
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        -4.440892098500626e-16,
+        -1.299652614861202e-06
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        -3.3306690738754696e-16,
+        -1.2889279097372253e-06
+      ],
+      "max_abs_speed_ratio_relative_difference": 1.2889279097372253e-06,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.6,
+      "parameter": "outer",
+      "initial_key": "0.6:12:16:48",
+      "refined_key": "0.6:18:16:48",
+      "integral_relative_difference": [
+        -5.551115123125783e-16,
+        -7.771561172376096e-16,
+        -2.9120735240972806e-06
+      ],
+      "speed_ratios": [
+        1.0,
+        1.2220110359365035,
+        1.0083480656535107
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        1.2220110359365037,
+        1.0083495338485695
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        -2.220446049250313e-16,
+        -1.4681950588624204e-06
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        -2.220446049250313e-16,
+        -1.4560378217565173e-06
+      ],
+      "max_abs_speed_ratio_relative_difference": 1.4560378217565173e-06,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.65,
+      "parameter": "outer",
+      "initial_key": "0.65:12:16:48",
+      "refined_key": "0.65:18:16:48",
+      "integral_relative_difference": [
+        -5.551115123125783e-16,
+        -1.4432899320127035e-15,
+        -3.280565219254683e-06
+      ],
+      "speed_ratios": [
+        1.0,
+        1.2553740883222608,
+        1.0082231746902772
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        1.2553740883222615,
+        1.008224828465286
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        -6.661338147750939e-16,
+        -1.65377500871422e-06
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        -5.551115123125783e-16,
+        -1.6402839545515135e-06
+      ],
+      "max_abs_speed_ratio_relative_difference": 1.6402839545515135e-06,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.7,
+      "parameter": "outer",
+      "initial_key": "0.7:12:16:48",
+      "refined_key": "0.7:18:16:48",
+      "integral_relative_difference": [
+        4.440892098500626e-16,
+        4.440892098500626e-16,
+        -3.6924875455035533e-06
+      ],
+      "speed_ratios": [
+        1.0,
+        1.2939713559983923,
+        1.0079310599359692
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        1.2939713559983923,
+        1.0079329208275658
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        0.0,
+        -1.8608915965945272e-06
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        0.0,
+        -1.8462454773882087e-06
+      ],
+      "max_abs_speed_ratio_relative_difference": 1.8462454773882087e-06,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.75,
+      "parameter": "outer",
+      "initial_key": "0.75:12:16:48",
+      "refined_key": "0.75:18:16:48",
+      "integral_relative_difference": [
+        2.220446049250313e-16,
+        -4.440892098500626e-16,
+        -4.161123357548924e-06
+      ],
+      "speed_ratios": [
+        1.0,
+        1.3395812573711903,
+        1.0074543823344677
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        1.3395812573711905,
+        1.0074564784119904
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        -2.220446049250313e-16,
+        -2.0960775226619432e-06
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        -1.1102230246251565e-16,
+        -2.080563843320782e-06
+      ],
+      "max_abs_speed_ratio_relative_difference": 2.080563843320782e-06,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.8,
+      "parameter": "outer",
+      "initial_key": "0.8:12:16:48",
+      "refined_key": "0.8:18:16:48",
+      "integral_relative_difference": [
+        -2.220446049250313e-16,
+        -1.1102230246251565e-15,
+        -4.706942892451771e-06
+      ],
+      "speed_ratios": [
+        1.0,
+        1.395057960345162,
+        1.0067698629481856
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        1.3950579603451627,
+        1.0067722323606754
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        -6.661338147750939e-16,
+        -2.3694124897666313e-06
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        -4.440892098500626e-16,
+        -2.353474215510687e-06
+      ],
+      "max_abs_speed_ratio_relative_difference": 2.353474215510687e-06,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.85,
+      "parameter": "outer",
+      "initial_key": "0.85:12:16:48",
+      "refined_key": "0.85:18:16:48",
+      "integral_relative_difference": [
+        4.440892098500626e-16,
+        2.220446049250313e-16,
+        -5.364351622461072e-06
+      ],
+      "speed_ratios": [
+        1.0,
+        1.4654403205286386,
+        1.005843898558626
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        1.4654403205286388,
+        1.005846596419655
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        -2.220446049250313e-16,
+        -2.6978610290218086e-06
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        -1.1102230246251565e-16,
+        -2.682179408464158e-06
+      ],
+      "max_abs_speed_ratio_relative_difference": 2.682179408464158e-06,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.8793682301753412,
+      "parameter": "outer",
+      "initial_key": "0.87936823017534116:12:16:48",
+      "refined_key": "0.87936823017534116:18:16:48",
+      "integral_relative_difference": [
+        1.1102230246251565e-15,
+        4.440892098500626e-16,
+        -5.826658078245117e-06
+      ],
+      "speed_ratios": [
+        1.0,
+        1.5174547056659644,
+        1.0051671903592525
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        1.5174547056659649,
+        1.005170118754815
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        -4.440892098500626e-16,
+        -2.928395562484809e-06
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        -3.3306690738754696e-16,
+        -2.9133332833941594e-06
+      ],
+      "max_abs_speed_ratio_relative_difference": 2.9133332833941594e-06,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.88,
+      "parameter": "outer",
+      "initial_key": "0.88:12:16:48",
+      "refined_key": "0.88:18:16:48",
+      "integral_relative_difference": [
+        -1.4432899320127035e-15,
+        -7.771561172376096e-16,
+        -5.837414876697089e-06
+      ],
+      "speed_ratios": [
+        1.0,
+        1.5186913425129518,
+        1.0051514092317682
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        1.5186913425129513,
+        1.0051543429875065
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        4.440892098500626e-16,
+        -2.9337557383435353e-06
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        2.220446049250313e-16,
+        -2.918711697219578e-06
+      ],
+      "max_abs_speed_ratio_relative_difference": 2.918711697219578e-06,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.885,
+      "parameter": "outer",
+      "initial_key": "0.88500000000000001:12:16:48",
+      "refined_key": "0.88500000000000001:18:16:48",
+      "integral_relative_difference": [
+        2.220446049250313e-16,
+        -8.881784197001252e-16,
+        -5.923929875750744e-06
+      ],
+      "speed_ratios": [
+        1.0,
+        1.5286826023465436,
+        1.0050245736226973
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        1.5286826023465447,
+        1.0050275504834723
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        -1.1102230246251565e-15,
+        -2.976860774994705e-06
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        -7.771561172376096e-16,
+        -2.9619693246996093e-06
+      ],
+      "max_abs_speed_ratio_relative_difference": 2.9619693246996093e-06,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.89,
+      "parameter": "outer",
+      "initial_key": "0.89000000000000001:12:16:48",
+      "refined_key": "0.89000000000000001:18:16:48",
+      "integral_relative_difference": [
+        -1.1102230246251565e-15,
+        -7.771561172376096e-16,
+        -6.0130155050686085e-06
+      ],
+      "speed_ratios": [
+        1.0,
+        1.5390558530811562,
+        1.0048942189119405
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        1.5390558530811562,
+        1.0048972401478247
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        0.0,
+        -3.0212358841374964e-06
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        0.0,
+        -3.0065122715861037e-06
+      ],
+      "max_abs_speed_ratio_relative_difference": 3.0065122715861037e-06,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.8918392694094031,
+      "parameter": "outer",
+      "initial_key": "0.89183926940940306:12:16:48",
+      "refined_key": "0.89183926940940306:18:16:48",
+      "integral_relative_difference": [
+        -3.3306690738754696e-16,
+        -2.220446049250313e-16,
+        -6.046467234011033e-06
+      ],
+      "speed_ratios": [
+        1.0,
+        1.5429736491170183,
+        1.004845359910855
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        1.5429736491170183,
+        1.0048483978069034
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        0.0,
+        -3.0378960482746464e-06
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        0.0,
+        -3.0232381869055303e-06
+      ],
+      "max_abs_speed_ratio_relative_difference": 3.0232381869055303e-06,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.895,
+      "parameter": "outer",
+      "initial_key": "0.89500000000000002:12:16:48",
+      "refined_key": "0.89500000000000002:18:16:48",
+      "integral_relative_difference": [
+        -4.440892098500626e-16,
+        -9.992007221626409e-16,
+        -6.104848574772781e-06
+      ],
+      "speed_ratios": [
+        1.0,
+        1.5498411354743047,
+        1.0047602320611313
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        1.5498411354743051,
+        1.0047632990297088
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        -4.440892098500626e-16,
+        -3.066968577547513e-06
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        -3.3306690738754696e-16,
+        -3.0524289457156684e-06
+      ],
+      "max_abs_speed_ratio_relative_difference": 3.0524289457156684e-06,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.9,
+      "parameter": "outer",
+      "initial_key": "0.9:12:16:48",
+      "refined_key": "0.9:18:16:48",
+      "integral_relative_difference": [
+        2.220446049250313e-16,
+        -1.1102230246251565e-16,
+        -6.199626270686487e-06
+      ],
+      "speed_ratios": [
+        1.0,
+        1.5610722968908528,
+        1.0046224905537644
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        1.561072296890853,
+        1.0046256047102367
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        -2.220446049250313e-16,
+        -3.114156472250329e-06
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        -1.1102230246251565e-16,
+        -3.0998179397778713e-06
+      ],
+      "max_abs_speed_ratio_relative_difference": 3.0998179397778713e-06,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.9,
+      "parameter": "phase",
+      "initial_key": "0.9:18:16:48",
+      "refined_key": "0.9:18:28:48",
+      "integral_relative_difference": [
+        2.220446049250313e-16,
+        0.0,
+        0.0
+      ],
+      "speed_ratios": [
+        1.0,
+        1.561072296890853,
+        1.0046256047102367
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        1.5610722968908533,
+        1.0046256047102369
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        -2.220446049250313e-16,
+        -2.220446049250313e-16
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        -1.1102230246251565e-16,
+        -2.220446049250313e-16
+      ],
+      "max_abs_speed_ratio_relative_difference": 2.220446049250313e-16,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.9,
+      "parameter": "tail",
+      "initial_key": "0.9:18:28:48",
+      "refined_key": "0.9:18:28:64",
+      "integral_relative_difference": [
+        -4.440892098500626e-16,
+        0.0,
+        0.0
+      ],
+      "speed_ratios": [
+        1.0,
+        1.5610722968908533,
+        1.0046256047102369
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        1.5610722968908528,
+        1.0046256047102367
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        4.440892098500626e-16,
+        2.220446049250313e-16
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        2.220446049250313e-16,
+        2.220446049250313e-16
+      ],
+      "max_abs_speed_ratio_relative_difference": 2.220446049250313e-16,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.905,
+      "parameter": "outer",
+      "initial_key": "0.90500000000000003:12:16:48",
+      "refined_key": "0.90500000000000003:18:16:48",
+      "integral_relative_difference": [
+        -1.1102230246251565e-16,
+        2.220446049250313e-16,
+        -6.297569597357722e-06
+      ],
+      "speed_ratios": [
+        1.0,
+        1.5727876831269703,
+        1.004480861127733
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        1.5727876831269698,
+        1.0044840240367379
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        4.440892098500626e-16,
+        -3.162909004927883e-06
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        2.220446049250313e-16,
+        -3.148789755935688e-06
+      ],
+      "max_abs_speed_ratio_relative_difference": 3.148789755935688e-06,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.91,
+      "parameter": "outer",
+      "initial_key": "0.91000000000000003:12:16:48",
+      "refined_key": "0.91000000000000003:18:16:48",
+      "integral_relative_difference": [
+        2.220446049250313e-16,
+        6.661338147750939e-16,
+        -6.398927626882767e-06
+      ],
+      "speed_ratios": [
+        1.0,
+        1.5850309988233013,
+        1.0043351982694122
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        1.585030998823301,
+        1.0043384116189573
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        4.440892098500626e-16,
+        -3.2133495451169836e-06
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        2.220446049250313e-16,
+        -3.1994689319025937e-06
+      ],
+      "max_abs_speed_ratio_relative_difference": 3.1994689319025937e-06,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.915,
+      "parameter": "outer",
+      "initial_key": "0.91500000000000004:12:16:48",
+      "refined_key": "0.91500000000000004:18:16:48",
+      "integral_relative_difference": [
+        0.0,
+        2.220446049250313e-16,
+        -6.5039827846780085e-06
+      ],
+      "speed_ratios": [
+        1.0,
+        1.5978523892730387,
+        1.0041853424097835
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        1.5978523892730387,
+        1.004188608027803
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        0.0,
+        -3.265618019554495e-06
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        0.0,
+        -3.251996680164737e-06
+      ],
+      "max_abs_speed_ratio_relative_difference": 3.251996680164737e-06,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.92,
+      "parameter": "outer",
+      "initial_key": "0.92000000000000004:12:16:48",
+      "refined_key": "0.92000000000000004:18:16:48",
+      "integral_relative_difference": [
+        -1.1102230246251565e-16,
+        8.881784197001252e-16,
+        -6.613057487170337e-06
+      ],
+      "speed_ratios": [
+        1.0,
+        1.6113098171023144,
+        1.0040311177442047
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        1.6113098171023135,
+        1.004034437618421
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        8.881784197001252e-16,
+        -3.3198742162010575e-06
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        4.440892098500626e-16,
+        -3.3065342102123196e-06
+      ],
+      "max_abs_speed_ratio_relative_difference": 3.3065342102123196e-06,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.925,
+      "parameter": "outer",
+      "initial_key": "0.92500000000000004:12:16:48",
+      "refined_key": "0.92500000000000004:18:16:48",
+      "integral_relative_difference": [
+        -5.551115123125783e-16,
+        0.0,
+        -6.726522616018471e-06
+      ],
+      "speed_ratios": [
+        1.0,
+        1.6254708378937643,
+        1.0038723295710064
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        1.625470837893764,
+        1.0038757058730035
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        4.440892098500626e-16,
+        -3.3763019970933783e-06
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        2.220446049250313e-16,
+        -3.3632669635963452e-06
+      ],
+      "max_abs_speed_ratio_relative_difference": 3.3632669635963452e-06,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.93,
+      "parameter": "outer",
+      "initial_key": "0.93000000000000005:12:16:48",
+      "refined_key": "0.93000000000000005:18:16:48",
+      "integral_relative_difference": [
+        6.661338147750939e-16,
+        8.881784197001252e-16,
+        -6.844808474792963e-06
+      ],
+      "speed_ratios": [
+        1.0,
+        1.6404149251019735,
+        1.003708761006599
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        1.6404149251019733,
+        1.0037121961213507
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        2.220446049250313e-16,
+        -3.435114751759727e-06
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        2.220446049250313e-16,
+        -3.4224100943225366e-06
+      ],
+      "max_abs_speed_ratio_relative_difference": 3.4224100943225366e-06,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.935,
+      "parameter": "outer",
+      "initial_key": "0.93500000000000005:12:16:48",
+      "refined_key": "0.93500000000000005:18:16:48",
+      "integral_relative_difference": [
+        2.220446049250313e-16,
+        2.220446049250313e-16,
+        -6.968419183683849e-06
+      ],
+      "speed_ratios": [
+        1.0,
+        1.6562365663478844,
+        1.0035401688804793
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        1.6562365663478844,
+        1.0035436654430359
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        0.0,
+        -3.4965625566041325e-06
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        0.0,
+        -3.484215661986312e-06
+      ],
+      "max_abs_speed_ratio_relative_difference": 3.484215661986312e-06,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.94,
+      "parameter": "outer",
+      "initial_key": "0.93999999999999995:12:16:48",
+      "refined_key": "0.93999999999999995:18:16:48",
+      "integral_relative_difference": [
+        -3.3306690738754696e-16,
+        -8.881784197001252e-16,
+        -7.097951967294236e-06
+      ],
+      "speed_ratios": [
+        1.0,
+        1.6730494675036276,
+        1.0033662785331552
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        1.673049467503628,
+        1.0033698394749369
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        -4.440892098500626e-16,
+        -3.560941781666216e-06
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        -2.220446049250313e-16,
+        -3.5489822810541582e-06
+      ],
+      "max_abs_speed_ratio_relative_difference": 3.5489822810541582e-06,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.945,
+      "parameter": "outer",
+      "initial_key": "0.94499999999999995:12:16:48",
+      "refined_key": "0.94499999999999995:18:16:48",
+      "integral_relative_difference": [
+        -3.3306690738754696e-16,
+        4.440892098500626e-16,
+        -7.2341235540784865e-06
+      ],
+      "speed_ratios": [
+        1.0,
+        1.69099238899806,
+        1.0031867771180936
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        1.6909923889980594,
+        1.0031904057263274
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        6.661338147750939e-16,
+        -3.628608233885444e-06
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        4.440892098500626e-16,
+        -3.617068318417793e-06
+      ],
+      "max_abs_speed_ratio_relative_difference": 3.617068318417793e-06,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.95,
+      "parameter": "outer",
+      "initial_key": "0.95:12:16:48",
+      "refined_key": "0.95:18:16:48",
+      "integral_relative_difference": [
+        -7.771561172376096e-16,
+        -5.551115123125783e-16,
+        -7.377807208830411e-06
+      ],
+      "speed_ratios": [
+        1.0,
+        1.7102374593854426,
+        1.003001304818614
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        1.7102374593854424,
+        1.0030050048142156
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        2.220446049250313e-16,
+        -3.699995601680328e-06
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        2.220446049250313e-16,
+        -3.6889104081394564e-06
+      ],
+      "max_abs_speed_ratio_relative_difference": 3.6889104081394564e-06,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.955,
+      "parameter": "outer",
+      "initial_key": "0.95499999999999996:12:16:48",
+      "refined_key": "0.95499999999999996:18:16:48",
+      "integral_relative_difference": [
+        -5.551115123125783e-16,
+        -1.3322676295501878e-15,
+        -7.53008624909679e-06
+      ],
+      "speed_ratios": [
+        1.0,
+        1.7310023814337012,
+        1.0028094430842989
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        1.7310023814337017,
+        1.0028132187264207
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        -4.440892098500626e-16,
+        -3.77564212183934e-06
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        -2.220446049250313e-16,
+        -3.765050212045651e-06
+      ],
+      "max_abs_speed_ratio_relative_difference": 3.765050212045651e-06,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.96,
+      "parameter": "outer",
+      "initial_key": "0.95999999999999996:12:16:48",
+      "refined_key": "0.95999999999999996:18:16:48",
+      "integral_relative_difference": [
+        -7.771561172376096e-16,
+        6.661338147750939e-16,
+        -7.692334131337297e-06
+      ],
+      "speed_ratios": [
+        1.0,
+        1.7535690116898819,
+        1.002610698479376
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        1.7535690116898806,
+        1.0026145547098713
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        1.3322676295501878e-15,
+        -3.856230495369317e-06
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        6.661338147750939e-16,
+        -3.846174461807905e-06
+      ],
+      "max_abs_speed_ratio_relative_difference": 3.846174461807905e-06,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.97,
+      "parameter": "outer",
+      "initial_key": "0.96999999999999997:12:16:48",
+      "refined_key": "0.96999999999999997:18:16:48",
+      "integral_relative_difference": [
+        -8.881784197001252e-16,
+        -2.220446049250313e-16,
+        -8.054512392829949e-06
+      ],
+      "speed_ratios": [
+        1.0,
+        1.8057529491818403,
+        1.0021900648088828
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        1.8057529491818396,
+        1.0021941009094126
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        6.661338147750939e-16,
+        -4.036100529791753e-06
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        4.440892098500626e-16,
+        -4.027264305483946e-06
+      ],
+      "max_abs_speed_ratio_relative_difference": 4.027264305483946e-06,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.975,
+      "parameter": "outer",
+      "initial_key": "0.97499999999999998:12:16:48",
+      "refined_key": "0.97499999999999998:18:16:48",
+      "integral_relative_difference": [
+        -3.3306690738754696e-16,
+        0.0,
+        -8.26024700872896e-06
+      ],
+      "speed_ratios": [
+        1.0,
+        1.8366406607320984,
+        1.001966548564465
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        1.8366406607320982,
+        1.0019706868356952
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        2.220446049250313e-16,
+        -4.138271230136326e-06
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        2.220446049250313e-16,
+        -4.130132033264289e-06
+      ],
+      "max_abs_speed_ratio_relative_difference": 4.130132033264289e-06,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.98,
+      "parameter": "outer",
+      "initial_key": "0.98:12:16:48",
+      "refined_key": "0.98:18:16:48",
+      "integral_relative_difference": [
+        -1.3322676295501878e-15,
+        4.440892098500626e-16,
+        -8.488622941116297e-06
+      ],
+      "speed_ratios": [
+        1.0,
+        1.8721366113998275,
+        1.0017327609342548
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        1.8721366113998257,
+        1.0017370126271699
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        1.7763568394002505e-15,
+        -4.251692915069327e-06
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        8.881784197001252e-16,
+        -4.244320476853858e-06
+      ],
+      "max_abs_speed_ratio_relative_difference": 4.244320476853858e-06,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.985,
+      "parameter": "outer",
+      "initial_key": "0.98499999999999999:12:16:48",
+      "refined_key": "0.98499999999999999:18:16:48",
+      "integral_relative_difference": [
+        2.220446049250313e-16,
+        -1.3322676295501878e-15,
+        -8.747941009024096e-06
+      ],
+      "speed_ratios": [
+        1.0,
+        1.914207071143967,
+        1.0014871226525222
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        1.9142070711439683,
+        1.0014915031563976
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        -1.3322676295501878e-15,
+        -4.38050387541189e-06
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        -6.661338147750939e-16,
+        -4.373980070360162e-06
+      ],
+      "max_abs_speed_ratio_relative_difference": 4.373980070360162e-06,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.99,
+      "parameter": "outer",
+      "initial_key": "0.99:12:16:48",
+      "refined_key": "0.99:18:16:48",
+      "integral_relative_difference": [
+        -6.661338147750939e-16,
+        1.3322676295501878e-15,
+        -9.053816617310417e-06
+      ],
+      "speed_ratios": [
+        1.0,
+        1.9667127921705412,
+        1.0012273745074078
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        1.966712792170539,
+        1.0012319070027054
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        2.220446049250313e-15,
+        -4.532495297526751e-06
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        1.1102230246251565e-15,
+        -4.526918554903503e-06
+      ],
+      "max_abs_speed_ratio_relative_difference": 4.526918554903503e-06,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.995,
+      "parameter": "outer",
+      "initial_key": "0.995:12:16:48",
+      "refined_key": "0.995:18:16:48",
+      "integral_relative_difference": [
+        -1.7763568394002505e-15,
+        1.5543122344752192e-15,
+        -9.444748244380463e-06
+      ],
+      "speed_ratios": [
+        1.0,
+        2.03970522844679,
+        1.000950051949978
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        2.0397052284467865,
+        1.0009547788440836
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        3.552713678800501e-15,
+        -4.7268941054667835e-06
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        1.7763568394002505e-15,
+        -4.722385271938023e-06
+      ],
+      "max_abs_speed_ratio_relative_difference": 4.722385271938023e-06,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.995,
+      "parameter": "phase",
+      "initial_key": "0.995:18:16:48",
+      "refined_key": "0.995:18:28:48",
+      "integral_relative_difference": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "speed_ratios": [
+        1.0,
+        2.0397052284467865,
+        1.0009547788440836
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        2.0397052284467865,
+        1.0009547788440836
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "max_abs_speed_ratio_relative_difference": 0.0,
+      "speed_ratios_pass": true
+    },
+    {
+      "a_0plus": 0.995,
+      "parameter": "tail",
+      "initial_key": "0.995:18:28:48",
+      "refined_key": "0.995:18:28:64",
+      "integral_relative_difference": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "speed_ratios": [
+        1.0,
+        2.0397052284467865,
+        1.0009547788440836
+      ],
+      "reference_speed_ratios": [
+        1.0,
+        2.0397052284467865,
+        1.0009547788440836
+      ],
+      "speed_ratio_absolute_difference": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "speed_ratio_relative_difference": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "max_abs_speed_ratio_relative_difference": 0.0,
+      "speed_ratios_pass": true
+    }
+  ],
+  "source_unchanged_during_verification": true,
+  "max_abs_checked_speed_ratio_relative_difference": 0.0003328456378954847,
+  "passed": true,
+  "acceptance_note": "The tolerance applies to independent, refined, and cold-tail-corrected speed ratios. Raw cutoff integrals intentionally omit physical support and are reported without requiring agreement.",
+  "wall_seconds": 332.7307911670068,
+  "legacy_recipe_migrated_from_sha256": "2bf1a970d429f2e343714aa8f05b619b621d0e268c9efd6046a3b383f470326c",
+  "independent_checks_verifier_sha256": "2bf1a970d429f2e343714aa8f05b619b621d0e268c9efd6046a3b383f470326c",
+  "refreshed_at_utc": "2026-10-11T20:13:51.503752+00:00",
+  "verification_recipe_sha256": "642ebc65be6250688da277b97cee85dd0bba7ef7357b6d7ece40f32a5ef0cfff",
+  "production_coverage": {
+    "required_compositions": [
+      0.005,
+      0.02,
+      0.05,
+      0.075,
+      0.1,
+      0.146,
+      0.2,
+      0.25,
+      0.3,
+      0.35,
+      0.4,
+      0.45,
+      0.5,
+      0.55,
+      0.6,
+      0.65,
+      0.7,
+      0.75,
+      0.8,
+      0.85,
+      0.8793682301753412,
+      0.88,
+      0.885,
+      0.89,
+      0.8918392694094031,
+      0.895,
+      0.9,
+      0.905,
+      0.91,
+      0.915,
+      0.92,
+      0.925,
+      0.93,
+      0.935,
+      0.94,
+      0.945,
+      0.95,
+      0.955,
+      0.96,
+      0.97,
+      0.975,
+      0.98,
+      0.985,
+      0.99,
+      0.995
+    ],
+    "saved_composition_count": 45,
+    "upstream_target_compositions": [
+      0.005,
+      0.02,
+      0.05,
+      0.075,
+      0.1,
+      0.146,
+      0.2,
+      0.25,
+      0.3,
+      0.35,
+      0.4,
+      0.45,
+      0.5,
+      0.55,
+      0.6,
+      0.65,
+      0.7,
+      0.75,
+      0.8,
+      0.85,
+      0.8793682301753412,
+      0.88,
+      0.885,
+      0.89,
+      0.8918392694094031,
+      0.895,
+      0.9,
+      0.905,
+      0.91,
+      0.915,
+      0.92,
+      0.925,
+      0.93,
+      0.935,
+      0.94,
+      0.945,
+      0.95,
+      0.955,
+      0.96,
+      0.97,
+      0.975,
+      0.98,
+      0.985,
+      0.99,
+      0.995
+    ],
+    "upstream_selected_state_count": 153,
+    "upstream_sha256": "f85eff1de548b7599586627dfa91f67dd063e1e45488f8646a0eeddc34edae0a",
+    "missing_refinements": []
+  },
+  "max_abs_checked_speed_ratio_absolute_difference": 0.0005195961044597297,
+  "last_run_wall_seconds": 0.03504325001267716
+}

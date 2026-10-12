@@ -1,7 +1,7 @@
 ---
 summary: At fixed $T(0^+)=5$ MeV, the full numerical speeds span tens to thousands of m/s, temperature shifts the zero-speed boundary, and fitted 1-km trajectories catch it in 38--107 s.
 status: current
-updated: 2026-08-17
+updated: 2026-10-02
 tags: [physics, front-speed, phenomenology, results]
 ---
 
@@ -50,4 +50,4 @@ Realistic beta-equilibrated nuclear matter, additional Urca-controlled fractions
 - [[phase-velocity-overview]] for current reference evaluations.
 - `Latex_writting/Hydrodynamical combustion/Main.tex`, first active document: current “Results” and “Conclusion.”
 - `new_paper_calculations/26-08-12/T0plus5-all-zero-upstream-v1-uNmax-radial-continuation-T0minus0-local-patched.npy` for the fixed-$T(0^+)$ contour.
-- `26SU-12.ipynb` and `local_analysis_results/26SU-12/full-numerical-z-time-evolution.pdf` for the propagation exercise and terminal fit.
+- `26-08-13.ipynb` and `local_analysis_results/26SU-12/full-numerical-z-time-evolution.pdf` for the propagation exercise and terminal fit.

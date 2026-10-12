@@ -1,0 +1,84 @@
+TT grid choices:
+
+old:
+TT = np.hstack([np.linspace(1, 20, int(N*2/5)), np.linspace(20.5, 72, int(N*3/5))])
+
+__v2:
+TT_log = np.logspace(np.log10(0.01), np.log10(1.0), num=40)
+TT_lin = np.linspace(1.0, 100.0, num=21)[1:]   # 20 linear points excluding the 1.0 duplicate
+TT = np.concatenate([TT_log, TT_lin])
+NT = TT.size
+
+
+__v3:
+TT = np.logspace(np.log10(0.01), np.log10(100.0), num=80)
+NT = TT.size
+
+__v4:
+TT = np.logspace(np.log10(0.01), np.log10(100.0), num=80)
+NT = TT.size
+
+
+__v5:
+TT = np.logspace(np.log10(0.01), np.log10(100.0), num=80)
+NT = TT.size
+
+
+__v6:
+TT = np.logspace(np.log10(0.01), np.log10(100.0), num=160)
+NT = TT.size
+ND = 30
+EPS = 0.005 * n0
+
+__v7:
+# same as v6, but using Sommerfeld approximation for pressure
+TT = np.logspace(np.log10(0.01), np.log10(100.0), num=160)
+NT = TT.size
+ND = 30
+EPS = 0.005 * n0
+
+__v8:
+# using back to adaptive switch
+TT = np.logspace(np.log10(0.01), np.log10(100.0), num=160)
+NT = TT.size
+ND = 30
+EPS = 0.005 * n0
+with larger Deln window: 0.01 - 1.0
+
+__v9:
+# using back to adaptive switch
+TT = np.logspace(np.log10(0.01), np.log10(100.0), num=160)
+NT = TT.size
+ND = 30
+EPS = 0.005 * n0
+with larger Deln window: 0.01 - 0.9
+
+__v10:
+# using back to adaptive switch
+TT = np.logspace(np.log10(0.01), np.log10(100.0), num=160)
+NT = TT.size
+ND = 30
+EPS = 0.005 * n0
+with larger Deln window: 0.01 - 0.9
+log scale sampling in Deln window
+
+__v11:
+# using back n_B^crit(T) = 3n0
+TT = np.logspace(np.log10(0.01), np.log10(100.0), num=160)
+NT = TT.size
+ND = 30
+EPS = 0.005 * n0
+with larger Deln window: 0.01 - 0.9
+log scale sampling in Deln window
+
+__v12:
+# using back n_B^crit(T) = 3n0
+TT = np.logspace(np.log10(0.01), np.log10(100.0), num=160)
+NT = TT.size
+ND = 30
+EPS = 0.005 * n0
+with larger Deln window: 0.01 - 0.9
+lin scale sampling in Deln window
+
+
+

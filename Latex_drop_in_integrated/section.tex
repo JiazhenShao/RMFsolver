@@ -1,0 +1,1319 @@
+\section{Hydro estimate for the conversion-front speed}
+\label{sec:hydro-front-speed}
+
+Let \(a(x)\) decrease from \(a(0^+)=a_{Q*}\) on the quark side of the interface
+to \(a(\infty)=0\). The nuclear-side value entering the current matching
+condition is \(a_N\), and \(da/dx\to0\) downstream. The quark-side reaction
+term is
+\begin{equation}
+R(a,T)=\gamma\left[a^3+\eta(T)a\right].
+\end{equation}
+The kaon-current matching condition at the interface is
+\begin{equation}
+D_K(T^*)\frac{da}{dx}(0^+)-u_Qa_{Q*}=-u_Na_N,
+\qquad
+T^*=T(0^+).
+\end{equation}
+For neutron matter, \(n_K^N=n_B^N\). Since
+\begin{equation}
+a_N=\frac{n_K^N}{n_B^Q},
+\end{equation}
+baryon-flux conservation gives
+\begin{equation}
+u_Q=\frac{n_B^N}{n_B^Q}u_N=a_Nu_N .
+\end{equation}
+
+\subsection{Olinto-type gradient estimate}
+\label{sec:olinto-hydro-estimate}
+
+The Olinto-type estimate starts from the differential equation and multiplies it
+by the gradient. For the hydro case we keep
+\begin{equation}
+u_Q=a_Nu_N,\qquad
+D_K=D_K(T(x)),\qquad
+\eta=\eta(T(x)).
+\end{equation}
+The quark-side equation is written directly as
+\begin{equation}
+\frac{d}{dx}\left[D_K(T)\frac{da}{dx}\right]
+=
+\gamma\left[a^3+\eta(T)a\right]
++u_Q\frac{da}{dx},
+\end{equation}
+where no constant-\(T\) approximation has been made. Multiplying by
+\(D_K(T)da/dx\) gives
+\begin{equation}
+\frac{1}{2}
+\frac{d}{dx}
+\left[
+D_K(T)\frac{da}{dx}
+\right]^2
+=
+\gamma D_K(T)\left[a^3+\eta(T)a\right]\frac{da}{dx}
++u_QD_K(T)\left(\frac{da}{dx}\right)^2 .
+\end{equation}
+The interface matching condition is
+\begin{equation}
+D_K(T^*)\frac{da}{dx}(0^+)-u_Qa_{Q*}=-u_Na_N ,
+\end{equation}
+where \(T^*=T(0^+)\). Hence
+\begin{equation}
+D_K(T^*)\frac{da}{dx}(0^+)
+=
+u_Qa_{Q*}-u_Na_N .
+\end{equation}
+Integrating from \(0^+\) to \(\infty\), using
+\(D_K(T)da/dx\to0\) downstream, gives
+\begin{equation}
+-\frac{1}{2}
+\left(u_Na_N-u_Qa_{Q*}\right)^2
+=
+u_Q\int_0^\infty
+D_K(T)\left(\frac{da}{dx}\right)^2 dx
+-
+\gamma
+\int_0^{a_{Q*}}
+D_K(T(a))
+\left[a^3+\eta(T(a))a\right] da .
+\end{equation}
+The same mean-value estimate is now applied to the weighted gradient term:
+\begin{equation}
+\int_0^\infty
+D_K(T)\left(\frac{da}{dx}\right)^2 dx
+=
+D_K(T(\hat x))\frac{da}{dx}(\hat x)
+\int_0^\infty \frac{da}{dx}\,dx .
+\end{equation}
+Since \(a\) decreases from \(a_{Q*}\) to zero,
+\begin{equation}
+\int_0^\infty \frac{da}{dx}\,dx=-a_{Q*}.
+\end{equation}
+Also \(D_K(T^*)da/dx(0^+)=u_Qa_{Q*}-u_Na_N<0\), so we write
+\begin{equation}
+D_K(T(\hat x))\frac{da}{dx}(\hat x)
+=
+\lambda\left(u_Qa_{Q*}-u_Na_N\right),
+\qquad
+0<\lambda<1 .
+\end{equation}
+Therefore
+\begin{equation}
+\int_0^\infty
+D_K(T)\left(\frac{da}{dx}\right)^2 dx
+=
+\lambda
+\left(u_Na_N-u_Qa_{Q*}\right)a_{Q*},
+\qquad
+0<\lambda<1 .
+\end{equation}
+Substitution gives
+\begin{equation}
+\gamma
+\int_0^{a_{Q*}}
+D_K(T(a))
+\left[a^3+\eta(T(a))a\right] da
+=
+\frac{1}{2}
+\left(u_Na_N-u_Qa_{Q*}\right)^2
++
+\lambda u_Qa_{Q*}
+\left(u_Na_N-u_Qa_{Q*}\right).
+\end{equation}
+Define the weighted reaction integral
+\begin{equation}
+I\equiv
+\gamma
+\int_0^{a_{Q*}}
+D_K(T(a))
+\left[a^3+\eta(T(a))a\right]da .
+\end{equation}
+Using \(u_Q=a_Nu_N\), the hydro estimate becomes
+\begin{equation}
+u_N^2
+=
+\frac{
+2I
+}{
+a_N^2\left(1-a_{Q*}\right)\left(1+\xi a_{Q*}\right)
+},
+\qquad
+-1<\xi<1 .
+\end{equation}
+This is the Olinto-type gradient estimate in the hydro case. We next evaluate
+the integral \(I\).
+
+\subsection{Evaluation of the integral \(I\)}
+\label{sec:massless-integral}
+
+For \(m_s=0\), the quark pressure can be written explicitly near
+\(\mu_K=T=0\). Use
+\begin{equation}
+\mu=\frac{\mu_B}{3},\qquad
+\mu_u=\mu,\qquad
+\mu_d=\mu+\frac{\mu_K}{2},\qquad
+\mu_s=\mu-\frac{\mu_K}{2}.
+\end{equation}
+This convention gives \(\mu_K=\mu_d-\mu_s\), and the kaon-density variable is
+\begin{equation}
+n_K=\left(\frac{\partial P_{\rm QM}}{\partial \mu_K}\right)_{\mu_B,T}.
+\end{equation}
+For a free massless three-flavor gas with bag constant \(B\),
+\begin{equation}
+P_{\rm QM}
+=
+-B
++
+\sum_{i=u,d,s}
+\left[
+\frac{\mu_i^4}{4\pi^2}
++
+\frac{\mu_i^2T^2}{2}
++
+\frac{7\pi^2T^4}{60}
+\right]
++
+\frac{8\pi^2T^4}{45}.
+\end{equation}
+Expanding around \(\mu_K=T=0\) at fixed \(\mu_B\) gives
+\begin{equation}
+P_{\rm QM}
+=
+P_0(\mu_B)
++
+\frac{\mu_B^2}{12\pi^2}\mu_K^2
++
+\frac{\mu_K^4}{32\pi^2}
++
+\frac{\mu_B^2}{6}T^2
++
+\frac{1}{4}\mu_K^2T^2
++
+\frac{19\pi^2}{36}T^4
++\cdots ,
+\end{equation}
+where
+\begin{equation}
+P_0(\mu_B)=-B+\frac{\mu_B^4}{108\pi^2}.
+\end{equation}
+Thus
+\begin{equation}
+n_K
+=
+\frac{\mu_B^2}{6\pi^2}\mu_K
++
+\frac{\mu_K^3}{8\pi^2}
++
+\frac{1}{2}\mu_KT^2
++\cdots .
+\end{equation}
+If
+\begin{equation}
+a=\frac{n_K}{n_B^Q},
+\end{equation}
+then to leading order
+\begin{equation}
+a\simeq
+\frac{\mu_B^2}{6\pi^2 n_B^Q}\mu_K,
+\qquad
+\mu_K\simeq
+\frac{6\pi^2 n_B^Q}{\mu_B^2}a .
+\end{equation}
+
+Let the constant-pressure curve be
+\begin{equation}
+P_{\rm QM}(\bar\mu_B,\mu_K,T)=\bar P .
+\end{equation}
+To quadratic order,
+\begin{equation}
+\bar P-P_0(\bar\mu_B)
+=
+\frac{\bar\mu_B^2}{12\pi^2}\mu_K^2
++
+\frac{\bar\mu_B^2}{6}T^2 .
+\end{equation}
+Let the endpoint on this curve be \(\mu_K=\mu_{K*}\), where \(T=0\). Then
+\begin{equation}
+T^2(\mu_K)
+=
+\frac{\mu_{K*}^2-\mu_K^2}{2\pi^2}.
+\end{equation}
+
+\subsection{Entropy balance from enthalpy-flux conservation}
+\label{sec:entropy-from-enthalpy-flux}
+
+The entropy equation used in the reduced hydrodynamic description can be
+understood as the leading-order consequence of enthalpy-flux conservation. In
+the non-relativistic limit of the quark-side flow,
+\(\gamma_{\rm qu}\simeq 1\), the energy condition is
+\begin{equation}
+\partial_x\left[h(x)u(x)\right]=0.
+\end{equation}
+Across one quark-side layer we use the piecewise-constant approximation for the
+hydro background: the baryonic contribution is held fixed, while
+\(T(x)\), \(\mu_K(x)\), \(n_K(x)\), and \(s(x)\) vary along the local
+constant-pressure quark-matter curve. With
+\begin{equation}
+h=\mu_B n_B+Ts+\mu_K n_K ,
+\end{equation}
+and
+\begin{equation}
+\partial_x\left[\mu_B n_B u\right]\simeq0,
+\end{equation}
+enthalpy-flux conservation gives
+\begin{equation}
+0
+=
+\partial_x\left[Tsu\right]
++
+\partial_x\left[\mu_K n_K u\right].
+\end{equation}
+Equivalently,
+\begin{equation}
+T\,\partial_x(su)
++
+\mu_K\,\partial_x(un_K)
++
+u\left(s\,\partial_xT+n_K\,\partial_x\mu_K\right)
+=0.
+\end{equation}
+The thermodynamic identity by itself does not make the final bracket vanish.
+At fixed \(\mu_B\),
+\begin{equation}
+dP_{\rm QM}
+=
+s\,dT+n_K\,d\mu_K ,
+\end{equation}
+so the entropy equation is more generally
+\begin{equation}
+\partial_x(su)
+=
+-\frac{\mu_K}{T}\partial_x(un_K)
+-\frac{u}{T}\partial_xP_{\rm QM}.
+\end{equation}
+The reduced form follows after the additional leading-order slow-front
+assumption that the quark-side profile lies on a local constant-pressure curve,
+\(\partial_xP_{\rm QM}\simeq0\). Equivalently,
+\begin{equation}
+s\,\partial_xT+n_K\,\partial_x\mu_K\simeq0,
+\end{equation}
+with the baryonic part absorbed into the piecewise-constant background. If the
+ram-pressure term retained in the momentum equation is not negligible, then
+\(\partial_xP_{\rm QM}\) should be kept as the correction shown above.
+
+For the bag-model EOS above, the entropy density is
+\begin{equation}
+s_{\rm QM}
+=
+\left(\frac{\partial P_{\rm QM}}{\partial T}\right)_{\mu_B,\mu_K}
+=
+\frac{\mu_B^2}{3}T
++
+\frac{1}{2}\mu_K^2T
++
+\frac{19\pi^2}{9}T^3
++\cdots .
+\end{equation}
+Together with
+\begin{equation}
+n_K
+=
+\frac{\mu_B^2}{6\pi^2}\mu_K
++
+\frac{\mu_K^3}{8\pi^2}
++
+\frac{1}{2}\mu_KT^2
++\cdots ,
+\end{equation}
+the leading terms satisfy
+\begin{equation}
+s_{\rm QM}
+\simeq
+\frac{\mu_B^2}{3}T
+=
+n_K\frac{2\pi^2T}{\mu_K}.
+\end{equation}
+This is the slope-matching condition. Indeed the leading constant-pressure
+curve
+\begin{equation}
+T^2+\frac{\mu_K^2}{2\pi^2}
+=
+\mathrm{constant}
+\end{equation}
+implies
+\begin{equation}
+\frac{dT}{d\mu_K}
+=
+-\frac{\mu_K}{2\pi^2T},
+\end{equation}
+while \(s\,dT+n_K\,d\mu_K=0\) implies
+\begin{equation}
+\frac{dT}{d\mu_K}
+=
+-\frac{n_K}{s}.
+\end{equation}
+The two slopes agree at leading order because
+\begin{equation}
+\frac{n_K}{s}
+\simeq
+\frac{\mu_K}{2\pi^2T}.
+\end{equation}
+Therefore, within the same leading-order bag-model and piecewise-constant
+approximations used to obtain the ellipse, \(\partial_x(hu)=0\) reduces to
+\begin{equation}
+\partial_x(su)
+=
+-\frac{\mu_K}{T}\partial_x(un_K).
+\end{equation}
+The more fundamental statement is the conserved energy or enthalpy flux,
+\(\partial_x(hu)=0\). The entropy equation is a reduced leading-order form of
+that conservation law, specialized to the bag-model constant-pressure path and
+to the choice of \(n_K\) as the only transported composition variable in this
+layer.
+
+At \(\mu_K=0\), and neglecting the thermal correction since
+\(T^2\ll \bar\mu_B^2\), the massless equilibrium baryon density is
+\begin{equation}
+n_B^Q\simeq\frac{\mu_q^3}{\pi^2},
+\qquad
+\mu_q=\frac{\bar\mu_B}{3}.
+\end{equation}
+Equivalently,
+\begin{equation}
+n_B^Q\simeq\frac{\bar\mu_B^3}{27\pi^2}.
+\end{equation}
+The leading relation between \(a\) and \(\mu_K\) then simplifies to
+\begin{equation}
+\mu_K\simeq \frac{2}{3}\mu_q a,
+\qquad
+\mu_{K*}\simeq \frac{2}{3}\mu_qa_{Q*}.
+\end{equation}
+Therefore the constant-pressure curve becomes
+\begin{equation}
+T^2(a)
+=
+\frac{2\mu_q^2}{9\pi^2}
+\left(a_{Q*}^2-a^2\right).
+\end{equation}
+In this limit the weak-rate coefficient is
+\begin{equation}
+\eta(T)=\frac{9\pi^2T^2}{\mu_q^2},
+\qquad
+\mu_q=\frac{\bar\mu_B}{3}.
+\end{equation}
+Hence
+\begin{equation}
+\eta(T(a))
+=
+2\left(a_{Q*}^2-a^2\right).
+\end{equation}
+The numerator in the hydro estimate is therefore
+\begin{equation}
+I
+=
+\gamma
+\int_0^{a_{Q*}}
+D_K(T(a))
+\left[a^3+\eta(T(a))a\right]da .
+\end{equation}
+For the diffusion coefficient we use
+\begin{equation}
+D_K^{-1}(T)
+=
+\frac{8N_f\alpha_s^2}{\pi}
+\left[
+h_D\frac{T^{5/3}}{q_D^{2/3}}
+\right],
+\end{equation}
+with \(N_f=3\), \(h_D\simeq1.81\), and
+\begin{equation}
+q_D^2=\frac{g^2N_f\mu_q^2}{2\pi^2},
+\qquad
+g^2=4\pi\alpha_s.
+\end{equation}
+Thus
+\begin{equation}
+q_D^2=\frac{2\alpha_sN_f}{\pi}\mu_q^2 .
+\end{equation}
+For \(N_f=3\), this is \(q_D^2=6\alpha_s\mu_q^2/\pi\).
+Therefore
+\begin{equation}
+D_K(T)
+=
+\frac{\pi q_D^{2/3}}{8N_f\alpha_s^2h_D}
+T^{-5/3}.
+\end{equation}
+Substituting
+\begin{equation}
+T(a)=
+\frac{\sqrt{2}\mu_q}{3\pi}
+\left(a_{Q*}^2-a^2\right)^{1/2}
+\end{equation}
+gives
+\begin{equation}
+I
+=
+\gamma
+\frac{\pi q_D^{2/3}}{8N_f\alpha_s^2h_D}
+\left(\frac{2\mu_q^2}{9\pi^2}\right)^{-5/6}
+\int_0^{a_{Q*}}
+\left[
+2a_{Q*}^2a-a^3
+\right]
+\left(a_{Q*}^2-a^2\right)^{-5/6}da .
+\end{equation}
+The two integrals are
+\begin{equation}
+\int_0^{a_{Q*}}a
+\left(a_{Q*}^2-a^2\right)^{-5/6}da
+=
+3a_{Q*}^{1/3},
+\end{equation}
+and
+\begin{equation}
+\int_0^{a_{Q*}}a^3
+\left(a_{Q*}^2-a^2\right)^{-5/6}da
+=
+\frac{18}{7}a_{Q*}^{7/3}.
+\end{equation}
+Therefore
+\begin{equation}
+I
+=
+\gamma
+\frac{\pi q_D^{2/3}}{8N_f\alpha_s^2h_D}
+\left(\frac{2\mu_q^2}{9\pi^2}\right)^{-5/6}
+a_{Q*}^{7/3}
+\left[
+6-\frac{18}{7}
+\right],
+\end{equation}
+or
+\begin{equation}
+I
+=
+\gamma
+\frac{3\pi q_D^{2/3}}{7N_f\alpha_s^2h_D}
+\left(\frac{2\mu_q^2}{9\pi^2}\right)^{-5/6}
+a_{Q*}^{7/3}.
+\end{equation}
+Finally, since
+\begin{equation}
+q_D^2=\frac{2\alpha_sN_f}{\pi}\mu_q^2,
+\end{equation}
+we get
+\begin{equation}
+I
+=
+\gamma
+\frac{
+3^{8/3}\pi^{7/3}
+}{
+7\sqrt{2}\,h_D\,N_f^{2/3}\alpha_s^{5/3}
+}
+\frac{a_{Q*}^{7/3}}{\mu_q}.
+\end{equation}
+For \(N_f=3\),
+\begin{equation}
+I
+=
+\gamma
+\frac{
+9\pi^{7/3}
+}{
+7\sqrt{2}\,h_D\,\alpha_s^{5/3}
+}
+\frac{a_{Q*}^{7/3}}{\mu_q}.
+\end{equation}
+Equivalently, using \(\mu_q=\bar\mu_B/3\),
+\begin{equation}
+I
+=
+\gamma
+\frac{
+27\pi^{7/3}
+}{
+7\sqrt{2}\,h_D\,\alpha_s^{5/3}
+}
+\frac{a_{Q*}^{7/3}}{\bar\mu_B}.
+\end{equation}
+
+If some additional hydro or interface condition stops the boundary value before
+the zero-temperature endpoint is reached, it is useful to separate the two
+quantities. Let
+\begin{equation}
+A\equiv a(T_{Q*}=0)
+\end{equation}
+denote the value that would drive the quark-side temperature to zero on the
+same leading constant-pressure curve. The actual boundary value may then obey
+\begin{equation}
+0<a_{Q*}<A .
+\end{equation}
+The temperature profile and \(\eta\) are still set by \(A\), not by the cutoff
+\(a_{Q*}\):
+\begin{equation}
+T^2(a)
+=
+\frac{2\mu_q^2}{9\pi^2}
+\left(A^2-a^2\right),
+\qquad
+\eta(T(a))=2\left(A^2-a^2\right).
+\end{equation}
+Therefore the hydro-limited integral is
+\begin{equation}
+I(A,a_{Q*})
+=
+\gamma
+\frac{\pi q_D^{2/3}}{8N_f\alpha_s^2h_D}
+\left(\frac{2\mu_q^2}{9\pi^2}\right)^{-5/6}
+\int_0^{a_{Q*}}
+\left[
+2A^2a-a^3
+\right]
+\left(A^2-a^2\right)^{-5/6}da .
+\end{equation}
+This integral can be done directly:
+\begin{equation}
+\int_0^{a_{Q*}}
+\left[
+2A^2a-a^3
+\right]
+\left(A^2-a^2\right)^{-5/6}da
+=
+A^{7/3}
+\left[
+\frac{24}{7}
+-3\left(1-\frac{a_{Q*}^2}{A^2}\right)^{1/6}
+-\frac{3}{7}
+\left(1-\frac{a_{Q*}^2}{A^2}\right)^{7/6}
+\right].
+\end{equation}
+For \(N_f=3\), the closed form is
+\begin{equation}
+I(A,a_{Q*})
+=
+\gamma
+\frac{
+3\pi^{7/3}
+}{
+8\sqrt{2}\,h_D\,\alpha_s^{5/3}
+}
+\frac{A^{7/3}}{\mu_q}
+\left[
+\frac{24}{7}
+-3\left(1-\frac{a_{Q*}^2}{A^2}\right)^{1/6}
+-\frac{3}{7}
+\left(1-\frac{a_{Q*}^2}{A^2}\right)^{7/6}
+\right].
+\end{equation}
+Equivalently,
+\begin{equation}
+I(A,a_{Q*})
+=
+\gamma
+\frac{
+9\pi^{7/3}
+}{
+8\sqrt{2}\,h_D\,\alpha_s^{5/3}
+}
+\frac{A^{7/3}}{\bar\mu_B}
+\left[
+\frac{24}{7}
+-3\left(1-\frac{a_{Q*}^2}{A^2}\right)^{1/6}
+-\frac{3}{7}
+\left(1-\frac{a_{Q*}^2}{A^2}\right)^{7/6}
+\right].
+\end{equation}
+When the additional limit does not bind, \(a_{Q*}=A\). The bracket then becomes
+\(24/7\), and this expression reduces to the previous result with the expected
+\(a_{Q*}^{7/3}\) numerator. If the new limit does bind, the velocity estimate
+should use \(I(A,a_{Q*})\) while keeping the denominator evaluated at the
+actual boundary value \(a_{Q*}\).
+
+Substituting the limited integral into the Olinto-type estimate gives
+\begin{equation}
+u_N^2(A,a_{Q*})
+=
+\frac{
+3\pi^{7/3}\gamma
+}{
+4\sqrt{2}\,h_D\,\alpha_s^{5/3}
+}
+\frac{
+A^{7/3}
+}{
+\mu_q a_N^2(1-a_{Q*})(1+\xi a_{Q*})
+}
+\left[
+\frac{24}{7}
+-3\left(1-\frac{a_{Q*}^2}{A^2}\right)^{1/6}
+-\frac{3}{7}
+\left(1-\frac{a_{Q*}^2}{A^2}\right)^{7/6}
+\right].
+\end{equation}
+Equivalently, using \(\mu_q=\bar\mu_B/3\),
+\begin{equation}
+u_N^2(A,a_{Q*})
+=
+\frac{
+9\pi^{7/3}\gamma
+}{
+4\sqrt{2}\,h_D\,\alpha_s^{5/3}
+}
+\frac{
+A^{7/3}
+}{
+\bar\mu_B a_N^2(1-a_{Q*})(1+\xi a_{Q*})
+}
+\left[
+\frac{24}{7}
+-3\left(1-\frac{a_{Q*}^2}{A^2}\right)^{1/6}
+-\frac{3}{7}
+\left(1-\frac{a_{Q*}^2}{A^2}\right)^{7/6}
+\right].
+\end{equation}
+When \(a_{Q*}=A\), the bracket is \(24/7\). Thus
+\begin{equation}
+\frac{9}{4}\frac{24}{7}
+=
+\frac{54}{7},
+\end{equation}
+so the limited expression reduces to
+\begin{equation}
+u_N^2
+=
+\frac{
+54\pi^{7/3}\gamma
+}{
+7\sqrt{2}\,h_D\,\alpha_s^{5/3}
+}
+\frac{
+A^{7/3}
+}{
+\bar\mu_B a_N^2(1-A)(1+\xi A)
+}.
+\end{equation}
+Equivalently, relabeling \(A=a_{Q*}\) in the endpoint-limited case,
+\begin{equation}
+u_N^2
+=
+\frac{
+54\pi^{7/3}\gamma
+}{
+7\sqrt{2}\,h_D\,\alpha_s^{5/3}
+}
+\frac{
+a_{Q*}^{7/3}
+}{
+\bar\mu_B a_N^2(1-a_{Q*})(1+\xi a_{Q*})
+}.
+\end{equation}
+The approximations used in this expression are:
+\begin{itemize}
+\item The hydro variables are treated as piecewise constant on the quark side.
+Only \(\mu_K(x)\), \(a(x)\), and \(T(x)\) vary across the profile.
+\item The interface relation uses \(n_K^N=n_B^N\), so
+\(a_N=n_K^N/n_B^Q=n_B^N/n_B^Q\), and baryon-flux conservation gives
+\(u_Q=a_Nu_N\).
+\item The EOS is the massless, leading-order quark EOS near
+\(\mu_K=T=0\). This gives
+\(n_K\simeq \bar\mu_B^2\mu_K/(6\pi^2)\), while the equilibrium baryon
+density is evaluated without the thermal correction:
+\(n_B^Q\simeq \mu_q^3/\pi^2=\bar\mu_B^3/(27\pi^2)\).
+\item With \(a=n_K/n_B^Q\) and \(\mu_q=\bar\mu_B/3\), the leading EOS gives
+\(\mu_K\simeq (2/3)\mu_qa\). The constant-pressure curve then gives
+\(T^2(a)=2\mu_q^2(a_{Q*}^2-a^2)/(9\pi^2)\).
+\item The weak-rate coefficient is evaluated with
+\(\eta(T)=9\pi^2T^2/\mu_q^2\), so
+\(\eta(T(a))=2(a_{Q*}^2-a^2)\).
+\item In the diffusion coefficient, only the leading \(T^{5/3}\) term is kept;
+the subleading \(T^2\) term is dropped. We also use
+\(q_D^2=2\alpha_sN_f\mu_q^2/\pi\) with \(N_f=3\).
+\item The front shape enters through the Olinto mean-value estimate. The
+unknown profile information is summarized by \(\xi=2\lambda-1\), with
+\(-1<\xi<1\).
+\end{itemize}
+
+\subsection{Finite-width local-thermal-equilibrium cutoff}
+\label{sec:finite-width-lte-cutoff}
+
+\subsubsection{Motivation and assumptions}
+
+The endpoint \(a_{Q*}=A\) gives \(T(0^+)=0\), where the quark diffusion
+coefficient and the associated mean free path diverge.  To stop the diffusive
+description before this endpoint, we require the mean free path to remain
+smaller than the local length scale on which the diffusion coefficient varies.
+Define
+\begin{equation}
+r_D(x)
+\equiv
+\frac{D_K(x)}{|dD_K/dx|},
+\qquad
+\ell_{\rm mfp}(x)=3D_K(x).
+\end{equation}
+We impose the quantitative local-thermal-equilibrium condition
+\begin{equation}
+\frac{\ell_{\rm mfp}(x)}{r_D(x)}<\varepsilon
+\end{equation}
+throughout the front, where \(\varepsilon\ll1\) is the maximum tolerated local
+Knudsen number.  For example, \(\varepsilon=0.1\) requires the diffusion
+coefficient to vary on a length scale at least ten times longer than the mean
+free path, while \(\varepsilon=0.01\) requires a factor of one hundred.
+
+The estimate below uses the following assumptions:
+\begin{itemize}
+\item The interface temperature is
+\begin{equation}
+T_* \equiv T(0^+),
+\end{equation}
+and the equilibrated downstream temperature is
+\begin{equation}
+T_Q \equiv T(\infty),
+\qquad 0<T_*<T_Q.
+\end{equation}
+\item The temperature rise occurs over a prescribed characteristic finite
+width \(\Delta x\), chosen independently of the unknown cutoff temperature
+\(T_*\).  At estimate level, the relevant temperature gradient is represented
+by
+\begin{equation}
+|T'|_{\rm char}
+\sim
+\frac{T_Q-T_*}{\Delta x}.
+\end{equation}
+We use \(\Delta x=500\ {\rm nm}\) throughout the numerical estimate below.
+An order-one profile-shape factor may be added if a different convention for
+the prescribed width is adopted.
+\item Near the cold interface, the leading low-temperature diffusion
+coefficient is
+\begin{equation}
+D_K(T)=C_D T^{-5/3},
+\end{equation}
+where the temperature-independent transport prefactor is
+\begin{equation}
+C_D
+=
+\frac{\pi q_D^{2/3}}
+{8N_f\alpha_s^2h_D}.
+\end{equation}
+The spatial variation of \(q_D\) is neglected in this estimate.
+\item Natural units are used, so both \(D_K\) and \(\Delta x\) have units of
+inverse energy.
+\end{itemize}
+
+It is convenient to define the dimensionless interface-temperature ratio
+\begin{equation}
+y\equiv\frac{T_*}{T_Q},
+\qquad 0<y<1.
+\end{equation}
+
+\subsubsection{Derivation}
+
+Using the definitions of \(r_D\) and \(\ell_{\rm mfp}\), the local-equilibrium
+condition is
+\begin{equation}
+3\left|\frac{dD_K}{dx}\right|<\varepsilon.
+\end{equation}
+For \(D_K=C_DT^{-5/3}\),
+\begin{equation}
+\frac{dD_K}{dx}
+=
+-\frac{5}{3}C_DT^{-8/3}\frac{dT}{dx},
+\end{equation}
+so
+\begin{equation}
+5C_D\frac{|T'|}{T^{8/3}}<\varepsilon.
+\end{equation}
+The cold side gives the most restrictive temperature factor.  Using the
+finite-width gradient estimate gives
+\begin{equation}
+5C_D
+\frac{T_Q-T_*}
+{\Delta x\,T_*^{8/3}}
+<\varepsilon.
+\end{equation}
+Substituting \(T_*=yT_Q\) yields
+\begin{equation}
+\frac{1-y}{y^{8/3}}<K,
+\end{equation}
+where
+\begin{equation}
+\boxed{
+K
+\equiv
+\frac{\varepsilon\Delta x\,T_Q^{5/3}}{5C_D}
+=
+\frac{8N_f\alpha_s^2h_D}
+{5\pi q_D^{2/3}}
+\varepsilon\Delta x\,T_Q^{5/3}
+}
+\end{equation}
+is dimensionless.
+
+The limiting LTE temperature ratio \(y_{\rm LTE}\) is the unique root in
+\(0<y_{\rm LTE}<1\) of
+\begin{equation}
+\boxed{
+K y_{\rm LTE}^{8/3}+y_{\rm LTE}-1=0.
+}
+\end{equation}
+The finite-width LTE requirement is therefore
+\begin{equation}
+\boxed{
+T_*>T_Qy_{\rm LTE}.
+}
+\end{equation}
+The left-hand side of the algebraic equation is strictly increasing for
+\(y>0\), so the physical root is unique.
+
+The constant-pressure relation gives
+\begin{equation}
+T_Q
+=
+\frac{\sqrt{2}\,\bar\mu_B}{9\pi}A.
+\end{equation}
+Consequently, \(K\) may be written entirely in terms of \(A\) and the
+downstream thermodynamic state:
+\begin{equation}
+\boxed{
+K
+=
+\frac{8N_f\alpha_s^2h_D}
+{5\pi q_D^{2/3}}
+\varepsilon\Delta x
+\left(
+\frac{\sqrt{2}\,\bar\mu_B A}{9\pi}
+\right)^{5/3}.
+}
+\end{equation}
+
+For \(K\gg1\), the algebraic solution has the useful approximation
+\begin{equation}
+y_{\rm LTE}\simeq K^{-3/8},
+\qquad
+T_*^{\rm min}\simeq T_QK^{-3/8}.
+\end{equation}
+For \(K\ll1\),
+\begin{equation}
+y_{\rm LTE}\simeq1-K.
+\end{equation}
+
+Using
+\begin{equation}
+\frac{T_*^2}{T_Q^2}
+=
+1-\frac{a_{Q*}^2}{A^2},
+\end{equation}
+the corresponding upper limit on the interface composition is
+\begin{equation}
+\boxed{
+a_{Q*}^{\rm LTE}
+=
+A\sqrt{1-y_{\rm LTE}^2}.
+}
+\end{equation}
+Equivalently, \(a_{Q*}^{\rm LTE}\) can be found directly, without first
+treating \(T_*\) as an input.  Define
+\begin{equation}
+z_{\rm LTE}
+\equiv
+\frac{a_{Q*}^{\rm LTE}}{A}.
+\end{equation}
+Since \(y_{\rm LTE}=\sqrt{1-z_{\rm LTE}^2}\), the direct composition equation
+is
+\begin{equation}
+\boxed{
+K\left(1-z_{\rm LTE}^2\right)^{4/3}
++
+\sqrt{1-z_{\rm LTE}^2}
+-1
+=0,
+\qquad
+0<z_{\rm LTE}<1.
+}
+\end{equation}
+Thus the fixed inputs \(\varepsilon\), \(\Delta x\), \(T_Q\), and the transport
+parameters determine \(K\); this equation then determines
+\(a_{Q*}^{\rm LTE}=Az_{\rm LTE}\).  The associated limiting interface
+temperature is an output,
+\begin{equation}
+T_*^{\rm min}
+=
+T_Q\sqrt{1-z_{\rm LTE}^2}.
+\end{equation}
+For \(K\gg1\),
+\begin{equation}
+a_{Q*}^{\rm LTE}
+\simeq
+A\left(1-\frac{1}{2}K^{-3/4}\right).
+\end{equation}
+Unlike the interface-only gradient criterion, this finite-width condition
+keeps \(T_*\) strictly positive and \(a_{Q*}^{\rm LTE}<A\), including when
+\(A=1\).
+
+\subsubsection{Representative fixed-width estimate}
+
+We now evaluate the algebraic criterion for the energy-conserving
+\(a_{Q*}\) scan with
+\begin{equation}
+T_N=10\ {\rm MeV},
+\qquad
+n_B^N=3.2n_0,
+\qquad
+B^{1/4}=189.157\ {\rm MeV}.
+\end{equation}
+For this scan,
+\begin{equation}
+A=0.3405983,
+\qquad
+T_Q=20.6484\ {\rm MeV}.
+\end{equation}
+We prescribe
+\begin{equation}
+\boxed{
+\varepsilon=0.01,
+\qquad
+\Delta x=500\ {\rm nm}.
+}
+\end{equation}
+In natural units,
+\begin{equation}
+\Delta x
+=
+500\ {\rm nm}
+\simeq
+2.534\times10^6\ {\rm MeV}^{-1}.
+\end{equation}
+Using
+\begin{equation}
+\alpha_s=0.3,
+\qquad
+N_f=3,
+\qquad
+h_D=1.81,
+\end{equation}
+the constant-pressure relation gives
+\begin{equation}
+\bar\mu_B
+=
+\frac{9\pi T_Q}{\sqrt{2}A}
+\simeq
+1212.05\ {\rm MeV},
+\qquad
+q_D
+=
+\left(\frac{2\alpha_sN_f}{\pi}\right)^{1/2}
+\frac{\bar\mu_B}{3}
+\simeq
+305.82\ {\rm MeV}.
+\end{equation}
+Therefore
+\begin{equation}
+C_D
+\simeq
+36.47\ {\rm MeV}^{2/3},
+\qquad
+K
+\simeq
+2.159\times10^4.
+\end{equation}
+Solving
+\begin{equation}
+K y_{\rm LTE}^{8/3}+y_{\rm LTE}-1=0
+\end{equation}
+gives
+\begin{equation}
+\boxed{
+y_{\rm LTE}\simeq0.02348,
+\qquad
+T_*^{\rm min}
+=T_Qy_{\rm LTE}
+\simeq0.485\ {\rm MeV}.
+}
+\end{equation}
+The equivalent direct composition equation gives
+\begin{equation}
+\boxed{
+a_{Q*}^{\rm LTE}
+\simeq0.340504
+\simeq0.999724\,A.
+}
+\end{equation}
+The numerical fixed-\(T_*\) branch contains a point at
+\(T_*=0.50\ {\rm MeV}\), where \(u_N\simeq102.2\ {\rm m/s}\).  Interpolation
+to the fixed-width LTE temperature gives the estimate
+\begin{equation}
+u_N^{\rm LTE}\simeq102.5\ {\rm m/s},
+\end{equation}
+compared with approximately \(118\ {\rm m/s}\) at the formal
+\(T_*=0\) endpoint.
+
+This is a fixed-width estimate: \(\Delta x\) is specified before solving for
+the cutoff and is not extracted from a profile evaluated at a trial \(T_*\).
+The LTE condition produces a positive temperature floor and a modest reduction
+in the maximum velocity, but only a small numerical change in \(a_{Q*}\).
+This occurs because
+\(a_{Q*}\) approaches \(A\) quadratically in \(T_*/T_Q\):
+\begin{equation}
+A-a_{Q*}^{\rm LTE}
+\simeq
+\frac{A}{2}
+\left(\frac{T_*^{\rm min}}{T_Q}\right)^2.
+\end{equation}
+
+\clearpage
+
+\subsection{Implementation recipe for the analytic velocity}
+\label{sec:analytic-velocity-recipe}
+
+The formula to evaluate is
+\begin{equation}
+u_N^2
+\le
+\frac{
+54\pi^{7/3}\gamma
+}{
+7\sqrt{2}\,h_D\,\alpha_s^{5/3}
+}
+\frac{
+\left(a_{Q*}^{\rm max}\right)^{7/3}
+}{
+\bar\mu_B a_N^2
+\left(1-a_{Q*}^{\rm max}\right)
+\left(1+\xi a_{Q*}^{\rm max}\right)
+}.
+\end{equation}
+A direct implementation can follow these steps.
+\begin{itemize}
+\item Read the nuclear-side state. The required inputs are \(P_N\), \(h_N\),
+and \(n_B^N\). The shape parameter \(\xi\) is the only free profile parameter
+in the analytic formula; set its default value to \(\xi=0\).
+\item Set the fixed constants. Use
+\begin{equation}
+\alpha_s=0.3,
+\qquad
+h_D=
+\Gamma\!\left(\frac{8}{3}\right)
+\zeta\!\left(\frac{5}{3}\right)
+(2\pi)^{2/3}
+\simeq1.81.
+\end{equation}
+For production code, either take \(h_D=1.81\) or evaluate the expression above
+to higher precision.
+\item Determine the quark-side equilibrium point at \(\mu_K=0\). Solve for
+\(\bar\mu_B\) and \(T_Q\) from
+\begin{equation}
+P_{\rm QM}(\bar\mu_B,0,T_Q)=P_N
+\end{equation}
+and
+\begin{equation}
+\frac{h_{\rm QM}(\bar\mu_B,0,T_Q)}
+{n_B^Q(\bar\mu_B,0,T_Q)}
+=
+\frac{h_N}{n_B^N}.
+\end{equation}
+The first equation uses pressure continuity in the slow-front limit. The second
+equation fixes the point on the constant-pressure curve by matching energy per
+baryon.
+\item Compute the quark chemical potential and the leading-order quark baryon
+density:
+\begin{equation}
+\mu_q=\frac{\bar\mu_B}{3},
+\qquad
+n_B^Q\simeq\frac{\bar\mu_B^3}{27\pi^2}.
+\end{equation}
+\item Compute the weak-rate coefficient from \(\gamma=1/\tau\). With
+\(\mu_q=\bar\mu_B/3\),
+\begin{equation}
+\tau
+=
+\left[
+\frac{128}{27}
+\times
+\frac{1}{5\pi^3}
+G_F^2
+\cos^2\theta_c
+\sin^2\theta_c
+\mu_q^5
+\right]^{-1}.
+\end{equation}
+Equivalently, one may use
+\begin{equation}
+\tau
+\simeq
+1.3\times10^{-9}\,{\rm s}
+\left(\frac{300\,{\rm MeV}}{\mu_q}\right)^5 .
+\end{equation}
+The code should convert this time to the same unit system used in the
+diffusion coefficient and velocity formula, then set
+\begin{equation}
+\gamma=\frac{1}{\tau}.
+\end{equation}
+\item Compute the normalized nuclear-side kaon abundance:
+\begin{equation}
+a_N=\frac{n_B^N}{n_B^Q}.
+\end{equation}
+This uses \(n_K^N=n_B^N\). This is also the factor that relates the two
+velocities:
+\begin{equation}
+u_Q=a_Nu_N.
+\end{equation}
+\item Compute the largest quark-side endpoint allowed by the leading
+constant-pressure curve. Since the downstream point has \(\mu_K=0\), \(a=0\),
+and \(T=T_Q\),
+\begin{equation}
+a_{Q*}^{\rm max}
+=
+\frac{3\pi}{\sqrt{2}}\frac{T_Q}{\mu_q}
+=
+\frac{9\pi}{\sqrt{2}}\frac{T_Q}{\bar\mu_B}.
+\end{equation}
+The corresponding endpoint in \(\mu_K\) is
+\begin{equation}
+\mu_{K*}^{\rm max}
+=
+\sqrt{2}\pi T_Q .
+\end{equation}
+\item Choose \(\xi\). The default implementation should use
+\begin{equation}
+\xi=0.
+\end{equation}
+More generally, it must satisfy
+\begin{equation}
+-1<\xi<1.
+\end{equation}
+A useful diagnostic is to scan this interval and report the range of velocities.
+Since the denominator contains \(1+\xi a_{Q*}^{\rm max}\), the velocity is
+maximized by taking \(\xi\) as close to \(-1\) as the model allows.
+\item Evaluate the denominator factors separately:
+\begin{equation}
+1-a_{Q*}^{\rm max},
+\qquad
+1+\xi a_{Q*}^{\rm max},
+\qquad
+a_N^2.
+\end{equation}
+The analytic estimate is meaningful only if
+\begin{equation}
+0<a_{Q*}^{\rm max}<1,
+\qquad
+1+\xi a_{Q*}^{\rm max}>0.
+\end{equation}
+If \(a_{Q*}^{\rm max}\) is not small, the leading expansion around
+\(\mu_K=T=0\) should be replaced by a numerical EOS evaluation.
+\item Insert all quantities into the upper-bound formula for \(u_N^2\). The
+front speed is then
+\begin{equation}
+u_N^{\rm max}=\sqrt{u_N^2}.
+\end{equation}
+For the slow-front approximation to be self-consistent, the final value should
+satisfy
+\begin{equation}
+u_N^{\rm max}\ll1.
+\end{equation}
+\end{itemize}
+
+\clearpage
+
+\subsection{Flux-balance estimate}
+\label{sec:flux-balance-estimate}
+
+The flux-balance estimate comes from integrating the current-divergence form of
+the same reaction-diffusion equation,
+\begin{equation}
+\frac{d}{dx}
+\left[
+D_K(T)\frac{da}{dx}-u_Qa
+\right]
+=
+\gamma\left[a^3+\eta(T)a\right].
+\end{equation}
+Integrating from \(0^+\) to \(\infty\) gives
+\begin{equation}
+\left.
+\left[
+D_K(T)\frac{da}{dx}-u_Qa
+\right]\right|_{0^+}^{\infty}
+=
+\gamma\int_0^\infty
+\left[a^3+\eta(T(x))a(x)\right]dx .
+\end{equation}
+The downstream term vanishes because \(a(\infty)=0\) and \(da/dx\to0\).
+The interface term is fixed by current matching:
+\begin{equation}
+D_K(T^*)\frac{da}{dx}(0^+)-u_Qa_{Q*}=-u_Na_N .
+\end{equation}
+Hence
+\begin{equation}
+u_Na_N
+=
+\gamma\int_0^\infty
+\left[a^3+\eta(T(x))a(x)\right]dx .
+\end{equation}
+Since the profile decreases from \(a_{Q*}\) to zero,
+\begin{equation}
+u_Na_N
+=
+\gamma
+\int_0^{a_{Q*}}
+\left[a^3+\eta(T(a))a\right]\frac{da}{|da/dx|}.
+\end{equation}
+The interface slope is
+\begin{equation}
+\left|\frac{da}{dx}(0^+)\right|
+=
+\frac{u_Na_N(1-a_{Q*})}{D_K(T^*)}.
+\end{equation}
+We write the inverse slope through one shape parameter,
+\begin{equation}
+\frac{1}{|da/dx|}
+\simeq
+\frac{\chi D_K(T(a))}{u_Na_N(1-a_{Q*})}.
+\end{equation}
+Then the flux-balance estimate is
+\begin{equation}
+u_N^2
+=
+\frac{\chi I}{a_N^2(1-a_{Q*})}.
+\end{equation}
+The Olinto-type estimate above gives
+\begin{equation}
+u_N^2
+=
+\frac{2I}
+{a_N^2(1-a_{Q*})(1+\xi a_{Q*})}.
+\end{equation}
+Thus the two shape parameters are related by
+\begin{equation}
+\chi=\frac{2}{1+\xi a_{Q*}},
+\qquad
+\xi=\frac{1}{a_{Q*}}\left(\frac{2}{\chi}-1\right).
+\end{equation}
+Using the closed-form result for \(I\), the flux-balance estimate becomes
+\begin{equation}
+u_N^2
+=
+\frac{
+9\pi^{7/3}\gamma\chi
+}{
+7\sqrt{2}\,h_D\,\alpha_s^{5/3}
+}
+\frac{
+a_{Q*}^{7/3}
+}{
+\mu_q a_N^2(1-a_{Q*})
+}.
+\end{equation}
+Equivalently,
+\begin{equation}
+u_N^2
+=
+\frac{
+27\pi^{7/3}\gamma\chi
+}{
+7\sqrt{2}\,h_D\,\alpha_s^{5/3}
+}
+\frac{
+a_{Q*}^{7/3}
+}{
+\bar\mu_B a_N^2(1-a_{Q*})
+}.
+\end{equation}

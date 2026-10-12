@@ -1,0 +1,21 @@
+{
+  "repo_root": "/nfshome/jan.shao/NSM_related",
+  "python": "/grad/jan.shao/NSM_related/.NSM/bin/python3",
+  "T": 10.0,
+  "nB_factor": 2.0,
+  "B_one_forth": 180.0,
+  "ms": 0.0,
+  "x_max": 1000000.0,
+  "n_eval": 300,
+  "rtol_ode": 1e-08,
+  "atol_ode": 1e-10,
+  "root_tol": 1e-05,
+  "max_nfev": 60,
+  "jB_factor": 1e-06,
+  "jB_scales": "",
+  "aQstar_list": "",
+  "workers": 32,
+  "verb_mode": "simple",
+  "n_tasks": 9,
+  "output_dir": "/nfshome/jan.shao/NSM_related/new_paper_calculations/31Mar/steady_front_run_20260405_155749"
+}

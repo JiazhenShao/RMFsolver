@@ -2,7 +2,7 @@ PWD /Users/janshao/NSM_related/Latex_writting
 INPUT /usr/local/texlive/2024/texmf.cnf
 INPUT /usr/local/texlive/2024/texmf-dist/web2c/texmf.cnf
 INPUT /usr/local/texlive/2024/texmf-var/web2c/pdftex/pdflatex.fmt
-INPUT Main.tex
+INPUT /Users/janshao/NSM_related/Latex_writting/Main.tex
 OUTPUT Main.log
 INPUT /usr/local/texlive/2024/texmf-dist/tex/latex/revtex4-1/revtex4-1.cls
 INPUT /usr/local/texlive/2024/texmf-dist/tex/latex/revtex4-1/revtex4-1.cls
@@ -54,6 +54,8 @@ INPUT /usr/local/texlive/2024/texmf-dist/tex/latex/base/textcomp.sty
 INPUT /usr/local/texlive/2024/texmf-dist/tex/latex/base/textcomp.sty
 INPUT /usr/local/texlive/2024/texmf-dist/tex/latex/tools/enumerate.sty
 INPUT /usr/local/texlive/2024/texmf-dist/tex/latex/tools/enumerate.sty
+INPUT /usr/local/texlive/2024/texmf-dist/tex/latex/enumitem/enumitem.sty
+INPUT /usr/local/texlive/2024/texmf-dist/tex/latex/enumitem/enumitem.sty
 INPUT /usr/local/texlive/2024/texmf-dist/tex/latex/mathtools/empheq.sty
 INPUT /usr/local/texlive/2024/texmf-dist/tex/latex/mathtools/empheq.sty
 INPUT /usr/local/texlive/2024/texmf-dist/tex/latex/mathtools/mhsetup.sty
@@ -259,8 +261,14 @@ INPUT /usr/local/texlive/2024/texmf-dist/tex/latex/grfext/grfext.sty
 INPUT /usr/local/texlive/2024/texmf-dist/tex/latex/latexconfig/epstopdf-sys.cfg
 INPUT /usr/local/texlive/2024/texmf-dist/tex/latex/latexconfig/epstopdf-sys.cfg
 INPUT /usr/local/texlive/2024/texmf-dist/tex/latex/latexconfig/epstopdf-sys.cfg
-OUTPUT Main.out
+INPUT ./Main.out
+INPUT ./Main.out
+INPUT Main.out
+INPUT Main.out
 OUTPUT Main.pdf
+INPUT ./Main.out
+INPUT ./Main.out
+OUTPUT Main.out
 OUTPUT MainNotes.bib
 INPUT /usr/local/texlive/2024/texmf-dist/fonts/tfm/public/cm/cmr9.tfm
 INPUT /usr/local/texlive/2024/texmf-dist/fonts/tfm/public/cm/cmr12.tfm
@@ -296,8 +304,78 @@ INPUT /usr/local/texlive/2024/texmf-dist/fonts/tfm/public/amsfonts/cmextra/cmex8
 INPUT /usr/local/texlive/2024/texmf-dist/fonts/tfm/public/amsfonts/symbols/msam10.tfm
 INPUT /usr/local/texlive/2024/texmf-dist/fonts/tfm/public/amsfonts/symbols/msbm10.tfm
 INPUT /usr/local/texlive/2024/texmf-dist/fonts/tfm/public/cm/cmbx9.tfm
-INPUT /usr/local/texlive/2024/texmf-dist/fonts/tfm/public/cm/cmbx10.tfm
 INPUT /usr/local/texlive/2024/texmf-dist/fonts/tfm/public/cm/cmss10.tfm
 INPUT /usr/local/texlive/2024/texmf-dist/fonts/tfm/public/cm/cmss8.tfm
 INPUT /usr/local/texlive/2024/texmf-var/fonts/map/pdftex/updmap/pdftex.map
-INPUT /usr/local/texlive/2024/texmf-dist/fonts/tfm/public/cm/cmtt10.tfm
+INPUT ./Hydrodynamical combustion/Plots/pressure_mu_pos.pdf
+INPUT ./Hydrodynamical combustion/Plots/pressure_mu_pos.pdf
+INPUT ./Hydrodynamical combustion/Plots/pressure_mu_pos.pdf
+INPUT ./Hydrodynamical combustion/Plots/pressure_mu_pos.pdf
+INPUT ./Hydrodynamical combustion/Plots/boundary_schematic.pdf
+INPUT ./Hydrodynamical combustion/Plots/boundary_schematic.pdf
+INPUT ./Hydrodynamical combustion/Plots/boundary_schematic.pdf
+INPUT ./Hydrodynamical combustion/Plots/boundary_schematic.pdf
+INPUT ./Hydrodynamical combustion/Plots/isothermal_muB_muK_plane.pdf
+INPUT ./Hydrodynamical combustion/Plots/isothermal_muB_muK_plane.pdf
+INPUT ./Hydrodynamical combustion/Plots/isothermal_muB_muK_plane.pdf
+INPUT ./Hydrodynamical combustion/Plots/isothermal_muB_muK_plane.pdf
+INPUT ./Hydrodynamical combustion/Plots/T_a_constant_pressure.pdf
+INPUT ./Hydrodynamical combustion/Plots/T_a_constant_pressure.pdf
+INPUT ./Hydrodynamical combustion/Plots/T_a_constant_pressure.pdf
+INPUT ./Hydrodynamical combustion/Plots/T_a_constant_pressure.pdf
+INPUT ./Hydrodynamical combustion/Plots/T_a_constant_pressure.pdf
+INPUT /usr/local/texlive/2024/texmf-dist/fonts/tfm/public/cm/cmss8.tfm
+INPUT /usr/local/texlive/2024/texmf-dist/fonts/tfm/jknappen/ec/tcrm1000.tfm
+INPUT /usr/local/texlive/2024/texmf-dist/fonts/tfm/public/cm/cmbx10.tfm
+INPUT ./Hydrodynamical combustion/Plots/Numerical-contour.pdf
+INPUT ./Hydrodynamical combustion/Plots/Numerical-contour.pdf
+INPUT ./Hydrodynamical combustion/Plots/Numerical-contour.pdf
+INPUT ./Hydrodynamical combustion/Plots/Numerical-contour.pdf
+INPUT /usr/local/texlive/2024/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc
+INPUT ./Hydrodynamical combustion/Plots/Contour-diff-meth-0.1-band.pdf
+INPUT ./Hydrodynamical combustion/Plots/Contour-diff-meth-0.1-band.pdf
+INPUT ./Hydrodynamical combustion/Plots/Contour-diff-meth-0.1-band.pdf
+INPUT ./Hydrodynamical combustion/Plots/Contour-diff-meth-0.1-band.pdf
+INPUT ./Hydrodynamical combustion/Plots/Contour-diff-meth-0.1-band.pdf
+INPUT ./Hydrodynamical combustion/Plots/Numerical-T0plus-compare-fixT.pdf
+INPUT ./Hydrodynamical combustion/Plots/Numerical-T0plus-compare-fixT.pdf
+INPUT ./Hydrodynamical combustion/Plots/Numerical-T0plus-compare-fixT.pdf
+INPUT ./Hydrodynamical combustion/Plots/Numerical-T0plus-compare-fixT.pdf
+INPUT ./Hydrodynamical combustion/Plots/Numerical-T0plus-compare-fixT.pdf
+INPUT ./Hydrodynamical combustion/Plots/Numerical-T0plus-compare-fixnB.pdf
+INPUT ./Hydrodynamical combustion/Plots/Numerical-T0plus-compare-fixnB.pdf
+INPUT ./Hydrodynamical combustion/Plots/Numerical-T0plus-compare-fixnB.pdf
+INPUT ./Hydrodynamical combustion/Plots/Numerical-T0plus-compare-fixnB.pdf
+INPUT ./Hydrodynamical combustion/Plots/Numerical-T0plus-compare-fixnB.pdf
+INPUT ./reflist.bib
+INPUT ./reflist.bib
+INPUT ./Main.bbl
+INPUT ./Main.bbl
+INPUT Main.bbl
+INPUT /usr/local/texlive/2024/texmf-dist/fonts/tfm/public/cm/cmtt9.tfm
+INPUT Main.aux
+INPUT ./Main.out
+INPUT ./Main.out
+INPUT /usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb
+INPUT /usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb
+INPUT /usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx9.pfb
+INPUT /usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb
+INPUT /usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb
+INPUT /usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi5.pfb
+INPUT /usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb
+INPUT /usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb
+INPUT /usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmr5.pfb
+INPUT /usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmr6.pfb
+INPUT /usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb
+INPUT /usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb
+INPUT /usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmr9.pfb
+INPUT /usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmss10.pfb
+INPUT /usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmss8.pfb
+INPUT /usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb
+INPUT /usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy6.pfb
+INPUT /usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb
+INPUT /usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmti9.pfb
+INPUT /usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt9.pfb
+INPUT /usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/symbols/msam10.pfb
+INPUT /usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm10.pfb
+INPUT /usr/local/texlive/2024/texmf-dist/fonts/type1/public/cm-super/sfrm1000.pfb

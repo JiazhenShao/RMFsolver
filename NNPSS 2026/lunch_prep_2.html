@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en" data-mode="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lunch prep — Rajagopal, NNPSS 2026</title>
+<style>
+  :root {
+    --surface-0:#F1EFE8; --surface-1:#FFFFFF; --surface-2:#FFFFFF;
+    --text-primary:#2C2C2A; --text-secondary:#5F5E5A; --text-muted:#888780;
+    --border:rgba(0,0,0,0.10); --border-strong:rgba(0,0,0,0.18); --radius:8px;
+    --font-sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+    --accent-purple:#534AB7; --accent-purple-bg:#EEEDFE; --accent-purple-text:#3C3489;
+    --accent-teal:#0F6E56; --accent-teal-bg:#E1F5EE;
+    --accent-coral:#993C1D; --accent-coral-bg:#FAECE7;
+    --accent-blue:#185FA5; --accent-blue-bg:#E6F1FB; --accent-blue-text:#0C447C;
+    --accent-amber:#854F0B; --accent-amber-bg:#FAEEDA;
+    --flag-us:#185FA5; --flag-jp:#993C1D; --flag-eu:#3B6D11;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --surface-0:#1E1E1C; --surface-1:#2C2C2A; --surface-2:#2C2C2A;
+      --text-primary:#F1EFE8; --text-secondary:#B4B2A9; --text-muted:#888780;
+      --border:rgba(255,255,255,0.10); --border-strong:rgba(255,255,255,0.18);
+      --accent-purple-bg:#26215C; --accent-purple-text:#CECBF6;
+      --accent-teal-bg:#04342C; --accent-coral-bg:#4A1B0C;
+      --accent-blue-bg:#042C53; --accent-blue-text:#B5D4F4; --accent-amber-bg:#412402;
+      --flag-us:#85B7EB; --flag-jp:#F0997B; --flag-eu:#97C459;
+    }
+  }
+  * { box-sizing:border-box; }
+  body { font-family:var(--font-sans); background:var(--surface-0); color:var(--text-primary);
+    margin:0; padding:24px 16px 64px; line-height:1.6; }
+  .wrap { max-width:820px; margin:0 auto; }
+  header { margin-bottom:24px; }
+  h1 { font-size:22px; font-weight:500; margin:0 0 6px; }
+  .subtitle { color:var(--text-secondary); font-size:14px; margin:0; }
+  .tabs { display:flex; gap:6px; margin-bottom:20px; border-bottom:0.5px solid var(--border); flex-wrap:wrap; }
+  .tab { padding:8px 14px; font-size:14px; color:var(--text-secondary); cursor:pointer;
+    border-bottom:2px solid transparent; user-select:none; transition:color .15s,border-color .15s; }
+  .tab:hover { color:var(--text-primary); }
+  .tab.active { color:var(--text-primary); font-weight:500; border-bottom-color:var(--accent-purple); }
+  .panel { display:none; } .panel.active { display:block; }
+  .card { background:var(--surface-1); border:0.5px solid var(--border); border-radius:12px; padding:16px 18px; margin-bottom:14px; }
+  .card h3 { font-size:15px; font-weight:500; margin:0 0 6px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .card p { font-size:14px; color:var(--text-secondary); margin:0 0 8px; }
+  .card p:last-child { margin-bottom:0; }
+  .pill { display:inline-block; font-size:11px; font-weight:500; padding:2px 8px; border-radius:100px; }
+  .pill-a { background:var(--accent-teal-bg); color:var(--accent-teal); }
+  .pill-b { background:var(--accent-blue-bg); color:var(--accent-blue-text); }
+  .pill-c { background:var(--accent-purple-bg); color:var(--accent-purple-text); }
+  .pill-front { background:var(--accent-coral-bg); color:var(--accent-coral); }
+  .pill-csc { background:var(--accent-purple-bg); color:var(--accent-purple-text); }
+  .pill-int { background:var(--accent-amber-bg); color:var(--accent-amber); }
+  .tag-row { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+  .tag { font-size:12px; color:var(--text-secondary); background:var(--surface-0); border:0.5px solid var(--border); padding:3px 9px; border-radius:6px; }
+  .ask-box { background:var(--surface-0); border-left:3px solid var(--accent-purple); border-radius:0 8px 8px 0;
+    padding:10px 14px; margin-top:10px; font-size:13.5px; color:var(--text-primary); }
+  .ask-box .label { font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--text-muted); margin-bottom:4px; font-weight:500; }
+  .pitch { background:var(--accent-blue-bg); border-left:3px solid var(--accent-blue); border-radius:0 8px 8px 0;
+    padding:12px 14px; font-size:14px; color:var(--accent-blue-text); margin-top:6px; }
+  .person { display:flex; justify-content:space-between; align-items:baseline; padding:10px 0;
+    border-bottom:0.5px solid var(--border); font-size:14px; gap:12px; }
+  .person:last-child { border-bottom:none; }
+  .person .who { flex-shrink:0; max-width:48%; }
+  .person .name { font-weight:500; display:block; }
+  .person .aff { font-size:12px; color:var(--text-muted); }
+  .person .desc { color:var(--text-secondary); font-size:13px; text-align:right; }
+  .flag { font-size:10px; font-weight:500; padding:1px 5px; border-radius:4px; margin-left:6px; vertical-align:1px; white-space:nowrap; }
+  .f-us { background:var(--accent-blue-bg); color:var(--flag-us); }
+  .f-jp { background:var(--accent-coral-bg); color:var(--flag-jp); }
+  .f-eu { background:var(--accent-teal-bg); color:var(--flag-eu); }
+  .checklist { list-style:none; margin:0; padding:0; }
+  .checklist li { display:flex; gap:10px; padding:8px 0; border-bottom:0.5px solid var(--border); font-size:14px; }
+  .checklist li:last-child { border-bottom:none; }
+  .checklist .num { flex-shrink:0; width:20px; height:20px; border-radius:50%; background:var(--accent-purple-bg);
+    color:var(--accent-purple-text); font-size:11px; font-weight:500; display:flex; align-items:center; justify-content:center; margin-top:1px; }
+  .section-label { font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--text-muted); font-weight:500; margin:22px 0 8px; }
+  .section-label:first-of-type { margin-top:4px; }
+  .top-takeaway { background:var(--accent-purple-bg); color:var(--accent-purple-text); border-radius:10px; padding:12px 16px; font-size:13.5px; margin-bottom:18px; }
+  .top-takeaway b { font-weight:500; }
+  .thread-nav { display:flex; flex-direction:column; gap:10px; margin-bottom:18px; }
+  .thread-card { border:0.5px solid var(--border); border-radius:12px; padding:14px 16px; background:var(--surface-1); cursor:pointer; transition:border-color .15s; }
+  .thread-card:hover { border-color:var(--border-strong); }
+  .thread-card .th-head { display:flex; align-items:center; gap:10px; margin-bottom:4px; flex-wrap:wrap; }
+  .thread-card .th-title { font-size:15px; font-weight:500; }
+  .thread-card .th-sub { font-size:13px; color:var(--text-secondary); margin:0; }
+  .legend { display:flex; gap:14px; flex-wrap:wrap; font-size:12px; color:var(--text-secondary); margin:6px 0 18px; }
+  .legend span { display:inline-flex; align-items:center; gap:5px; }
+  .ref { font-size:12px; color:var(--text-muted); margin-top:6px; font-style:italic; }
+  .int-banner { border:2px solid var(--accent-amber); background:var(--accent-amber-bg); border-radius:12px; padding:14px 16px; margin-bottom:16px; }
+  .int-banner h3 { font-size:15px; font-weight:500; margin:0 0 6px; color:var(--accent-amber); display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .int-banner p { font-size:13.5px; color:var(--accent-amber); margin:0 0 6px; }
+  .int-banner p:last-child { margin-bottom:0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Lunch with Prof. Rajagopal — NNPSS 2026</h1>
+    <p class="subtitle">Prep tuned to your manuscript, plus the topological-QCD map and the INT 21-1a connection</p>
+  </header>
+
+  <div class="tabs" role="tablist">
+    <div class="tab active" data-tab="prep" role="tab">Prep</div>
+    <div class="tab" data-tab="front" role="tab">Your work / mergers</div>
+    <div class="tab" data-tab="csc" role="tab">Color SC</div>
+    <div class="tab" data-tab="topo" role="tab">Topological QCD</div>
+  </div>
+
+  <!-- PREP -->
+  <div class="panel active" id="panel-prep">
+    <div class="top-takeaway">
+      A conversation, not an exam. Rajagopal is Alford's collaborator, so your own work is the most natural opener &mdash; and you have a strong hook. Let color superconductivity and topology come up from there.
+    </div>
+
+    <div class="section-label">Your work in three sentences (the hook)</div>
+    <div class="card">
+      <div class="pitch">
+        "I calculate how fast the nuclear&ndash;quark boundary can actually move in a merger. Deconfinement is instant, but the conversion is rate-limited by the weak process <i>d&thinsp;u &harr; u&thinsp;s</i> making strangeness, plus strangeness diffusing back to the front &mdash; so we solve a steady-state deflagration front. We find it creeps at only hundreds of m/s at merger temperatures, roughly 10&#8308; times slower than the instant conversion that current merger simulations assume."
+      </div>
+      <p style="margin-top:10px">That last clause is the memorable part: your result says a standard modeling assumption is questionable. That's what makes someone lean in.</p>
+    </div>
+
+    <div class="section-label">The one physics ask worth having ready</div>
+    <div class="card">
+      <p>This is the question that sits exactly on the overlap between your calculation and his expertise &mdash; the best possible thing to ask <i>him</i> specifically.</p>
+      <div class="ask-box">
+        <div class="label">Ask</div>
+        "On the quark side we treat it as unpaired massless u/d/s. If that matter is actually color-superconducting, would the gap change the weak rate or the strangeness diffusion enough to matter for the boundary speed?"
+      </div>
+      <p style="margin-top:8px">Why it lands: it shows you understand both sides, it's specific, and it's the kind of question that turns into "you should look at&hellip;" or a real back-and-forth.</p>
+    </div>
+
+    <div class="section-label">Knowing "enough" color superconductivity</div>
+    <div class="card">
+      <p>You need vocabulary and landscape, not depth &mdash; framed around what's relevant to your front.</p>
+      <ul class="checklist">
+        <li><span class="num">1</span><span>Quark Cooper pairing &asymp; BCS, but color + flavor structure replaces simple spin singlets.</span></li>
+        <li><span class="num">2</span><span><b>CFL</b> &mdash; all 3 colors/flavors pair, fully gapped. <b>2SC</b> &mdash; only u/d pair, some quarks ungapped.</span></li>
+        <li><span class="num">3</span><span>Gaps are large (10&ndash;100 MeV). A gap would suppress the quark modes your weak rate and diffusion rely on &mdash; that's the link to your work.</span></li>
+        <li><span class="num">4</span><span>It's fine to say "remind me what that phase is." Costs nothing with someone who supervises students constantly.</span></li>
+      </ul>
+    </div>
+
+    <div class="section-label">Practical reminders</div>
+    <div class="card">
+      <ul class="checklist">
+        <li><span class="num">1</span><span>Lead with your result, mention Alford for context, let it breathe.</span></li>
+        <li><span class="num">2</span><span>Ask about <b>people</b> &mdash; he's connected to the GW/merger community your result speaks to.</span></li>
+        <li><span class="num">3</span><span>Leave room for him to ask about you. Have a genuine, unrehearsed answer.</span></li>
+        <li><span class="num">4</span><span>Don't force all topics. The INT 21-1a connection (Topology tab) is a great organic bridge if topology comes up.</span></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- FRONT / MERGERS -->
+  <div class="panel" id="panel-front">
+    <div class="card">
+      <h3><span class="pill pill-front">Your result</span> The headline</h3>
+      <p>Maximum boundary speed is <b>~10&sup2;&ndash;10&sup3; m/s at merger temperatures</b> (T &gtrsim; 1 MeV), suppressed by the W-boson mass. Example: &mu;<sub>q</sub>=300 MeV, T=5 MeV gives ~400 m/s. Compare to the ~10&#8310; m/s implied by instant conversion.</p>
+      <div class="tag-row">
+        <span class="tag">Deflagration front, steady state</span>
+        <span class="tag">Weak rate &gamma;<sub>K</sub> + diffusion D<sub>K</sub></span>
+        <span class="tag">u ~ &radic;(&gamma;<sub>K</sub> D<sub>K</sub>)</span>
+        <span class="tag">QMC-RMF3 + bag-model quarks</span>
+      </div>
+    </div>
+
+    <div class="section-label">Two regimes &mdash; two different audiences</div>
+    <div class="card">
+      <div class="person"><span class="who"><span class="name">Inspiral</span><span class="aff">sub-MeV</span></span><span class="desc">Slow boundary may permit interface modes &rarr; GW signatures for LVK / Cosmic Explorer / Einstein Telescope</span></div>
+      <div class="person"><span class="who"><span class="name">Post-merger</span><span class="aff">T &gt; 1 MeV</span></span><span class="desc">Finite speed means no instant conversion; simulations should not freeze or instant-convert the phase content</span></div>
+    </div>
+
+    <div class="section-label">Lineage you build on</div>
+    <div class="card">
+      <div class="person"><span class="who"><span class="name">Olinto</span><span class="aff">1986 <span class="flag f-us">US</span></span></span><span class="desc">The classic diffusion-limited conversion estimate your analytic form generalizes</span></div>
+      <div class="person"><span class="who"><span class="name">Drago &amp; Pagliara, Niebergal, Furusawa</span><span class="aff">EU / CA / JP</span></span><span class="desc">Deflagration-vs-detonation, global dynamics, prior front calculations</span></div>
+      <div class="person"><span class="who"><span class="name">Heiselberg, Lugones, Horvath</span><span class="aff">multiple</span></span><span class="desc">Earlier combustion / conversion-front foundations</span></div>
+    </div>
+
+    <div class="section-label">The audience your result challenges (merger sims w/ PT)</div>
+    <div class="card">
+      <div class="person"><span class="who"><span class="name">Most, Weih</span><span class="aff">multiple <span class="flag f-us">US</span>/<span class="flag f-eu">EU</span></span></span><span class="desc">GR merger sims with quark-hadron transitions</span></div>
+      <div class="person"><span class="who"><span class="name">Bauswein</span><span class="aff">GSI <span class="flag f-eu">EU</span></span></span><span class="desc">Postmerger GW frequency shift from the transition</span></div>
+      <div class="person"><span class="who"><span class="name">Espino, Prakash, Radice</span><span class="aff">Penn State / multiple <span class="flag f-us">US</span></span></span><span class="desc">GW spectroscopy of the transition &mdash; closest to your finite-speed message</span></div>
+      <div class="person"><span class="who"><span class="name">Fujimoto, Harada, Haque, Christian</span><span class="aff">JP / multiple</span></span><span class="desc">Crossover signatures, onset-density effects</span></div>
+    </div>
+
+    <div class="section-label">Inspiral interface-mode people (current, 2025)</div>
+    <div class="card">
+      <div class="person"><span class="who"><span class="name">Counsell, Pereira, Tonetto</span><span class="aff">multiple <span class="flag f-eu">EU</span></span></span><span class="desc">Interface modes that assume frozen phase content &mdash; exactly the assumption your speed estimate tests</span></div>
+    </div>
+
+    <div class="ask-box">
+      <div class="label">Networking move &mdash; tuned to Rajagopal</div>
+      "Since you're plugged into the merger GW community &mdash; who would care most that the conversion is slow? Is there an interface-mode or simulation group you'd point me to?" His answer is likely a direct, useful pointer or intro.
+    </div>
+  </div>
+
+  <!-- COLOR SC -->
+  <div class="panel" id="panel-csc">
+    <div class="card">
+      <h3><span class="pill pill-csc">CSC</span> Easy to open</h3>
+      <p>His and Alford's founding subfield. Don't re-explain it; ask about open problems or history.</p>
+      <div class="ask-box">
+        <div class="label">Good questions</div>
+        "What's the color-superconductivity question you wish someone would work on now?" / "What surprised you most about how the subfield developed?"
+      </div>
+    </div>
+    <div class="card">
+      <h3>Direct bridge to your calculation</h3>
+      <p>See the "one physics ask" on the Prep tab &mdash; whether a gap on the quark side alters your weak rate and diffusion. That's the sharpest CSC&ndash;to&ndash;your-work connection.</p>
+    </div>
+  </div>
+
+  <!-- TOPO -->
+  <div class="panel" id="panel-topo">
+
+    <div class="int-banner">
+      <h3><span class="pill pill-int">INT 21-1a</span> Your exact intersection &mdash; and it was held locally</h3>
+      <p>The spreadsheet you shared is the talk list for the INT program <b>"Topological Phases of Matter: From Low to High Energy"</b> (Seattle, March 2021). Its goal was re-examining the QCD phase diagram beyond the Landau paradigm and linking nuclear matter, lattice gauge theory, and Weyl/Dirac semimetals. Week one was quark matter, color superconductivity, and phase transitions in neutron stars &mdash; your three interests in one room.</p>
+      <p>Organizers (your most relevant US names):</p>
+    </div>
+    <div class="card">
+      <div class="person"><span class="who"><span class="name">Aleksey Cherman</span><span class="aff">Minnesota <span class="flag f-us">US</span></span></span><span class="desc">Higgs-confinement continuity; co-author of the anyonic-statistics argument</span></div>
+      <div class="person"><span class="who"><span class="name">Srimoyee Sen</span><span class="aff">Iowa State <span class="flag f-us">US</span></span></span><span class="desc">Vortex statistics, dense-matter topology</span></div>
+      <div class="person"><span class="who"><span class="name">Lukasz Fidkowski</span><span class="aff">U. Washington <span class="flag f-us">US</span></span></span><span class="desc">CM theorist, SPT phases &mdash; the condensed-matter side of the bridge, local to you</span></div>
+      <div class="person"><span class="who"><span class="name">Igor Shovkovy</span><span class="aff">Arizona State <span class="flag f-us">US</span></span></span><span class="desc">Dense QCD, color superconductivity, matter in magnetic fields &mdash; spans all three threads</span></div>
+    </div>
+
+    <div class="top-takeaway">
+      "Topological QCD" is <b>three</b> distinct programs. The US and Europe lead two of them. Thread C even questions the quark-hadron continuity picture Rajagopal's lineage helped build.
+    </div>
+
+    <div class="legend">
+      <span><span class="flag f-us">US</span> US-based</span>
+      <span><span class="flag f-jp">JP</span> Japan-based</span>
+      <span><span class="flag f-eu">EU</span> Europe / other</span>
+    </div>
+
+    <div class="thread-nav">
+      <div class="thread-card" onclick="showThread('A')">
+        <div class="th-head"><span class="pill pill-a">Thread A</span><span class="th-title">Vortices &amp; topological solitons in CFL</span></div>
+        <p class="th-sub">The CSC-flavored thread. Japan-centered, with US roots (Baym, Alford).</p>
+      </div>
+      <div class="thread-card" onclick="showThread('B')">
+        <div class="th-head"><span class="pill pill-b">Thread B</span><span class="th-title">Anomalous transport / Chiral Magnetic Effect</span></div>
+        <p class="th-sub">Heavily US-led. Best two-way CM&harr;QCD transfer, experimentally tested.</p>
+      </div>
+      <div class="thread-card" onclick="showThread('C')">
+        <div class="th-head"><span class="pill pill-c">Thread C</span><span class="th-title">Generalized symmetries / is CFL topologically ordered?</span></div>
+        <p class="th-sub">Newest, US-anchored &mdash; and the subject of INT 21-1a above.</p>
+      </div>
+    </div>
+
+    <div id="thread-A" class="thread-detail">
+      <div class="section-label">Thread A &mdash; what it is</div>
+      <div class="card">
+        <p>In a rotating color superconductor, quantized <b>non-Abelian semi-superfluid vortices</b> form. Their cores trap Nambu-Goldstone modes and <b>Majorana fermion zero modes</b> &mdash; the same object CM physicists chase in topological superconductors.</p>
+        <div class="tag-row"><span class="tag">Non-Abelian vortices</span><span class="tag">Majorana zero modes</span><span class="tag">Vortex lattices / boojums</span></div>
+      </div>
+      <div class="section-label">Key people</div>
+      <div class="card">
+        <div class="person"><span class="who"><span class="name">Nitta, Eto</span><span class="aff">Keio / Yamagata <span class="flag f-jp">JP</span></span></span><span class="desc">Lead the topological-soliton program in dense QCD</span></div>
+        <div class="person"><span class="who"><span class="name">Hirono, Yasui, Fujiwara</span><span class="aff">multiple <span class="flag f-jp">JP</span></span></span><span class="desc">Majorana modes, non-Abelian statistics</span></div>
+        <div class="person"><span class="who"><span class="name">Gordon Baym</span><span class="aff">Illinois <span class="flag f-us">US</span></span></span><span class="desc">Co-established vortex continuity hadronic&rarr;CFL</span></div>
+      </div>
+      <p class="ref">Eto, Hirono, Nitta, Yasui (review); Alford, Baym, Fukushima, Hatsuda, Tachibana, PRD 99 (2019).</p>
+    </div>
+
+    <div id="thread-B" class="thread-detail" style="display:none">
+      <div class="section-label">Thread B &mdash; what it is</div>
+      <div class="card">
+        <p>The <b>Chiral Magnetic Effect</b>: chirality imbalance + magnetic field drives a current along the field, an anomaly effect. Proposed for the quark-gluon plasma, then <b>observed</b> in Dirac/Weyl semimetals. Your single best example of genuine CM&harr;QCD transfer.</p>
+        <div class="tag-row"><span class="tag">Chiral Magnetic Effect</span><span class="tag">Weyl semimetals</span><span class="tag">Chiral kinetic theory</span></div>
+      </div>
+      <div class="section-label">Key people</div>
+      <div class="card">
+        <div class="person"><span class="who"><span class="name">Dmitri Kharzeev</span><span class="aff">Stony Brook / BNL <span class="flag f-us">US</span></span></span><span class="desc">Central figure; co-proposed CME, observed it in ZrTe&#8325;</span></div>
+        <div class="person"><span class="who"><span class="name">Dam Son</span><span class="aff">Chicago <span class="flag f-us">US</span></span></span><span class="desc">Axial anomaly &amp; magnetism; Berry-phase bridge to Weyl metals</span></div>
+        <div class="person"><span class="who"><span class="name">Mikhail Stephanov</span><span class="aff">UIC <span class="flag f-us">US</span></span></span><span class="desc">Chiral kinetic theory; anomaly &amp; magnetism of quark matter</span></div>
+        <div class="person"><span class="who"><span class="name">Yee, Basar, Liao</span><span class="aff">UIC / Stony Brook / Indiana <span class="flag f-us">US</span></span></span><span class="desc">Anomalous transport, triangle anomaly in Weyl semimetals</span></div>
+        <div class="person"><span class="who"><span class="name">Karl Landsteiner</span><span class="aff">Madrid <span class="flag f-eu">EU</span></span></span><span class="desc">Anomaly-induced transport, holographic side</span></div>
+      </div>
+      <p class="ref">Fukushima, Kharzeev, Warringa, PRD 78 (2008); Son &amp; Stephanov, PRD 77 (2008); Kharzeev &amp; Liao, Nat. Rev. Phys. 3 (2021).</p>
+    </div>
+
+    <div id="thread-C" class="thread-detail" style="display:none">
+      <div class="section-label">Thread C &mdash; what it is</div>
+      <div class="card">
+        <p>The provocative one, and the spine of INT 21-1a. <b>Quark-hadron continuity</b> says hadronic and CFL matter connect with no phase transition. New work using <b>generalized / higher-form symmetries</b> and <b>anyonic vortex statistics</b> asks whether a hidden topological obstruction forces a transition after all &mdash; challenging strict continuity.</p>
+        <div class="tag-row"><span class="tag">Anyonic particle-vortex statistics</span><span class="tag">Higher-form symmetry</span><span class="tag">Topological order</span><span class="tag">Higgs = SPT phase</span></div>
+      </div>
+      <div class="section-label">Key people</div>
+      <div class="card">
+        <div class="person"><span class="who"><span class="name">Larry Yaffe</span><span class="aff">U. Washington <span class="flag f-us">US</span></span></span><span class="desc">Anyonic statistics &amp; nature of dense quark matter &mdash; local to you</span></div>
+        <div class="person"><span class="who"><span class="name">Cherman, Sen</span><span class="aff">Minnesota / Iowa State <span class="flag f-us">US</span></span></span><span class="desc">INT 21-1a organizers; the continuity-obstruction argument</span></div>
+        <div class="person"><span class="who"><span class="name">Fidkowski, Shovkovy</span><span class="aff">UW / ASU <span class="flag f-us">US</span></span></span><span class="desc">INT 21-1a organizers; SPT phases / dense QCD</span></div>
+        <div class="person"><span class="who"><span class="name">Hirono, Tanizaki, Hidaka</span><span class="aff">multiple <span class="flag f-jp">JP</span></span></span><span class="desc">Continuity beyond Ginzburg-Landau; topological-order gauge theory of CFL</span></div>
+      </div>
+      <p class="ref">Cherman, Sen, Yaffe, PRD 100 (2019); Hirono &amp; Tanizaki, PRL 122 (2019) &amp; JHEP 07 (2019); Hidaka et al., PRD 100 (2019).</p>
+    </div>
+
+    <div class="ask-box">
+      <div class="label">Best networking move &mdash; ranked</div>
+      <b>1.</b> "Your collaborators ran INT 21-1a on topological phases re-examining the QCD diagram &mdash; do you think the nuclear&rarr;quark transition could be subtler than a first-order line?" Ties to him directly; Fidkowski and Yaffe are at UW.<br>
+      <b>2.</b> Thread B: "Do you see the CME / Weyl-semimetal link as real transfer or just analogy?"<br>
+      <b>3.</b> Thread A: "Have you talked with the Nitta/Eto group on topological solitons?"
+    </div>
+  </div>
+
+</div>
+<script>
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+  });
+});
+function showThread(id) {
+  ['A','B','C'].forEach(t => { document.getElementById('thread-'+t).style.display = (t===id)?'block':'none'; });
+  document.getElementById('thread-'+id).scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+</script>
+</body>
+</html>

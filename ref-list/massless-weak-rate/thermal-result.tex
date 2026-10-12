@@ -1,0 +1,61 @@
+\subsection{Explicit quadratic coefficient}
+The sum of threshold derivatives evaluates to
+\begin{align}
+ \Jtwo=\frac{8}{15}\Big\{&
+ 20\mu_d^3\mu_s^3-35\mu_d^2\mu_s^4+32\mu_d\mu_s^5-11\mu_s^6\notag\\
+ &+\mu_u(-20\mu_d^3\mu_s^2+60\mu_d^2\mu_s^3
+                  -80\mu_d\mu_s^4+24\mu_s^5)\notag\\
+ &+\mu_u^2(15\mu_d^4-30\mu_d^2\mu_s^2
+                  +60\mu_d\mu_s^3-35\mu_s^4)\notag\\
+ &+\mu_u^3(-20\mu_d\mu_s^2+20\mu_s^3)
+   +\mu_u^4(10\mu_d^2+15\mu_s^2)-8\mu_d\mu_u^5+8\mu_u^6\notag\\
+ &-\pos{\mu_u+\mu_s-\mu_d}^{4}
+ (9\mu_d^2+4\mu_d\mu_s+2\mu_s^2
+       +4\mu_d\mu_u+4\mu_s\mu_u+2\mu_u^2)\Big\}.
+ \label{eq:thermal-result}
+\end{align}
+Every term has energy degree six, as required for \(T^2\Jtwo\) to have the same dimension as \(\Izero\).
+The quartic branch correction makes \(\Jtwo\) and its first three derivatives continuous at \(\mu_K=\mu_u\).
+Appendix~\ref{app:thermal-boundaries} derives the contributions from all four occupation factors, including the moving kinematic boundaries.
+
+\subsection{The remainder is generically cubic}
+Although each logistic weight is even, the cold integral is not analytic in the difference between the two up thresholds.
+When \(\nu_1\) rises above \(\nu_2\), a thin region with incoming up energy larger than outgoing up energy changes which momentum sets the angular lower bound.
+The resulting local correction is
+\begin{equation}
+ \mathcal I^{(0)}_{\rm forward}
+ =\mathcal I^{(0)}_{\rm smooth}
+ -\frac{16}{9}\mu_u^2(\mu_d^3-\mu_s^3)
+       \pos{\nu_1-\nu_2}^{3}
+ +\text{terms of fourth and higher order}.
+ \label{eq:cold-cusp}
+\end{equation}
+Here the smooth term is the polynomial continuation from \(\nu_1\leq\nu_2\); the coefficient of the cubic term is evaluated at the physical thresholds.
+For two independent unit-scale logistic shifts \(X,Y\), \(\langle(X-Y)_+^3\rangle=12\zeta(3)\).
+Smoothing \cref{eq:cold-cusp} therefore gives, at fixed strictly ordered flavor potentials,
+\begin{align}
+ \Gamma_K=\frac{45}{128}\CK\Big[
+ \Izero+\frac{\pi^2}{6}\Jtwo T^2
+ -\frac{64}{3}\zeta(3)\mu_u^2(\mu_d^3-\mu_s^3)T^3
+ +O(T^4)\Big].
+ \label{eq:through-cubic}
+\end{align}
+The reverse-rate correction is exponentially small at fixed positive \(\mu_K\) and is included in the remainder of this asymptotic statement.
+Equation~\eqref{eq:through-cubic} shows that truncating after \(T^2\) has an \(O(T^3)\), not an \(O(T^4)\), remainder.
+Appendix~\ref{app:cubic} also derives the cubic coefficient directly from the finite-temperature switching region.
+
+For the ordinary interior expansion, \(T\) must be small compared with the positive flavor Fermi energies and with the gaps separating distinct thresholds, including \(\mu_d-\mu_u\) and \(\mu_u-\mu_s\).
+The equal up thresholds are already treated by \cref{eq:cold-cusp}, so no artificial gap between them is required.
+At \(\mu_K=\mu_u\), smoothing the sixth-power cold branch first produces a sixth-order boundary contribution; the quadratic and cubic formulas remain continuous there.
+A uniform high-order expansion through that boundary would have to retain its smoothed positive part.
+As other flavor gaps close, \cref{eq:through-cubic} must not be used to infer a uniform remainder; the joint near-equilibrium limit is treated in \cref{sec:limits}.
+
+At \(\mu_s=0\), the usual Sommerfeld theorem about a nonzero strange Fermi surface does not apply, but the angular kernel vanishes as the cube of the outgoing strange momentum.
+The integral over a strange endpoint layer of width \(T\) consequently first changes the rate at \(T^4\).
+The displayed coefficients through \(T^3\) thus remain valid at that endpoint, with
+\begin{equation}
+ \Jtwo(\mu_u,\mu_d,0)=\frac{8\mu_u^2}{15}
+ (15\mu_d^4+10\mu_d^2\mu_u^2-8\mu_d\mu_u^3+8\mu_u^4).
+ \label{eq:thermal-strange-zero}
+\end{equation}
+This endpoint argument does not license an ordinary strange-surface expansion at higher orders or restore the omitted antiquark reactions.

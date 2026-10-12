@@ -1,7 +1,7 @@
 ---
 summary: Live solver and performance traps, including numerical-isothermal low-temperature recovery and current bounds, cold quadrature, finite-ms cost, GIL-bound threads, and asymmetric bisection depth.
 status: current
-updated: 2026-09-16
+updated: 2026-10-02
 tags: [solver, bugs, performance]
 ---
 
@@ -109,7 +109,7 @@ Use the massless default for broad scans unless finite-$m_s$ physics is specific
 
 `_pnm_state_at_seed`, `analytic_velocity_bound` and `semi_analytic_velocity_bound` are pure-Python/scipy and hold the GIL. A `ThreadPoolExecutor` gives **no speedup at all**.
 
-Measured 2026-08-07 on `26SU-10` cell 24: `ThreadPoolExecutor(max_workers=8)` driving `solve_boundary_curves` ran at **101% CPU** with CPU time equal to elapsed time — fully serial across ~356 evaluations, nearly two hours.
+Measured 2026-08-07 on `26-08-04` cell 24: `ThreadPoolExecutor(max_workers=8)` driving `solve_boundary_curves` ran at **101% CPU** with CPU time equal to elapsed time — fully serial across ~356 evaluations, nearly two hours.
 
 The cluster scripts (`run_hydro_analytic_contour.py`, `steady_front_scan.py`) use `ProcessPoolExecutor` for exactly this reason. Notebook cells reach for `ThreadPoolExecutor` because it is easier to set up and shares module state, and the `max_workers=8` argument makes it *look* parallel.
 

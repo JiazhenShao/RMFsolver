@@ -1,0 +1,18 @@
+{
+  "schema": 2,
+  "use": "static_boundaries_only",
+  "physics": {
+    "B_one_forth": 189.1565957288247,
+    "ms": 0.0,
+    "NM_type": "PNM",
+    "upB": 5000
+  },
+  "fingerprint": "2784ce79172551729a29ef87b947c677240c4342d46c5da7871d4bbffbe1ee84",
+  "files": {
+    "inputs/static-boundaries.npy": "e2f310579683ff85f02121d3ce394a358066cc1a45a4c34eb3106cdc0e84b902"
+  },
+  "source_checkpoint_sha256": "f6122f975a5828c61e816d44a9c3ff9febbb1727cdbe34f684cb0deb44a017f6",
+  "source_domain_sha256": "bc2d509cde1b9c47eed9b1a43b772ceaa11039501c182872df95245c18e5c6ed",
+  "source_boundary_geometry_sha256": "9960e28dc01650bfb42410d8f7ae3840575fd65ff01c9d087a4daf05af8d0872",
+  "source_xi_ignored_for_static_boundaries": -0.5
+}

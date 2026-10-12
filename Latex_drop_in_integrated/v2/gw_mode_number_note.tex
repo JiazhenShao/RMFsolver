@@ -1,0 +1,21 @@
+% ============================================================================
+% Drop-in note defining the azimuthal mode number m, for the postmerger section
+% (gw_section_body.tex). Natural units, host conventions.
+%
+% Placement: attach the \footnote below to the first "(m=2)" in Sec. sec:gw,
+% i.e. change
+%     ... fundamental quadrupolar ($m=2$) oscillation of the remnant ...
+% to
+%     ... fundamental quadrupolar ($m=2$)\footnote{...} oscillation of the remnant ...
+% Alternatively, drop the body in as a short paragraph after that sentence.
+% ============================================================================
+
+\footnote{%
+The index $m$ is the azimuthal mode number.
+A perturbation of a nearly axisymmetric remnant can be expanded in the angle $\phi$ about the rotation axis into terms that vary as $e^{i(m\phi-\omega t)}$, and $m$ counts how many full cycles the pattern completes in one turn around that axis.
+An $m=0$ pattern is axisymmetric, a breathing or quasi-radial motion; $m=1$ is a one-sided displacement; $m=2$ stretches the equatorial cross-section into a rotating bar.
+Only the bar radiates appreciably.
+Gravitational-wave emission has no monopole or dipole part, so it comes from the mass quadrupole, and within the quadrupole the $m=2$ component has a time-varying moment while the $m=0$ (axisymmetric) component does not.
+Strictly, $m$ fixes only the azimuthal shape: the dominant peak is the $\ell=m=2$ fundamental mode, with smaller $m=2$ contributions from higher multipoles $\ell=3,4,\dots$
+A pattern $\propto e^{i(2\phi-\omega t)}$ rotates rigidly at angular speed $\omega/2$ and looks the same after half a turn, so a distant observer sees the quadrupole repeat twice per revolution and the wave emerges at $f_{\rm peak}=\omega/2\pi$.%
+}

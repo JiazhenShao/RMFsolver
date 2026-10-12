@@ -1,0 +1,473 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{microtype}
+
+\allowdisplaybreaks
+
+\begin{document}
+
+\section{Semi-analytic gravitational-wave criticalities from finite-rate phase conversion}
+\label{sec:gw-criticalities}
+
+The purpose of this section is to connect the conversion-front speed calculated below to gravitational-wave observables from a neutron-star merger.
+The quantities \(f_{\rm peak}^{\infty}\) and \(f_{\rm peak}^{\rm finite}\) denote the global postmerger oscillation peak in the infinite-rate and finite-rate conversion prescriptions, respectively.
+
+\subsection{Geometry-independent finite conversion of the critical-pressure region}
+\label{sec:gw-generic-conversion}
+
+At each time, define the region in which quark matter is thermodynamically favored by
+\begin{equation}
+\Omega_c(t)
+=
+\left\{
+\boldsymbol{x}:P(\boldsymbol{x},t)>P_c
+\right\}.
+\label{eq:critical-pressure-region}
+\end{equation}
+The infinite-rate prescription converts every point in this region immediately, so its phase indicator is
+\begin{equation}
+X_q^{\infty}(\boldsymbol{x},t)
+=
+\Theta\!\left[P(\boldsymbol{x},t)-P_c\right].
+\label{eq:infinite-phase-indicator}
+\end{equation}
+
+For finite-rate conversion, introduce a continuous level-set function \(\Phi(\boldsymbol{x},t)\).
+The phase boundary is its zero surface \(\Phi=0\), and the sign convention is \(\Phi>0\) in quark matter and \(\Phi<0\) in nuclear matter.
+Thus \(\Phi\) is not itself a binary phase indicator: only its zero surface and sign are physical, while its magnitude may be chosen for numerical convenience, for example as the signed distance from the boundary.
+Let \((\gamma,\boldsymbol{u})\) be the local four-velocity of the boundary in the merger frame, where \(\boldsymbol{u}\) is its spatial proper velocity.
+Let \(\boldsymbol{x}_b(t)\) denote the trajectory of a point that remains on the moving boundary, so
+\begin{equation}
+\Phi(\boldsymbol{x}_b(t),t)=0.
+\end{equation}
+Differentiating this identity gives the kinematic condition
+\begin{equation}
+0
+=
+\frac{d}{dt}\Phi(\boldsymbol{x}_b(t),t)
+=
+\frac{\partial\Phi}{\partial t}
++
+\dot{\boldsymbol{x}}_b
+\boldsymbol{\cdot}
+\boldsymbol{\nabla}\Phi.
+\end{equation}
+Because the ordinary boundary velocity is \(\dot{\boldsymbol{x}}_b=\boldsymbol{u}/\gamma\), this condition can be written as
+\begin{equation}
+\left.
+\left(
+\gamma
+\frac{\partial\Phi}{\partial t}
++
+\boldsymbol{u}
+\boldsymbol{\cdot}
+\boldsymbol{\nabla}\Phi
+\right)
+\right|_{\Phi=0}
+=0.
+\label{eq:generic-level-set-front}
+\end{equation}
+Equation~\eqref{eq:generic-level-set-front} does not give \(\Phi\) an independent physical dynamics; it only requires its zero surface to move with the boundary.
+Applying the same transport equation away from \(\Phi=0\) is a numerical extension used to evolve the level-set field, and different extensions that preserve the same zero surface describe the same physical boundary.
+In a curved spatial geometry, the gradient norm is \(\left|\boldsymbol{\nabla}\Phi\right|=(\gamma^{ij}\partial_i\Phi\,\partial_j\Phi)^{1/2}\), where \(\gamma^{ij}\) is the inverse spatial metric.
+With the present sign convention, the unit normal pointing from quark matter into nuclear matter is
+\begin{equation}
+\widehat{\boldsymbol{n}}
+=
+-
+\frac{\boldsymbol{\nabla}\Phi}
+{\left|\boldsymbol{\nabla}\Phi\right|}.
+\end{equation}
+If only normal interface motion is retained, define
+\begin{equation}
+u^{(n)}
+=
+\boldsymbol{u}
+\boldsymbol{\cdot}
+\widehat{\boldsymbol{n}},
+\end{equation}
+so Eq.~\eqref{eq:generic-level-set-front} becomes
+\begin{equation}
+\left.
+\left(
+\frac{\partial\Phi}{\partial t}
+-
+\frac{u^{(n)}}{\gamma}
+\left|\boldsymbol{\nabla}\Phi\right|
+\right)
+\right|_{\Phi=0}
+=0.
+\label{eq:normal-level-set-front}
+\end{equation}
+
+The transport speed appearing in Eq.~\eqref{eq:normal-level-set-front} is therefore \(u^{(n)}/\gamma\), not a new independent phase-transition velocity.
+The local hydrodynamic calculation uses the rest frame of the phase boundary and writes the fluid four-velocity as
+\begin{equation}
+U^\mu=(\gamma,u,0,0),
+\qquad
+u=\gamma v.
+\end{equation}
+The nuclear and quark sides of the sharp boundary are labeled by \(0^-\) and \(0^+\), respectively, so their Lorentz factors are
+\begin{equation}
+\gamma(0^\pm)
+=
+\left[
+1+
+\left(\frac{u(0^\pm)}{c}\right)^2
+\right]^{1/2}.
+\end{equation}
+Because \(u=\gamma v\), baryon-flux conservation across the interface is
+\begin{equation}
+n_B(0^-)\,u(0^-)
+=
+n_B(0^+)\,u(0^+).
+\label{eq:relativistic-baryon-flux-front}
+\end{equation}
+Equivalently,
+\begin{equation}
+u(0^+)
+=
+\frac{n_B(0^-)}
+{n_B(0^+)}
+u(0^-).
+\label{eq:two-sided-front-velocities}
+\end{equation}
+Thus \(u(0^-)\) and \(u(0^+)\) are not identified with one another.
+The calculation below determines \(u(0^-)\), while Eq.~\eqref{eq:two-sided-front-velocities} determines the corresponding quark-side value.
+The merger-frame boundary velocity \(\boldsymbol{u}\) is obtained by transforming the boundary-rest-frame solution using the local fluid four-velocity on either side.
+
+The finite-rate phase indicator is
+\begin{equation}
+X_q^{\rm finite}(\boldsymbol{x},t)
+=
+\Theta[\Phi(\boldsymbol{x},t)].
+\label{eq:finite-phase-indicator}
+\end{equation}
+Consequently, \(X_q^{\rm finite}=1\) denotes quark matter and \(X_q^{\rm finite}=0\) denotes nuclear matter.
+The combination \(X_q^{\rm finite}=0\) and \(P>P_c\) identifies metastable nuclear matter that is thermodynamically eligible for conversion but has not yet been reached by the front.
+Separating \(X_q^{\rm finite}\) from the equilibrium preference \(X_q^\infty=\Theta(P-P_c)\) also permits hysteresis instead of forcing instantaneous reverse conversion when the pressure crosses \(P_c\).
+The converted proper-volume fraction of the critical-pressure region is therefore
+\begin{equation}
+x_q^{\rm finite}(t)
+=
+\frac{
+\displaystyle
+\int_{\Omega_c(t)}
+X_q^{\rm finite}(\boldsymbol{x},t)\,dV
+}{
+\displaystyle
+\int_{\Omega_c(t)}
+dV
+}.
+\label{eq:generic-converted-fraction}
+\end{equation}
+The same definition can be weighted by baryon density when the converted baryon-mass fraction is more relevant than the converted volume fraction.
+
+For an axisymmetric background, use cylindrical coordinates \(\boldsymbol{x}=(r,\phi,z)\) and impose \(\partial_\phi P=\partial_\phi\Phi=0\).
+The proper volume element is
+\begin{equation}
+dV
+=
+\sqrt{\gamma}\,dr\,d\phi\,dz,
+\end{equation}
+where \(\gamma\) is the determinant of the spatial metric in \((r,\phi,z)\) coordinates.
+After integrating over \(\phi\), Eq.~\eqref{eq:generic-converted-fraction} becomes
+\begin{equation}
+x_q^{\rm finite}(t)
+=
+\frac{
+\displaystyle
+2\pi\int_{\mathcal D_c(t)}
+X_q^{\rm finite}(r,z,t)
+\sqrt{\gamma}\,dr\,dz
+}{
+\displaystyle
+2\pi\int_{\mathcal D_c(t)}
+\sqrt{\gamma}\,dr\,dz
+},
+\label{eq:axisymmetric-converted-fraction}
+\end{equation}
+where \(\mathcal D_c(t)\) is the meridional cross-section of \(\Omega_c(t)\).
+In the flat-space cylindrical reduction, \(\sqrt{\gamma}=r\).
+
+As a simple special case, suppose that \(\Omega_c\) is approximated by a cylinder of radius \(R_c\) and half-height \(H_c\).
+If the converted region has radius \(R_{\rm PT}\) and half-height \(H_{\rm PT}\), uniform density gives
+\begin{equation}
+x_q^{\rm finite}
+=
+\left(\frac{R_{\rm PT}}{R_c}\right)^2
+\left(\frac{H_{\rm PT}}{H_c}\right).
+\label{eq:cylindrical-converted-fraction}
+\end{equation}
+If the front already spans the full height and propagates only in the radial direction at constant speed, this reduces to
+\begin{equation}
+x_q^{\rm finite}(t_{\rm peak})
+=
+\min\!\left\{
+1,
+\left[
+\frac{u(0^-)(t_{\rm peak}-t_c)}
+{\gamma(0^-)R_c}
+\right]^2
+\right\}.
+\label{eq:radial-cylindrical-converted-fraction}
+\end{equation}
+The exponent \(2\) in Eq.~\eqref{eq:radial-cylindrical-converted-fraction} is specific to this radial cylindrical reduction, while Eq.~\eqref{eq:generic-converted-fraction} does not assume any symmetry or self-similar front shape.
+
+\subsection{Dynamical catch-up condition}
+\label{sec:gw-catch-up}
+
+Define \(t_{\rm arrival}(\boldsymbol{x})\) as the first time at which the finite-rate front reaches the point \(\boldsymbol{x}\).
+The finite-rate prescription has caught up with the infinite-rate prescription by \(t_{\rm peak}\) if
+\begin{equation}
+\sup_{\boldsymbol{x}\in\Omega_c(t_{\rm peak})}
+t_{\rm arrival}(\boldsymbol{x})
+\leq
+t_{\rm peak}.
+\label{eq:generic-catch-up-condition}
+\end{equation}
+This condition remains meaningful for an irregular, time-dependent critical-pressure region and for a front advected by the merger flow.
+
+For a static region, negligible advection, a constant front speed, and the initial conversion surface \(\Phi(\boldsymbol{x},t_c)=0\), define
+\begin{equation}
+L_{\rm max}
+=
+\sup_{\boldsymbol{x}\in\Omega_c(t_{\rm peak})}
+\operatorname{dist}\!\left(\boldsymbol{x},\{\Phi(\boldsymbol{\cdot},t_c)=0\}\right),
+\label{eq:maximum-propagation-distance}
+\end{equation}
+Here the distance is the shortest propagation distance from the initial zero surface of \(\Phi\) to \(\boldsymbol{x}\).
+The catch-up condition then reduces to the critical speed
+\begin{equation}
+\left[
+\frac{u(0^-)}
+{\gamma(0^-)}
+\right]_{\rm critical}
+=
+\frac{L_{\rm max}}
+{t_{\rm peak}-t_c}.
+\label{eq:generic-critical-front-velocity}
+\end{equation}
+Consequently,
+\begin{equation}
+\frac{u(0^-)}
+{\gamma(0^-)}
+\gtrsim
+\left[
+\frac{u(0^-)}
+{\gamma(0^-)}
+\right]_{\rm critical}
+\quad\Longrightarrow\quad
+f_{\rm peak}^{\rm finite}
+\simeq
+f_{\rm peak}^{\infty}.
+\label{eq:generic-frequency-catch-up}
+\end{equation}
+
+\subsection{Mapping incomplete conversion to the nonaxisymmetric postmerger mode}
+\label{sec:gw-frequency-map}
+
+Axisymmetry is used only for the thermodynamic background and the front propagation.
+The dominant postmerger gravitational-wave peak is associated with a nonaxisymmetric \(m=2\) perturbation, which may be written schematically as
+\begin{equation}
+\delta Q(t,r,\phi,z)
+=
+\operatorname{Re}
+\left[
+\delta Q_2(r,z)
+e^{i(2\phi-\omega_2 t)}
+\right].
+\label{eq:m2-perturbation}
+\end{equation}
+At the level of an energy-principle approximation, its angular frequency satisfies
+\begin{equation}
+\omega_2^2
+\simeq
+\frac{\mathcal K_2}{\mathcal I_2},
+\qquad
+f_{\rm peak}
+=
+\frac{\omega_2}{2\pi},
+\label{eq:mode-energy-frequency}
+\end{equation}
+where \(\mathcal K_2\) is the pressure, gravitational, and rotational restoring functional and
+\begin{equation}
+\mathcal I_2
+=
+\int
+\rho
+\left|\boldsymbol{\xi}_2\right|^2
+dV
+\label{eq:m2-mode-inertia}
+\end{equation}
+is the inertia of the \(m=2\) displacement \(\boldsymbol{\xi}_2\).
+Rotational corrections that are not captured explicitly by Eq.~\eqref{eq:mode-energy-frequency} must be included through \(\mathcal K_2\) or through calibration to postmerger models.
+
+The finite-rate and infinite-rate frequencies are consequently related by
+\begin{equation}
+\frac{f_{\rm peak}^{\rm finite}}
+{f_{\rm peak}^{\infty}}
+\simeq
+\left[
+\frac{\mathcal K_2^{\rm finite}}
+{\mathcal K_2^{\infty}}
+\frac{\mathcal I_2^{\infty}}
+{\mathcal I_2^{\rm finite}}
+\right]^{1/2}.
+\label{eq:generic-mode-frequency-ratio}
+\end{equation}
+For small differences between the two prescriptions,
+\begin{equation}
+\frac{
+f_{\rm peak}^{\rm finite}
+-
+f_{\rm peak}^{\infty}
+}{
+f_{\rm peak}^{\infty}
+}
+\simeq
+\frac{1}{2}
+\left[
+\frac{
+\mathcal K_2^{\rm finite}
+-
+\mathcal K_2^{\infty}
+}{
+\mathcal K_2^{\infty}
+}
+-
+\frac{
+\mathcal I_2^{\rm finite}
+-
+\mathcal I_2^{\infty}
+}{
+\mathcal I_2^{\infty}
+}
+\right].
+\label{eq:linear-mode-frequency-shift}
+\end{equation}
+
+At \(t_{\rm peak}\), the two prescriptions differ only in the lagging region
+\begin{equation}
+\Omega_{\rm lag}(t_{\rm peak})
+=
+\left\{
+\boldsymbol{x}\in\Omega_c(t_{\rm peak}):
+X_q^{\rm finite}(\boldsymbol{x},t_{\rm peak})=0
+\right\}.
+\label{eq:lagging-region}
+\end{equation}
+The EOS difference inside \(\Omega_{\rm lag}\) changes both \(\mathcal K_2\) and \(\mathcal I_2\).
+Because different parts of the remnant contribute unequally to the \(m=2\) mode, define the mode-weighted converted fraction
+\begin{equation}
+x_{q,2}^{\rm finite}(t_{\rm peak})
+=
+\frac{
+\displaystyle
+\int_{\Omega_c(t_{\rm peak})}
+W_2(\boldsymbol{x})
+X_q^{\rm finite}(\boldsymbol{x},t_{\rm peak})
+dV
+}{
+\displaystyle
+\int_{\Omega_c(t_{\rm peak})}
+W_2(\boldsymbol{x})
+dV
+},
+\label{eq:mode-weighted-converted-fraction}
+\end{equation}
+where the nonnegative weight \(W_2\) describes the local sensitivity of the mode frequency to the phase conversion.
+
+Let \(\Delta f_{\rm PT}\) denote the signed equilibrium frequency shift produced by converting the entire critical-pressure region relative to leaving that region unconverted.
+This is an EOS and mode-structure calibration input rather than a third conversion prescription.
+The leading interpolation implied by Eq.~\eqref{eq:linear-mode-frequency-shift} is
+\begin{equation}
+\boxed{
+f_{\rm peak}^{\rm finite}(u(0^-))
+\simeq
+f_{\rm peak}^{\infty}
+-
+\left[
+1-x_{q,2}^{\rm finite}(t_{\rm peak};u(0^-))
+\right]
+\Delta f_{\rm PT}.
+}
+\label{eq:generic-finite-peak-frequency}
+\end{equation}
+Therefore the finite-rate difference is
+\begin{equation}
+\Delta f_{\rm rate}
+\equiv
+f_{\rm peak}^{\infty}
+-
+f_{\rm peak}^{\rm finite}
+\simeq
+\left[
+1-x_{q,2}^{\rm finite}(t_{\rm peak};u(0^-))
+\right]
+\Delta f_{\rm PT}.
+\label{eq:generic-rate-frequency-shift}
+\end{equation}
+The sign of \(\Delta f_{\rm rate}\) is determined by the EOS through \(\Delta f_{\rm PT}\), rather than by the front geometry alone.
+If the smallest resolvable frequency difference is \(\delta f_{\rm min}\), the finite-rate effect is distinguishable only if
+\begin{equation}
+\left|
+1-x_{q,2}^{\rm finite}(t_{\rm peak};u(0^-))
+\right|
+\left|\Delta f_{\rm PT}\right|
+\gtrsim
+\delta f_{\rm min}.
+\label{eq:generic-observable-criticality}
+\end{equation}
+The axisymmetric background determines \(\Omega_c\), \(\Phi\), \(\mathcal K_2\), and \(\mathcal I_2\), while the \(m=2\) perturbation in Eq.~\eqref{eq:m2-perturbation} carries the time-dependent quadrupole moment that generates the dominant postmerger gravitational wave.
+
+\subsection{Chirp-mass dependence and model outputs}
+\label{sec:gw-chirp-mass}
+
+For an equal-mass binary, the total mass is related to the chirp mass by
+\begin{equation}
+M_{\rm tot}=2^{6/5}\mathcal{M}_{\rm chirp},
+\end{equation}
+and the remnant mass can be estimated from
+\begin{equation}
+M_{\rm rem}
+\simeq
+2^{6/5}\mathcal{M}_{\rm chirp}
+-M_{\rm ej}
+-\frac{E_{\rm GW}}{c^2}.
+\end{equation}
+The infinite-rate frequency can be supplied by a published empirical postmerger relation,
+\begin{equation}
+f_{\rm peak}^{\infty}
+=
+F\!\left(
+\mathcal{M}_{\rm chirp},
+R_{1.8}^{\infty}
+\right),
+\label{eq:infinite-frequency-empirical-input}
+\end{equation}
+where \(R_{1.8}^{\infty}\) is the circumferential radius of a cold, nonrotating \(1.8M_\odot\) star calculated with the equilibrium EOS containing the instantaneous phase transition.
+The empirical relation provides the equilibrium boundary value, while Eq.~\eqref{eq:generic-finite-peak-frequency} supplies the finite-rate correction.
+The remaining mass-dependent inputs are
+\begin{equation}
+\Omega_c(\mathcal{M}_{\rm chirp},t),
+\qquad
+t_{\rm arrival}(\boldsymbol{x};\mathcal{M}_{\rm chirp},u(0^-)),
+\qquad
+W_2(\boldsymbol{x};\mathcal{M}_{\rm chirp}),
+\qquad
+\Delta f_{\rm PT}(\mathcal{M}_{\rm chirp}).
+\end{equation}
+These quantities can first be estimated from equilibrium EOS sequences and published postmerger timescales, and they can later be calibrated against numerical-relativity simulations.
+
+The principal semi-analytic outputs are therefore \(f_{\rm peak}^{\infty}\), \(f_{\rm peak}^{\rm finite}\), and \(\Delta f_{\rm rate}\) as functions of the calculated boundary speed \(u(0^-)\) and \(\mathcal{M}_{\rm chirp}\), together with the critical curve \([u(0^-)/\gamma(0^-)]_{\rm critical}(\mathcal{M}_{\rm chirp})\).
+
+The frequency calculation does not determine the strain amplitude by itself because the amplitude also depends on the normalization and damping of \(\delta Q_2\).
+A strain prediction therefore requires a calibrated \(m=2\) deformation or an independently determined mode energy.
+
+\input{section}
+
+\end{document}

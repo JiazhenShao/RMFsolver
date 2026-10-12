@@ -1,0 +1,34 @@
+\begin{thebibliography}{4}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Madsen(1993)]{Madsen:1993xx}
+J.~Madsen.
+\newblock Rate of the weak reaction {$s+u\to u+d$} in quark matter.
+\newblock \emph{Phys. Rev. D}, 47:\penalty0 325--330, 1993.
+\newblock \doi{10.1103/PhysRevD.47.325}.
+
+\bibitem[Alford et~al.(2022)Alford, Brodie, Haber, and Tews]{Alford:2022bpp}
+Mark~G. Alford, Liam Brodie, Alexander Haber, and Ingo Tews.
+\newblock {Relativistic mean-field theories for neutron-star physics based on
+  chiral effective field theory}.
+\newblock \emph{Phys. Rev. C}, 106\penalty0 (5):\penalty0 055804, 2022.
+\newblock \doi{10.1103/PhysRevC.106.055804}.
+
+\bibitem[Alford et~al.(2023)Alford, Brodie, Haber, and Tews]{Alford:2023rgp}
+Mark~G. Alford, Liam Brodie, Alexander Haber, and Ingo Tews.
+\newblock {Tabulated equations of state from models informed by chiral
+  effective field theory}.
+\newblock \emph{Phys. Scripta}, 98\penalty0 (12):\penalty0 125302, 2023.
+\newblock \doi{10.1088/1402-4896/ad03c8}.
+
+\bibitem[Heiselberg and Pethick(1993)]{Heiselberg:1993cr}
+H.~Heiselberg and C.~J. Pethick.
+\newblock {Transport and relaxation in degenerate quark plasmas}.
+\newblock \emph{Phys. Rev. D}, 48:\penalty0 2916--2928, 1993.
+\newblock \doi{10.1103/PhysRevD.48.2916}.
+
+\end{thebibliography}

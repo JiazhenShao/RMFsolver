@@ -1,0 +1,47 @@
+This is BibTeX, Version 0.99d (TeX Live 2024)
+Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
+The top-level auxiliary file: gw_section_standalone.aux
+The style file: JHEP.bst
+Database file #1: gw_section_standaloneNotes.bib
+Database file #2: gw_refs.bib
+You've used 16 entries,
+            2188 wiz_defined-function locations,
+            663 strings with 7824 characters,
+and the built_in function-call counts, 6057 in all, are:
+= -- 609
+> -- 304
+< -- 0
++ -- 84
+- -- 68
+* -- 528
+:= -- 822
+add.period$ -- 16
+call.type$ -- 16
+change.case$ -- 16
+chr.to.int$ -- 0
+cite$ -- 16
+duplicate$ -- 328
+empty$ -- 471
+format.name$ -- 68
+if$ -- 1594
+int.to.chr$ -- 0
+int.to.str$ -- 16
+missing$ -- 64
+newline$ -- 51
+num.names$ -- 16
+pop$ -- 31
+preamble$ -- 1
+purify$ -- 0
+quote$ -- 0
+skip$ -- 294
+stack$ -- 0
+substring$ -- 214
+swap$ -- 200
+text.length$ -- 0
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 0
+warning$ -- 0
+while$ -- 34
+width$ -- 18
+write$ -- 178

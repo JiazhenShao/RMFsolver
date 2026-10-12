@@ -1,0 +1,51 @@
+{
+  "repo_root": "/nfshome/jan.shao/NSM_related",
+  "python": "/grad/jan.shao/NSM_related/.NSM/bin/python3",
+  "solver": "solve_steady_front_1d_aQstar_rescale_bvp",
+  "T": 10.0,
+  "nB_factor": 2.0,
+  "B_one_forth": 180.0,
+  "ms": 0.0,
+  "tail_eps": 1e-06,
+  "n_mesh": 300,
+  "tol_bvp": 0.0001,
+  "max_nodes": 50000,
+  "kappa_factor": 1.0,
+  "jB_guess": 0.5,
+  "jB_bounds": [
+    0.0001,
+    5.0
+  ],
+  "aQstar_values": [
+    0.0,
+    0.1,
+    0.2,
+    0.30000000000000004,
+    0.4,
+    0.5,
+    0.6000000000000001,
+    0.7000000000000001,
+    0.8,
+    0.9,
+    1.0,
+    1.2,
+    1.5
+  ],
+  "aQstar_high_list": "1.2,1.5",
+  "muK_rich": true,
+  "branch_label": "muK-rich",
+  "workers": 32,
+  "chunk_size": null,
+  "verb_mode": "simple",
+  "return_profile": true,
+  "n_tasks": 13,
+  "n_chunks": 13,
+  "output_dir": "/nfshome/jan.shao/NSM_related/new_paper_calculations/6Apr/steady_front_bvp_run_20260407_143526",
+  "density_convention": {
+    "name": "Convention B",
+    "base_helpers": "P_f, E_f, n_B include spin only and exclude quark color",
+    "quark_species": "n_u, n_d, n_s are physical quark densities including color",
+    "nB_QM": "(n_u + n_d + n_s) / 3",
+    "nK_QM": "(n_d - n_s) / 2"
+  }
+}

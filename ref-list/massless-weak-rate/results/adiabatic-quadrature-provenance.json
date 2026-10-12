@@ -1,0 +1,11 @@
+{
+  "source_sha256": {
+    "adiabatic_sensitivity.py": "40159f0ff95be159d9411138b4fba16c5955dd5499c7450dfacee1e49d3d7552",
+    "validate_rate.py": "11d5de3e48c3ec09ef4c5aefbf2ab6c94a803eb46224ee1992a27751ed3711cb",
+    "cold_sympy.py": "d34c6381c2b25e7a32da4a4c682b10d7efb9ac8590291613a6d744edab03b5f9",
+    "thermal_sympy.py": "cd2027784e98055f63801c5c903853517b74a574fafcaad86091f7b630cf9584"
+  },
+  "numpy_version": "2.2.3",
+  "alpha_s": 0.3,
+  "H_D": 1.81317
+}

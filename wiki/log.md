@@ -530,3 +530,289 @@ The revised PI simple screenshot resolves the earlier mismatch with the exact ma
 Independently digitized ten revised screenshot points, with maximum absolute difference in a of 0.00845, consistent with screenshot resolution and calibration.
 Saved the standalone plotting script, separate revised samples, and visually checked PNG/PDF comparison under local_analysis_results/26-10-01/composition_constraints/; preserved the original audit artifacts.
 Updated [[composition-constraint-plot-audit]] and its index entry to distinguish the resolved discrepancy from the original screenshot. No solver code changed.
+
+## [2026-10-01] implementation | Bounded cold numerical log-temperature contours
+
+Added the 26-10-01/isothermal_numeric_logT cluster workflow: 31 logarithmic temperatures, seven speed levels, direct-density boundary roots, numerical density targeting, shared continuation profiles, persistent attempt reservations and pointwise atomic checkpoints.
+Ported the recovered layer-resolved initializer into an opt-in phase_velocity API with explicit fallback and maximum BVP RMS diagnostics; existing defaults and physical closures are retained.
+Bundled hashed immutable warm inputs and three optional cold profiles, added solver-free saved-data notebook cells without replacing the linear-temperature plot, and kept unresolved cold intervals disconnected.
+Verified with lightweight orchestration, API/profile, preservation and plotting tests plus read-only preflight; stopped a legacy regression when it entered live EOS calculations rather than continuing heavy local work. Cold smoke/recovery and tighter accuracy checks remain for the cluster.
+See [[isothermal-log-temperature-contours]] for commands, source compatibility, budgets, transfer requirements and completion criteria.
+
+## [2026-10-01] manuscript | Shared layer thickness and adiabatic composition notation
+
+Moved the conversion-layer thickness analysis in `Latex_writting/Main.tex` to the end of the isothermal analytical subsection, adding only the clarification that its asymptotic temperature equals the fixed temperature there and joining a split sentence.
+Renamed the adiabatic composition ceiling from A to A_ad throughout the manuscript source, including result captions and the LTE appendix; retained all equation labels and left figure artwork unchanged.
+Verified that equation contents match the previous source after undoing the rename and bracket sizing, and inspected the rendered thickness and LTE equations.
+The isolated `latexmk` build completed without overfull boxes or undefined references; the pre-existing missing bibliography entry `Andersson:2006nr` and package/float warnings remain.
+Recorded the notation and section location in [[analytic-front-speed]].
+
+## [2026-10-01] diagnosis | Downloaded cold log-temperature run and analytical fallback
+
+Audited the downloaded checkpoint without new EOS/BVP solves: 61 successful boundary temperatures, 13/427 accepted contour targets, 27/385 converged numerical trials, 225/225 timed-out analytical proposals and 14 blocked accuracy checks.
+Verified matching solver/workflow hashes and traced unconditional continuation overriding the cold initializer, expensive nested analytical proposals, and retry termination after two failed density guesses.
+Recommended against another unchanged production sweep; the failures do not establish absence of cold fronts.
+Wolfram verified the xi -> -1+ frozen-formula maximum, with the caveat that exact xi=-1 sets the positive profile area to zero and is not a rigorous bound on the full numerical BVP.
+Saved read-only audit code, JSON, CSV and report under local_analysis_results/26-10-01/isothermal-logT-audit/; frozen-endpoint comparisons show 0.76–5.34% excess at three earlier 0.01-MeV probes but 11.4–76.3% at the new converged points.
+Updated [[isothermal-log-temperature-contours]], [[isothermal-analytic-front-speed]] and the index; production code, datasets and notebooks were unchanged by this audit.
+
+## [2026-10-02] implementation | Analytical cluster workflows at xi=-0.85
+
+Prepared the user-copied adiabatic and isothermal folders under 26-10-02 for fresh xi=-0.85 calculations.
+Adiabatic uses both existing analytical methods at fixed T(0+)=0.1 MeV, validated direct-density upstream recovery, separate method timeouts, 660 initial paired coordinates and bounded high-speed refinement.
+Isothermal replaces the BVP campaign with the public analytical solver, 322 contour targets across 46 logarithmic temperatures spanning 0.01–120 MeV, a static-only boundary bundle, cached analytical secants and immediate atomic point checkpoints.
+Removed numerical profile/velocity reuse and nested proposal scans; fixed clipped-window wasted searches and separated figure rendering from checkpoint locking.
+Moved copied legacy artifacts into recoverable sibling backups; original datasets, notebooks and RMFsolver files remain unchanged.
+Verified 40 lightweight tests covering mocked orchestration, API/residual/edge handling, checkpoint/resume, immutable inputs, timeout termination and gap-preserving plotting, plus both solver-free dry runs; no production or live EOS/BVP smoke was launched locally.
+Documented commands, transfer requirements and unmeasured cluster convergence in [[analytical-xi-minus0p85-cluster]], refreshed related pages/index, and unignored the new source/README files only.
+
+## [2026-10-02] visualization | Downloaded xi=-0.85 comparisons
+
+Created and executed `26-10-02.ipynb` with separate loading and plotting cells, reusing the banded adiabatic comparison style and the new 30-by-21 plotting grid.
+The downloaded adiabatic data contain 748 full-analytical and 619 semi-analytical successes out of 749 evaluations; the isothermal analytical data have 292 accepted targets, 25 outside the window and five unresolved targets.
+Added both linear- and log-temperature isothermal overlays: saved numerical warm polylines at/above 20 MeV and 58 distinct accepted numerical roots as colored dots below 20 MeV, with no cold numerical lines or interpolated pseudo-points.
+Preserved analytical gaps, warm archival smoothing provenance, original datasets, old notebooks and all solver files.
+Exported three PNG/PDF pairs under `local_analysis_results/26-10-02/`; ran eight saved-data tests, executed all notebook source cells and inspected all figures without EOS/BVP calls.
+Updated [[analytical-xi-minus0p85-cluster]] and the index with the downloaded outcomes, data sources and visualization rules.
+
+## [2026-10-02] recovery | Analytical gaps and 2000 m/s band
+
+Diagnosed 129 adiabatic semi-analytical cluster timeouts, one cold upstream branch-corroboration failure, and clipped-edge isothermal density searches that exhausted their point allowances.
+Ran targeted local analytical evaluations with two workers and pointwise atomic saving: recovered one full-analytical and 85 semi-analytical samples, plus all five missing isothermal targets.
+Preserved every prior success and the baseline file hashes; repairs reside separately in `local_analysis_results/26-10-02/analytical-local-repair.npy`.
+Confirmed single connected paths for all six displayed adiabatic levels and added the numerical-to-full-analytical 2000 m/s band over supported common angular coverage only.
+Near-boundary checks show that the full-analytical 2000 m/s curve is not supported on the cold/intermediate rays within the shared domain; no band or speed was extrapolated there.
+Re-executed `26-10-02.ipynb`, exported all comparison figures, and verified maximum recovered adiabatic relative closure error 1.18e-11 and isothermal target error 0.3421%.
+The original numerical data, downloaded analytical checkpoints and RMFsolver sources were unchanged; updated [[analytical-xi-minus0p85-cluster]] and the index.
+
+## [2026-10-02] maintenance | Notebook files renamed to creation dates
+
+Renamed all 36 `YYSeason-N.ipynb` root notebooks to `YY-MM-DD.ipynb` using filesystem creation times; `All_Plots*`, `qcd_phase_diagram_paraQMCRMF3.ipynb` and `save_profiles.ipynb` were left unchanged, and `FL26-1/2/3` were included despite writing the season first.
+Six files share two creation dates, so `26SP-3`, `26SP-4`, `26SU-2` and `26SU-5` became `26-07-17-1`..`-4`, and `26SU-11` and `26SU-13` became `26-08-18-1` and `-2`; the `2026-07-17` stamp is a bulk copy event rather than authorship.
+⚠ Creation time is the only date signal available: no notebook carries date metadata, the notebooks are untracked by git, and five of them share the `2026-07-17 11:50` copy stamp.
+Updated the five notebook-reading test modules, six wiki pages, three README files, one cluster-script docstring, and the `nbsrc.py` examples in `CLAUDE.md`.
+Left data-artifact names intact — `local_analysis_results/26SU-11/`-style directories, `26SU-2-hydro-*` output filenames, and the `FL26-3_coupled_interface_roots` label — because renaming a reference without renaming the artifact would break the notebooks that write and load them.
+Verified no stale `.ipynb` reference remains outside [[log]] and `docs/superpowers/`; the five affected test modules report 13 pre-existing failures from a broken `scipy` binary and drifted content assertions, with no missing-file errors.
+Recorded the map in [[notebook-renames]] and linked it from the index.
+
+## [2026-10-04] analysis | Extend the isothermal log-temperature contours through 1000000 m/s
+
+Added analytical levels 10000, 20000, 50000, 100000, 200000, 500000, and 1000000 m/s to the logarithmic-temperature panel of `26-10-02.ipynb` at unchanged xi=-0.85 and physics.
+Two bounded local workers reused the original fixed-temperature boundaries and saved speed brackets, producing 308 accepted contour roots and 14 outside-window classifications with no unresolved targets; 1175 total analytical evaluations include off-target bracket samples.
+All new levels have one connected 44-point path, with maximum speed error 0.4971% and momentum-flux ratio 1.183e-4, below the unchanged acceptance thresholds.
+Saved the two extensions and seed cache separately in `local_analysis_results/26-10-02/`, verified original input/solver hashes, and recorded residuals in `isothermal-high-speed-validation.json`.
+Retained all seven original numerical warm curves and 58 cold numerical dots, with no new numerical data assigned to the added analytical speeds; moved the two-column speed legend into the gray region.
+Refreshed notebook outputs and PNG/PDF exports, visually inspected the result, and passed 60 focused tests; the plotting cells import no EOS solver.
+Used temporary SciPy 1.18.1 to avoid the existing macOS binary-loader error, without modifying the project environment or RMFsolver sources.
+Updated [[isothermal-high-speed-contours]], linked it from [[analytical-xi-minus0p85-cluster]], and refreshed the index.
+
+## [2026-10-04] implementation | Reproducible local isothermal calculation in the notebook
+
+Replaced the isothermal loading cell of `26-10-02.ipynb` with a standalone numerical-data import and local analytical calculation/resume cell, leaving both visualization cells solver-free and preserving their appearance.
+Added `notebook_isothermal.py` and a stdlib-only worker entry point under `new_paper_calculations/26-10-02/`; the fresh path reuses only static boundaries and calculates all 14 analytical levels on 46 temperatures, with no old analytical-speed samples or numerical BVP calls.
+Exposed worker count, xi, time/evaluation limits, run-folder name, worker import paths, and an explicit plot-only switch; new run-folder names start fresh, existing names resume without overwriting prior datasets.
+Reused the established atomic checkpoint and hard-timeout implementation, improved density proposals at clipped edges, and fixed resumption after an interrupted reserved evaluation without resetting its spent budget.
+Passed 66 focused tests. A separate nine-target live check at 0.01, 20, and 83.8593 MeV produced eight accepted roots and one correct outside-window classification in 90 analytical evaluations; the notebook calculation cell then resumed it with zero additional evaluations.
+The full 644-target new workflow was not rerun locally. Original cluster/recovery payloads and RMFsolver source hashes are unchanged, and the completed reference figures remain embedded.
+The current project SciPy import issue is surfaced by a preflight, with a working kernel or explicit compatible worker-library path required; no environment package was changed while awaiting the user's runtime preference.
+Updated [[isothermal-high-speed-contours]], [[analytical-xi-minus0p85-cluster]], and the index with the executable notebook workflow.
+
+## [2026-10-04] debugging | Notebook SciPy runtime and per-evaluation progress
+
+Reproduced the reported macOS loader rejection of the installed SciPy 1.15.2 PROPACK binary before any physics calculation.
+Installed verified SciPy 1.18.1 separately under `local_analysis_results/26-10-02/runtime/`, leaving the Python environment and RMFsolver sources unchanged; the notebook now automatically selects the matching persistent runtime, prints its provenance, and reloads its helper on rerun.
+Added explicit runtime preflight progress, a full contour-target bar, and a distinct counter refreshed after every atomically saved evaluation; resume restores counts without repeating successful work.
+Passed 70 focused tests, including runtime overrides, preflight failures without reservations, and save-before-progress ordering.
+Executed the actual calculation cell in a real Jupyter kernel for two 500 m/s targets at 0.01 and 20 MeV: both converged within 0.15%, requiring 24 evaluations; a second execution added zero evaluations.
+Saved this bounded check separately in `local_analysis_results/26-10-02/notebook-runtime-fix-check/`; did not launch the full 644-target run or alter previous datasets/figures.
+Updated [[isothermal-high-speed-contours]] and the index with the runtime fix and progress semantics.
+
+## [2026-10-05] manuscript | Neutral density-variable EOS in Appendix A
+
+Rewrote Appendix A of `Latex_writting/Main.tex` with the exact neutral flavor densities and their finite-temperature pressure, including the gluon term already present in the old fourth-order expansion.
+Changed the quartic chemical-potential pressure term to its neutral negative sign and expanded both conjugate densities consistently; the quadratic pressure and leading composition relation are unchanged.
+Wolfram returned zero residuals for the pressure and both density expansions, with numerical density-inversion checks at two finite-temperature points.
+Commented out the purple non-neutral-EOS discussion verbatim, retained A1--A6 labels and numbering, and left all manuscript text outside Appendix A and all solver sources unchanged.
+Built with latexmk and inspected the rendered appendix; no new undefined references or overfull boxes, with the existing missing `Andersson:2006nr` citation unchanged.
+Updated [[quark-matter-eos]], [[charge-neutral-quark-eos]] and the index; Appendix B collaborator notes about the old EOS remain for separate review.
+
+## [2026-10-05] manuscript | Highlight Appendix A and substitute the isothermal ceiling
+
+Wrapped the revised Appendix A prose and formulas in `\JS{}`, leaving the unchanged quadratic EOS and PI comments as they were.
+Substituted the neutral EOS susceptibility and equilibrium baryon density into Eq. (35), retaining the finite-temperature ratio and replacing the equilibrium chemical-potential endpoint with the requested constant quark-side superscript notation.
+Wolfram returned zero for the difference between the old and new radicands, and the cold limit recovers the existing leading estimate; no new numerical ceiling comparison was performed.
+Latexmk completed successfully, Eq. (35) and A1--A6 kept their numbering, and both rendered pages were inspected; only the pre-existing `Andersson:2006nr` citation remains unresolved.
+Updated [[isothermal-maximum-speed]], [[charge-neutral-quark-eos]] and the index; no solver changes.
+
+## [2026-10-05] literature | Supernova quark-coexistence oscillations
+
+Reviewed the Mathews/Rupp/Boccioli APS DNP abstract forwarded by Liam Brodie, with Consensus and web searches for the supernova phase-transition and STIR literature.
+Filed [[supernova-quark-oscillations]]: their Gamma<4/3 coexistence-region driver assumes equilibrium conversion, while the laminar front advances only ~0.03-3 m per 1 ms period.
+No solver or manuscript changes.
+
+## [2026-10-07] literature | Madsen weak-rate reference and approximation audit
+
+Confirmed the bibliography metadata and traced the numerical helper to the same cubic-plus-thermal-linear rate as Appendix B.
+The original paper's indexed text identifies Eqs. (20)--(21) as exact at zero temperature and strange mass, Eq. (22) as their small-imbalance limit, and Eq. (23) as the finite-temperature net-rate approximation; its full PDF remained inaccessible for visual inspection.
+Recorded that exact neutral-EOS chemical potentials do not make this approximate rate an exact phase-space calculation, superseding the old full-rate wording in [[strangeness-reaction-diffusion]].
+Updated that page and the index, with a separate open task to quantify rate errors across the front; no manuscript, bibliography or solver edits.
+
+## [2026-10-07] physics | Unequal-flavor weak-rate benchmarks
+
+Distinguished Madsen's general collision integral from Eq. (23) and the improved low-temperature prescription using Eqs. (20)/(21) and (24).
+Derived the massless angular reduction independently from the invariant rate and checked its normalization and detailed-balance sign with Wolfram.
+Neutral T=0 quadrature gives full/Eq. (23) ratios of 0.93249 at a=0.146, 0.72499 at a=0.5 and 0.35942 at a=0.9; three quadrature orders agree, and Wolfram independently integrated the a=1 endpoint exactly.
+Filed [[unequal-flavor-weak-rate]] and updated [[strangeness-reaction-diffusion]] and the index; the inaccessible original PDF's Eq. (24) was not transcribed or guessed.
+Finite-temperature profile errors remain unmeasured; no manuscript, bibliography or solver changes.
+
+## [2026-10-07] physics | Massless finite-temperature rate and original-PDF correction
+
+Read and rendered the user-supplied `ref-list/Rate-PhysRevD.47.325.pdf`, resolving the source-access limitation.
+Both printed cold branches require an ordering that fails for our neutral d -> s conversion after exchanging flavor labels; corrected the earlier overly broad recommendation to use Eq. (20) or (21).
+Recorded Eq. (24) explicitly and distinguished its improved thermal approximation from a systematic expansion for our branch.
+Derived an exact massless reduction with two analytically integrated energy variables, leaving two numerical dimensions, and verified the antiderivatives with Wolfram.
+Filed [[massless-finite-temperature-weak-rate]], including a near-equilibrium check and a converged prototype quadrature; no manuscript or solver changes.
+
+## [2026-10-07] derivation | Standalone massless weak-rate manuscript
+
+Created `ref-list/massless-weak-rate/` with a complete LaTeX derivation, local bibliography, Wolfram inputs/output, independent symbolic helpers, and a finite-temperature numerical reference.
+Derived the correct cold branch for neutral ordering, its exact T-squared coefficient from four independent occupation thresholds, and the fixed-neutral-EOS chain rule.
+Identified and verified the genuine T-cubed remainder from coincident up thresholds; a generic T-fourth remainder would be incorrect.
+The 192-state grid covers both neutral EOS paths, muB900/1200, six compositions, and temperatures .01--100 MeV, with quadrature refinement changes below 1.71e-13 and explicit sampled 5% ranges.
+Updated [[massless-finite-temperature-weak-rate]] and the index; the main combustion manuscript, shared bibliography, and production solver were left unchanged.
+
+## [2026-10-07] verification | Independent check of the massless weak-rate manuscript
+
+Re-derived `ref-list/massless-weak-rate/Main.pdf` without its helper scripts: four-threshold cold integral, both cold branches, J2 and every Appendix C boundary sum, the exact cusp polynomial, EOS shifts, spin trace, and normalization all agree.
+An independent finite-temperature integrator reproduces the quoted cubic residuals, all 192 grid rates (5e-12), Table 2, and the neutral-EOS chain rule.
+Found one transcription error: Madsen's Eq. (24) has `-(5/64) z v^4`; manuscript Eq. (8.2), `validate_rate.py:eq24_factor`, and [[massless-finite-temperature-weak-rate]] dropped the z, so the Figs. 1--2 "Cold + Eq. (24)" diagnostic is not his printed formula. Corrected the wiki page only; manuscript and code unchanged.
+
+## [2026-10-07] correction | Apply Madsen reference-audit fixes
+
+Verified the missing z against the original p. 329 scan, corrected the standalone manuscript and `eq24_factor`, and added a regression test that failed before the fix and passed afterward.
+Reran all 192 states and regenerated the comparison figures; only the Eq. (24) rate/error columns changed, reproducing +15.4916%, +32.9033%, and +11.2145% at muB900,a1,T25/50/100.
+Confirmed the printed Eq. (4) normalization discrepancy against Madsen's later equations and added a manuscript footnote without changing any derived normalization.
+The 11-test suite passes and latexmk builds cleanly; preserved the independent verification notes and left the main combustion manuscript, shared bibliography, production solver, and SciPy installation unchanged.
+
+## [2026-10-07] assessment | Exact-rate and NLO impact on front speeds
+
+Integrated the exact tree-level rate over a(0+) at fixed muB=900/1200 MeV and T=0--80 MeV.
+Since speed ~ sqrt(I2), replacing the solver's Madsen-at-exact-EOS rate by the exact rate lowers speeds by 3--16% for a(0+)<=0.5, 10--20% at 0.7, 19--30% at 0.9, and 27--40% at 0.99.
+The linearized analytic rate stays within -9%/+3% of exact speeds for a(0+)<=0.7 and T<=0.035 muB, by cancellation.
+Ingested arXiv:2609.35165: the O(alpha_s) correction is +41% at alpha_s=0.3 (about +19% speed), computed only near equilibrium with mu_u=mu_d.
+Recorded in [[strangeness-reaction-diffusion]]. Recommendation given to the user: revise the rate-appendix text only, with no code or analytic rederivation. No manuscript or RMFsolver changes.
+
+## [2026-10-07] visualization | Three weak-rate models and speed sensitivity
+
+Updated only the standalone derivation and its numerical helpers to show the exact phase-space integral, Madsen Eq. (23), and the derived T0+T2 rate consistently in every comparison figure.
+Added reproducible fixed-background rate-integral speed estimates at muB=1200 MeV, T=0 and 20 MeV, with convergence CSV/JSON and a generated comparison table.
+The PDF explicitly distinguishes the sensitivity estimate from a solved front, the finite-temperature coefficient prescription from the strict constrained Taylor polynomial, and the cold-rate ratio from an absolute zero-temperature speed.
+All 17 tests pass, the 20-page PDF builds cleanly, and every page was visually inspected.
+Preserved combustion manuscript and production solver hashes; recorded the results in [[massless-finite-temperature-weak-rate]].
+
+## [2026-10-07] computation | Six additional cold full-numerical comparison dots
+
+Added and executed a bounded numerical computation cell immediately before the logarithmic-temperature figure in `26-10-02.ipynb`.
+Recovered 500 and 2000 m/s roots at 0.01, 0.027550997842357025, and 0.09779327685429287 MeV, with maximum target error 0.3146% and passing standard BVP, composition, endpoint-flux, and seven-node profile EOS checks.
+The first pilot exposed an unnecessarily doubled coexistence-distance step near an already close speed; preserved its checkpoint, changed to a small numerical-speed correction, and completed the final six targets in 13 evaluations on two workers with no final-batch failures.
+Saved roots, off-target trials and physical continuation profiles separately in `local_analysis_results/26-10-02/isothermal-cold-numerical-points.npy`; tqdm updates only after atomic saving, and checkpoint resume repeated no numerical solves.
+Retained one quadrature roundoff warning on the cold 2000 m/s root; a separate tighter mesh/tail check of the 0.01-MeV 500 m/s point timed out at 90 seconds and remains explicitly unresolved, not a mesh-independence claim.
+Preserved all 58 original cold dots and added six matching-color dots, refreshed the embedded figure and PNG/PDF exports, and visually inspected the 64-dot plot without changing its window or styling.
+Passed 78 focused tests and a real Jupyter resume/render check; original analytical/numerical archive hashes and all RMFsolver sources are unchanged.
+Documented the code, results and limits in [[isothermal-notebook-cold-points]], linked it from [[isothermal-high-speed-contours]], and refreshed the index.
+
+## [2026-10-07] computation | Bounded high-speed cold numerical comparisons
+
+Extended the calculation cell before the log-temperature plot in `26-10-02.ipynb` to target 10000, 50000 and 500000 m/s at 0.01 and 0.027550997842357025 MeV, with independent checkpoints and tqdm progress.
+Recovered one 10000 m/s point at 0.027550997842357025 MeV: density ratio 3.2359548050553277, numerical speed 10003.19563277806 m/s, target error 0.03196%, passing standard BVP/composition/EOS/flux checks and no captured warnings.
+The other five primary targets timed out at 90 seconds; one warmer fallback each for 50000 and 500000 m/s at 0.09779327685429287 MeV also timed out.
+Eight targets used ten new numerical evaluations (three converged density trials and seven timeouts); only the accepted contour root was plotted, with unresolved higher-speed points explicitly absent.
+Enabled high-speed cold dots independently of the seven warm numerical curves, retained all previous points and plotting controls, and refreshed the embedded figure plus PNG/PDF exports to show 65 cold dots.
+Passed 78 focused tests and a real Jupyter resume/render check with zero extra BVP evaluations; visually inspected the plot and verified original archive, six-root checkpoint and solver hashes unchanged.
+Updated [[isothermal-notebook-cold-points]], [[isothermal-high-speed-contours]] and the index; no tighter mesh/tail claim or numerical substitute was introduced.
+
+## [2026-10-08] literature | Fermi-surface nonleptonic rate formula
+
+Traced the 2<->2 Fermi-surface energy integral (4 pi^2 xi + xi^3)/(6(1-e^{-xi})) to Ghosh, Haber, Andersson and Counsell, arXiv:2608.07311 (Eqs. A8-A10); Alford and Haber, PRC 103, 045810 (Eq. 14); and Shapiro-Teukolsky, Yakovlev et al. 2001, and Kaminker et al. 2016.
+Confirmed that Madsen credits Eq. (23) to Heiselberg-Baym-Pethick and Koch (1991).
+Applied to our quark rate with unequal Fermi momenta, the approximation is within 1.5% of the exact cold rate through a=0.5 but falls to 0.68, 0.26 and 0 at a=0.9, 0.99 and 1. Recorded in [[strangeness-reaction-diffusion]].
+
+## [2026-10-08] literature | Thermal gluons in bag-model EOSs
+
+Used Consensus discovery and fetched paper records, then checked primary EOS equations in finite-temperature combustion, hot-star bag extensions, the user's Entropy 26, 183 paper, and the cold ABPR parameterization.
+Niebergal et al. (2010) and Herzog-Ropke (2011) include thermal gluons through the 19*pi^2*T^4/36 pressure coefficient; Lopes et al. and vBag examples show that a separate ideal-gluon gas is not universal across effective extensions.
+Separated thermal gluons, gluon-mediated interaction corrections and vacuum bag energy; avoided claiming a measured majority from a targeted survey.
+Confirmed current SQMsolver pressure, energy and entropy all include free thermal gluons even with include_em=False; Wolfram checked coefficients, derivatives and thermal-pressure ratios.
+Filed [[bag-model-thermal-gluons]], corrected the wiki's missing explicit gluon term in the former-basis pressure line with a dated note, and updated the index. No solver, notebook or manuscript files changed.
+
+## [2026-10-08] manuscript | Authoritative bag-EOS review citations in Appendix A
+
+Verified Madsen's review Sec. 3.4, Eqs. (62)-(65) and the explicit bulk-limit statement after Eq. (72), plus Buballa's Physics Reports review Sec. 2.1.2, Eqs. (2.4)-(2.7).
+INSPIRE returned database-specific citation counts of 246 and 1752, respectively; imported Buballa:2003qv verbatim and reused Madsen:1998uh.
+Added both citations at the end of the requested opening pressure paragraph in Latex_writting/Main.tex, preserving the physics and collaborative comments.
+Rebuilt the manuscript and verified references [45, 50] in the rendered Appendix A; the existing unrelated Andersson:2006nr citation and eq:energy_flux_adiabatic reference remain unresolved.
+Recorded exact source locations and the distinction between Buballa's general formula and two-flavor illustration in [[bag-model-thermal-gluons]], then refreshed the index. No solver or notebook changes.
+
+## [2026-10-11] calculation | Isothermal extension and conserved adiabatic weak-rate sensitivity
+
+Implemented the approved standalone extension in ref-list/massless-weak-rate/: Section 8.5 now explicitly labels the fixed-background isothermal comparison and Figure 4 includes 0,20,50,100 MeV; all 88 prior cold/20 rows are unchanged.
+Added Section 8.6 with QMC-RMF3 upstream inputs, bag scale 189.1566 MeV, cold quark interface, constant pressure and enthalpy per baryon, full thermal-gluon EOS, local two-term diffusion, and three same-state weak rates.
+Saved 153 upstream states, 45 compositions, 143 quadrature records and 11,016 physical trajectory samples, plus reproducible drivers, figures, tables, source provenance and independent convergence checks.
+The 100 MeV slice reaches only a(0+) >= 0.879368 within 1..10 n0; both density branches are retained where present. Fixed-composition speed ratios are universal under massless scaling: Eq.23/exact = 1.036985, 1.166607, 1.561072 at a(0+) = 0.146, 0.5, 0.9.
+Verified the improper cold endpoint without a temperature floor using Wolfram, independent high-precision EOS/a-coordinate integration and decreasing-cutoff checks; 34 tests pass and all accepted speed-ratio changes stay below 1e-3.
+Rebuilt and inspected the standalone manuscript; no production solver or combustion-manuscript files were changed. Filed [[adiabatic-weak-rate-sensitivity]], marked the older two-temperature scope historical, and updated the index.
+
+## [2026-10-11] presentation | Consistent weak-rate figure styling
+
+Matched adiabatic and isothermal model markers, line styles and blue endpoint labels in the standalone weak-rate manuscript.
+Redrew all seven figures at the actual 6.5-inch manuscript text width with ordinary plot text at least 12 points; six-panel figures now use two columns.
+Added plot_manuscript.py and shared plotting modules, preserving the hashed collision-integral source and every saved numerical-data hash. Typography/source audit passes, 21 relevant tests pass, and the 29-page PDF rebuild has no warnings or overfull boxes.
+Visually inspected every figure page and corrected a clipped endpoint tick; documented reproduction in the README and [[adiabatic-weak-rate-sensitivity]], then refreshed the index.
+
+## [2026-10-11] audit | Repeated adiabatic temperature-panel ratios
+
+Traced the identical plotted ratios to explicit dimensionless-quadrature reuse at fixed interface composition. Verified the scale cancellation symbolically and added audit_adiabatic_physical.py to avoid relying on that reuse as evidence.
+Independently reconstructed six dimensional quark EOS trajectories from saved upstream pressure/enthalpy, then integrated in composition with 40-digit EOS inversion and no production trajectory class or cached integrals. At upstream temperatures 0,20,100 MeV and compositions 0.9,0.995, published ratios agree within 2.10e-6; temperature-to-temperature spread is below 5.16e-13. Absolute temperatures and integrals differ.
+Saved results/adiabatic-physical-audit.json and documented the fixed-composition scaling, differing upstream densities and distinction from isothermal comparisons in [[adiabatic-weak-rate-sensitivity]], README and the Wolfram transcript. No plotted data or manuscript PDF were changed.
+
+## [2026-10-11] check | Adiabatic rate-ratio universality
+
+The identical adiabatic Eq. (23)/exact speed ratios across T(0-) in Sec. 8.6 of `ref-list/massless-weak-rate/` come from exact massless-bag scaling with T(0+)=0, not from a bug.
+The saved data and an independent EOS solve agree to 10 digits. Recorded in [[strangeness-reaction-diffusion]].
+
+## [2026-10-11] presentation | Adiabatic upstream-plane speed map
+
+Replaced the six-panel ratio-versus-a(0+) figure in the standalone Section 8.6 with one (nB(0-)/n0, T(0-)) map of Eq.23/exact iso-ratio contours, since a(0+) is fixed by the upstream state when T(0+)=0.
+Grid extended to 49 x 101 (0-120 MeV, 1-6 n0), no EOS failures; the a(0+)=1 boundary reaches n0 at T(0-)=112.28 MeV, so both boundaries close inside the plot.
+Section text, caption and README updated; 29-page PDF rebuilds without warnings. See [[adiabatic-weak-rate-sensitivity]].
+
+## [2026-10-11] presentation | (mu_B/3)^5 rate variant in local-rate figures
+
+Added Madsen Eq. (23) with mu_u^5 -> (mu_B/3)^5 as a fourth, plotting-only model in standalone Figures 1-3 (rate_figures.py), with model-list text, captions and README updated; validate_rate.py untouched, 34 tests pass, 29-page PDF builds without warnings.
+At T=1 MeV it overestimates the exact rate by 6.5/24.4/65.1/121 percent at a=0.146/0.5/0.9/1. See [[massless-finite-temperature-weak-rate]].
+
+## [2026-10-11] presentation | (mu_B/3)^5 variant in Figures 4 and 6
+
+Added the (mu_B/3)^5 Eq. (23) variant to the isothermal speed-sensitivity figure (closed-form quadrature on the saved nodes, reproducing saved Eq. 23 integrals to 2e-16; new speed-sensitivity-eq23-muB.csv) and to the trajectory diagnostic, whose integrand panel now shows percent error relative to exact. Speed ratios at a(0+)=1: 1.29/1.27/1.22/1.03 at T=0/20/50/100 MeV; 1.252 on the adiabatic a(0+)=0.9 trajectory. 35 tests pass; PDF builds without warnings. See [[massless-finite-temperature-weak-rate]].
+
+## [2026-10-12] manuscript | Exact massless EOS citation and LaTeX repair
+
+Verified Laine and Vuorinen, Sec. 7, Appendix A, Eq. (7.42), as the exact free massless Dirac-gas result; three colors reproduce the manuscript pressure and its derivative reproduces the net density, including antiquarks, without a low-temperature truncation.
+Added the INSPIRE entry and highlighted statement in `Latex_writting/Main.tex`, removed conflicting `notag` declarations, supplied the missing Andersson–Comer citation, and repaired a stale energy-conservation reference.
+Removed unused REVTeX-incompatible float packages, wrapped the overwide speed equation, and placed the two numerical comparison panels side by side.
+The 15-page PDF builds without undefined citations, labels, or overfull boxes; a deferred-float warning remains, with the affected figures visually verified in the output.
+No solver or standalone rate-derivation code changed.
+See [[quark-matter-eos]].
+
+## [2026-10-12] manuscript | Explicit arXiv version for the exact EOS citation
+
+Changed the equation citation to `Laine:2022thermalnotes`, explicitly linking arXiv:1701.01554v2, with Eq. (7.42) as the only locator.
+The rebuilt bibliography maps it to [52], with Buballa's hep-ph/0402234 separately at [51]; no undefined references remain.
+See [[quark-matter-eos]].
+
+## [2026-10-12] analysis | Best constant xi for the adiabatic analytical comparison
+
+Evaluated both public analytical methods at xi=-0.85 on all 618 successful T(0+)=0.1 MeV numerical upstream states (617 succeed) and rescaled exactly to other xi through the (1+xi a(0+)) factor, verified against live solves to 4e-10.
+Equal-weight, contour-band-balanced RMS of ln(u_analytic/u_numerical) over 50-2000 m/s is minimized at xi=-0.865 (1% basin -0.89 to -0.845); -0.85 is within 0.5% of that minimum.
+Semi-analytical alone prefers -0.83; full analytical prefers the -1 limit at high speed, which compensates its composition and integral errors rather than measuring a shape factor.
+Evidence in `local_analysis_results/26-10-12/xi-optimum/`. See [[adiabatic-xi-diagnostics]].

@@ -1,0 +1,11 @@
+variable,T0p1__M0p25,T0p1__M0p5,T0p1__M1,T0p1__M1p5,T10__M0p25,T10__M0p5,T10__M1,T10__M1p5,T20__M0p5,T20__M1,T20__M1p5,T50__M0p25,T50__M0p5,T50__M1,T50__M1p5
+D_profile,fail,fail,fail,fail,fail,fail,fail,fail,fail,fail,fail,fail,fail,fail,fail
+E_reconstructed,pass,pass,pass,pass,pass,pass,pass,pass,pass,pass,pass,pass,pass,pass,pass
+eta_profile,fail,fail,fail,fail,fail,fail,fail,fail,fail,fail,fail,fail,fail,fail,fail
+gamma_profile,fail,fail,fail,fail,fail,fail,fail,fail,fail,fail,fail,fail,fail,fail,fail
+h_profile,pass,pass,pass,pass,pass,pass,pass,pass,pass,pass,pass,pass,pass,pass,pass
+muB,near,fail,fail,fail,near,fail,fail,fail,fail,fail,fail,fail,fail,fail,fail
+nB,pass,pass,pass,pass,pass,pass,pass,pass,pass,pass,pass,pass,pass,pass,pass
+q,fail,fail,fail,fail,fail,fail,fail,fail,fail,fail,fail,fail,fail,fail,fail
+r_gamma_profile,pass,pass,pass,pass,pass,pass,pass,pass,pass,pass,pass,pass,pass,pass,pass
+u,pass,pass,pass,pass,pass,pass,pass,pass,pass,pass,pass,pass,pass,pass,pass

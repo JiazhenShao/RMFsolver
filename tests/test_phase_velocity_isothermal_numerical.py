@@ -131,6 +131,40 @@ class IsothermalNumericalLocalFractionTests(unittest.TestCase):
             atol=0.0,
         )
 
+    def test_bvp_receives_separately_normalized_nK_and_jK_fields(self):
+        solve_bvp_original = pv.solve_bvp
+        captured = {}
+
+        def capture_initial_fields(fun, bc, x, y, *args, **kwargs):
+            captured["y"] = np.asarray(y, dtype=float).copy()
+            return solve_bvp_original(fun, bc, x, y, *args, **kwargs)
+
+        with patch.object(pv, "solve_bvp", side_effect=capture_initial_fields):
+            result = self._warm_profile(return_profile=False)
+
+        self.assertTrue(result.get("success"), result.get("message"))
+        initial_fields = captured["y"]
+        self.assertLessEqual(np.max(np.abs(initial_fields[0])), 1.0 + 1.0e-12)
+        self.assertLessEqual(np.max(np.abs(initial_fields[1])), 1.0 + 1.0e-12)
+        self.assertGreater(result["bvp_nK_scale"], 1.0)
+        self.assertGreaterEqual(result["bvp_jK_scale"], 1.0)
+        self.assertAlmostEqual(
+            result["bvp_nK_scale"],
+            max(
+                abs(result["bvp_scale_nK_0plus"]),
+                abs(result["bvp_scale_nK_inf"]),
+                1.0,
+            ),
+        )
+        self.assertAlmostEqual(
+            result["bvp_jK_scale"],
+            max(
+                abs(result["bvp_scale_jB"]),
+                abs(result["bvp_scale_jK_inf"]),
+                1.0,
+            ),
+        )
+
     def test_finite_strange_mass_uses_shifted_equilibrium_tail(self):
         result = self._warm_profile(
             ms=100.0,
@@ -209,6 +243,108 @@ class IsothermalNumericalLocalFractionTests(unittest.TestCase):
             )
         self.assertAlmostEqual(beta_equilibrated["proton_fraction_0minus"], 0.2)
         self.assertAlmostEqual(beta_equilibrated["a_0minus"], 0.9)
+
+    def test_pnm_upstream_reuses_one_direct_fixed_density_state(self):
+        direct_state = {
+            "muB_0minus": 1012.0,
+            "P_0minus": 20.0,
+            "e_0minus": 80.0,
+            "h_0minus": 100.0,
+            "nB_0minus": 2.0,
+            "sigma_0minus": 61.0,
+            "upstream_rmf_scaled_residual": 2.0e-9,
+            "upstream_density_relative_residual": 3.0e-10,
+            "upstream_seed_count": 2,
+        }
+        with (
+            patch.object(
+                pv,
+                "_validated_pnm_state_from_nB",
+                return_value=direct_state,
+            ) as direct_solve,
+            patch.object(
+                pv,
+                "PNM_n",
+                side_effect=AssertionError("duplicate pressure solve must not run"),
+            ),
+            patch.object(
+                pv,
+                "edensNM_n",
+                side_effect=AssertionError("duplicate energy solve must not run"),
+            ),
+        ):
+            result = pv._isothermal_upstream_nuclear_state(
+                10.0,
+                2.0,
+                para.paraQMCRMF3,
+                "PNM",
+            )
+
+        direct_solve.assert_called_once_with(
+            2.0,
+            10.0,
+            param=para.paraQMCRMF3,
+        )
+        self.assertEqual(result["muB_0minus"], 1012.0)
+        self.assertEqual(result["P_0minus"], 20.0)
+        self.assertEqual(result["e_0minus"], 80.0)
+        self.assertEqual(result["h_0minus"], 100.0)
+        self.assertEqual(result["sigma_0minus"], 61.0)
+        self.assertEqual(result["upstream_seed_count"], 2)
+        self.assertEqual(result["a_0minus"], 1.0)
+
+    def test_auto_ceiling_reuses_direct_muB_without_broad_scan(self):
+        upstream = {
+            "muB_0minus": 1012.0,
+            "P_0minus": 20.0,
+            "e_0minus": 80.0,
+            "h_0minus": 100.0,
+            "nB_0minus": 2.0,
+            "proton_fraction_0minus": 0.0,
+            "a_0minus": 1.0,
+            "nK_0minus": 2.0,
+        }
+        with (
+            patch.object(
+                pv,
+                "_isothermal_upstream_nuclear_state",
+                return_value=upstream,
+            ),
+            patch.object(
+                pv,
+                "muB_from_nB_physical",
+                side_effect=AssertionError("broad muB scan must not run"),
+            ),
+            patch.object(
+                pv,
+                "_solve_a_0plus_max",
+                return_value={
+                    "status": "stable",
+                    "a_0plus_max": 0.0,
+                    "muB_0plus": 1012.0,
+                    "muK_0plus": 0.0,
+                    "gibbs_residual": 1.0,
+                },
+            ) as ceiling_solve,
+        ):
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "ceiling solve returned status 'stable'",
+            ):
+                pv.solve_front_isothermal(
+                    10.0,
+                    2.0,
+                    180.0,
+                )
+
+        ceiling_solve.assert_called_once_with(
+            1012.0,
+            20.0,
+            10.0,
+            180.0,
+            ms=0.0,
+            upB=5000,
+        )
 
     def test_local_fraction_and_forward_branch_domains_are_enforced(self):
         for a_0plus in (0.0, 1.0):

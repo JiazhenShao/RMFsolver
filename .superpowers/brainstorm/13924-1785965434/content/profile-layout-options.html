@@ -1,0 +1,86 @@
+<h2>Choose the eight-profile comparison layout</h2>
+<p class="subtitle">
+  Every option overlays the cold-interface energy-conserving solver and the thermal-conducting solver,
+  shades the uniform neutron-matter region at x&lt;0, and marks the phase boundary at x=0.
+</p>
+
+<div class="cards">
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:18px;background:#f8fafc">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">
+        <div class="placeholder" style="height:48px">a(x)</div>
+        <div class="placeholder" style="height:48px">u(x)</div>
+        <div class="placeholder" style="height:48px">T(x)</div>
+        <div class="placeholder" style="height:48px">muB(x)</div>
+        <div class="placeholder" style="height:48px">nB(x)</div>
+        <div class="placeholder" style="height:48px">P(x)</div>
+        <div class="placeholder" style="height:48px">muK(x)</div>
+        <div class="placeholder" style="height:48px">nK(x)</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — 4 × 2 comparison matrix (recommended)</h3>
+      <p>One self-contained figure. Comfortable panel aspect ratio, shared x-axis, and direct visual scanning between related quantities.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:18px;background:#f8fafc">
+      <div class="label" style="margin-bottom:5px">Figure 1 — hydro / thermodynamics</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:14px">
+        <div class="placeholder" style="height:42px">u(x)</div>
+        <div class="placeholder" style="height:42px">T(x)</div>
+        <div class="placeholder" style="height:42px">muB(x)</div>
+        <div class="placeholder" style="height:42px">P(x)</div>
+      </div>
+      <div class="label" style="margin-bottom:5px">Figure 2 — composition / density</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">
+        <div class="placeholder" style="height:42px">a(x)</div>
+        <div class="placeholder" style="height:42px">muK(x)</div>
+        <div class="placeholder" style="height:42px">nB(x)</div>
+        <div class="placeholder" style="height:42px">nK(x)</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Two thematic 2 × 2 figures</h3>
+      <p>Best individual panel readability and easier paper placement, but the complete comparison is split across two outputs.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:18px;background:#f8fafc">
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
+        <div class="placeholder" style="height:62px">a</div>
+        <div class="placeholder" style="height:62px">u</div>
+        <div class="placeholder" style="height:62px">T</div>
+        <div class="placeholder" style="height:62px">muB</div>
+        <div class="placeholder" style="height:62px">nB</div>
+        <div class="placeholder" style="height:62px">P</div>
+        <div class="placeholder" style="height:62px">muK</div>
+        <div class="placeholder" style="height:62px">nK</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — 2 × 4 wide panorama</h3>
+      <p>Compact vertically and useful on a wide monitor, but each panel becomes narrow in ordinary notebook and PDF views.</p>
+    </div>
+  </div>
+</div>
+
+<div class="pros-cons" style="margin-top:20px">
+  <div class="pros">
+    <h4>Shared scientific treatment</h4>
+    <ul>
+      <li>Same upstream state: T_N=10 MeV, n_B,N=3 n0, B^(1/4)=180 MeV.</li>
+      <li>Energy solver tunes a(0+) to its exact T(0+)=0 endpoint.</li>
+      <li>Negative x shows constant PNM fields; upstream muK is explicitly undefined.</li>
+    </ul>
+  </div>
+  <div class="cons">
+    <h4>Important comparison detail</h4>
+    <ul>
+      <li>The two solvers generally select different front velocities and interface compositions.</li>
+      <li>Both profiles use the same physical x axis in nm, so any difference in layer width remains visible.</li>
+    </ul>
+  </div>
+</div>

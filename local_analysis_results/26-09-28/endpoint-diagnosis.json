@@ -1,0 +1,104 @@
+[
+  {
+    "key": "1:0.020000000000",
+    "point": {
+      "theta_index": 1,
+      "theta_rad": 0.054165390579134366,
+      "radial_fraction": 0.02,
+      "nB_0minus_over_n0": 3.0451116000081946,
+      "T_0minus_MeV": 2.9568727742499203,
+      "source": "numerical_plot_grid"
+    },
+    "cluster_message": "TimeoutError: Paired analytical point exceeded 600 s",
+    "direct_upstream_s": 0.5008488330058753,
+    "direct_density_relative_error": -4.9181547723264885e-11,
+    "direct_muB_0minus": 1198.4617629689565,
+    "analytic": {
+      "seconds": 0.9964688339969143,
+      "velocity_m_s": 44.240087709907456
+    },
+    "semi_analytic": {
+      "seconds": 8.543268916982925,
+      "velocity_m_s": 39.38485209440156
+    }
+  },
+  {
+    "key": "29:0.020000000000",
+    "point": {
+      "theta_index": 29,
+      "theta_rad": 1.5707963267948966,
+      "radial_fraction": 0.02,
+      "nB_0minus_over_n0": 1.0000000000000002,
+      "T_0minus_MeV": 61.44894842642054,
+      "source": "numerical_plot_grid"
+    },
+    "cluster_message": "TimeoutError: Paired analytical point exceeded 600 s",
+    "direct_upstream_s": 0.1309736669936683,
+    "direct_density_relative_error": 2.0081847296182787e-10,
+    "direct_muB_0minus": 927.3270614527546,
+    "analytic": {
+      "seconds": 0.5631889580108691,
+      "velocity_m_s": 80.95833034817879
+    },
+    "semi_analytic": {
+      "seconds": 8.060125333984615,
+      "velocity_m_s": 72.08933025626632
+    },
+    "legacy_scan_s": 66.16071116601233,
+    "legacy_muB_0minus": 927.3270614406085,
+    "raw_forward_density_relative_error": -6.41819930535803e-13,
+    "validated_forward_density_relative_error": -1.3877787807814457e-14,
+    "muB_relative_difference": -1.3097967155317747e-11
+  },
+  {
+    "key": "27:0.350000000000",
+    "point": {
+      "theta_index": 27,
+      "theta_rad": 1.4624655456366278,
+      "radial_fraction": 0.35,
+      "nB_0minus_over_n0": 1.3223408821268736,
+      "T_0minus_MeV": 79.03667908105575,
+      "source": "numerical_plot_grid"
+    },
+    "cluster_message": "TimeoutError: Paired analytical point exceeded 600 s",
+    "direct_upstream_s": 0.1241562920040451,
+    "direct_density_relative_error": -1.7500934035297178e-10,
+    "direct_muB_0minus": 930.7996020020671,
+    "analytic": {
+      "seconds": 0.5331582910148427,
+      "velocity_m_s": 508.47265768192045
+    },
+    "semi_analytic": {
+      "seconds": 8.943035458010854,
+      "velocity_m_s": 513.1622594963167
+    }
+  },
+  {
+    "key": "2:0.970000000000",
+    "point": {
+      "theta_index": 2,
+      "theta_rad": 0.10833078115826873,
+      "radial_fraction": 0.97,
+      "nB_0minus_over_n0": 5.208306561198939,
+      "T_0minus_MeV": 12.204824527607373,
+      "source": "semi_analytic_bracket_refinement"
+    },
+    "cluster_message": "muB inversion missed the requested density: requested nB=6.402886e+06, muB=1620.1628 gives 7.091616e+05 (relative error 8.892e-01)",
+    "direct_upstream_s": 0.48410387500189245,
+    "direct_density_relative_error": -1.2565504192707522e-12,
+    "direct_muB_0minus": 1620.162757370455,
+    "analytic": {
+      "seconds": 1.246984124998562,
+      "velocity_m_s": 1242.9053796844635
+    },
+    "semi_analytic": {
+      "seconds": 9.124454666976817,
+      "velocity_m_s": 6423.641942853106
+    },
+    "legacy_scan_s": 47.22590979101369,
+    "legacy_muB_0minus": 1620.162757327483,
+    "raw_forward_density_relative_error": -0.8892434525653431,
+    "validated_forward_density_relative_error": 9.992007221626409e-15,
+    "muB_relative_difference": -2.652322805829499e-11
+  }
+]

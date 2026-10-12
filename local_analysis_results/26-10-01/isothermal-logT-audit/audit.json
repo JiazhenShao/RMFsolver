@@ -1,0 +1,109 @@
+{
+  "checkpoint_sha256": "f6122f975a5828c61e816d44a9c3ff9febbb1727cdbe34f684cb0deb44a017f6",
+  "targets": {
+    "base": {
+      "unresolved": 214,
+      "success": 3
+    },
+    "refinement": {
+      "unresolved": 200,
+      "success": 10
+    }
+  },
+  "evaluations": {
+    "trial_timeout": 358,
+    "success": 27
+  },
+  "proposals": {
+    "trial_timeout": 225
+  },
+  "boundaries": {
+    "success": 61
+  },
+  "accuracy_checks": {
+    "blocked": 14
+  },
+  "work_complete": true,
+  "contours_complete": false,
+  "initializers": {
+    "continuation": 27
+  },
+  "new_profiles_missing": 27,
+  "source_hash_matches": {
+    "solver_files": {
+      "RMFsolver/RMFparameter.py": true,
+      "RMFsolver/SQMsolver.py": true,
+      "RMFsolver/Solver.py": true,
+      "RMFsolver/__init__.py": true,
+      "RMFsolver/constants.py": true,
+      "RMFsolver/phase_velocity.py": true,
+      "RMFsolver/setup.py": true,
+      "RMFsolver/tov.py": true,
+      "RMFsolver/tov_solve.py": true
+    },
+    "workflow_files": {
+      "_logT_common.py": true,
+      "_logT_engine.py": true,
+      "_logT_inputs.py": true,
+      "_logT_plot.py": true,
+      "_logT_trial.py": true,
+      "run_isothermal_numerical.py": true
+    }
+  },
+  "worker_hours": {
+    "numerical": 18.848963205154934,
+    "proposals": 3.751296962361084,
+    "boundaries": 1.087227128059959
+  },
+  "successful_runtime_s": {
+    "min": 72.41885456198361,
+    "median": 119.86608777591027,
+    "max": 177.0349901659647
+  },
+  "successful_bvp_niter": {
+    "min": 1.0,
+    "median": 1.0,
+    "max": 2.0
+  },
+  "successful_bvp_nodes": {
+    "min": 931.0,
+    "median": 940.0,
+    "max": 2202.0
+  },
+  "successful_bvp_max_rms_residual": {
+    "min": 2.2413440091675766e-05,
+    "median": 7.454395504041748e-05,
+    "max": 9.499375166336293e-05
+  },
+  "successful_thermal_local_state_calls": {
+    "min": 17799.0,
+    "median": 27865.0,
+    "max": 45845.0
+  },
+  "successful_T_0minus": {
+    "min": 0.8425599871529116,
+    "median": 2.990697562442443,
+    "max": 4.964107332580966
+  },
+  "successful_momentum_flux_ratio": {
+    "min": 1.796190811474546e-11,
+    "median": 2.0546055775040175e-10,
+    "max": 1.1978226460683652e-09
+  },
+  "comparison_scope": "Frozen formula evaluated at saved numerical endpoints, not an independent hydro-coupled analytic root; fitted xi is not a measured profile area.",
+  "frozen_ratio_xi_minus_half": {
+    "min": 0.6324849702089891,
+    "median": 0.8529906922076992,
+    "max": 0.9944721478045456
+  },
+  "frozen_ratio_xi_minus_one_limit": {
+    "min": 1.1137523662934967,
+    "median": 1.3273053317509793,
+    "max": 1.7633899882680701
+  },
+  "speed_fitted_xi": {
+    "min": -0.8442712548034731,
+    "median": -0.7320319344300829,
+    "max": -0.5271923284370311
+  }
+}

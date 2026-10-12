@@ -1,25 +1,38 @@
 ---
 summary: The working quark phase is an unpaired massless three-flavor bag-model gas; its quadratic expansion makes the K fraction linear in mu_K and produces the analytic elliptical isobar.
 status: current
-updated: 2026-09-24
+updated: 2026-10-12
 tags: [physics, equation-of-state, quark-matter, bag-model]
 ---
 
 # Quark-matter EOS used by the front model
 
-The downstream model is deliberately minimal: massless, noninteracting $u$, $d$ and $s$ quarks plus a bag energy $U_{\rm bag}$, with no electrons or electromagnetic sector. In production scans the bag constant can be tuned so zero-temperature neutron matter and beta-equilibrated quark matter meet at a chosen critical pressure. Reference calculations also hold $B^{1/4}$ fixed, commonly at 180 MeV; a draft figure discussion mentions about 189 MeV. These are distinct parameterizations, not interchangeable values or a universal prediction.
+The downstream model is deliberately minimal: massless, noninteracting $u$, $d$ and $s$ quarks and free thermal gluons plus a bag energy $U_{\rm bag}$, with no electrons or electromagnetic sector. In production scans the bag constant can be tuned so zero-temperature neutron matter and beta-equilibrated quark matter meet at a chosen critical pressure. Reference calculations also hold $B^{1/4}$ fixed, commonly at 180 MeV; a draft figure discussion mentions about 189 MeV. These are distinct parameterizations, not interchangeable values or a universal prediction.
 
-## Chemical-potential basis
+Appendix A of `Latex_writting/Main.tex` now states the charge-neutral EOS in density variables, with explicit gluon pressure (2026-10-05). Its fourth-order pressure and density derivatives agree with [[charge-neutral-quark-eos]]; the quadratic analytic limit below is unchanged. No solver code changed.
+
+The literature audit [[bag-model-thermal-gluons]] confirms that the free-gluon term matches directly relevant finite-temperature combustion papers, while some effective bag extensions omit a separate ideal-gluon gas. It is distinct from both gluon-mediated interaction corrections and the vacuum bag energy. The current `PQM`, `edensQM` and `entropyQM` include it even with `include_em=False`.
+
+## Exact single-flavor finite-temperature result
+
+Laine and Vuorinen, *Basics of Thermal Field Theory* (2016), Sec. 7, Appendix A, Eq. (7.42), derives the exact vacuum-subtracted free energy of a massless Dirac fermion at arbitrary chemical potential divided by temperature, including particles and antiparticles.
+Taking minus three times that free energy gives the one-flavor, three-color pressure in Appendix A, Eq. (A2); its chemical-potential derivative gives the net density in Eq. (A3).
+These are exact free-gas results, not truncated Sommerfeld expansions.
+The manuscript now cites the explicit [arXiv:1701.01554v2](https://arxiv.org/abs/1701.01554v2) entry `Laine:2022thermalnotes`, with the sole locator Eq. (7.42).
+The original INSPIRE book entry `Laine:2016hma` is retained in the bibliography database, but JHEP's book formatting omits its eprint link, so it is not used for this equation citation.
+The publisher's Chapter 7 page also displays Eq. (7.42): [Finite Density](https://link.springer.com/chapter/10.1007/978-3-319-31933-9_7).
+
+## Former non-neutral chemical-potential basis
 
 With $\mu_q=\mu_B/3$,
 
 $$\mu_u=\mu_q,\qquad \mu_d=\mu_q+\frac{\mu_K}{2},\qquad \mu_s=\mu_q-\frac{\mu_K}{2}.$$
 
-The pressure is
+The full pressure in that former chemical-potential basis is (the earlier wiki line omitted the separate gluon term, corrected here on 2026-10-08)
 
-$$P_{\rm QM}=P_q(\mu_q,T)+P_q(\mu_q+\mu_K/2,T)+P_q(\mu_q-\mu_K/2,T)-U_{\rm bag}.$$
+$$P_{\rm QM}=P_q(\mu_q,T)+P_q(\mu_q+\mu_K/2,T)+P_q(\mu_q-\mu_K/2,T)+\frac{8\pi^2T^4}{45}-U_{\rm bag}.$$
 
-The active manuscript retains the fourth-order expansion as a diagnostic of what the analytic approximation drops:
+Before 2026-10-05 the manuscript used the following fourth-order expansion, superseded by the neutral expansion in [[charge-neutral-quark-eos]]:
 
 $$
 \begin{aligned}
@@ -46,13 +59,13 @@ This linear $a$--$\mu_K$ relation is why a fixed-$P$, fixed-$\mu_B$ conversion t
 - The upstream QMC-RMF3 phase has no strange chemical potential; assigning a nuclear-side $\mu_K$ is a convention and should be avoided.
 - Masses, pairing, leptons, charge screening and interactions in the EOS are outside the present approximation.
 
-## ⚠ Charge-neutrality mismatch
+## Former charge-neutrality mismatch
 
-The active rate appendix says the exact numerical weak rate obtains $\mu_u$ using an electric chemical potential fixed by charge neutrality, while the EOS section explicitly ignores electromagnetism and leptons and sets $\mu_u=\mu_B/3$. The manuscript comments recognize this mismatch. Until the numerical and stated models are reconciled, distinguish the analytic choice $\mu_u\simeq\mu_B/3$ from any code path that solves for $\mu_Q$.
+The rate appendix obtains $\mu_u$ using an electric chemical potential fixed by charge neutrality, while the former EOS section set $\mu_u=\mu_B/3$. Appendix A now imposes neutrality, resolving this mismatch on 2026-10-05; collaborator comments in Appendix B still discuss the old statement and were left untouched. The analytic choice $\mu_u\simeq\mu_B/3$ remains a leading-order approximation, distinct from solving for $\mu_Q$.
 
 ## Why the code is charge-neutral: $a=1$ must mean $udd$
 
-The switch was made on 2026-05-22 in a Codex session, not in a notebook; [26SU-3](../../26SU-3.ipynb) cells 8–15 are a later old-vs-new comparison. The trigger was the analytic bound's $1/(1-a(0^+))$ divergence. MGA read it as "$a(0^+)=1$ means $udd$ quark matter, so neutrons convert without strangeness diffusion" and asked what stops $a(0^+)$ from reaching 1. The old basis above, which implicitly sets $\mu_Q=0$, cannot support that reading:
+The switch was made on 2026-05-22 in a Codex session, not in a notebook; [26-05-14](../../26-05-14.ipynb) cells 8–15 are a later old-vs-new comparison. The trigger was the analytic bound's $1/(1-a(0^+))$ divergence. MGA read it as "$a(0^+)=1$ means $udd$ quark matter, so neutrons convert without strangeness diffusion" and asked what stops $a(0^+)$ from reaching 1. The old basis above, which implicitly sets $\mu_Q=0$, cannot support that reading:
 
 | $\mu_B=1200$ MeV, $T=0.5$ MeV, $m_s=0$ | old, $\mu_Q=0$ | neutral, $\mu_Q$ solved |
 |---|---|---|
@@ -71,4 +84,4 @@ The neutral and old pressures differ only at $O(\mu_K^4)$ (verified numerically:
 
 ## Source
 
-`Latex_writting/Hydrodynamical combustion/Main.tex`, first active document: “Bag model of quark matter” and the model assumptions in “Boundary propagation speed.”
+`Latex_writting/Main.tex`, Appendix A (current); `Latex_writting/Hydrodynamical combustion/Main.tex` (older copy), “Bag model of quark matter” and the model assumptions in “Boundary propagation speed.”

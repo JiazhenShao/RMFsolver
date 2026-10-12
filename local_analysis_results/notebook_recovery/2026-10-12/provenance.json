@@ -1,0 +1,29 @@
+{
+  "history": "/Users/janshao/.codex/sessions/2026/06/22/rollout-2026-06-22T14-05-17-019ef0b9-0552-73b2-ab5c-08380f580125.jsonl",
+  "metadata_snapshot": "/Users/janshao/Library/Application Support/Code/User/History/2150e119/fcnh.ipynb",
+  "latest_recovered_edit_UTC": "2026-09-09T15:23:29.562Z",
+  "history_records_zero_based": [
+    37690,
+    37723,
+    37752,
+    37904,
+    38000,
+    38014,
+    38036,
+    38310,
+    38314,
+    38395,
+    38399
+  ],
+  "note": "Original sources recovered from logged cell reads and original string-edit scripts; outputs cleared, no physics recomputed.",
+  "cell_source_sha256": [
+    "6c59bad0fd55af818cc33963d3a28a91982780491e93292d923bf0438b037b54",
+    "63d290f6754d285f9bd4ab25ce34facd2cb2d53884749122fdef551cabb69934",
+    "71c971f4a506dcb366d1715e4317a48192c7f22bf8ed8ffd6e0d781e55543af1",
+    "38d4064389403c86a436890599d2b432be6ddcf806a539acb315e9dec2f68ce6",
+    "4d5436821a820a9e5271a258655910b6f98aa0da877b671e47dbf9c59a045886",
+    "4dc09a670db0b370a8b207cbd6351e4e264c82f7735aed0edf5a411b9f5b332c",
+    "5c83f2824ec936fb62eec3eee4ff7777604bd4091e5011eccbec3186d54fb2ac",
+    "deed1d0b6b46d3e6af67db02755e8afa6f50fbd5374c8c8a89fc0bc6c1310dac"
+  ]
+}

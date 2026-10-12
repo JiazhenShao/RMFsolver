@@ -1,7 +1,7 @@
 ---
 summary: Neutrality leaves P(mu_B,mu_K,T) unchanged at quadratic order and flips the mu_K^4 sign; the mu_K series fails before a=1, but in density variables (n_u=n_B, n_d,s=n_B(1+-a)) the EOS is exact and explicit.
 status: current
-updated: 2026-09-25
+updated: 2026-10-05
 tags: [physics, equation-of-state, quark-matter, charge-neutrality]
 ---
 
@@ -38,12 +38,13 @@ $$a=\frac{9\mu_K}{2\mu_B}\Bigl[1-c\,\frac{\mu_K^2}{\mu_B^2}-\frac{6\pi^2T^2}{\mu
 
 At $T=0$ this inverts to $\mu_K/\mu_B=2a/9+14a^3/243$ (neutral) or $2a/9+10a^3/243$ (old). The rate `eq:exact_rate` in terms of $a$ at $T=0$ becomes the leading cubic form times $1+31a^2/27$ (neutral) or $1+5a^2/9$ (old).
 
-## What changes in the manuscript
+## Manuscript status (2026-10-05)
 
-- `eq:QM-EoS-2nd-order`, `eq:nK-approx`, `eq:nB-approx`, `eq:a-muK` and the leading cubic rate are unchanged, so every quadratic-order analytic result (isobar ellipse, $a^{\max}$, speed formulas) survives.
-- `eq:QM-bag-EoS` needs the $\mu_Q$ assignment plus the neutrality condition. Separately, it omits $P_g$ even though `eq:Qm-EoS-4th-order` contains it, since $19\pi^2/36=3\cdot7\pi^2/60+8\pi^2/45$.
-- `eq:Qm-EoS-4th-order`: $+\mu_K^4/(32\pi^2)\to-\mu_K^4/(32\pi^2)$, and "$+\cdots$" becomes genuinely nonzero.
-- In the rate appendix, $\mu_u$ becomes an explicit function of $(\mu_B,\mu_K,T)$, which answers MGA's request that everything be expressed that way.
+Appendix A of `Latex_writting/Main.tex` now uses the exact neutral density parameterization for `eq:QM-bag-EoS`, defines each flavor pressure through its finite-temperature density cubic, and includes gluon pressure explicitly. The fourth-order pressure has the negative quartic term; `eq:nK-approx` and `eq:nB-approx` include the corresponding subleading derivatives. Wolfram independently checked the pressure expansion and both density series with zero symbolic residuals, and confirmed the exact density inversion at two finite-temperature points.
+
+`eq:QM-EoS-2nd-order`, the leading relation in `eq:a-muK`, and the leading cubic rate are unchanged, so the quadratic-order analytical results survive. All A1--A6 labels and numbers are retained; the former purple non-neutral-EOS discussion is commented out verbatim. Appendix B and solver code were not changed; the rate appendix's collaborator discussion still refers to the former EOS presentation.
+
+The revised Appendix A prose and equations are highlighted with `\JS{}`; the unchanged quadratic formula remains black and PI comments retain their original markup. Eq. (35) now cites A2 and directly substitutes its equilibrium susceptibility and baryon density, as recorded in [[isothermal-maximum-speed]].
 
 ## Exact form in density variables (Wolfram, 2026-09-25)
 

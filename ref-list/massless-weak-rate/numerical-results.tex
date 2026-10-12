@@ -1,0 +1,197 @@
+\section{Numerical tests and accuracy}
+\label{sec:numerics}
+The numerical reference is \cref{eq:exact-2d}, evaluated with analytic pair integrals and Gauss--Legendre quadrature on subintervals split at the Fermi transitions.
+Calculations use \(G_F=1.16637\times10^{-11}\,\MeV^{-2}\) and \(\theta_C=13.02^\circ\); relative errors do not depend on their values.
+The full grid contains 192 states: two values \(\mu_B=900,1200\,\MeV\), six compositions \(a=0.001,0.146,0.5,0.9,0.99,1\), eight temperatures \(T=0.01,0.1,1,5,10,25,50,100\,\MeV\), and two choices of EOS path.
+The first path keeps \(\mu_B,a\) fixed, while the second fixes \(\mu_B,\mu_K\) using the cold value of \(\mu_K\) at the listed initial composition.
+Along either path, every rate approximation is evaluated at the same finite-temperature flavor potentials as the exact reference.
+Thus the grid tests a local rate prescription, not just a strict Taylor series around one cold EOS state.
+
+\subsection{The rate models}
+All comparison figures use the same labels, colors, and line styles; the fourth model is not shown in \cref{fig:adiabatic-speed,fig:adiabatic-diffusion}:
+\begin{itemize}
+ \item \textbf{Exact phase-space integral} (black, solid): the finite-temperature collision integral in \cref{eq:exact-2d}, with no temperature expansion.
+ \item \textbf{Madsen Eq.~(23)} (blue, dashed): the cubic-plus-thermal-linear expression in \cref{eq:madsen23}, evaluated at the neutral EOS chemical potentials, as in the current combustion calculation.
+ \item \textbf{Derived \(T^0+T^2\)} (orange, dotted): the exact cold term plus the derived quadratic thermal term, \((45/128)\CK[\Izero+\pi^2T^2\Jtwo/6]\), from \cref{eq:thermal-expansion}.
+ \item \textbf{Eq.~(23) with \((\mu_B/3)^5\)} (green, dash-dotted): \(\CK(\mu_B/3)^5\mu_K(\mu_K^2+4\pi^2T^2)\), that is, \cref{eq:madsen23} with \(\mu_u^5\) replaced by \((\mu_B/3)^5\), at the same chemical potentials.
+\end{itemize}
+For the third model, both coefficients are evaluated at the same finite-temperature chemical potentials as the exact integral and Madsen's rate.
+As explained after \cref{eq:neutral-rate}, this prescription includes the EOS response through \(T^2\), but it is not the strict fixed-\(\mu_B,\mu_K\) Taylor polynomial beyond that order.
+The cubic correction and Madsen's Eq.~(24) remain separate checks in the saved data; neither is plotted.
+The fourth model coincides with Eq.~(23) at \(a=0\), where \(\mu_u=\mu_B/3\).
+At \(T=0\) it equals Eq.~(23) multiplied by \([1+(1+a)^{1/3}+(1-a)^{1/3}]^5/3^5\), which is \(0.243\) at \(a=1\).
+
+\subsection{Quadrature and algebra checks}
+Each grid point was computed with 12, 24, and 40 nodes per subinterval and an upper pair-energy cutoff \(E_{\max}=\mu_u+\mu_d+48T\).
+The largest relative change from 24 to 40 nodes was \(1.71\times10^{-13}\).
+Extending the cutoff to \(\mu_u+\mu_d+64T\) changed the rates by at most \(5.56\times10^{-15}\).
+These are observed convergence differences, not rigorous bounds on every source of numerical error.
+Two independent three-dimensional finite-temperature integrations, which integrate the individual energy occupations rather than the logarithmic pair functions, agreed with the two-dimensional result within \(3.11\times10^{-15}\) at the higher quadrature order.
+The tested dimensionless states were \((\mu_u,\mu_d,\mu_s,T)=(1,1.2,0.8,0.12)\) and \((1,2^{1/3},0,0.05)\).
+
+At zero temperature, the two-dimensional interval-length integral agrees with \cref{eq:cold-result} within \(5.15\times10^{-14}\) across the six neutral benchmarks.
+A separate three-dimensional energy integration with the angular kernel integrated analytically agrees within \(1.72\times10^{-8}\) at 192 nodes; its slower convergence reflects unsplit minimum-function boundaries.
+The earlier neutral cold benchmarks are reproduced in \cref{tab:cold-check}.
+Detailed balance was also tested by computing both one-way phase-space integrals independently, giving a relative residual of \(2.23\times10^{-16}\).
+The net-rate interface returns exactly zero at equilibrium and reverses sign when down and strange labels are exchanged; the underlying one-way detailed-balance test checks this property independently of that implementation choice.
+Rescaling all energies confirms the degree-eight phase-space scaling.
+
+\begin{table}[tbp]
+ \centering
+ \caption{Exact neutral cold rate divided by the cold part of Madsen's Eq.~(23).
+ The ratio is independent of \(\mu_B\) and tends to one as \(a\to0\).}
+ \label{tab:cold-check}
+ \begin{tabular}{cc}
+ \toprule
+ \(a\) & \(\Gamma_K(T=0)/(\CK\mu_u^5\mu_K^3)\)\\
+ \midrule
+ 0.001 & 0.999570090274\\
+ 0.146 & 0.932490510812\\
+ 0.5   & 0.724990158532\\
+ 0.9   & 0.359423647541\\
+ 0.99  & 0.189682513772\\
+ 1     & 0.109658303010\\
+ \bottomrule
+ \end{tabular}
+\end{table}
+
+\subsection{Extraction of the thermal coefficient}
+At fixed flavor potentials, the numerical quantity \([\mathcal I(T)-\Izero]/T^2\) tends to \(\pi^2\Jtwo/6\).
+Subtracting that limit and dividing the remaining phase space by \(T^3\) tests the cubic term separately.
+For \(\mu_u=1\) and the cold neutral composition \(a=0.146\), the analytic coefficients of \(T^2\) and \(T^3\) are \(9.97266857015\) and \(-7.48801313542\), respectively, in units set by \(\mu_u\).
+The numerical cubic residual is \(-8.71812,-8.10289,-7.79541,-7.64170\) at \(T/\mu_u=0.003,0.0015,0.00075,0.000375\), approaching the predicted limit with a residual proportional to \(T\).
+At \(a=1\), the corresponding cubic residual approaches \(-51.2877612\), and subtracting it leaves a finite quartic coefficient near \(595.4\).
+This endpoint check supports the strange-momentum power counting in \cref{sec:sommerfeld}.
+
+The fixed-\(\mu_B,\mu_K\) test independently re-solves neutrality at each small temperature and extracts the coefficient of \(T^2\).
+After removing the known cubic contamination, the largest relative discrepancy with the chain-rule coefficient in \cref{eq:neutral-rate} is \(9.71\times10^{-8}\) across both EOS paths.
+For example, at \(\mu_B=900\,\MeV\) and cold \(a=0.146\), the phase-space coefficient at fixed flavor potentials is \(7.33988931479\times10^{15}\,\MeV^6\).
+The fixed-\(\mu_B,\mu_K\) EOS contribution is \(-1.10561405551\times10^{10}\,\MeV^6\), giving the sum \(7.33987825865\times10^{15}\,\MeV^6\).
+At fixed \(\mu_B,a\), the EOS contribution is instead \(3.54314348619\times10^{13}\,\MeV^6\); these two constrained expansions must not be conflated.
+The additional fixed-composition shift follows by differentiating \cref{eq:density} at fixed density ratios:
+\begin{equation}
+ c_f=\frac{\pi^2\mu_f^{(0)}}{3\mu_B}
+       \sum_{g=u,d,s}\frac{1}{\mu_g^{(0)}}
+       -\frac{\pi^2}{3\mu_f^{(0)}}
+ \quad (a<1).
+ \label{eq:fixed-composition-shift}
+\end{equation}
+At \(a=1\), \(\mu_s=0\) identically on this path, so \(c_s=0\) and the sum includes only up and down flavors.
+The endpoint is treated directly rather than by inserting \(\mu_s=0\) into the singular-looking interior formula.
+
+\subsection{Where the quadratic truncation is accurate}
+Figures~\ref{fig:errors-900} and \ref{fig:errors-1200} show the relative errors of the four rate models, with the exact phase-space integral on the zero-error line.
+Figure~\ref{fig:exact-rates} compares their absolute rates.
+The saved Eq.~(24) diagnostic, which is not plotted, supplements the exact cold rate with Madsen's printed thermal multiplier.
+It is an extrapolation onto our ordering, not an exact thermal coefficient there.
+The original-paper variables are \(z=\mu_s/\mu_u\) and \(v=(\mu_d-\mu_s)/\mu_u\) after interchanging the down and strange labels.
+The multiplier is
+\begin{align}
+ &-\frac{v^5}{128}-\frac{5zv^4}{64}
+ +\frac{5(2-z^2)v^3}{64}
+ +\frac{5(1+3z)v^2}{16}
+ +\frac{5(4z+3z^2)v}{16}+\frac{5z^2-1}{4}.
+ \label{eq:madsen24}
+\end{align}
+It multiplies only the \(4\pi^2T^2\) term of \cref{eq:madsen23} in this comparison.
+
+\begin{table}[tbp]
+ \centering
+ \caption{Highest consecutively passing sampled temperature, in MeV, for a relative error below \(5\%\) in the cold-plus-\(T^2\) prescription.
+ Every lower grid temperature passes in each column; this is a sampled criterion, not a fitted continuous validity boundary.
+ The composition labels refer to the cold state on the fixed-\(\mu_K\) paths.}
+ \label{tab:five-percent}
+ \begin{tabular}{ccccc}
+ \toprule
+ &\multicolumn{2}{c}{\(\mu_B=900\,\MeV\)}&\multicolumn{2}{c}{\(\mu_B=1200\,\MeV\)}\\
+ \(a\)&fixed \(a\)&fixed \(\mu_K\)&fixed \(a\)&fixed \(\mu_K\)\\
+ \midrule
+ 0.001&1&1&1&1\\
+ 0.146&5&5&10&10\\
+ 0.5&50&50&50&50\\
+ 0.9&25&25&50&50\\
+ 0.99&50&25&50&50\\
+ 1&50&50&50&50\\
+ \bottomrule
+ \end{tabular}
+\end{table}
+
+The errors are not monotone functions of temperature, so an isolated small error at high temperature does not establish asymptotic validity.
+For example, at fixed \(\mu_B=1200\,\MeV\) and \(a=0.146\), the quadratic error is \(21.1\%\) at \(50\,\MeV\) but \(-2.17\%\) at \(100\,\MeV\).
+That second agreement is a crossing of errors, not a recovery of a controlled low-temperature expansion.
+It is therefore excluded from the consecutive-passing criterion in \cref{tab:five-percent}.
+
+\begin{samepage}
+At \(\mu_B=900\,\MeV\), \(a=0.146\), and \(T=1\,\MeV\), the quadratic error is \(0.0126\%\), compared with \(7.37\%\) for Eq.~(23).
+At \(10\,\MeV\), the same errors are \(5.36\%\) and \(15.5\%\).
+For \(a=0.9\) and \(T=1\,\MeV\), Eq.~(23) overestimates the rate by \(178\%\), while the quadratic error is \(0.000252\%\).
+At \(a=1\), the cold discrepancy grows to a factor of about \(9.12\), as already shown by \cref{tab:cold-check}.
+Replacing \(\mu_u^5\) by \((\mu_B/3)^5\) reduces the \(T=1\,\MeV\) overestimate to \(6.52\%\) at \(a=0.146\), \(65.1\%\) at \(a=0.9\), and \(121\%\) at \(a=1\).
+The cubic term improves the approach to \(T=0\), but adding it need not improve a high-temperature extrapolation.
+At \(\mu_B=900\,\MeV\), \(a=1\), and \(T=100\,\MeV\), the quadratic and cubic prescriptions have errors of \(-31.4\%\) and \(-47.4\%\), respectively.
+The finite-temperature integral is the appropriate reference in that regime, subject to the stated omission of additional antiquark channels.
+\par
+\end{samepage}
+
+\begin{figure}[p]
+ \centering
+ \includegraphics[width=\textwidth]{results/exact-rates.pdf}
+ \caption{Absolute net quark-channel rates for the four local-rate models, at \(\mu_B=900\) and \(1200\,\MeV\) and fixed compositions \(a=0.146,0.5,0.9\).
+ Black is the exact phase-space integral, blue is Madsen's Eq.~(23), orange is the derived \(T^0+T^2\) rate, and green is Eq.~(23) with \(\mu_u^5\to(\mu_B/3)^5\).
+ All values are in natural units.
+ The black and orange curves nearly coincide at low temperature; their separation at higher temperature measures the truncation error.}
+ \label{fig:exact-rates}
+\end{figure}
+\begin{figure}[p]
+ \centering
+ \includegraphics[width=\textwidth]{results/approximation-errors-muB-900.pdf}
+ \caption{Relative local-rate errors, \(100(\Gamma_K/\Gamma_{K,\mathrm{exact}}-1)\), at fixed neutral composition and \(\mu_B=900\,\MeV\).
+ The exact phase-space integral (black) defines zero error; blue is Madsen's Eq.~(23), orange is the derived \(T^0+T^2\) rate, and green is Eq.~(23) with \(\mu_u^5\to(\mu_B/3)^5\).
+ The vertical scale is linear within \(1\%\) of zero and logarithmic outside that range.
+ Lines connect the eight tested temperatures; they are not additional validation points.}
+ \label{fig:errors-900}
+\end{figure}
+\begin{figure}[p]
+ \centering
+ \includegraphics[width=\textwidth]{results/approximation-errors-muB-1200.pdf}
+ \caption{The same comparison as \cref{fig:errors-900}, at \(\mu_B=1200\,\MeV\).
+ Raising the chemical-potential scale reduces \(T/\mu_B\) at fixed dimensional temperature; the resulting error need not decrease monotonically outside the low-temperature regime.}
+ \label{fig:errors-1200}
+\end{figure}
+These figures compare local reaction rates; the following integral comparison estimates their effect on a speed without solving a front.
+
+\clearpage
+\subsection{Isothermal speed sensitivity at fixed background}
+The conversion-front speed depends on the rate integrated over composition, rather than on the rate at the interface alone.
+To isolate this dependence, hold the diffusion and baryon-density prefactors constant and identical between models, together with the interface and profile-shape factors in the speed estimate.
+Writing \(\Gamma_{K,\rm exact}\) for the exact phase-space rate, the ratio to its speed estimate is then
+\begin{equation}
+ \frac{u_{\rm est}(0^-)}{u_{{\rm exact},\rm est}(0^-)}
+ =\left[
+ \frac{\displaystyle\int_0^{a(0^+)}\Gamma_K\,\dd a}
+ {\displaystyle\int_0^{a(0^+)}\Gamma_{K,\rm exact}\,\dd a}
+ \right]^{1/2}.
+ \label{eq:speed-sensitivity}
+\end{equation}
+Each integrand is evaluated on the neutral EOS at fixed \(\mu_B=1200\,\MeV\) and fixed temperature, with the chemical potentials recalculated at each composition.
+This path is a rate comparison, not a reconstructed constant-pressure front.
+The four choices of \(\Gamma_K\) are the rate models of the local-rate figures.
+Figure~\ref{fig:speed-sensitivity} shows the cold-rate limit and \(T=20,50,100\,\MeV\), with the exact estimate equal to one by definition.
+At \(T=0\), the exact integral and the derived \(T^0+T^2\) rate give the same result, so their curves coincide.
+At \(a(0^+)=1\), the \((\mu_B/3)^5\) variant gives \(1.29\), \(1.27\), \(1.22\), and \(1.03\) at \(T=0,20,50,100\,\MeV\), compared with \(1.77\), \(1.75\), \(1.68\), and \(1.43\) for Eq.~(23).
+The cold panel is a limiting ratio of rate integrals, not a claim that the diffusion coefficient or an absolute isothermal speed remains finite at zero temperature.
+None of these panels is a re-solved boundary-value problem; changes in the hydrodynamic trajectory and the diffusion-profile shape are not included.
+The point \(a(0^+)=1\) is only the endpoint of this rate-integral comparison, not a finite-speed front solution.
+\input{speed-sensitivity-results.tex}
+
+\begin{figure}[!htbp]
+ \centering
+ \includegraphics[width=\textwidth]{results/speed-sensitivity.pdf}
+ \caption{Isothermal rate-integral speed estimates from \cref{eq:speed-sensitivity}, relative to the exact phase-space estimate, at \(\mu_B=1200\,\MeV\) and \(T=0,20,50,100\,\MeV\).
+ The four rate models use the same colors and line styles as the local-rate figures; blue and green labels give the Eq.~(23) and \((\mu_B/3)^5\) ratios at \(a(0^+)=1\).
+ The exact phase-space and \(T^0+T^2\) curves coincide in the cold panel, which is explicitly a limiting rate-integral ratio.
+ Only the reaction rate changes between models; these are sensitivity estimates, not numerically solved front velocities.}
+ \label{fig:speed-sensitivity}
+\end{figure}
+\clearpage
+\input{adiabatic-section.tex}

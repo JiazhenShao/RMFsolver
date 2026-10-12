@@ -1,0 +1,12 @@
+{
+  "purpose": "Direct local full-analytical evaluations just inside the shared semi-analytical domain; not contour interpolation or extrapolation",
+  "xi": -0.85,
+  "T_0plus_MeV": 0.1,
+  "radial_fraction": 0.9999,
+  "method": "analytic_velocity_bound after validated direct-density upstream recovery",
+  "points": [
+    {"theta_index": 0, "nB_0minus_over_n0": 5.297778709728611, "T_0minus_MeV": 0.0, "velocity_m_s": 1963.9600521880707, "a_0plus": 0.8856479588287995, "closure_relative_error": 3.0636949707491417e-12},
+    {"theta_index": 10, "nB_0minus_over_n0": 4.744065040620541, "T_0minus_MeV": 60.07277842489288, "velocity_m_s": 1806.5254127809312, "a_0plus": 0.8856673607234705, "closure_relative_error": 5.339061055162085e-16},
+    {"theta_index": 20, "nB_0minus_over_n0": 3.0752991655443536, "T_0minus_MeV": 104.38478611233323, "velocity_m_s": 1539.555063711349, "a_0plus": 0.8852988619694798, "closure_relative_error": 3.1408316325148864e-12}
+  ]
+}

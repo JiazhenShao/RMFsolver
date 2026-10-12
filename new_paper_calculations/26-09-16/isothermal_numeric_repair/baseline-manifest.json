@@ -1,0 +1,9 @@
+{
+  "source_directory": "new_paper_calculations/26-08-27",
+  "accepted_numerical_points": 362,
+  "sha256": {
+    "isothermal-domain.npy": "bc2d509cde1b9c47eed9b1a43b772ceaa11039501c182872df95245c18e5c6ed",
+    "isothermal-analytic.npy": "6e5986f465b06a2c5e7b61c1c4c48621e3c30c170077c0dd7d05cfde28dca2b1",
+    "isothermal-numerical.npy": "03b34a86b8076e8c579a9315344d4cf005583a62c4e7562c847790730cf7483b"
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "figures": {
+    "/Users/janshao/NSM_related/ref-list/massless-weak-rate/results/approximation-errors-muB-900.pdf": {
+      "width_inches": 6.5,
+      "minimum_text_points": 12.0,
+      "axes": 6
+    },
+    "/Users/janshao/NSM_related/ref-list/massless-weak-rate/results/approximation-errors-muB-1200.pdf": {
+      "width_inches": 6.5,
+      "minimum_text_points": 12.0,
+      "axes": 6
+    },
+    "/Users/janshao/NSM_related/ref-list/massless-weak-rate/results/exact-rates.pdf": {
+      "width_inches": 6.5,
+      "minimum_text_points": 12.0,
+      "axes": 6
+    },
+    "/Users/janshao/NSM_related/ref-list/massless-weak-rate/results/speed-sensitivity.pdf": {
+      "width_inches": 6.5,
+      "minimum_text_points": 12.0,
+      "axes": 4
+    },
+    "/Users/janshao/NSM_related/ref-list/massless-weak-rate/results/adiabatic-speed-sensitivity.pdf": {
+      "width_inches": 6.5,
+      "minimum_text_points": 12.0,
+      "axes": 6
+    },
+    "/Users/janshao/NSM_related/ref-list/massless-weak-rate/results/adiabatic-trajectory-diagnostics.pdf": {
+      "width_inches": 6.5,
+      "minimum_text_points": 12.0,
+      "axes": 4
+    },
+    "/Users/janshao/NSM_related/ref-list/massless-weak-rate/results/adiabatic-diffusion-weighting.pdf": {
+      "width_inches": 6.5,
+      "minimum_text_points": 12.0,
+      "axes": 2
+    }
+  },
+  "numerical_data_unchanged": {
+    "results/rate-comparison-grid.csv": "c0a1f1591cefffd5ced4c917f579c01248bfdd7a639793865c7708ef9c30c7a5",
+    "results/speed-sensitivity.csv": "e876ff751cc809d0648de3c92bc91e3670be9b7b2c34ddf663b8e67b3c7e8383",
+    "results/adiabatic-quadrature.json": "83580132175a18ea4a85f166fccf396f2702bb33a2ec0ee58ea135580e3c426e",
+    "results/adiabatic-upstream.json": "f85eff1de548b7599586627dfa91f67dd063e1e45488f8646a0eeddc34edae0a",
+    "results/adiabatic-trajectories.csv": "81dd065a6dcaf531046593a777521a33bb7fc9ade0e884142e9a7176ad4ddd80",
+    "results/adiabatic-speed-sensitivity.csv": "7f2224ca6b6a33ee0c57cbff5e8732a21ac6fb82d19e48e254e0e2563cd2a805"
+  },
+  "nonplot_source_unchanged": true,
+  "plot_source_sha256": {
+    "plot_manuscript.py": "a5e64aedb9ad4df2719f15b290a6091fa2695d4f8eaffea29702166d9de51b4e",
+    "plot_style.py": "1070658bbbb48ca8a02a58d9882357a15efd28cdccc1be202785dc8d8bb9e181",
+    "rate_figures.py": "b5680f428e9dec07301fbdeb7abe186e66449a925839748265d012895fc9f75c",
+    "speed_sensitivity.py": "fd4781de0eea4422d80f1b3187760dbb1d4ecd37b98cab1c535c14380714af2b",
+    "adiabatic_report.py": "caafdd4416502e896fa21f43d09ccd228b65ccb7ca6abbbb30efa4193603c4ca"
+  }
+}

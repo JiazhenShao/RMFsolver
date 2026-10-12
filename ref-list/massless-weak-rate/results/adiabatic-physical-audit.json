@@ -1,0 +1,197 @@
+{
+  "method": "Independent dimensional EOS and a-coordinate quadrature; no cached integrals",
+  "eos_decimal_digits": 40,
+  "eos_bisection_iterations": 110,
+  "upstream_sha256": "f85eff1de548b7599586627dfa91f67dd063e1e45488f8646a0eeddc34edae0a",
+  "source_sha256": {
+    "audit_adiabatic_physical.py": "de8162a0e7224b9e34de1c872670be00a8b86a16f4d53b5c4858d3e86c55a54f",
+    "adiabatic_sensitivity.py": "40159f0ff95be159d9411138b4fba16c5955dd5499c7450dfacee1e49d3d7552",
+    "validate_rate.py": "11d5de3e48c3ec09ef4c5aefbf2ab6c94a803eb46224ee1992a27751ed3711cb",
+    "cold_sympy.py": "d34c6381c2b25e7a32da4a4c682b10d7efb9ac8590291613a6d744edab03b5f9",
+    "thermal_sympy.py": "cd2027784e98055f63801c5c903853517b74a574fafcaad86091f7b630cf9584"
+  },
+  "cases": [
+    {
+      "T_0minus": 0.0,
+      "nB_0minus_over_n0": 4.752871363477764,
+      "target_a_0plus": 0.9,
+      "a_0plus": 0.8999999999999655,
+      "nB": 9164920.168710424,
+      "T_inf": 63.297436040841525,
+      "integrals": [
+        1.3178408371775737e-13,
+        3.211507900528493e-13,
+        1.3300643143483538e-13
+      ],
+      "ratios": [
+        1.0,
+        1.561072296890771,
+        1.0046269864944835
+      ],
+      "max_pressure_relative_residual": 6.031196568662741e-34,
+      "outer_order": 18,
+      "phase_order": 16,
+      "tail": 48,
+      "wall_seconds": 5.202453791978769,
+      "ratio_difference_from_published": [
+        0.0,
+        -8.171241461241152e-14,
+        1.381784246801132e-06
+      ]
+    },
+    {
+      "T_0minus": 0.0,
+      "nB_0minus_over_n0": 5.263493901067792,
+      "target_a_0plus": 0.995,
+      "a_0plus": 0.9949999999999822,
+      "nB": 10172244.651390059,
+      "T_inf": 73.9174068243446,
+      "integrals": [
+        1.4583264925848904e-13,
+        6.067217775739279e-13,
+        1.4611187035523452e-13
+      ],
+      "ratios": [
+        1.0,
+        2.0397052284464654,
+        1.000956876159225
+      ],
+      "max_pressure_relative_residual": 5.9896428433611735e-34,
+      "outer_order": 18,
+      "phase_order": 16,
+      "tail": 48,
+      "wall_seconds": 4.993839000002481,
+      "ratio_difference_from_published": [
+        0.0,
+        -3.2107649872159527e-13,
+        2.0973151413361535e-06
+      ]
+    },
+    {
+      "T_0minus": 20.0,
+      "nB_0minus_over_n0": 4.689399482381948,
+      "target_a_0plus": 0.9,
+      "a_0plus": 0.899999999999867,
+      "nB": 9040257.749726836,
+      "T_inf": 63.00913159814244,
+      "integrals": [
+        1.2939945983642423e-13,
+        3.1533958871596263e-13,
+        1.305996892560941e-13
+      ],
+      "ratios": [
+        1.0,
+        1.561072296890546,
+        1.0046269864944868
+      ],
+      "max_pressure_relative_residual": 6.0681282134426776e-34,
+      "outer_order": 18,
+      "phase_order": 16,
+      "tail": 48,
+      "wall_seconds": 5.087009041977581,
+      "ratio_difference_from_published": [
+        0.0,
+        -3.0686564400639327e-13,
+        1.3817842501318012e-06
+      ]
+    },
+    {
+      "T_0minus": 20.0,
+      "nB_0minus_over_n0": 5.2054633851684775,
+      "target_a_0plus": 0.995,
+      "a_0plus": 0.9949999999999819,
+      "nB": 10050542.659381812,
+      "T_inf": 73.62143766697386,
+      "integrals": [
+        1.4351095398755976e-13,
+        5.970626025611573e-13,
+        1.437857298088258e-13
+      ],
+      "ratios": [
+        1.0,
+        2.039705228446459,
+        1.0009568761592251
+      ],
+      "max_pressure_relative_residual": 7.2772208101231066e-34,
+      "outer_order": 18,
+      "phase_order": 16,
+      "tail": 48,
+      "wall_seconds": 4.981422292010393,
+      "ratio_difference_from_published": [
+        0.0,
+        -3.2729374765949615e-13,
+        2.097315141558198e-06
+      ]
+    },
+    {
+      "T_0minus": 100.0,
+      "nB_0minus_over_n0": 2.086605925085549,
+      "target_a_0plus": 0.9,
+      "a_0plus": 0.8999999999999896,
+      "nB": 5370304.22387875,
+      "T_inf": 52.96750538845238,
+      "integrals": [
+        6.461845419954817e-14,
+        1.5747172976233967e-13,
+        6.521781504604531e-14
+      ],
+      "ratios": [
+        1.0,
+        1.561072296890827,
+        1.0046269864944835
+      ],
+      "max_pressure_relative_residual": 6.481410216261456e-34,
+      "outer_order": 18,
+      "phase_order": 16,
+      "tail": 48,
+      "wall_seconds": 5.067608250014018,
+      "ratio_difference_from_published": [
+        0.0,
+        -2.5757174171303632e-14,
+        1.381784246801132e-06
+      ]
+    },
+    {
+      "T_0minus": 100.0,
+      "nB_0minus_over_n0": 3.3175447088383403,
+      "target_a_0plus": 0.995,
+      "a_0plus": 0.994999999999954,
+      "nB": 6731138.75986176,
+      "T_inf": 64.4125715796791,
+      "integrals": [
+        8.409117631428452e-14,
+        3.498527128943972e-13,
+        8.425218299280631e-14
+      ],
+      "ratios": [
+        1.0,
+        2.03970522844595,
+        1.0009568761592271
+      ],
+      "max_pressure_relative_residual": 7.105431953477526e-34,
+      "outer_order": 18,
+      "phase_order": 16,
+      "tail": 48,
+      "wall_seconds": 5.0388126249890774,
+      "ratio_difference_from_published": [
+        0.0,
+        -8.36664071357518e-13,
+        2.0973151435565995e-06
+      ]
+    }
+  ],
+  "maximum_absolute_ratio_difference_from_published": 2.0973151435565995e-06,
+  "ratio_spread_across_upstream_temperatures": {
+    "0.9": [
+      0.0,
+      2.8110846983508964e-13,
+      3.3306690738754696e-15
+    ],
+    "0.995": [
+      0.0,
+      5.155875726359227e-13,
+      2.220446049250313e-15
+    ]
+  },
+  "passed": true
+}

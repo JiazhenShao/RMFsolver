@@ -1,39 +1,45 @@
-# Allowlist repository.
-#
-# This directory is a Python virtualenv *and* a research workspace: it holds the
-# venv itself (bin/ lib/ include/ share/), ~30 notebooks, LaTeX sources, and
-# large .npz/.pdf calculation outputs. None of that belongs in version control,
-# and there is no realistic denylist for it. So everything at the top level is
-# ignored and only the two published trees are re-included.
-/*
-!/.gitignore
-!/README.md
-!/pyproject.toml
-!/requirements.txt
-!/setup.py
-!/RMFsolver/
-!/wiki/
-!/tests/
-!/new_paper_calculations/
-/new_paper_calculations/*
-!/new_paper_calculations/26-08-19/
-/new_paper_calculations/26-08-19/*
-!/new_paper_calculations/26-08-19/*.py
-!/new_paper_calculations/26-08-19/README.md
-/tests/*
-!/tests/test_phase_velocity_isothermal_analytic.py
-!/tests/test_phase_velocity_isothermal_numerical.py
-!/tests/test_phase_velocity_isothermal_a_0plus_max.py
-!/tests/test_phase_velocity_isothermal_relativistic.py
-!/tests/test_isothermal_contour_cluster_26_08_19.py
+# Track research sources, notebooks, manuscripts, figures, references, and data.
+# Ignore only local environments, caches, logs, credentials, and UI state.
 
-# Exclusions that still apply inside the tracked trees
-.DS_Store
+# This workspace also contains a Python virtual environment.
+/bin/
+/lib/
+/include/
+/share/
+/etc/
+/pyvenv.cfg
+.venv/
+venv/
+*.egg-info/
+
+# Python and notebook caches
 __pycache__/
-*.pyc
+*.py[cod]
 .ipynb_checkpoints/
-*.log
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.mpl-cache/
 
-# Obsidian per-machine UI state; the rest of wiki/.obsidian/ is shared config
-# worth carrying so the vault opens correctly on any machine.
+# Machine-local assistant state and credentials
+/.claude/
+/.codex/
+/.aws/
+.env
+.env.*
+!.env.example
+!.env.template
+*.pem
+*.key
+
+# Temporary files and logs
+/tmp/
+/.tmp_*
+*.log
+.DS_Store
+
+# Keep shared Obsidian configuration, but not per-machine UI state.
+/.obsidian/workspace.json
+/.obsidian/workspace-mobile.json
 /wiki/.obsidian/workspace.json
+/wiki/.obsidian/workspace-mobile.json

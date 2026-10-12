@@ -14,21 +14,29 @@ import sys
 def _ensure_project_runtime() -> None:
     required = ("numpy", "scipy", "tqdm", "matplotlib", "RMFsolver")
     project_root = Path(__file__).resolve().parents[2]
+    project_root_text = str(project_root)
+    if project_root_text not in sys.path:
+        sys.path.insert(0, project_root_text)
+    missing = [
+        package for package in required if importlib.util.find_spec(package) is None
+    ]
+    if not missing:
+        return
+
     project_python = project_root / "bin" / "python3"
-    if not project_python.exists():
-        raise RuntimeError(f"The project Python runtime is unavailable: {project_python}")
-    if Path(sys.prefix).resolve() != project_root.resolve():
+    if (
+        project_python.exists()
+        and Path(sys.prefix).resolve() != project_root.resolve()
+    ):
         os.execv(
             str(project_python),
             [str(project_python), str(Path(__file__).resolve()), *sys.argv[1:]],
         )
-    missing = [
-        package for package in required if importlib.util.find_spec(package) is None
-    ]
-    if missing:
-        raise RuntimeError(
-            "The project Python runtime is missing packages: " + ", ".join(missing)
-        )
+    raise RuntimeError(
+        f"Python environment {sys.prefix} is missing packages: "
+        + ", ".join(missing)
+        + ". Activate the cluster environment that provides them."
+    )
 
 
 _ensure_project_runtime()

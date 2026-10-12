@@ -1,7 +1,7 @@
 ---
 summary: Twenty designated fixed-temperature targets replace broad contour repair; persistent budgets cap all BVP work at 120 calls and midpoint checks govern connectivity.
 status: current
-updated: 2026-09-21
+updated: 2026-10-02
 tags: [method, cluster, contour, isothermal, continuation]
 ---
 
@@ -64,6 +64,6 @@ Each trial is checkpointed before evaluation progress; each target is saved befo
 The fixed initial-target bar counts 20, with local refinement counts separate; a second bar displays calls consumed out of the hard 120 limit.
 Its completion fraction is a budget, not a promised number of numerical successes.
 
-`26SU-14.ipynb` numerical cells 4--5 load the new optional overlay, validate the frozen input hashes, retain established styling, and display isolated accepted roots.
+`26-08-20.ipynb` numerical cells 4--5 load the new optional overlay, validate the frozen input hashes, retain established styling, and display isolated accepted roots.
 Local verification uses synthetic tests and saved-data rendering only.
 Cluster convergence and complete curve recovery have not yet been established for this workflow.

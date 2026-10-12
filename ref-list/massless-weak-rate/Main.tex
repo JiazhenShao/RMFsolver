@@ -1,0 +1,409 @@
+\documentclass[11pt,letterpaper]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb,mathtools,bm,slashed}
+\usepackage{microtype,graphicx,booktabs,array}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage[colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue]{hyperref}
+\usepackage[nameinlink,noabbrev]{cleveref}
+\numberwithin{equation}{section}
+\newcommand{\dd}{\mathrm d}
+\newcommand{\MeV}{\mathrm{MeV}}
+\newcommand{\CK}{\mathcal C_K}
+\newcommand{\Izero}{\mathcal I_0}
+\newcommand{\Jtwo}{\mathcal J_2}
+\newcommand{\pos}[1]{\left[#1\right]_+}
+\DeclareMathOperator{\sech}{sech}
+\title{The Nonleptonic Weak Rate in Massless Quark Matter:\\Exact Cold Phase Space and the Thermal Correction Through \(T^2\)}
+\author{Standalone derivation and numerical verification}
+\date{October 11, 2026}
+
+\begin{document}
+\maketitle
+\begin{abstract}
+We derive the net rate of \(d+u\leftrightarrow s+u\) for massless quarks with unequal flavor chemical potentials.
+Starting from the invariant collision integral, we reduce the finite-temperature rate to two numerical integrations and obtain the exact cold rate for the ordering selected by charge-neutral, electron-free matter.
+The cold phase space has two branches separated by \(\mu_d-\mu_s=\mu_u\).
+We derive the order-\(T^2\) correction by expanding the four occupation factors independently and distinguish it from the additional chemical-potential shifts imposed by neutrality at fixed \(\mu_B,\mu_K\).
+The coincident incoming and outgoing up-quark thresholds generate a cubic thermal remainder, which we also derive and test.
+The nearly equal-flavor limit recovers the familiar cubic-plus-thermal-linear rate, but that limit is not imposed in the general result.
+Symbolic identities and numerical phase-space calculations test the normalization, branch matching, limiting cases, and accuracy of the temperature truncation.
+We also compare rate-integral speed estimates at fixed isothermal backgrounds and along conserved adiabatic EOS trajectories reconstructed from upstream neutron matter.
+The calculation includes the tree-level four-quark channel only; it does not include strong-interaction corrections or additional antiquark reactions.
+\end{abstract}
+
+\section{Physical rate and conventions}
+\label{sec:conventions}
+We consider unpaired, massless quarks in local kinetic equilibrium at a common temperature \(T\), with independent flavor chemical potentials \(\mu_u,\mu_d,\mu_s\).
+Natural units \(\hbar=c=k_B=1\) and the metric \(g^{\mu\nu}=\operatorname{diag}(1,-1,-1,-1)\) are used throughout.
+The reaction and sign convention are
+\begin{equation}
+ d(p_d)+u(p_1)\longleftrightarrow s(p_s)+u(p_2),
+ \qquad \mu_K=\mu_d-\mu_s,
+ \qquad n_K=\frac{n_d-n_s}{2}.
+ \label{eq:reaction}
+\end{equation}
+A forward event decreases \(n_K\) by one unit, so the positive relaxation source is
+\begin{equation}
+ \Gamma_K=R(d+u\to s+u)-R(s+u\to d+u),
+ \qquad \left.\frac{\dd n_K}{\dd t}\right|_{\rm reactions}=-\Gamma_K.
+ \label{eq:source}
+\end{equation}
+The baryon and imbalance chemical potentials satisfy
+\begin{equation}
+ \mu_B=\mu_u+\mu_d+\mu_s,
+ \qquad \mu_K=\mu_d-\mu_s.
+ \label{eq:chemical-basis}
+\end{equation}
+Quark charge neutrality without electrons gives \(2n_u=n_d+n_s\).
+For the massless equation of state,
+\begin{equation}
+ n_f=\frac{\mu_f^3}{\pi^2}+\mu_fT^2,
+ \quad n_u=n_B,\quad n_d=n_B(1+a),\quad n_s=n_B(1-a),
+ \label{eq:density}
+\end{equation}
+and monotonicity of \(n_f(\mu_f,T)\) implies
+\begin{equation}
+ 0\leq\mu_s<\mu_u<\mu_d\qquad (0<a\leq1).
+ \label{eq:ordering}
+\end{equation}
+The equilibrium limit \(a=0\) is taken by continuity.
+
+The interaction and normalization follow Madsen~\cite{Madsen:1993xx}, with the down and strange labels exchanged relative to his forward reaction.
+Both of his printed cold branches, Eqs.~(20) and (21), require \(\mu_u<\mu_d\) in his labeling.
+After reversing the reaction, that condition would require \(\mu_u<\mu_s\), contrary to \cref{eq:ordering}.
+The cold expressions below are therefore obtained from the collision integral rather than by extending those formulas beyond their stated domains.
+This calculation retains the weak interaction at tree level and omits quark masses, QCD corrections to the matrix element and dispersion relations, pairing, and additional channels containing antiquarks.
+The massless density in \cref{eq:density} is a net density, whereas the collision integral below counts the stated quark channel; using the exact density does not supply the omitted antiquark reaction channels at high temperature.
+
+\section{Invariant collision integral}
+\label{sec:invariant}
+For each leg, let \(p_i^\mu=(E_i,\bm p_i)\), with \(E_i=|\bm p_i|\), and define
+\begin{equation}
+ f_f(E)=\frac{1}{1+\exp[(E-\mu_f)/T]}.
+ \label{eq:fermi}
+\end{equation}
+Using Madsen's matrix element [Eq.~(5)] and spin--color convention with the standard invariant phase-space measure, the forward rate per unit volume and time is\footnote{Madsen's Eq.~(4) prints \((2\pi)^{-5}\) multiplying the bare momentum measures, whereas the standard invariant measure gives \((2\pi)^{-8}\).
+The printed factor is a normalization misprint: \((2\pi)^{-8}\) is consistent with his Eqs.~(13) and (20)--(22) and with the calculation in \cref{app:normalization}.}
+\begin{align}
+ R(d+u\to s+u)
+ &=\frac{36}{2}\int\prod_{i=1,d,2,s}
+ \frac{\dd^3\bm p_i}{(2\pi)^3\,2E_i}
+ (2\pi)^4\delta^{(4)}(p_1+p_d-p_2-p_s)
+ |\mathcal M|^2\notag\\
+ &\hspace{28mm}\times f_u(E_1)f_d(E_d)
+ [1-f_u(E_2)][1-f_s(E_s)],
+ \label{eq:invariant-rate}\\
+ |\mathcal M|^2
+ &=64G_F^2\sin^2\theta_C\cos^2\theta_C
+ (p_1\cdot p_d)(p_2\cdot p_s).
+ \label{eq:matrix}
+\end{align}
+The combined factor in \cref{eq:invariant-rate,eq:matrix} can be derived without any spin-average convention from
+\begin{equation}
+ \mathcal H_{\rm eff}=\frac{G_F}{\sqrt2}\sin\theta_C\cos\theta_C
+ [\bar u\gamma^\alpha(1-\gamma^5)d]
+ [\bar s\gamma_\alpha(1-\gamma^5)u]+\text{h.c.}
+ \label{eq:interaction}
+\end{equation}
+Summing all four external spins gives \(128G_F^2\sin^2\theta_C\cos^2\theta_C(p_1\cdot p_d)(p_2\cdot p_s)\), as shown by the traces in \cref{app:normalization}.
+The color-singlet currents preserve color along each fermion line, leaving \(3\times3=9\) color choices.
+Their product is \(9\times128=1152=(36/2)\times64\), exactly the combined normalization in Madsen's convention.
+His factor \(36\) counts incoming spin--color states and his separate \(1/2\) accounts for the incoming up-quark helicity; the quoted matrix element and these factors must be used together.
+The two up legs are on opposite sides of the reaction, so there is no additional identical-particle factorial.
+Recovery of the equal-flavor rate below supplies a second normalization check.
+
+The identity \(f_f/(1-f_f)=\exp[(\mu_f-E)/T]\), together with energy conservation, gives
+\begin{equation}
+ \frac{f_u(E_2)f_s(E_s)[1-f_u(E_1)][1-f_d(E_d)]}
+ {f_u(E_1)f_d(E_d)[1-f_u(E_2)][1-f_s(E_s)]}
+ =e^{-\mu_K/T}.
+ \label{eq:balance-ratio}
+\end{equation}
+Consequently,
+\begin{equation}
+ \Gamma_K=(1-e^{-\mu_K/T})R(d+u\to s+u)
+ \qquad (T>0).
+ \label{eq:detailed-balance}
+\end{equation}
+For \(\mu_K>0\), the rate is positive and the reverse process is exponentially small as \(T\to0\) at fixed nonzero \(\mu_K\).
+At equilibrium the net rate vanishes even though both one-way rates are nonzero at finite temperature.
+Numerical evaluation of the prefactor in \cref{eq:detailed-balance} uses \(-\operatorname{expm1}(-\mu_K/T)\) to avoid subtracting nearly equal numbers.
+
+\section{Exact massless reduction at finite temperature}
+\label{sec:reduction}
+\subsection{Angular phase space}
+Introduce the common pair energy \(E=E_1+E_d=E_2+E_s\) and the magnitude \(k=|\bm p_1+\bm p_d|=|\bm p_2+\bm p_s|\).
+These two integration variables separate the matrix element from the individual energy occupations.
+At fixed momentum magnitudes, the angular convolution of either pair is
+\begin{equation}
+ \int\dd\Omega_1\dd\Omega_d\,
+ \delta^{(3)}(\bm k-\bm p_1-\bm p_d)
+ =\frac{2\pi}{kE_1E_d}\,
+ \boldsymbol 1_{\{|E_1-E_d|\leq k\leq E_1+E_d\}},
+ \label{eq:pair-angle}
+\end{equation}
+where \(\boldsymbol 1\) is the indicator of the stated interval.
+Multiplying the incoming and outgoing convolutions and integrating \(\dd^3\bm k=4\pi k^2\dd k\) yields
+\begin{equation}
+ \int\prod_i\dd\Omega_i\,
+ \delta^{(3)}(\bm p_1+\bm p_d-\bm p_2-\bm p_s)
+ =\frac{16\pi^3}{E_1E_dE_2E_s}
+ \int_{k_{\min}}^E\dd k,
+ \quad
+ k_{\min}=\max(|E_1-E_d|,|E_2-E_s|).
+ \label{eq:angular}
+\end{equation}
+Both dot products in \cref{eq:matrix} equal \((E^2-k^2)/2\).
+Combining the four radial invariant measures, the angular factors, and \cref{eq:matrix} leaves the common prefactor
+\begin{equation}
+ \frac{9G_F^2\sin^2\theta_C\cos^2\theta_C}{8\pi^5}
+ =\frac{45}{128}\CK,
+ \qquad
+ \CK=\frac{16G_F^2\sin^2\theta_C\cos^2\theta_C}{5\pi^5}.
+ \label{eq:prefactor}
+\end{equation}
+
+\subsection{Two remaining numerical integrations}
+For given \(E,k\), either particle's energy lies between \((E-k)/2\) and \((E+k)/2\).
+Define the two pair integrals, each with dimensions of energy,
+\begin{align}
+ \mathcal A(E,k;\mu_a,\mu_b)
+ &=\int_{(E-k)/2}^{(E+k)/2}\dd p\,
+ f_a(p)f_b(E-p),\label{eq:pair-occupied}\\
+ \mathcal B(E,k;\mu_a,\mu_b)
+ &=\int_{(E-k)/2}^{(E+k)/2}\dd p\,
+ [1-f_a(p)][1-f_b(E-p)].\label{eq:pair-holes}
+\end{align}
+The exact quark-channel net rate is then
+\begin{align}
+ \Gamma_K
+ &=\frac{45}{128}\CK(1-e^{-\mu_K/T})
+ \int_0^\infty\dd E\int_0^E\dd k\,(E^2-k^2)^2\notag\\
+ &\hspace{22mm}\times
+ \mathcal A(E,k;\mu_u,\mu_d)
+ \mathcal B(E,k;\mu_u,\mu_s).
+ \label{eq:exact-2d}
+\end{align}
+No expansion in temperature or composition has entered \cref{eq:exact-2d}.
+
+The algebraic identity
+\begin{equation}
+ f_a(p)f_b(E-p)=
+ \frac{f_a(p)+f_b(E-p)-1}{1-e^{(E-\mu_a-\mu_b)/T}}
+ \label{eq:pair-product-identity}
+\end{equation}
+reduces the pair integral to two single-Fermi integrals and a constant term.
+Integrating those three terms gives the antiderivative
+\begin{equation}
+ \frac{-T\ln[1+e^{(\mu_a-p)/T}]
+       +T\ln[1+e^{(p-E+\mu_b)/T}]-p}
+      {1-e^{(E-\mu_a-\mu_b)/T}}.
+ \label{eq:primitive}
+\end{equation}
+Differentiating \cref{eq:primitive} with respect to \(p\) gives \(f_a(p)f_b(E-p)\).
+The hole integral follows from
+\begin{equation}
+ \mathcal B=e^{(E-\mu_a-\mu_b)/T}\mathcal A.
+ \label{eq:pair-balance}
+\end{equation}
+The denominator in \cref{eq:primitive} vanishes at \(E=\mu_a+\mu_b\), but the integral is regular there:
+\begin{equation}
+ \mathcal A=\mathcal B
+ =T\left[f_a\!\left(\frac{E-k}{2}\right)
+         -f_a\!\left(\frac{E+k}{2}\right)\right]
+ \quad(E=\mu_a+\mu_b).
+ \label{eq:removable}
+\end{equation}
+The numerical calculation evaluates logarithms and exponential differences in stable forms and uses the continuous limit when the pair-energy denominator is small.
+At zero temperature the pair integrals become interval lengths, so resolving narrow Fermi functions is unnecessary in that limit.
+
+\section{Exact cold phase space}
+\label{sec:cold}
+For \(\mu_K>0\) at \(T=0\), only the forward process contributes.
+Let \(x=E_1\) and \(y=E_s\), the incoming up and outgoing strange energies.
+The occupied incoming states and empty outgoing states require
+\begin{equation}
+ 0\leq x\leq\mu_u,\quad y\geq\mu_s,
+ \quad \mu_u+y\leq E\leq x+\mu_d.
+ \label{eq:cold-domain}
+\end{equation}
+Since \(E_2\geq\mu_u\geq x\), the smallest of the four energies is \(\min(x,y)\), and \(k_{\min}=E-2\min(x,y)\).
+The integrated angular kernel is the polynomial
+\begin{align}
+ \mathcal K(E,m)
+ &=\int_{E-2m}^E\dd k\,(E^2-k^2)^2\notag\\
+ &=\frac{32}{3}E^2m^3-16Em^4+\frac{32}{5}m^5,
+ \qquad m=\min(x,y).
+ \label{eq:cold-kernel}
+\end{align}
+The forward cold phase-space volume is
+\begin{equation}
+ \Izero=\int_{\max(0,\mu_u+\mu_s-\mu_d)}^{\mu_u}\dd x
+ \int_{\mu_s}^{x+\mu_d-\mu_u}\dd y
+ \int_{\mu_u+y}^{x+\mu_d}\dd E\,
+ \mathcal K(E,\min(x,y)),
+ \label{eq:cold-triple}
+\end{equation}
+and the physical rate is \(\Gamma_K(T=0)=(45/128)\CK\Izero\).
+Because \(\mu_d>\mu_u\), the upper bound on \(y\) lies above \(x\).
+Splitting the \(x\) integral at \(\mu_s\), and the remaining \(y\) integral at \(y=x\), converts \cref{eq:cold-triple} into three polynomial integrals.
+The only change of physical branch occurs when the lower \(x\) bound reaches zero, at \(\mu_d-\mu_s=\mu_u\).
+\input{cold-result.tex}
+
+\section{Thermal expansion at fixed flavor potentials}
+\label{sec:sommerfeld}
+\subsection{Four independent occupation thresholds}
+The Sommerfeld expansion must act on all four Fermi factors.
+Introduce auxiliary thresholds \(\nu_1,\nu_d,\nu_2,\nu_s\) for the incoming up, incoming down, outgoing up, and outgoing strange legs, respectively.
+Only the two up thresholds are temporarily distinct; their distinction prevents a spurious mixed derivative.
+For \(w(z)=1/[4\cosh^2(z/2)]\), the exact representation
+\begin{equation}
+ f(E;\nu,T)=\int_{-\infty}^{\infty}\dd z\,
+ w(z)\,\Theta(\nu+Tz-E)
+ \label{eq:logistic-convolution}
+\end{equation}
+expresses a Fermi function as an average over shifted cold thresholds.
+The same identity applies to \(1-f\), with the complementary step function.
+The weight is even, normalized to one, and has second moment
+\begin{equation}
+ \int z\,w(z)\dd z=0,
+ \qquad \int z^2w(z)\dd z=\frac{\pi^2}{3}.
+ \label{eq:moments}
+\end{equation}
+Let \(\mathcal I_{\rm net}^{(0)}(\nu_1,\nu_d,\nu_2,\nu_s)\) denote the cold forward-minus-reverse phase-space integral with these independent thresholds.
+Where its second derivatives are well defined, expanding the four independent shifts gives
+\begin{align}
+ \Gamma_K
+ &=\boxed{\frac{45}{128}\CK
+ \left[\Izero+\frac{\pi^2T^2}{6}\Jtwo+o(T^2)\right]},
+ \label{eq:thermal-expansion}\\
+ \Jtwo
+ &=\left.
+ \left(\partial_{\nu_1}^2+\partial_{\nu_d}^2+
+       \partial_{\nu_2}^2+\partial_{\nu_s}^2\right)
+ \mathcal I_{\rm net}^{(0)}
+ \right|_{\nu_1=\nu_2=\mu_u,\ \nu_d=\mu_d,\ \nu_s=\mu_s}.
+ \label{eq:independent-derivatives}
+\end{align}
+Differentiating the physical cold result twice with respect to its common \(\mu_u\) would instead give \((\partial_{\nu_1}+\partial_{\nu_2})^2\), adding an unwanted \(2\partial_{\nu_1}\partial_{\nu_2}\) term.
+For fixed positive \(\mu_K\), the reverse cold rate vanishes in a neighborhood of the physical thresholds, so the derivatives may be taken on the forward cold integral there.
+This local statement does not replace the forward-minus-reverse treatment when \(\mu_K\) is comparable to \(T\).
+\input{thermal-result.tex}
+
+\section{Neutrality at fixed \texorpdfstring{\(\mu_B,\mu_K\)}{muB, muK}}
+\label{sec:neutral}
+The coefficient in \cref{eq:thermal-expansion} holds the flavor potentials fixed.
+To obtain a strict temperature series at fixed \(\mu_B,\mu_K\), the potentials themselves must also be expanded.
+Let \(\mu_f^{(0)}\) denote the neutral flavor potentials at zero temperature; this superscript labels an expansion coefficient, not a spatial endpoint.
+They solve
+\begin{equation}
+ \mu_u^{(0)}+\mu_d^{(0)}+\mu_s^{(0)}=\mu_B,
+ \quad \mu_d^{(0)}-\mu_s^{(0)}=\mu_K,
+ \quad 2(\mu_u^{(0)})^3=(\mu_d^{(0)})^3+(\mu_s^{(0)})^3.
+ \label{eq:neutral-cold}
+\end{equation}
+Writing \(\mu_f(T)=\mu_f^{(0)}+c_fT^2+o(T^2)\) in \cref{eq:density} gives
+\begin{align}
+ c_d=c_s&=
+ \frac{\pi^2[2\mu_u^{(0)}-\mu_d^{(0)}-\mu_s^{(0)}]}
+ {3[4(\mu_u^{(0)})^2+(\mu_d^{(0)})^2+(\mu_s^{(0)})^2]},
+ \qquad c_u=-2c_d.
+ \label{eq:neutral-shifts}
+\end{align}
+The equal shifts of down and strange keep \(\mu_K\) fixed, and the up shift keeps \(\mu_B\) fixed.
+The neutral rate through \(T^2\) is therefore
+\begin{equation}
+ \boxed{\begin{aligned}
+ \Gamma_K\big|_{\mu_B,\mu_K}
+ &=\frac{45}{128}\CK\Bigg\{
+ \Izero(\mu_u^{(0)},\mu_d^{(0)},\mu_s^{(0)})\\
+ &\quad+T^2\left[
+ \frac{\pi^2}{6}\Jtwo+
+ c_d\left(-2\partial_{\mu_u}+\partial_{\mu_d}+\partial_{\mu_s}\right)\Izero
+ \right]_{\mu_f=\mu_f^{(0)}}+o(T^2)\Bigg\}.
+ \end{aligned}}
+ \label{eq:neutral-rate}
+\end{equation}
+The second term inside the square brackets is an EOS response, not a further scattering correction.
+Alternatively, one may evaluate the fixed-flavor expression \cref{eq:thermal-expansion} at the exact finite-temperature neutral potentials.
+That prescription agrees with \cref{eq:neutral-rate} through \(T^2\) on smooth branches but retains additional EOS temperature dependence and is not the same truncated series beyond that order.
+
+For the exact neutral mapping, eliminate \(\mu_d\) and \(\mu_s\) using
+\begin{equation}
+ \mu_d=\frac{\mu_B-\mu_u+\mu_K}{2},
+ \qquad \mu_s=\frac{\mu_B-\mu_u-\mu_K}{2},
+ \label{eq:neutral-map}
+\end{equation}
+and solve \(2n_u-n_d-n_s=0\) with \cref{eq:density} on the physical nonnegative branch.
+Its derivative with respect to \(\mu_u\) is \(2n_u'+(n_d'+n_s')/2>0\), so a physical root, when bracketed, is unique.
+Keeping this root implicit is shorter and numerically safer than writing cubic radicals.
+
+\input{collected-results.tex}
+
+\section{Limits and relation to the usual rate}
+\label{sec:limits}
+\subsection{Nearly equal chemical potentials}
+When \(T\) and the imbalance are small compared with a common flavor Fermi scale, the angular kernel may be evaluated at equal Fermi energies.
+Its value is
+\begin{equation}
+ \int_0^{2\mu_u}\dd k\,[(2\mu_u)^2-k^2]^2
+ =\frac{256}{15}\mu_u^5.
+ \label{eq:equal-angular}
+\end{equation}
+At zero temperature the four nonnegative hole and excitation energies sum to \(\mu_K\), giving the three-dimensional simplex volume \(\mu_K^3/6\).
+The prefactor in \cref{eq:prefactor} consequently gives
+\begin{equation}
+ \Gamma_K(T=0)\simeq\CK\mu_u^5\mu_K^3.
+ \label{eq:equal-cold}
+\end{equation}
+For independent thresholds, the imbalance in that simplex is \(\nu_1+\nu_d-\nu_2-\nu_s\).
+The sum of the four second derivatives of the cube of this imbalance is \(24(\nu_1+\nu_d-\nu_2-\nu_s)\), so \cref{eq:independent-derivatives} supplies the thermal partner:
+\begin{equation}
+ \Gamma_K\simeq\CK\mu_u^5\mu_K(\mu_K^2+4\pi^2T^2).
+ \label{eq:madsen23}
+\end{equation}
+This recovers Madsen's Eq.~(23) after reversing the reaction.
+The additional approximation is small flavor splitting relative to the Fermi scale, not small \(\mu_K/T\).
+To establish this statement when \(\mu_K\) is comparable to \(T\), extend the excitation energies about the common Fermi surface to the real line and keep the angular kernel constant.
+The cold forward-minus-reverse energy integral is the signed polynomial \((\nu_1+\nu_d-\nu_2-\nu_s)^3/6\) on both sides of equilibrium.
+Convolving this cubic with the four logistic weights terminates exactly at the second moment, giving the net energy integral \(\mu_K(\mu_K^2+4\pi^2T^2)/6\) for any \(\mu_K/T\).
+This is a uniform leading Fermi-surface result; extending it to arbitrary flavor splitting would discard the angular dependence retained in \cref{eq:cold-result,eq:thermal-result}.
+The \(\mu_K^3\) term must therefore be retained in the suprathermal regime.
+
+\subsection{Unequal-flavor equilibrium check}
+As an independent check of the angular dependence, allow \(\mu_d=\mu_s\) at equilibrium without imposing charge neutrality.
+Writing \(z=\mu_d/\mu_u\) only in this comparison, the leading Fermi-surface angular coefficient relative to \cref{eq:madsen23} is
+\begin{equation}
+ \frac{15}{256\mu_u^5}
+ \int_{|\mu_u-\mu_d|}^{\mu_u+\mu_d}\dd k\,
+ [(\mu_u+\mu_d)^2-k^2]^2
+ =\begin{cases}
+ (1+5z+10z^2)/16,&z\geq1,\\
+ z^3(10+5z+z^2)/16,&0\leq z\leq1.
+ \end{cases}
+ \label{eq:unequal-equilibrium}
+\end{equation}
+Madsen's printed Eq.~(24) instead tends to \((5z^2-1)/4\) when his imbalance variable tends to zero.
+The two agree at \(z=1\), but, for example, give \(51/16\) and \(19/4\), respectively, at \(z=2\).
+Thus that printed thermal multiplier should not be treated as the exact leading coefficient for arbitrary flavor potentials.
+The comparison is a diagnostic outside the neutral equilibrium line, where all three potentials are equal.
+
+\input{numerical-results.tex}
+
+\clearpage
+\section{Use of the result}
+The rate derived here is exact at zero temperature within the stated massless, tree-level quark-channel model, and its thermal coefficient retains the physical composition dependence.
+The low-temperature formula must be used with its branch and degeneracy conditions, especially near a vanishing strange Fermi surface or simultaneous small temperature and imbalance.
+For warmer states, \cref{eq:exact-2d} supplies a reference without a temperature expansion.
+Neutral massless matter has only two dimensionless state variables, which may be chosen as \(a\) and \(T/\mu_B\); the rate scales as \(G_F^2\sin^2\theta_C\cos^2\theta_C\mu_B^8\).
+A later production implementation can therefore tabulate a dimensionless rate and match it to the cold expression, without evaluating phase space during every front-solver call.
+No production solver or combustion-manuscript formula has been replaced as part of this derivation.
+
+\appendix
+\input{algebra-appendix.tex}
+
+\bibliographystyle{unsrtnat}
+\bibliography{references}
+\end{document}

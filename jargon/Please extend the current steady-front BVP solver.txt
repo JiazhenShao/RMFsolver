@@ -1,0 +1,347 @@
+Please extend the current steady-front BVP solver in `RMFsolver/phase_velocity.py` to include entropy production and a spatially varying temperature profile.
+
+Read the current implementation carefully before editing. Then before implementing any plans, give me feedback of whether this plan is viable, any questions, and any suggestions of improving this plan. 
+
+The current recommended production path is the compact-coordinate BVP solver `solve_steady_front_1d_aQstar_rescale_bvp(...)`, which currently solves for `(a(s), q(s))` plus the scalar parameter `jB`, using local hydro closure and the compact coordinate `s = 1 - exp(-x/kappa)`. The manual says the current BVP solves the equations
+    jB = u(x) nB(x),
+    Pi = h(x) u(x)^2 + P(x),
+    da/dx = (q + u a)/DQ,
+    dq/dx = gamma (a^3 + eta a),
+with `q = DQ da/dx - u a`, and uses three boundary conditions:
+    a(0) = aQstar,
+    q(0) = -aN uN,
+    q(s_end) + (DQ lambda + uQ) a(s_end) = 0.
+Please preserve that architecture as much as possible and extend it, rather than rewriting the whole solver from scratch. The manual also says the local closure is currently done by solving for `(muB, muK)` from `(Pi, a)` and then reconstructing `nB(x)` and `u(x)`; and that older frozen-microphysics conventions existed in the current code path. Keep the current BVP architecture, but update the microphysics treatment appropriately for variable `T(x)`. See the uploaded manual for the exact current BVP workflow and helper chain.  [oai_citation:0‡phase_velocity_update_manual.pdf](sediment://file_00000000ee1071fdbaca782761e36685)
+
+New physics to add
+------------------
+I want to solve the enlarged steady system:
+
+    d/dx [ u(x) nB(x) ] = 0
+    d/dx [ h(x) u(x)^2 + P(x) ] = 0
+    d/dx [ DQ(x) d/dx a(x) - u(x) a(x) ] = R(a; x)
+    d/dx [ s(x) u(x) ] = (nB_Q / T(x)) * muK(x) * R(a; x)
+
+Important interpretation:
+- `s(x)` is entropy density
+- `T` now depends on x, i.e. `T = T(x)`
+- The new entropy equation describes entropy production along the front
+- I do NOT want a fake shortcut that keeps T fixed while pretending to solve the entropy equation
+
+Very important update:
+Because `T = T(x)`, `muQ = muB/3 = muB(x)/3`, the microphysics coefficients
+- `DQ`
+- `eta`
+- `gamma`
+must NOT be frozen once at the beginning.
+They must be treated as local functions along the profile, since they depend on the local temperature (and chemical potentials).
+
+So compared with the old solver, the key physics change is:
+- `DQ`, `eta`, `gamma` are now x-dependent through the local thermodynamic state
+- do NOT keep the old “evaluate at Qstar and freeze” convention in this new entropy solver
+
+How I want this implemented
+---------------------------
+
+1. Add a third ODE field, but use entropy flux, not T directly
+Define a new ODE variable
+
+    w(x) = s(x) * u(x)
+
+I want the ODE system written in terms of:
+- `a(x)`
+- `q(x)`
+- `w(x)`
+
+not directly `T(x)`.
+
+Reason:
+- The new equation is directly an equation for `d/dx (s u)`
+- Using `w = s u` avoids needing an explicit expression for `dT/dx`
+- Then temperature can be reconstructed locally from the algebraic thermodynamic closure
+
+So the physical first-order system should become
+
+    da/dx = (q + u a) / DQ(x)
+    dq/dx = gamma(x) * (a^3 + eta(x) * a)
+    dw/dx = (nB_Q / T) * muK * gamma(x) * (a^3 + eta(x) * a)
+
+where
+    w = s * u
+
+and `nB_Q` is still the far-right equilibrium quark baryon density used in the definition of `a`.
+
+2. Keep the compact-coordinate BVP architecture
+The current solver uses the compact coordinate
+
+    s_coord = 1 - exp(-x/kappa)
+
+with
+    x = -kappa * log(1 - s_coord)
+    dx/ds_coord = kappa / (1 - s_coord)
+
+Keep that architecture.
+
+So the BVP ODE system in the compact coordinate should become
+
+    da/ds_coord = [(q + u a)/DQ] * dx/ds_coord
+    dq/ds_coord = [gamma * (a^3 + eta * a)] * dx/ds_coord
+    dw/ds_coord = [(nB_Q / T) * muK * gamma * (a^3 + eta * a)] * dx/ds_coord
+
+where now `DQ`, `eta`, and `gamma` are local quantities evaluated from the local thermodynamic state at each mesh point.
+
+Use the same compact-coordinate conventions and parameterization already used by `solve_steady_front_1d_aQstar_rescale_bvp(...)`.
+
+3. Local closure must now solve for (muB, muK, T)
+This is the most important change.
+
+Right now the local closure solves for `(muB, muK)` from:
+- momentum-flux constraint
+- composition constraint
+
+Now, because `T(x)` varies and `w = s u` is an ODE field, the local state at each mesh point must be reconstructed from three unknowns:
+
+    muB(x), muK(x), T(x)
+
+Use these three algebraic equations:
+
+(A) momentum-flux conservation:
+    Pi_QM(muB, muK, B_one_forth, T, jB) = Pi
+
+(B) composition definition:
+    ( nK(muB, muK, B_one_forth, T) - nK_Q ) / nB_Q = a
+
+(C) entropy-flux definition:
+    s_QM(muB, muK, B_one_forth, T) * u = w
+where
+    u = jB / nB_QM(muB, muK, B_one_forth, T)
+
+This is the new local closure:
+    given (a, w, Pi, jB) solve for (muB, muK, T)
+
+Please implement a new local-closure helper for this, something like:
+
+    _solve_local_quark_state_from_a_w_and_Pi(...)
+
+Reuse the existing `(muB, muK)` local closure logic as much as possible, but extend it to include temperature and entropy flux.
+
+4. Entropy density calculation
+Do NOT add a separate new entropy helper if not needed.
+Keep things clean and simple.
+
+Use the existing EOS functions and the thermodynamic relation, with `use_thermal=True` where appropriate, to compute entropy density as needed through
+
+    s = (e + P - muB * nB - muK * nK) / T
+
+So in the new solver/local closure, just compute entropy density from the existing thermodynamic quantities using the thermodynamic relation and `use_thermal=True`.
+No need to define a separate standalone entropy helper if that makes the code messier.
+
+Be careful near `T = 0`:
+- if the current BVP is only intended for finite T, guard accordingly
+- avoid division by zero
+- if needed, raise a clear error for `T <= 0` in the entropy-enabled solver
+
+5. Local microphysics must be recomputed along the profile
+This is a critical update.
+
+Because `T = T(x)`, the microphysics coefficients must now be local:
+- `DQ = DQ(x)`
+- `eta = eta(x)`
+- `gamma = gamma(x)`
+
+These should be computed from the local state `(muB(x), muK(x), T(x))` or whatever local quark chemical potential convention the current code uses.
+
+So:
+- do NOT freeze `DQ`, `eta`, `gamma` at `Qstar`
+- update the relevant helper logic so that these are evaluated pointwise along the profile
+- if there is an existing microphysics helper, reuse/adapt it so it can be called locally with the local thermodynamic state
+
+6. Boundary conditions: add a fourth one
+The enlarged system has:
+- three first-order ODE fields: `a`, `q`, `w`
+- one unknown scalar parameter: `jB`
+
+So the BVP now needs four boundary conditions.
+
+Use these:
+
+(BC1) interface composition:
+    a(0) = aQstar
+
+(BC2) interface composition-flux jump:
+    q(0) = -aN * uN
+
+(BC3) interface temperature continuity:
+At `x = 0+`, impose that the quark-side temperature equals the upstream input temperature at the interface.
+We assume
+
+    T(0-) = T(0+) = TQstar
+
+where `TQstar` is the input temperature argument to the solver.
+
+Since the ODE variable is `w = s u`, impose this through the interface state:
+- solve the interface thermodynamic state `Qstar` at temperature `TQstar`
+- compute
+      nB_Qstar
+      u_Qstar = jB / nB_Qstar
+      s_Qstar = (e_Qstar + P_Qstar - muB_Qstar*nB_Qstar - muK_Qstar*nK_Qstar) / TQstar
+- then impose
+      w(0) - s_Qstar * u_Qstar = 0
+
+(BC4) downstream stable-tail condition for the composition sector:
+For the first implementation, keep the same downstream stable-tail condition already used by the current BVP:
+
+    q(s_end) + (DQ * lambda + u_Q) * a(s_end) = 0
+
+with
+    u_Q = jB / nB_Q
+
+For the first implementation, define `lambda` in the same general style as the current solver, but using the relevant local/asymptotic quantities consistently with the new local-microphysics treatment. Do NOT redesign the entire asymptotic theory yet; I want an incremental implementation first.
+
+7. Endpoint-state construction
+Keep the same overall state-construction order as the current solver, as described in the manual:
+
+1. Build upstream nuclear state `N` from `(TQstar, nB_N)`
+2. Compute `uN = jB / nB_N`, `Pi = hN uN^2 + PN`
+3. Solve the far-right equilibrated quark state `Q` at `muK = 0`
+4. Compute `nB_Q`, `nK_Q` (with existing `ms=0` exact-zero convention for `nK_Q`)
+5. Compute `aN = (nB_N - nK_Q)/nB_Q`
+6. Solve the interface state `Qstar` from the fixed `aQstar` and momentum-flux condition, at temperature `TQstar`
+7. Use that interface state to build the initial entropy-flux boundary condition
+
+But now also:
+- compute interface entropy density `s_Qstar` at `TQstar`
+- use it in BC3
+
+For the far-right state `Q`, for this first implementation keep the current general endpoint-state logic as much as possible.
+Do not fully redesign the far-right endpoint with an independently unknown `T_Q` yet.
+I want an incremental extension first.
+
+8. New / modified helper functions
+Please add clean helpers, with docstrings, such as:
+
+- `_solve_local_quark_state_from_a_w_and_Pi(...)`
+    solve local `(muB, muK, T)` from `(a, w, Pi, jB)`
+
+- a local microphysics helper or an updated existing one that computes:
+    DQ, eta, gamma, tau
+  from the local state, not frozen at Qstar
+
+If useful, add other small helpers for clarity, but do not introduce unnecessary standalone helpers if existing functions plus `use_thermal=True` already keep things clean.
+
+Try to reuse the existing current helpers as much as possible:
+- `_solve_muB_Q_at_muK0_for_given_Pi(...)`
+- `_solve_interface_Qstar_from_aQstar_and_Pi(...)`
+- current branch-selection logic
+
+Do not duplicate large blocks of logic unnecessarily.
+
+9. Add a new entropy-enabled solver with a simple name
+Do NOT break the current production solver.
+Add a new solver function named:
+
+    solve_steady_front_entropy(
+        T,
+        nB_N,
+        B_one_forth,
+        aQstar,
+        ms=0.0,
+        param=para.paraQMCRMF3,
+        NM_type="PNM",
+        tail_eps=1e-8,
+        n_mesh=200,
+        tol_bvp=1e-4,
+        max_nodes=10000,
+        jB_guess=None,
+        jB_bounds=None,
+        return_profile=False,
+        verb=False,
+    )
+
+This new solver should mirror the current BVP solver’s interface as much as possible, but include the entropy equation and temperature reconstruction.
+
+10. Do NOT include the muK-poor branch
+Very important:
+DO NOT include the muK-poor branch in this new entropy solver.
+Treat that branch as unphysical for this implementation.
+
+So:
+- do not expose a `muK_rich=False` option here
+- use only the physical muK-rich branch
+- make the branch choice explicit internally if needed, but the public entropy solver should only follow the rich branch
+
+11. Return values
+Return the same style of dictionary as the current BVP solver, but include additional entropy/temperature information.
+
+At minimum include:
+- `success`
+- `message`
+- `jB`
+- `aQstar`
+- `a_N`
+- `u_N`
+- `u_Q`
+- `Pi`
+- `muB_Q`
+- `nB_Q`
+- `nK_Q`
+- `muB_Qstar`
+- `muK_Qstar`
+- `nB_Qstar`
+- `s_Qstar`
+- `lambda`
+- `kappa`
+- `s_end`
+- `x_end`
+- `tail_residual`
+- `tail_residual_norm`
+- `bvp_status`
+- `bvp_message`
+- `bvp_niter`
+- `bvp_nodes`
+
+If `return_profile=True`, also include arrays:
+- `s_coord`
+- `x`
+- `a`
+- `q`
+- `w`
+- `u`
+- `nB`
+- `muB`
+- `muK`
+- `T_profile`
+- `s_profile`
+- `DQ_profile`
+- `eta_profile`
+- `gamma_profile`
+
+12. Initialization strategy
+Please make the initial BVP guess reasonable.
+
+For the initial mesh / guess:
+- reuse the current guess strategy for `a` and `q` if possible
+- add an initial guess for `w(s)` by using the interface value `w(0) = s_Qstar * u_Qstar` and either:
+    - keeping it constant across the initial mesh
+    - or smoothly interpolating to a plausible downstream value
+Choose the simpler robust option first.
+
+For the new local closure:
+- use previous mesh point’s `(muB, muK, T)` as the next initial guess
+- this is analogous to the current nearest-neighbor continuation used for `(muB, muK)` and should help a lot
+
+13. Keep changes scoped
+Do not rewrite notebooks or plotting scripts in this step.
+Do not remove the current non-entropy BVP solver.
+Only add the new entropy-enabled helpers and the new entropy-enabled BVP solver.
+
+14. After editing, summarize clearly
+Please summarize:
+- which new functions were added
+- which existing helpers were reused
+- how entropy density is computed using the thermodynamic relation
+- how the new local closure `(muB, muK, T)` works
+- how local `DQ`, `eta`, `gamma` are updated along the profile
+- what the new ODE system is in compact coordinate
+- what the 4 boundary conditions are
+- any assumptions/limitations kept in this first implementation

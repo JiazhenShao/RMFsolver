@@ -51,7 +51,9 @@ Thus increasing the trial budget alone does not address the observed runaway ite
 The diagnostic initialization changes only the arrays passed into SciPy: a logarithmic physical-coordinate mesh resolves the reaction layer, and an approximate algebraic-times-exponential density profile and flux estimate approach the downstream tail.
 Thermodynamic interpolation is confined to the initial guess; every accepted solution is recomputed using the full EOS and exact transport ODE.
 Both mesh and profile change together, so this establishes initialization sensitivity without isolating their individual contributions.
-The prototype is not installed in the public API and is not validated near the upper composition boundary.
+At the time of this probe the prototype was not installed in the public API.
+On 2026-10-01 it became the opt-in `initial_guess_mode="layer_resolved"` initializer; see [[isothermal-log-temperature-contours]].
+It remains unvalidated near the upper composition boundary.
 
 ## Implication for a future plot
 

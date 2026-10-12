@@ -1,7 +1,7 @@
 ---
 summary: The fixed-temperature speed uses the local K fraction; along the representative isobar, neglecting the baryon-density derivative changes a' by at most 0.47%.
 status: current
-updated: 2026-09-11
+updated: 2026-10-01
 tags: [physics, analytic, front-speed, isothermal]
 ---
 
@@ -108,6 +108,24 @@ I_2=\frac12\lambda_n^2u^2(0^-)[1-a(0^+)][1+\xi a(0^+)],
 $$
 
 which yields the boxed speed above after selecting the positive root.
+
+### The $\xi\to-1^+$ analytical envelope
+
+For fixed endpoints, $\partial_\xi\log u(0^-)=-a(0^+)/\{2[1+\xi a(0^+)]\}<0$.
+At the chosen thermodynamic ceiling the one-sided maximum of the frozen-coefficient family is
+
+$$
+\lim_{\xi\to-1^+}u_{\max}(0^-)
+=\frac{a_{\max}(0^+)}{\lambda_n[1-a_{\max}(0^+)]}
+\sqrt{\frac{D_K\gamma_K}{2}\left[a_{\max}^2(0^+)+2\eta\right]}.
+$$
+
+Wolfram verified the derivative and limit on 2026-10-01; its input and output are recorded in `local_analysis_results/26-10-01/isothermal-logT-audit/README.md`.
+⚠ Exactly $\xi=-1$ sets the above area $I_1$ to zero, whereas a nontrivial finite front with positive diffusion has $I_1>0$.
+Thus this is an optimistic limiting envelope of the reduced model, not an attained finite-profile shape or a rigorous upper bound on the full local-diffusion/exact-rate BVP.
+The public analytical API still rejects exactly $\xi=-1$; a limiting-formula plotting path would require an explicit change.
+The frozen-endpoint audit of [[isothermal-log-temperature-contours]] found 0.76–5.34% speed excess at the three saved 0.01-MeV probes and 11.4–76.3% excess at the 27 new converged points; the former probes are closer to $\xi=-0.5$.
+These comparisons are not new implicit analytical eigenvalue solves or profile-integrated measurements of $\xi$.
 
 ## ⚠ Local-fraction current-jump form
 

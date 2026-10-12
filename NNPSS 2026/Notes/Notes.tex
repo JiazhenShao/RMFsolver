@@ -1,0 +1,737 @@
+\documentclass[a4paper]{article} 
+\usepackage{tcolorbox}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{multirow}
+\usepackage{braket}
+\usepackage{amsfonts}
+%\usepackage[vmargin=2.9cm]{geometry}
+\usepackage{graphicx}
+%\usepackage[UTF8]{ctex}
+\usepackage{titlesec}
+\usepackage{mdframed}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{setspace}
+% \usepackage{reference}
+\usepackage{tcolorbox}
+\usepackage{colortbl}
+\usepackage{blindtext}
+\usepackage{abstract}
+\tcbuselibrary{breakable}
+\usepackage{hyperref}
+\usepackage{epsfig,amsfonts,amsthm}
+\usepackage{amsmath,amssymb}
+\usepackage{float}
+\usepackage{cite}
+\usepackage{xcolor}
+%\usepackage{tikz}
+\usepackage{braket}
+\usepackage{booktabs}
+\usepackage{mdframed}
+\usepackage{bm}
+\tcbuselibrary{skins}
+
+\newcommand{\talktitle}[1]{%
+\vspace{-3em}
+\begin{tcolorbox}[colframe=white,opacityback=0]
+\begin{tcolorbox}
+\Huge\sffamily #1
+\end{tcolorbox}
+\end{tcolorbox}
+\vspace{-2em}
+}
+
+\usepackage{background}
+\SetBgScale{1}
+\SetBgAngle{0}
+\SetBgColor{red}
+\SetBgContents{\rule[0em]{4pt}{\textheight}}
+\SetBgHshift{-2.3cm}
+\SetBgVshift{0cm}
+
+\usepackage{lipsum}% just to generate filler text for the example
+\usepackage[margin=2cm]{geometry}
+
+\usepackage{tikz}
+\usepackage{tikzpagenodes}
+
+\parindent=0pt
+
+\usepackage{xparse}
+\DeclareDocumentCommand\topic{ m m g g g g g}
+{
+\begin{tcolorbox}[sidebyside,sidebyside align=top,opacityframe=0,opacityback=0,opacitybacktitle=0, opacitytext=1,lefthand width=.3\textwidth]
+\begin{tcolorbox}[colback=red!05,colframe=red!25,sidebyside align=top,width=\textwidth,before skip=0pt]
+#1\end{tcolorbox}%
+\tcblower
+\begin{tcolorbox}[colback=blue!05,colframe=blue!10,width=\textwidth,before skip=0pt]
+#2
+\end{tcolorbox}
+\IfNoValueF {#3}{
+\begin{tcolorbox}[colback=blue!05,colframe=blue!10,width=\textwidth]
+#3
+\end{tcolorbox}
+}
+\IfNoValueF {#4}{
+\begin{tcolorbox}[colback=blue!05,colframe=blue!10,width=\textwidth]
+#4
+\end{tcolorbox}
+}
+\IfNoValueF {#5}{
+\begin{tcolorbox}[colback=blue!05,colframe=blue!10,width=\textwidth]
+#5
+\end{tcolorbox}
+}
+\IfNoValueF {#6}{
+\begin{tcolorbox}[colback=blue!05,colframe=blue!10,width=\textwidth]
+#6
+\end{tcolorbox}
+}
+\IfNoValueF {#7}{
+\begin{tcolorbox}[colback=blue!05,colframe=blue!10,width=\textwidth]
+#7
+\end{tcolorbox}
+}
+\end{tcolorbox}
+}
+
+\def\summary#1{
+\begin{tikzpicture}[overlay,remember picture,inner sep=0pt, outer sep=0pt]
+\node[anchor=south,yshift=-1ex] at (current page text area.south) {% 
+\begin{minipage}{\textwidth}%%%%
+\begin{tcolorbox}[colframe=white,opacityback=0]
+\begin{tcolorbox}[enhanced,colframe=black,fonttitle=\large\bfseries\sffamily,sidebyside=true, nobeforeafter,before=\vfil,after=\vfil,colupper=black,sidebyside align=top, lefthand width=.95\textwidth,opacitybacktitle=1, opacitytext=1,
+segmentation style={black!55,solid,opacity=0,line width=3pt},
+title=Summary \& Questions
+]
+#1
+\end{tcolorbox}
+\end{tcolorbox}
+\end{minipage}
+};
+\end{tikzpicture}
+}
+
+\renewcommand{\abstracttextfont}{\normalfont\small\itshape} % Set the abstract itself to small italic text
+
+\usepackage{titlesec}
+
+\renewcommand\qedsymbol{$\blacksquare$}
+\newcommand{\be}{\begin{equation}}
+\newcommand{\ee}{\end{equation}}
+\newcommand{\bea}{\begin{eqnarray}}
+\newcommand{\eea}{\end{eqnarray}}
+\newcommand{\bi}{\begin{itemize}}
+\newcommand{\ei}{\end{itemize}}
+\newcommand{\ba}{\begin{aligned}}
+\newcommand{\ea}{\end{aligned}}
+\newcommand{\dd}{\mbox{d}}
+\newcommand{\dst}{\displaystyle}
+\newcommand{\fr}[2]{\frac{{\dst #1}}{{\dst #2}}}
+\renewcommand{\Re}{\mathrm{Re }}
+\renewcommand{\Im}{\mathrm{Im }}
+\newcommand{\doublet}[2]{ \left( \begin{array}{c}#1 \\ #2 \end{array}\right) }
+\newcommand{\bracket}[2]{ \langle #1|#2 \rangle}
+\newcommand{\triplet}[3]{ \left(\! \begin{array}{c}#1 \\ #2 \\ #3 \end{array}\!\right) }
+\providecommand{\mtrx}[1]{\begin{pmatrix} #1 \end{pmatrix}}
+\newcommand{\lr}[1]{ \langle #1 \rangle}
+\newcommand{\Tr}{\mathrm{Tr}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\mmatrix}[4]{ \left(\! \begin{array}{ccc}#1 & #2 \\ #3 & #4 \end{array}\!\right) }
+\newcommand{\mmmatrix}[9]{ \left(\!\! \begin{array}{ccc}#1 & #2 & #3\\ #4 & #5 & #6\\ #7 & #8 & #9\\ \end{array}\!\!\right) }
+%\newcommand{\mmmatrixc}[9]{ \left(\!\! \begin{array}{ccc}#1 \! & #2 \!& #3\\ #4 & #5 & #6\\ #7 & #8 & #9\\ \end{array}\!\!\right) }
+\providecommand{\id}{{\boldsymbol{1}}}
+\newcommand{\diag}{\mathrm{diag}}
+\newcommand{\Aut}{\mathrm{Aut}}
+\newcommand{\fdf}[2]{(\phi^\dagger_{#1}\phi_{#2})}
+
+
+\newcommand{\blue}{\color{blue}}
+\definecolor{darkred}{rgb}{0.7,0.0,0.0}
+\newcommand{\red}{\color{darkred}}
+\newcommand{\gray}{\color{gray}}
+\definecolor{darkgreen}{rgb}{0.0,0.5,0.0}
+\newcommand{\green}{\color{darkgreen}}
+
+
+\def\lsim{\mathrel{\rlap{\lower4pt\hbox{\hskip1pt$\sim$}}
+    \raise1pt\hbox{$<$}}}         %less than or approx. symbol
+\def\gsim{\mathrel{\rlap{\lower4pt\hbox{\hskip1pt$\sim$}}
+    \raise1pt\hbox{$>$}}}         %greater than or approx. symbol
+
+
+\begin{document} 
+\talktitle{Hot and Cold Quark Matter}
+
+\topic{A bit of historic review}
+{
+nothing interesting here
+\bi 
+\item 1930's, Tompson experiment, discovery of the electron
+\item 1930's, Rutherford experiment, discovery of the nucleus
+\item 1960's, Friedman, Kendall, and Taylor, proton structure, shot electron at proton, discovered quarks (why we cannot see independent quarks?)
+\item 1973, Gross, Wilczek, and Politzer, asymptotic freedom, QCD, Nobel prize 2004
+\ei
+}
+
+\topic{QCD pictorial description}
+{
+\bi 
+\item 
+\ei
+}
+
+\topic{Cold quark matter}
+{
+\bi 
+\item Collins and Perry, 1975, cold quark matter, asymptotic freedom, quark matter at high density
+\item Alford, Rajagopal, Wilczek, 1998, color superconductivity, quark matter at high density
+\ei
+}
+
+\topic{Hot quark gluon matter}
+{
+\bi 
+\item high enough temperature $>2\times 10^{12}$K, proton neutron cannot exist. 
+\item today we use ion collusions to create small droplets $10^{-14}$ m size big bang matter
+\item looking for hot gas, but they behave more like liquid. 
+\item Proof: cold atomic experiments. get hold of cold atom and engineer a thin potential trap. turn off the trap. If gas like, then momentum in all direction, but explosion only happens in two directions. 
+\ei
+}
+
+\topic{Importance of holographic theories}
+{
+$\eta/s\simeq 1/4\pi$
+}
+
+\summary{
+\begin{itemize}
+\item elements up to iron made in stars, heavier elements made in supernovae
+\end{itemize}
+}
+
+
+\newpage
+
+\talktitle{The Origin of the Heavy Elements}
+
+\topic{General review}{
+\bi
+\item The origin of the heavy elements in the universe
+\item Stellar nucleosynthesis and element formation
+\item Supernova explosions and heavy element production
+\ei
+what's stopping heavier nuclei to form in stars? 
+\bi
+\item Coulomb repulsion. Need to overcome the Coulomb barrier. 
+\item in stars, heavier elements more centrual, lighter outer, so e.g. carbon + iron can generate energy, but they're distant apart. 
+\ei 
+one way to work is neutron capture.  
+}
+
+\summary{
+\bi
+\item $r$-process nucleosynthesis: rapid neutron capture process, responsible for producing approximately half of the heavy elements beyond iron in the universe. It occurs in environments with high neutron fluxes, such as supernovae and neutron star mergers.
+\item $s$-process nucleosynthesis: slow neutron capture process, responsible for producing the other half of the heavy elements beyond iron. It occurs in environments with lower neutron fluxes, such as asymptotic giant branch (AGB) stars.
+\ei
+}
+
+
+
+\newpage 
+
+\talktitle{Nuclear structure \& nuclear force}
+
+\topic{Nuclear structure phenomena -- force}{
+analogy: Van der waals force, short range repulsion and long range attraction.
+\bi
+\item nuclear force: short range repulsion and long range attraction.
+\item falls off at large distance. 
+\ei 
+}
+
+\topic{saturation}{
+\bi 
+\item charge density $\rho(r)$ flat for $r<r_0$, falls off for $r>r_0$.
+\item binding energy per nucleon $B/A$ saturates for $A>56$.
+\ei 
+}
+
+\topic{shell structure}
+{
+\bi
+\item magic numbers: 2, 8, 20, 28, 50
+\item attractive mean field 
+\item symmetry $\Rightarrow$ degeneracy, spin-orbit coupling $\Rightarrow$ splitting
+\item fermi dirac statics
+\item Mottelson's quantality $\Lambda = \frac{\hbar^2}{Ma^2V_0}$
+\ei
+}
+
+
+
+\topic{Odd--even staggering}
+{
+\bi
+\item Pairing favors correlated nucleon pairs with $J=0$:
+\[
+P^\dagger = \sum_i C_i \left[a_i^\dagger a_i^\dagger\right]^{J=0}.
+\]
+\item Even nuclei gain pairing energy; in odd nuclei, the unpaired nucleon blocks one state.
+\item For positive binding energies $B(N,Z)$, a three-point indicator is
+\[
+\Delta_n^{(3)}(N,Z)
+=
+\frac{(-1)^{N+1}}{2}
+\left[B(N+1,Z)-2B(N,Z)+B(N-1,Z)\right].
+\]
+\item Odd--even staggering probes pairing, with additional mean-field and shell effects.
+\ei
+}
+
+
+\topic{shape and hybridization}
+{
+\bi
+\item by mixing different orbits represented by spherical harmonics, .....
+\item $0f_{7/2}$ and $1p_{3/2}$ gap size tunes shape of the nucleus.
+\item Nilsson model: anisotropic harmonic oscillator potential with a spin--orbit term and a quadrupole deformation term.
+\ei
+}
+
+
+\topic{Shell-model orbit labels; From the Hamiltonian to $0f_{7/2}$}
+{
+\[
+H=\frac{\bm{p}^{\,2}}{2m}+V(r)+V_{\mathrm{so}}(r)\,\bm{l}\cdot\bm{s}.
+\]
+\bi
+\item For a spherical mean field, single-particle states are labeled by $n$, $l$, $s=\frac{1}{2}$, $j$, and $m_j$.
+\item The standard orbit label is $n l_j$: $n$ counts radial nodes, while $l=0,1,2,3,4,\ldots$ corresponds to $s,p,d,f,g,\ldots$.
+\item Orbital and spin angular momenta couple to $j=l\pm\frac{1}{2}$, with
+\[
+\left\langle\bm{l}\cdot\bm{s}\right\rangle
+=
+\frac{1}{2}\left[j(j+1)-l(l+1)-s(s+1)\right].
+\]
+\item The spin--orbit term therefore splits each $l>0$ orbit into partners with $j=l+\frac{1}{2}$ and $j=l-\frac{1}{2}$.
+\item $0f_{7/2}$ means $n=0$, $l=3$, and $j=\frac{7}{2}$; it has $2j+1=8$ magnetic substates.
+\item Its partner $0f_{5/2}$ has $2j+1=6$ substates, and the harmonic-oscillator major-shell number is $N=2n+l$.
+\ei
+}
+
+\summary{
+\bi
+\item page 26, $Y_{30}+\alpha Y_{20}$ where's this $\alpha$ come from? 
+\item just pulled out of his head, as example of playing around...
+\ei
+}
+
+
+\newpage
+
+\talktitle{Reactions}
+
+\topic{Neutron separation energies and lifetimes}
+{
+The one-neutron separation energy is
+\[
+S_n(A,Z)
+=
+\left[M(A-1,Z)+m_n-M(A,Z)\right]c^2.
+\]
+\begin{center}
+\begin{tabular}{ccc}
+\toprule
+Nucleus & $S_n$ (MeV) & $T_{1/2}$ \\
+\midrule
+$^{12}\mathrm{C}$ & $18.7207$ & stable \\
+$^{22}\mathrm{C}$ & $0.10\pm0.64$ & $6.2\pm1.3$ ms \\
+$^{16}\mathrm{O}$ & $15.6639$ & stable \\
+$^{23}\mathrm{O}$ & $2.733\pm0.134$ & $97\pm8$ ms \\
+\bottomrule
+\end{tabular}
+\end{center}
+\bi
+\item Positive $S_n$ means the nucleus is bound against one-neutron emission.
+\item $^{22}\mathrm{C}$ lies extremely close to the neutron drip line, and its estimated $S_n$ has a large uncertainty.
+\item The quoted lifetimes for $^{22}\mathrm{C}$ and $^{23}\mathrm{O}$ are their beta-decay half-lives.
+\ei
+}
+
+\topic{$Q$ values for $(d,p)$ reactions}
+{
+For neutron transfer to the target ground state,
+\[
+\begin{aligned}
+Q
+&=
+\left[M(A,Z)+M_d-M(A+1,Z)-M_p\right]c^2 \\
+&=
+S_n(A+1,Z)-B_d,
+\qquad B_d=2.224566~\mathrm{MeV}.
+\end{aligned}
+\]
+\bi
+\item For $^{48}\mathrm{Ca}(d,p)^{49}\mathrm{Ca}_{\mathrm{gs}}$,
+\[
+Q=5.146453-2.224566=2.921887~\mathrm{MeV}.
+\]
+The $^{49}\mathrm{Ca}$ ground state has $J^\pi=\frac{3}{2}^{-}$ and is dominated by a neutron in the $1p_{3/2}$ orbit, so the transfer has $l=1$.
+\item For $^{132}\mathrm{Sn}(d,p)^{133}\mathrm{Sn}_{\mathrm{gs}}$,
+\[
+Q=2.398655-2.224566=0.174089~\mathrm{MeV}.
+\]
+The $^{133}\mathrm{Sn}$ ground state has $J^\pi=\frac{7}{2}^{-}$ and is dominated by a neutron in the $1f_{7/2}$ orbit, so the transfer has $l=3$.
+\item Both products are single-neutron states outside doubly magic cores, but $^{133}\mathrm{Sn}$ is much more weakly bound and its reaction is only slightly exothermic.
+\ei
+}
+
+
+
+\newpage
+
+\talktitle{Jets as probes of QGP}
+
+\topic{Resolution length of the QGP}
+{
+\bi
+\item $L_{\mathrm{res}}$ is the minimum transverse separation between two color charges in a jet for the QGP to resolve them as independent energy-losing sources.
+\item If $d_\perp<L_{\mathrm{res}}$, the medium sees the charges coherently as one object; if $d_\perp>L_{\mathrm{res}}$, it resolves the branches and quenches them independently.
+\item A common parametrization is
+\[
+L_{\mathrm{res}}=\frac{R_{\mathrm{res}}}{\pi T},
+\]
+where $T$ is the local QGP temperature and $R_{\mathrm{res}}$ is a dimensionless model parameter, recent ATLAS facors $1<R_{\mathrm{res}}<2$.
+\item $L_{\mathrm{res}}=0$ gives immediate, fully incoherent resolution, while $L_{\mathrm{res}}\to\infty$ gives fully coherent energy loss.
+\ei
+}
+
+\topic{Moliere scattering}{
+\bi
+\item Similar to Rotherfold.  
+\item larger momentum transfer, smaller scattering angle.
+\item Soft drop: 
+\ei
+}
+
+\topic{Why $OO$ better than $PbPb$?}
+{
+\bi 
+\item Still produce QGP
+\item Smaller system, less background, easier to study jet quenching.
+\ei
+}
+
+\summary{
+\bi
+\item One of long range plan: see liquid structure of QGP
+\item Early universe v.s. heavy ion collisions. how to view matter anti matter asymmetry from the lines on ion collisions on QCD phase diagram?
+\item what the phase diagram looks like if $m_u, m_d, m_s = 0$? the 1st order line between nuclear and CFL is unclear. 
+\ei
+}
+
+
+
+\newpage
+
+\talktitle{Quantum entanglement in nucl and hep}
+
+
+
+
+\summary{
+\bi
+\item There's bebate on whether Bell's inequality can be violated via collider experiemnts, what's your take on it? People study entanglement anyways.
+\ei 
+}
+
+
+
+\newpage 
+
+\talktitle{Nuclear forces}
+
+\topic{Simplest example}{
+Meson exchange picture: Yukawa potential, $V(r)\sim e^{-m_\pi r}/r$.
+\[
+V(r) \sim g^2 \frac{e^{-mr}}{r}
+\]
+one pion exchange potential:
+\[
+V_{1\pi}(q) = -\Big(\frac{g_{\pi NN}}{2M_N}\Big)^2 (\bm{\tau}_1\cdot \bm{\tau}_2)\frac{(\bm{q}\cdot\bm{\sigma}_1)(\bm{q}\cdot\bm{\sigma}_2)}{q^2 + m_\pi^2}
+\]
+\[
+V_{1\pi}(r) = \Big(\frac{g_{\pi NN}}{2M_N}\Big)^2 \frac{m_\pi^2}{12\pi} (\bm{\tau}_1\cdot \bm{\tau}_2) 
+\Big[ S_{12}(\hat r) \Big( 1 + \frac{3}{m_\pi r} + \frac{3}{m_\pi^2 r^2} \Big) + \bm{\sigma}_1\cdot \bm{\sigma}_2 \Big]
+\frac{e^{-m_\pi r}}{r}
+\]
+tensor operator
+\[
+S_{12}(\hat r) = 3(\bm{r}\cdot \bm{\sigma}_1)(\bm{r}\cdot \bm{\sigma}_2) - \bm{\sigma}_1\cdot \bm{\sigma}_2
+\]
+}
+
+\topic{Off-shell NN potential}{
+idea of something being off-shell: $E^2\neq p^2 + m^2$.
+}
+
+\topic{From QCD to chiral symmetry}
+{
+For the light-quark doublet $q=(u,d)^T$,
+\[
+\begin{aligned}
+\mathcal{L}_{\mathrm{QCD}}
+&=
+-\frac{1}{4}G_{\mu\nu}^aG^{a\mu\nu}
+\\
+&\quad
++\bar q\left(i\gamma^\mu D_\mu-\mathcal{M}_q\right)q,
+\\
+\mathcal{M}_q
+&=
+\mathrm{diag}(m_u,m_d).
+\end{aligned}
+\]
+\bi
+\item In the chiral limit $\mathcal{M}_q\to0$, define
+\[
+q_{L,R}=P_{L,R}q,
+\qquad
+P_{L,R}=\frac{1\mp\gamma_5}{2}.
+\]
+The quark Lagrangian separates into left- and right-handed sectors and is invariant under
+\[
+\begin{aligned}
+q_L&\to Lq_L,
+&
+q_R&\to Rq_R,
+\\
+(L,R)\in SU(2)_L\times SU(2)_R.
+\end{aligned}
+\]
+\item Finite quark masses couple the two chiralities,
+\[
+\mathcal{L}_m
+=
+-\bar q_L\mathcal{M}_q q_R
+-\bar q_R\mathcal{M}_q q_L,
+\]
+and explicitly break chiral symmetry.
+\item The QCD vacuum also breaks the symmetry spontaneously:
+\[
+SU(2)_L\times SU(2)_R
+\longrightarrow
+SU(2)_V,
+\qquad
+\langle\bar q q\rangle\neq0.
+\]
+\item The three pions are the resulting pseudo-Goldstone bosons; their small masses obey, at leading order,
+\[
+m_\pi^2f_\pi^2
+=
+-(m_u+m_d)\langle\bar q q\rangle+\cdots.
+\]
+\ei
+}
+
+\topic{Chiral EFT ($\chi$EFT)}
+{
+\bi
+\item At momenta $Q\sim\{p,m_\pi\}\ll\Lambda_\chi\sim1~\mathrm{GeV}$, the active degrees of freedom are nucleons and pions; heavier QCD physics is absorbed into low-energy constants.
+\item The most general Lagrangian consistent with QCD symmetries is organized as
+\[
+\mathcal{L}_{\chi\mathrm{EFT}}
+=
+\sum_{\nu}\mathcal{L}^{(\nu)},
+\qquad
+\mathcal{L}^{(\nu)}\sim
+\left(\frac{Q}{\Lambda_\chi}\right)^\nu.
+\]
+\item For an irreducible two-nucleon diagram, Weinberg power counting gives
+\[
+\nu=2L+\sum_i\Delta_i,
+\qquad
+\Delta_i=d_i+\frac{n_i}{2}-2,
+\]
+where $L$ is the number of loops, $d_i$ counts derivatives or powers of $m_\pi$, and $n_i$ counts nucleon fields at vertex $i$.
+\item The nuclear interaction is expanded as
+\[
+V=V_{1\pi}+V_{2\pi}+V_{\mathrm{contact}}+V_{3N}+\cdots.
+\]
+At LO ($Q^0$), one-pion exchange and nonderivative contacts appear; derivative contacts and two-pion exchange enter at higher orders, while the leading three-nucleon force appears at N$^2$LO ($Q^3$).
+\item The truncated potential is iterated in the Lippmann--Schwinger equation,
+\[
+T=V+VG_0T.
+\]
+Observables are order-by-order predictions, with truncation errors controlled by powers of $Q/\Lambda_\chi$.
+\ei
+}
+
+
+
+
+\newpage
+
+\talktitle{BSM and symmetries and EFT}
+
+\topic{new physics why}
+{
+neutrino mass, dark matter, baryon asymmetry, strong CP problem, hierarchy problem, inflation, dark energy. 
+}
+
+\topic{new physics how}
+{
+\bi
+\item colliders, probing high energy
+\item precision measurements, probing low energy (across AMO, HEP, NP)
+\ei
+one important way is rare or SM-forbidden processes. $(L, B, CP, L_\alpha)\ $, $0\nu\beta\beta$ decay, proton decay, n-nbar, EDMs, LFV.
+\;\\
+Another way is precision tests of SM-allowed processes: beta decay, PV electron scattering, muon g-2, EDMs, LFV, LHC precision measurements.
+\;\\
+searches/characterization of light and weakly coupled particles.
+}
+
+\topic{Sakharov conditions for baryogenesis (1967)}
+{
+Observed baryon asymmetry (from CMB and BBN):
+\[
+\eta \;=\; \frac{n_B}{n_\gamma} \;\approx\; 6\times10^{-10}.
+\]
+To dynamically generate $\eta\neq 0$ from a symmetric initial state, Sakharov identified three necessary conditions:
+\bi
+\item \textbf{Baryon number ($B$) violation.}
+Without it, any reaction creating baryons is balanced by its reverse; $n_B - n_{\bar B}$ is conserved and cannot grow from zero.
+\item \textbf{$C$ and $CP$ violation.}
+$C$ symmetry alone equates the rates of $X\!\to\!\bar q\bar q$ and $\bar X\!\to\!qq$.
+$CP$ violation is needed so that baryons and antibaryons are produced at genuinely different rates.
+\item \textbf{Departure from thermal equilibrium.}
+In equilibrium, $CPT$ symmetry enforces $\Gamma(X\!\to\!f)=\Gamma(\bar X\!\to\!\bar f)$, so any asymmetry is immediately washed out.
+A non-equilibrium epoch --- e.g.\ the cosmic expansion or a first-order phase transition --- is required to ``freeze in'' the asymmetry.
+\ei
+The Standard Model has all three ingredients in principle:
+\bi
+\item $B$ violation via electroweak \textit{sphalerons} (non-perturbative transitions active at $T\gsim T_{\rm EW}\sim100$ GeV).
+\item $CP$ violation through the CKM phase $\delta_{\rm CKM}$.
+\item Out-of-equilibrium dynamics at the electroweak (EW) phase transition.
+\ei
+Yet the SM \textit{fails} to explain the observed asymmetry:
+\bi
+\item The effective SM CP violation is suppressed by many small Yukawa couplings: $\delta_{\rm CP}^{\rm SM}\sim 10^{-20}\ll\eta\sim10^{-10}$.
+\item For $m_H\approx125$ GeV the EW transition is a smooth \textit{crossover} (not a first-order PT), providing no sharp out-of-equilibrium epoch.
+\ei
+$\Rightarrow$ BSM physics is required to explain the matter--antimatter asymmetry of the universe.
+}
+
+
+\topic{probing UV new physics via EFT}{
+\textbf{Key point (Appelquist--Carazzone decoupling, 1975):} a heavy particle of mass $M$ affects low-energy physics at $E\ll M$ only through
+\bi
+\item a \textit{shift} in the coupling constants of existing interactions, and
+\item \textit{new local interactions} suppressed by powers of $E/M$, consistent with the underlying symmetries.
+\ei
+\textbf{Analogy: second-order perturbation theory in QM.}
+Split $H = H_0 + \lambda V$, with unperturbed eigenstates $H_0|n^{(0)}\rangle = E_n^{(0)}|n^{(0)}\rangle$.
+The perturbed energy to order $\lambda^2$ is
+\[
+E_n(\lambda) = E_n^{(0)} + \lambda\langle n^{(0)}|V|n^{(0)}\rangle
++ \lambda^2\sum_{k\neq n}\frac{\langle n^{(0)}|V|k^{(0)}\rangle\langle k^{(0)}|V|n^{(0)}\rangle}{E_n^{(0)}-E_k^{(0)}}
++ \mathcal{O}(\lambda^3).
+\]
+For states $|k^{(0)}\rangle$ with $E_k^{(0)}\gg E_n^{(0)}$ (``heavy'' states), the second-order term can be absorbed into an \textit{effective Hamiltonian} acting only in the low-energy sector:
+\[
+\langle n^{(0)}|H_{\rm eff}|n^{(0)}\rangle + \mathcal{O}\!\left(\frac{E_n^{(0)}}{E_k^{(0)}}\right),
+\qquad
+H_{\rm eff} = \lambda^2 \sum_{k\neq n}\frac{V|k^{(0)}\rangle\langle k^{(0)}|V}{-E_k^{(0)}}.
+\]
+The heavy states enter only through the \textit{energy denominators} $1/E_k^{(0)}$, suppressing their effect by powers of $E/M$.
+\textbf{The EFT translation:}
+\bi
+\item Low-energy eigenstates $|n^{(0)}\rangle \leftrightarrow$ light fields at $E\ll M$.
+\item Heavy eigenstates $|k^{(0)}\rangle \leftrightarrow$ heavy particles of mass $M$ being \textit{integrated out}.
+\item $H_{\rm eff} \leftrightarrow$ effective Lagrangian: new operators of dimension $d>4$ suppressed by $1/M^{d-4}$.
+\ei
+$\Rightarrow$ You do not need to know the UV completion to make precise low-energy predictions; its effects are encoded in a finite set of Wilson coefficients multiplying low-energy operators.
+}
+
+
+\topic{SMEFT: Standard Model Effective Field Theory}{
+\textbf{What it is.}
+SMEFT is the EFT built on top of the SM itself.
+Take the SM as the \textit{renormalizable} (dimension-4) low-energy theory and systematically add all higher-dimension operators consistent with the SM gauge symmetry $SU(3)_C\times SU(2)_L\times U(1)_Y$ and field content:
+\[
+\mathcal{L}_{\rm SMEFT}
+= \mathcal{L}_{\rm SM}
++ \sum_{d=5}^{\infty}\,\sum_i \frac{C_i^{(d)}}{\Lambda^{d-4}}\,\mathcal{O}_i^{(d)}.
+\]
+$\Lambda$ is the (unknown) scale of new physics being integrated out; $C_i^{(d)}$ are dimensionless \textit{Wilson coefficients} encoding the UV model details.
+\textbf{Operator counting.}
+\bi
+\item \textbf{dim-5} (Weinberg operator, 1979): unique up to flavour, $\mathcal{O}_5 = (LH)(LH)$.
+After EW symmetry breaking it gives Majorana neutrino masses $m_\nu \sim v^2/\Lambda$.
+\item \textbf{dim-6}: 59 independent operator classes (Warsaw basis, Grzadkowski et al.\ 2010) after field redefinitions; these are the workhorse of SMEFT phenomenology.
+\item dim-7, dim-8, \ldots: suppressed by additional powers of $E/\Lambda$; important only for specific observables (e.g.\ neutrinoless double-beta decay at dim-7/9).
+\ei
+\textbf{What problems does it tackle?}
+\bi
+\item \textbf{Model-independent BSM searches.} Rather than testing one specific BSM model at a time, SMEFT simultaneously parameterises \textit{all} heavy new physics through the Wilson coefficients. Experimental constraints on $C_i/\Lambda^2$ apply to entire classes of UV theories.
+\item \textbf{Higgs and EW precision physics.} Dim-6 operators modify Higgs couplings, triple gauge vertices, and oblique parameters. LHC global fits constrain $\sim$50 operators simultaneously.
+\item \textbf{Flavour and $CP$ violation.} Four-fermion dim-6 operators mediate FCNC processes ($K$--$\bar K$, $B$ physics), probing $\Lambda\sim10^3$--$10^5$ TeV.
+\item \textbf{Neutrino masses.} The dim-5 Weinberg operator is the lowest-order explanation; its coefficient is directly tied to the seesaw scale.
+\item \textbf{Connecting UV to IR.} Given a specific BSM model (e.g.\ heavy $Z'$, leptoquark, seesaw mediator), matching at the scale $\Lambda$ gives definite predictions for all $C_i$, which can then be mapped to observables --- a clean top-down workflow.
+\ei
+\textbf{Key limitation.} SMEFT assumes $E\ll\Lambda$ throughout; if the new physics is light or strongly coupled, a different EFT (or the full model) is needed.
+}
+
+
+\newpage 
+\talktitle{Neutron star and neutron star merger}
+
+\topic{Historic review}{
+discovery of first pulsar, 1967, Jocelyn Bell Burnell and Antony Hewish, Nobel prize 1974.
+}
+
+\topic{Optical pulsation of crab}{
+bright flash followed by a dimmer flash, 33 ms period. Rotates extremely fast.
+\[
+\omega^2 R < GM/R^2 \Rightarrow \rho > \frac{3}{4\pi}\frac{\omega^2}{G}
+\]
+Typical numbers: $T = 33\ $ms, $R = 10\ $km, then $\rho > 1.2\times 10^{11}\ {\rm g/cm^3}$
+}
+
+\topic{Electron capture at high densities}{
+\bi
+\item Electron density above $10^{11}\ {\rm g/cm^3}$: $\rho = \rho_e m_n/Y_e$.
+\item Electron fraction $Y_e$ is electrons per baryon, $\sim 0.5$, nucleon mass $m_n$.
+\item Electron Fermi momentum $k_F$: $\rho_e = k_F^3/3\pi^2$. $k_F>0.1\ {\rm fm}^{-1} = 20\ $MeV (units $\hbar c = 1 = 197.3\ $MeV fm)
+\item Large Fermi energy $E_F\sim k_F = 20\ {\rm MeV}\ [(Y_e/0.5)(\rho/10^{11}\ {\rm g/cm^3})]^{1/3}$ drives electron capture $e+p\to n+\nu$.
+\item Rotational period of 33 ms $\Rightarrow$ Crab is both very dense and neutron rich.
+\ei
+}
+
+\topic{TOV equation}{
+Hydrostatic equilibrium for a spherical star in general relativity.
+\[
+\frac{dP}{dr} = -\frac{G(\varepsilon+P)\left(M+4\pi r^3P\right)}{r^2\left(1-2GM/r\right)}\,,
+\qquad
+\frac{dM}{dr} = 4\pi r^2 \varepsilon
+\]
+\bi
+\item $\varepsilon(r)$ energy density, $P(r)$ pressure, $M(r)$ mass enclosed within $r$.
+\item Newtonian limit $dP/dr=-GM\varepsilon/r^2$ recovered when $P\ll\varepsilon$ and $2GM/r\ll1$.
+\item Closed by an equation of state $P(\varepsilon)$: integrate out from $r=0$ ($M=0$, $P=P_c$) to $P=0$, giving $R$ and $M(R)$.
+\ei
+}
+
+
+
+\newpage 
+
+\talktitle{SM symmetries \& SMEFT overview}
+
+
+
+
+\end{document}

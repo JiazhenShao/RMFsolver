@@ -1,0 +1,173 @@
+\section{Spin traces and angular normalization}
+\label{app:normalization}
+With \(L=1-\gamma^5\), the spin sum from \cref{eq:interaction} is proportional to
+\begin{align}
+ &\operatorname{tr}[\slashed p_2\gamma^\alpha L\slashed p_d\gamma^\beta L]
+ \operatorname{tr}[\slashed p_s\gamma_\alpha L\slashed p_1\gamma_\beta L]
+ =256(p_1\cdot p_d)(p_2\cdot p_s).
+ \label{eq:spin-trace}
+\end{align}
+Multiplication by the squared coupling \(G_F^2\sin^2\theta_C\cos^2\theta_C/2\) gives the spin-summed factor quoted in the main text.
+The file \texttt{spin-trace.wl} verifies \cref{eq:spin-trace} with explicit Dirac matrices and the \(+---\) metric.
+For the angular convolution, align \(\bm k\) with the polar axis and integrate the second direction using the three-dimensional delta function.
+The remaining delta function is \(\delta(|\bm k-\bm p_1|-E_d)/E_d^2\), whose polar-angle Jacobian is \(E_d/(kE_1)\).
+The azimuthal integral gives \(2\pi\), and requiring a polar cosine between \(-1\) and \(1\) gives the triangle inequalities in \cref{eq:pair-angle}.
+The normalization after the four radial measures and this angular integration is explicitly
+\begin{equation}
+ \frac{18\times64}{4}\,
+ \frac{(2\pi)^4}{(2\pi)^{12}2^4}\,16\pi^3
+ =\frac{9}{8\pi^5},
+ \label{eq:normalization-arithmetic}
+\end{equation}
+where the first factor \(1/4\) comes from the two invariant dot products, and the factors of the four energies cancel.
+
+\section{Polynomial cold integrations}
+\label{app:cold-algebra}
+An antiderivative of the angular kernel with respect to pair energy is
+\begin{equation}
+ \int\mathcal K(E,m)\dd E
+ =\frac{32}{9}E^3m^3-8E^2m^4+\frac{32}{5}Em^5.
+ \label{eq:energy-primitive}
+\end{equation}
+After inserting the energy bounds in \cref{eq:cold-triple} and integrating over \(y\), the three regions described in \cref{sec:cold} give the following one-dimensional integrands:
+\begin{align}
+ F_1(x)={}&\frac{8x^3}{45}(x+\mu_d-\mu_s-\mu_u)^2
+ \Big[15\mu_d^2+10\mu_d(\mu_s+\mu_u)\notag\\
+ &\hspace{30mm}+5(\mu_s+\mu_u)^2-5(\mu_s+\mu_u)x+3x^2\Big],
+ \label{eq:region-one}\\
+ F_2(x)={}&\frac{8}{315}\Big\{
+ 35[(x+\mu_d)^3-\mu_u^3](x^4-\mu_s^4)
+ -21[3(x+\mu_d)^2+\mu_u^2](x^5-\mu_s^5)\notag\\
+ &\hspace{25mm}+7[6(x+\mu_d)-\mu_u](x^6-\mu_s^6)
+ -11(x^7-\mu_s^7)\Big\},
+ \label{eq:region-two}\\
+ F_3(x)={}&\frac{8x^3}{45}(\mu_d-\mu_u)^2
+ [15\mu_d^2+10\mu_d\mu_u+10\mu_d x
+ +5\mu_u^2+5\mu_u x+3x^2].
+ \label{eq:region-three}
+\end{align}
+The names \(F_1,F_2,F_3\) distinguish the three integration regions and do not introduce additional physical functions.
+Their final integrals are
+\begin{align}
+ \mathcal P_8
+ &=\int_0^{\mu_s}F_1(x)\dd x
+   +\int_{\mu_s}^{\mu_u}[F_2(x)+F_3(x)]\dd x,
+ \label{eq:cold-large-integrated}\\
+ \int_0^{\mu_u+\mu_s-\mu_d}F_1(x)\dd x
+ &=\frac{(\mu_u+\mu_s-\mu_d)^6}{315}
+ [15\mu_d^2+10\mu_d(\mu_s+\mu_u)+3(\mu_s+\mu_u)^2].
+ \label{eq:cold-missing-integrated}
+\end{align}
+The first integral evaluates to the polynomial displayed in \cref{eq:cold-polynomial} by integrating each monomial.
+The second is subtracted only when its upper limit is positive, which yields both branches of \cref{eq:cold-result}.
+For example, the third-region antiderivative is
+\begin{equation}
+ \int F_3(x)\dd x=\frac{8(\mu_d-\mu_u)^2}{45}
+ \left[\frac{15\mu_d^2+10\mu_d\mu_u+5\mu_u^2}{4}x^4
+ +(2\mu_d+\mu_u)x^5+\frac{x^6}{2}\right].
+ \label{eq:region-three-primitive}
+\end{equation}
+Both \texttt{verification.wl} and \texttt{cold\_sympy.py} perform the three integrations from \cref{eq:energy-primitive} and check their evaluated sum against \cref{eq:cold-result}.
+
+\section{Thermal boundary terms}
+\label{app:thermal-boundaries}
+For this calculation use \(m=(E-k)/2\), so the measure-weight product is
+\begin{equation}
+ \mathcal W(E,m)=32m^2(E-m)^2,
+ \qquad 0\leq m\leq E/2.
+ \label{eq:boundary-weight}
+\end{equation}
+This coordinate turns the moving angular bounds into linear interval endpoints.
+For the four independent thresholds, the occupied and empty interval lengths are
+\begin{align}
+ \ell_{\rm in}&=\pos{\min(E-m,\nu_1)-\max(m,E-\nu_d)},\notag\\
+ \ell_{\rm out}&=\pos{\min(E-m,E-\nu_s)-\max(m,\nu_2)},\notag\\
+ \mathcal I^{(0)}_{\rm forward}
+ &=\int_0^\infty\dd E\int_0^{E/2}\dd m\,
+ \mathcal W(E,m)\ell_{\rm in}\ell_{\rm out}.
+ \label{eq:independent-intervals}
+\end{align}
+For example, differentiating the incoming-up length produces
+\begin{align}
+ \partial_{\nu_1}\ell_{\rm in}
+ &=\Theta(\nu_1-m)\Theta(E-m-\nu_1)
+   \Theta(\nu_d-E+\nu_1),\notag\\
+ \partial_{\nu_1}^2\ell_{\rm in}
+ &=\delta(\nu_1-m)\Theta(E-m-\nu_1)\Theta(\nu_d-E+\nu_1)\notag\\
+ &\quad-\Theta(\nu_1-m)\delta(E-m-\nu_1)\Theta(\nu_d-E+\nu_1)\notag\\
+ &\quad+\Theta(\nu_1-m)\Theta(E-m-\nu_1)\delta(\nu_d-E+\nu_1).
+ \label{eq:threshold-deltas}
+\end{align}
+At the physical thresholds, the middle term vanishes after multiplication by \(\ell_{\rm out}\).
+The first and third terms give the incoming-up edge and upper pair-energy boundary, respectively.
+The other three threshold derivatives are evaluated in the same way; their separate values are retained below to expose every boundary contribution.
+
+Let \(m_0=\max(0,\mu_u+\mu_s-\mu_d)\) denote the lower boundary already present in the cold integral.
+Define the two pair-energy boundary contributions and four single-leg edge contributions by
+\begin{align}
+ B_{\rm hi}={}&\int_0^{\mu_s}\dd m\,\mathcal W(\mu_u+\mu_d,m)(\mu_d-\mu_s)
+ +\int_{\mu_s}^{\mu_u}\dd m\,\mathcal W(\mu_u+\mu_d,m)(\mu_d-m),\notag\\
+ B_{\rm lo}={}&\int_0^{m_0}\dd m\,\mathcal W(\mu_u+\mu_s,m)(\mu_u-m_0)
+ +\int_{m_0}^{\mu_s}\dd m\,\mathcal W(\mu_u+\mu_s,m)(\mu_u-m),
+ \label{eq:pair-boundaries}\\
+ \mathcal E_1={}&\int_{2\mu_u}^{\mu_u+\mu_d}\dd E\,\mathcal W(E,\mu_u)(E-2\mu_u),\notag\\
+ \mathcal E_d={}&\int_{m_0}^{\mu_s}\dd m\,\mathcal W(\mu_d+m,m)(\mu_d+m-\mu_u-\mu_s)
+ +\int_{\mu_s}^{\mu_u}\dd m\,\mathcal W(\mu_d+m,m)(\mu_d-\mu_u),\notag\\
+ \mathcal E_2={}&\int_{\mu_s}^{\mu_u}\dd m\,\mathcal W(\mu_u+m,m)(\mu_u-m),\notag\\
+ \mathcal E_s={}&\int_{\mu_u+\mu_s}^{\mu_d+\mu_s}\dd E\,\mathcal W(E,\mu_s)(\mu_u-\mu_s)
+ +\int_{\mu_d+\mu_s}^{\mu_u+\mu_d}\dd E\,\mathcal W(E,\mu_s)(\mu_u+\mu_d-E).
+ \label{eq:leg-boundaries}
+\end{align}
+The four derivatives and their sum are
+\begin{align}
+ \partial_{\nu_1}^2\mathcal I^{(0)}&=B_{\rm hi}+\mathcal E_1,&
+ \partial_{\nu_d}^2\mathcal I^{(0)}&=B_{\rm hi}-\mathcal E_d,\notag\\
+ \partial_{\nu_2}^2\mathcal I^{(0)}&=B_{\rm lo}+\mathcal E_2,&
+ \partial_{\nu_s}^2\mathcal I^{(0)}&=B_{\rm lo}-\mathcal E_s,\notag\\
+ \Jtwo&=2B_{\rm hi}+2B_{\rm lo}+\mathcal E_1-\mathcal E_d+\mathcal E_2-\mathcal E_s.
+ \label{eq:thermal-boundary-sum}
+\end{align}
+All integrands in \cref{eq:pair-boundaries,eq:leg-boundaries} are polynomials.
+Their evaluation at \(m_0=0\) gives the polynomial part of \cref{eq:thermal-result}, and replacing \(m_0\) by \(\mu_u+\mu_s-\mu_d>0\) adds exactly its negative quartic term.
+Dropping the single-leg edges would therefore change the quadratic coefficient even though the total pair-energy bounds were retained.
+
+\section{Origin of the cubic correction}
+\label{app:cubic}
+Write the incoming and outgoing up energies as \(x\) and \(z\), and the outgoing strange energy as \(r\), within the narrow region \(h=x-z>0\).
+The polynomial continuation from \(x\leq z\) uses \(\min(x,r)\) as the angular minimum.
+The actual minimum in this new region is \(\min(z,r-h)\).
+At \(x=z=\mu_u\), the difference of the two angular kernels is \(-32\mu_u^2r^2h+O(h^2)\), both for \(r<\mu_u\) and for \(r>\mu_u\).
+Integrating the coefficient over the allowed range \(\mu_s<r<\mu_d\) gives
+\begin{equation}
+ \int_{\mu_s}^{\mu_d}32\mu_u^2r^2\dd r
+ =\frac{32}{3}\mu_u^2(\mu_d^3-\mu_s^3).
+ \label{eq:cubic-weight}
+\end{equation}
+For independently displaced cold up thresholds, integrating \(h\) over the triangle \(\nu_2<z<x<\nu_1\) gives \((\nu_1-\nu_2)_+^3/6\), proving \cref{eq:cold-cusp}.
+At finite temperature the same region has the exact Fermi-surface integral
+\begin{equation}
+ \int_{-\infty}^{\infty}\dd z\,f_u(z+h)[1-f_u(z)]
+ =\frac{h}{e^{h/T}-1},\qquad h>0.
+ \label{eq:up-strip}
+\end{equation}
+Extending the lower energy bound to \(-\infty\) introduces only exponentially small errors when \(\mu_u/T\gg1\).
+Combining \cref{eq:cubic-weight,eq:up-strip} gives
+\begin{align}
+ \Delta\mathcal I
+ &=-\frac{32}{3}\mu_u^2(\mu_d^3-\mu_s^3)
+ \int_0^\infty\frac{h^2\dd h}{e^{h/T}-1}+O(T^4)\notag\\
+ &=-\frac{64}{3}\zeta(3)\mu_u^2(\mu_d^3-\mu_s^3)T^3+O(T^4).
+ \label{eq:cubic-integral}
+\end{align}
+The integral must include the range below \(\mu_u\) as well as above it; keeping only the latter would give an incorrect \(\mu_d^3-\mu_u^3\) coefficient.
+At exact equilibrium the forward rate itself begins at order \(T^3\), while the net rate is identically zero.
+Equation~\eqref{eq:cubic-integral} is a fixed-positive-imbalance expansion and must not be continued to that coincident-threshold problem to compute the forward rate.
+
+\section{Checks and reproduction}
+\label{app:verification}
+The symbolic script \texttt{verification.wl} records assumptions and verifies the pair primitive, cold integration, branch matching, thermal boundary sum, cubic moment, neutral EOS shifts, and equal-flavor normalization.
+The accompanying transcript records the Wolfram inputs and returned results rather than treating a successful typeset build as a physics check.
+Independent SymPy scripts reproduce the cold and quadratic coefficients.
+The phase-space, isothermal, and conserved-quark-trajectory calculations use NumPy for quadrature and EOS root finding, with Matplotlib for the figures.
+The upstream adiabatic scan additionally imports the existing QMC-RMF3 EOS read-only with SciPy, and independent trajectory verification uses mpmath.
+Reference integrals, tests, saved CSV tables, source-hashed checkpoints, and build commands are described in \texttt{README.md}.

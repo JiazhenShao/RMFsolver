@@ -1,11 +1,15 @@
 ---
 summary: Slow-front scale separation reduces the quark layer to a constant hydrodynamic background and yields an analytic speed controlled by the weak rate, flavor diffusion, the interface fraction and a profile-shape factor.
 status: current
-updated: 2026-09-29
+updated: 2026-10-01
 tags: [physics, analytic, front-speed, approximation]
 ---
 
 # Piecewise-constant analytic front speed
+
+As of 2026-10-01, `Latex_writting/Main.tex` denotes the adiabatic composition ceiling by $A_{\rm ad}$ (the $A$ used below), distinct from $A_{\rm iso}$.
+The shared downstream layer-thickness analysis now appears at the end of the isothermal analytical subsection, with $T(\infty)=T$ there; its equations and label `eq:conversion-thickness` are unchanged.
+Existing figure artwork still uses $A$.
 
 **2026-09-29 qualification:** constant density does not establish constant
 chemical potential. The current semi-analytical calculation follows the

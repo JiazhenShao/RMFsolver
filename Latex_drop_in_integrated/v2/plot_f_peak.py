@@ -1,0 +1,147 @@
+"""Finite-rate frequency deficit for simulation-calibrated Delta_f_PT values.
+
+Produces delta_f_rate_calibrated.pdf, the figure of the GW drop-in section.
+Designed for \\columnwidth inclusion at 1:1 scale: all text >= 10 pt.
+
+Model (paper Eq. eq:lobe_fraction, two-lobed taiji geometry):
+    X_q(u)   = min(1, (u*DT_PM_S/R_LOBE_M)^3)
+    df_peak  = (1 - X_q) * Delta_f_PT
+    u_sat    = R_LOBE_M / DT_PM_S
+
+Design: no boxed legend. Color encodes the EOS family (blue = BLh/BLQ,
+vermillion = DD2F/DD2F-SF1); shades and linestyles separate binaries within a
+family; each curve carries a direct tag with the binary masses on its plateau.
+A dotted line marks the detector resolution delta_f_min ~ 0.1 kHz, so the
+observability argument (all plateaus clear the threshold) is visible directly.
+
+Delta_f_PT calibrations: endpoint differences f_peak_inf - f_peak_N from
+instantaneous-conversion hybrid-EOS simulations (Prakash+ arXiv:2310.06025,
+Bauswein+ arXiv:1809.01116). These runs do not evolve a finite-speed front;
+the interpolation in u is the phenomenological model of the section.
+"""
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Tunable plotting parameters
+FIGURE_SIZE = (3.4, 3.5)
+DPI = 300
+FONT_FAMILY = "STIXGeneral"
+MATH_FONTSET = "stix"
+AXIS_LABEL_FONT_SIZE = 11
+TICK_LABEL_FONT_SIZE = 10
+TAG_FONT_SIZE = 10
+FAMILY_FONT_SIZE = 10.5
+ANNOTATION_FONT_SIZE = 10
+LINE_WIDTH = 2.0
+BLH_SHADES = ["#003A5D", "#0072B2", "#3E96C6", "#74B5D8"]   # dark -> light
+DD2F_SHADES = ["#8A3D00", "#D55E00", "#F08C3C"]
+BLH_ANCHOR = "#0072B2"
+DD2F_ANCHOR = "#D55E00"
+BAND_COLOR = "0.55"
+BAND_ALPHA = 0.28
+U_MAX_BAND = (1.0e2, 1.0e3)     # calculated weak-limited u(0^-) range, m/s
+DFMIN_KHZ = 0.10                # next-generation resolution (Clark+, Breschi+)
+DFMIN_COLOR = "0.35"
+DFMIN_STYLE = ":"
+DFMIN_WIDTH = 1.3
+VLINE_COLOR = "0.3"
+VLINE_STYLE = "--"
+VLINE_WIDTH = 1.0
+GRID_COLOR = "0.88"
+GRID_LINE_WIDTH = 0.6
+X_LIMITS = (1.0e1, 1.0e6)
+Y_LIMITS = (0.0, 1.06)
+Y_TICKS = [0.0, 0.2, 0.4, 0.6, 0.8]
+LEADER_COLOR = "0.45"
+LEADER_WIDTH = 0.8
+N_SPEED_SAMPLES = 2000
+OUTPUT_DIRS = ["Plots", "../../Latex_writting/Hydrodynamical combustion/Plots"]
+OUTPUT_NAME = "f_peak"
+
+# Model parameters (paper reference values)
+R0_M = 1000.0                   # pre-merger quark-core radius R_0
+R_LOBE_M = 3000.0               # effective lobe radius R_lobe
+DT_PM_S = 10.0e-3               # postmerger emission window
+
+# (Delta_f_PT [kHz], color, linestyle); endpoint calibrations, see docstring
+BLH_CASES = [
+    (0.197, BLH_SHADES[0], "-"),    # 1.398+1.198
+    (0.181, BLH_SHADES[1], "--"),   # 1.481+1.257
+    (0.123, BLH_SHADES[2], "-."),   # 1.298+1.298
+    (0.123, BLH_SHADES[3], ":"),    # 1.363+1.363
+]
+DD2F_CASES = [
+    (0.780, DD2F_SHADES[0], "-"),   # q = 0.8
+    (0.465, DD2F_SHADES[1], "--"),  # 1.289+1.289
+    (0.442, DD2F_SHADES[2], "-."),  # 1.35+1.35
+]
+
+# Direct tags: (text, x, y_center, color, ha)
+TAGS = [
+    (r"$q{=}0.8$", 1.3e1, 0.815, DD2F_SHADES[0], "left"),
+    (r"$1.289{+}1.289$", 1.3e1, 0.499, DD2F_SHADES[1], "left"),
+    (r"$1.35{+}1.35$", 1.4e3, 0.408, DD2F_SHADES[2], "left"),
+    (r"$1.398{+}1.198$", 1.3e1, 0.232, BLH_SHADES[0], "left"),
+    (r"$1.481{+}1.257$", 1.4e3, 0.154, BLH_SHADES[1], "left"),
+    (r"$1.298{+}1.298,$", 1.3e1, 0.072, BLH_SHADES[2], "left"),
+    (r"$1.363{+}1.363$", 1.3e1, 0.028, BLH_SHADES[3], "left"),
+]
+PAIR_LEADER = ((3.4e1, 3.4e1), (0.094, 0.116))   # from pair tag up to 0.123 curve
+
+FAMILY_LABELS = [
+    ("BLh/BLQ", 1.3e1, 0.985, BLH_ANCHOR),
+    ("DD2F/DD2F-SF1", 1.3e1, 0.915, DD2F_ANCHOR),
+]
+
+plt.rcParams.update({
+    "font.family": FONT_FAMILY,
+    "mathtext.fontset": MATH_FONTSET,
+    "axes.labelsize": AXIS_LABEL_FONT_SIZE,
+    "xtick.labelsize": TICK_LABEL_FONT_SIZE,
+    "ytick.labelsize": TICK_LABEL_FONT_SIZE,
+})
+
+u = np.logspace(np.log10(X_LIMITS[0]), np.log10(X_LIMITS[1]), N_SPEED_SAMPLES)
+X_q = np.minimum(1.0, ((R0_M + u * DT_PM_S) / R_LOBE_M) ** 3)
+u_sat = (R_LOBE_M - R0_M) / DT_PM_S
+
+fig, ax = plt.subplots(figsize=FIGURE_SIZE, dpi=DPI)
+
+for df_pt, color, style in BLH_CASES + DD2F_CASES:
+    ax.plot(u, (1.0 - X_q) * df_pt, style, color=color, lw=LINE_WIDTH)
+
+ax.axvspan(*U_MAX_BAND, color=BAND_COLOR, alpha=BAND_ALPHA, lw=0)
+ax.annotate("calculated\n$u_{\\rm max}(0^-)$",
+            xy=(np.sqrt(U_MAX_BAND[0] * U_MAX_BAND[1]), 0.63),
+            ha="center", va="center", fontsize=ANNOTATION_FONT_SIZE, color="0.25")
+
+ax.axhline(DFMIN_KHZ, color=DFMIN_COLOR, ls=DFMIN_STYLE, lw=DFMIN_WIDTH)
+ax.annotate(r"$\delta f_{\rm min}$", xy=(2.9e5, DFMIN_KHZ + 0.018),
+            ha="left", va="bottom", fontsize=ANNOTATION_FONT_SIZE, color=DFMIN_COLOR)
+
+ax.axvline(u_sat, color=VLINE_COLOR, ls=VLINE_STYLE, lw=VLINE_WIDTH)
+ax.annotate(r"$u_{\rm sat}$", xy=(u_sat * 1.25, 0.60),
+            ha="left", va="center", fontsize=ANNOTATION_FONT_SIZE, color=VLINE_COLOR)
+
+for text, x, y, color, ha in TAGS:
+    ax.annotate(text, xy=(x, y), ha=ha, va="center",
+                fontsize=TAG_FONT_SIZE, color=color)
+ax.plot(PAIR_LEADER[0], PAIR_LEADER[1], color=LEADER_COLOR, lw=LEADER_WIDTH)
+
+for text, x, y, color in FAMILY_LABELS:
+    ax.annotate(text, xy=(x, y), ha="left", va="center",
+                fontsize=FAMILY_FONT_SIZE, color=color)
+
+ax.set_xscale("log")
+ax.set_xlim(*X_LIMITS)
+ax.set_ylim(*Y_LIMITS)
+ax.set_yticks(Y_TICKS)
+ax.set_xlabel(r"front speed $u(0^-)$  [m s$^{-1}$]")
+ax.set_ylabel(r"$\Delta f_{\rm peak}=(1-X_q)\,\Delta f_{\rm PT}$  [kHz]")
+ax.grid(True, which="major", axis="y", color=GRID_COLOR, lw=GRID_LINE_WIDTH)
+
+fig.tight_layout(pad=0.3)
+for d in OUTPUT_DIRS:
+    fig.savefig(f"{d}/{OUTPUT_NAME}.pdf"); fig.savefig(f"{d}/{OUTPUT_NAME}.png")
+print("wrote " + OUTPUT_NAME + " to " + ", ".join(OUTPUT_DIRS))

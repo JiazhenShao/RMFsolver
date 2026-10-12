@@ -1,0 +1,40 @@
+The evaluated result can be written as one expression using \(\pos{b}=\max(b,0)\):
+\begin{align}
+ \Izero={}&\mathcal P_8
+ -\frac{\pos{\mu_u+\mu_s-\mu_d}^{6}}{315}
+ \left[15\mu_d^2+10\mu_d(\mu_s+\mu_u)+3(\mu_s+\mu_u)^2\right],
+ \label{eq:cold-result}\\
+ 315\mathcal P_8={}&
+ \mu_u^4(210\mu_d^4-112\mu_d^3\mu_u-84\mu_d^2\mu_u^2
+            -32\mu_d\mu_u^3+65\mu_u^4)\notag\\
+ &+\mu_s^4\big[168\mu_d^3\mu_s-280\mu_d^3\mu_u
+ -168\mu_d^2\mu_s^2+504\mu_d^2\mu_s\mu_u-420\mu_d^2\mu_u^2\notag\\
+ &\qquad+80\mu_d\mu_s^3-336\mu_d\mu_s^2\mu_u
+ +504\mu_d\mu_s\mu_u^2-280\mu_d\mu_u^3\notag\\
+ &\qquad-18\mu_s^4+64\mu_s^3\mu_u-196\mu_s^2\mu_u^2
+ +168\mu_s\mu_u^3+210\mu_u^4\big].
+ \label{eq:cold-polynomial}
+\end{align}
+The symbol \(\mathcal P_8\) denotes only the degree-eight polynomial in \cref{eq:cold-polynomial}; separating it keeps the physical branch correction visible.
+For \(0<\mu_K\leq\mu_u\), the sixth-power term is present, whereas for \(\mu_K\geq\mu_u\) the result is \(\mathcal P_8\).
+The two branches agree through five derivatives with respect to \(\mu_d\) at fixed \(\mu_u,\mu_s\).
+Their sixth derivatives differ by \(64(\mu_s+\mu_u)^2\) at the boundary, so the branch distinction is real even though the rate is smooth to low order.
+The polynomial integrations leading to \cref{eq:cold-result} are given in \cref{app:cold-algebra}.
+
+For neutral cold matter,
+\begin{equation}
+ \frac{\mu_d}{\mu_u}=(1+a)^{1/3},\qquad
+ \frac{\mu_s}{\mu_u}=(1-a)^{1/3},\qquad
+ \mu_u=\frac{\mu_B}{1+(1+a)^{1/3}+(1-a)^{1/3}}.
+ \label{eq:neutral-cold-a}
+\end{equation}
+The branch changes at \((1+a)^{1/3}-(1-a)^{1/3}=1\), whose unique solution is \(a=0.983149408702098\).
+At the zero-strangeness endpoint,
+\begin{equation}
+ \Izero(\mu_u,\mu_d,0)=\frac{\mu_u^4}{315}
+ \left(210\mu_d^4-112\mu_d^3\mu_u-84\mu_d^2\mu_u^2
+ -32\mu_d\mu_u^3+65\mu_u^4\right).
+ \label{eq:cold-strange-zero}
+\end{equation}
+Near equilibrium, the two terms in \cref{eq:cold-result} nearly cancel.
+The numerical implementation evaluates an algebraically equivalent polynomial in the small flavor differences rather than subtracting those terms in floating-point arithmetic.
