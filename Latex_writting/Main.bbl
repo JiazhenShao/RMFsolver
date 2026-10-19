@@ -129,20 +129,26 @@ C.~Eckart, \emph{{The Thermodynamics of irreversible processes. 3.. Relativistic
 \bibitem{Harutyunyan:2023nvt}
 A.~Harutyunyan and A.~Sedrakian, \emph{{Phenomenological Relativistic Second-Order Hydrodynamics for Multiflavor Fluids}}, \href{http://dx.doi.org/10.3390/sym15020494}{\emph{Symmetry} {\bf 15} (2023) 494}, [\href{https://arxiv.org/abs/2302.09596}{{\tt 2302.09596}}].
 
-\bibitem{Andersson:2006nr}
-N.~Andersson and G.~L. Comer, \emph{{Relativistic fluid dynamics: Physics for many different scales}}, \href{http://dx.doi.org/10.12942/lrr-2007-1}{\emph{Living Rev. Rel.} {\bf 10} (2007) 1}, [\href{https://arxiv.org/abs/gr-qc/0605010}{{\tt gr-qc/0605010}}].
-
 \bibitem{Lopez-Monsalvo:2010oeo}
 C.~S. Lopez-Monsalvo and N.~Andersson, \emph{{Thermal Dynamics in General Relativity}}, \href{http://dx.doi.org/10.1098/rspa.2010.0308}{\emph{Proc. Roy. Soc. Lond. A} {\bf 467} (2010) 738--759}, [\href{https://arxiv.org/abs/1006.2978}{{\tt 1006.2978}}].
 
 \bibitem{Heiselberg:1993cr}
 H.~Heiselberg and C.~J. Pethick, \emph{{Transport and relaxation in degenerate quark plasmas}}, \href{http://dx.doi.org/10.1103/PhysRevD.48.2916}{\emph{Phys. Rev. D} {\bf 48} (1993) 2916--2928}.
 
-\bibitem{Madsen:1998uh}
-J.~Madsen, \emph{{Physics and astrophysics of strange quark matter}}, \href{http://dx.doi.org/10.1007/BFb0107314}{\emph{Lect. Notes Phys.} {\bf 516} (1999) 162--203}, [\href{https://arxiv.org/abs/astro-ph/9809032}{{\tt astro-ph/9809032}}].
+\bibitem{Tonetto:2020bie}
+L.~Tonetto and G.~Lugones, \emph{{Discontinuity gravity modes in hybrid stars: assessing the role of rapid and slow phase conversions}}, \href{http://dx.doi.org/10.1103/PhysRevD.101.123029}{\emph{Phys. Rev. D} {\bf 101} (2020) 123029}, [\href{https://arxiv.org/abs/2003.01259}{{\tt 2003.01259}}].
+
+\bibitem{Ghosh:2026ldg}
+S.~Ghosh, A.~Haber, N.~Andersson and A.~R. Counsell, \emph{{Oscillations of Dissipative Neutron Stars: The Impact of Hyperonic Reaction Rates}},  \href{https://arxiv.org/abs/2608.07311}{{\tt 2608.07311}}.
 
 \bibitem{Zhao:2025pgx}
 T.~Zhao, P.~B. Rau, A.~Haber, S.~P. Harris, C.~Constantinou and S.~Han, \emph{{Suppression of Composition g-modes in Chemically Equilibrating Warm Neutron Stars}}, \href{http://dx.doi.org/10.3847/1538-4357/ae0198}{\emph{Astrophys. J.} {\bf 993} (2025) 161}, [\href{https://arxiv.org/abs/2504.12230}{{\tt 2504.12230}}].
+
+\bibitem{Courant:1928lij}
+R.~Courant, K.~Friedrichs and H.~Lewy, \emph{{{\"U}ber die partiellen Differenzengleichungen der mathematischen Physik}}, \href{http://dx.doi.org/10.1007/BF01448839}{\emph{Math. Ann.} {\bf 100} (1928) 32--74}.
+
+\bibitem{Kiuchi:2026pgb}
+K.~Kiuchi, A.~Reboul-Salze, Y.~Sekiguchi and M.~Shibata, \emph{{A magnetar formation in binary neutron star merger}},  \href{https://arxiv.org/abs/2606.11299}{{\tt 2606.11299}}.
 
 \bibitem{Alford:2025jtm}
 M.~G. Alford, L.~Brodie, M.~Buballa, H.~Gholami, A.~Haber and M.~Hofmann, \emph{{Neutrino absorption in two-flavor color-superconducting quark matter}},  \href{https://arxiv.org/abs/2509.04240}{{\tt 2509.04240}}.
@@ -152,6 +158,9 @@ M.~G. Alford, L.~Brodie, F.~Foucart and A.~Haber, \emph{{Thermalization of neutr
 
 \bibitem{Most:2022yhe}
 E.~R. Most, A.~Haber, S.~P. Harris, Z.~Zhang, M.~G. Alford and J.~Noronha, \emph{{Emergence of Microphysical Bulk Viscosity in Binary Neutron Star Postmerger Dynamics}}, \href{http://dx.doi.org/10.3847/2041-8213/ad454f}{\emph{Astrophys. J. Lett.} {\bf 967} (2024) L14}, [\href{https://arxiv.org/abs/2207.00442}{{\tt 2207.00442}}].
+
+\bibitem{Madsen:1998uh}
+J.~Madsen, \emph{{Physics and astrophysics of strange quark matter}}, \href{http://dx.doi.org/10.1007/BFb0107314}{\emph{Lect. Notes Phys.} {\bf 516} (1999) 162--203}, [\href{https://arxiv.org/abs/astro-ph/9809032}{{\tt astro-ph/9809032}}].
 
 \bibitem{Buballa:2003qv}
 M.~Buballa, \emph{{NJL model analysis of quark matter at large density}}, \href{http://dx.doi.org/10.1016/j.physrep.2004.11.004}{\emph{Phys. Rept.} {\bf 407} (2005) 205--376}, [\href{https://arxiv.org/abs/hep-ph/0402234}{{\tt hep-ph/0402234}}].
@@ -164,5 +173,8 @@ J.~Madsen, \emph{{Rate of the weak reaction s + u to u + d in quark matter}}, \h
 
 \bibitem{Haensel:1992zz}
 P.~Haensel and R.~Schaeffer, \emph{{Bulk viscosity of hot-neutron-star matter from direct URCA processes}}, \href{http://dx.doi.org/10.1103/PhysRevD.45.4708}{\emph{Phys. Rev. D} {\bf 45} (1992) 4708--4712}.
+
+\bibitem{ParticleDataGroup:2026mpi}
+{\scshape Particle Data Group} collaboration, F.~Takahashi et~al., \emph{{Review of Particle Physics}}, \href{http://dx.doi.org/10.1142/s0217751x26300115}{\emph{Int. J. Mod. Phys. A} {\bf 41} (2026) 2630011}.
 
 \end{thebibliography}\endgroup

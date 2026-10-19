@@ -1,0 +1,65 @@
+{
+  "date": "2026-10-15",
+  "timezone": "America/Chicago",
+  "generated_utc": "2026-10-15T18:09:28.379334+00:00",
+  "reaction": "d + u -> s + u; net = forward - reverse",
+  "EOS_path": "Fixed mu_B and neutral composition a at each temperature",
+  "mu_B_MeV": [
+    900.0,
+    1200.0
+  ],
+  "a": [
+    0.146,
+    0.5,
+    0.9
+  ],
+  "temperatures_MeV": [
+    0.0,
+    0.01,
+    0.1,
+    1.0,
+    5.0,
+    10.0,
+    20.0,
+    25.0,
+    50.0,
+    100.0
+  ],
+  "row_count": 60,
+  "exact_2D_order": 40,
+  "exact_2D_tail": 64,
+  "convergence_relative_tolerance": 1e-06,
+  "constants": {
+    "G_F_MeV_minus2": 1.16637e-11,
+    "theta_C_degrees": 13.02,
+    "weak_prefactor_MeV_minus4": 2.4095833544121124e-26
+  },
+  "versions": {
+    "python": "3.12.8",
+    "numpy": "2.2.3",
+    "sympy": "1.14.0"
+  },
+  "source_sha256": {
+    "calculate.py": "f612ff2d8b924287563675502f316d810504852785c7008021a6be66c6a934a7",
+    "reference/cold_sympy.py": "d34c6381c2b25e7a32da4a4c682b10d7efb9ac8590291613a6d744edab03b5f9",
+    "reference/thermal_sympy.py": "cd2027784e98055f63801c5c903853517b74a574fafcaad86091f7b630cf9584",
+    "reference/validate_rate.py": "11d5de3e48c3ec09ef4c5aefbf2ab6c94a803eb46224ee1992a27751ed3711cb"
+  },
+  "validation_counts": {
+    "independent_3D": 12,
+    "analytic_cold": 6,
+    "saved_manuscript": 48
+  },
+  "maximum_residuals": {
+    "order_relative_change": 4.440892098500626e-16,
+    "tail_relative_change": 4.218847493575595e-15,
+    "independent_3D_relative_difference": 4.263256414560601e-14,
+    "analytic_cold_relative_difference": 3.3306690738754696e-15,
+    "saved_manuscript_relative_difference": 4.218847493575595e-15,
+    "mu_B_relative_residual": 1.1102230246251565e-15,
+    "neutrality_residual_over_nB": 1.311400625082826e-14,
+    "composition_absolute_residual": 2.6367796834847468e-15
+  },
+  "passed": true,
+  "wall_seconds": 57.38088750001043
+}

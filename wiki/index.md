@@ -1,7 +1,7 @@
 ---
 summary: Catalog of every wiki page. Read this first; drill down from here.
 status: current
-updated: 2026-10-08
+updated: 2026-10-19
 tags: [meta, index]
 ---
 
@@ -23,7 +23,7 @@ The nuclear→quark combustion front project. **This is the only page loaded by 
 | [[diffusion-limited-front]] | Physical regime, assumptions, fluxes, variables and boundary conditions |
 | [[analytic-front-speed]] | Adiabatic composition ceiling A_ad, constant-background speed estimate, and shared layer thickness now introduced under isothermal flow |
 | [[isothermal-analytic-front-speed]] | Fixed-$T$ speed, local-fraction current jump, and separately verified chemical-potential/density drifts along the saved isobar |
-| [[isothermal-maximum-speed]] | Static-isobar ceiling with the neutral EOS substituted explicitly in Eq. (35), maximum-speed formula and low-$T$ scaling |
+| [[isothermal-maximum-speed]] | Static-isobar ceiling and speed scaling; the claimed 1% Taylor accuracy fails for 113/292 checked targets, reaching 8.48% |
 | [[front-speed-phenomenology]] | Fixed-$T(0^+)$ numerical contour, zero-speed boundary, and tail-dominated $z(t)$ evolution |
 | [[quark-matter-eos]] | Neutral bag-model EOS, verified exact free-gas citation, former non-neutral basis and quadratic analytic limit |
 | [[bag-model-thermal-gluons]] | Appendix A cites Madsen and Buballa reviews for thermal gluons; combustion precedents, effective-model exceptions and distinction from interaction corrections |
@@ -31,7 +31,7 @@ The nuclear→quark combustion front project. **This is the only page loaded by 
 | [[composition-constraint-plot-audit]] | Neutral and revised simple PI plots match; exact a=1 endpoints are 669.01 and 344.13 MeV at mu_B=1200 MeV |
 | [[strangeness-reaction-diffusion]] | Madsen rate is approximate even in the numerical solver; exact-rate speed impact ≤20% for a(0+)≤0.7, NLO (2609.35165) ≈ +19% speed; diffusion and coupling choice |
 | [[unequal-flavor-weak-rate]] | General massless collision integral and neutral T=0 checks: full/Eq. (23) rate is 0.932 at a=0.146 and 0.359 at a=0.9 |
-| [[massless-finite-temperature-weak-rate]] | Exact cold/T-squared derivation, 192-state grid, and isothermal speed sensitivity extended to 50 and 100 MeV |
+| [[massless-finite-temperature-weak-rate]] | Exact cold/T-squared derivation, 192-state grid, isothermal sensitivity, and 2026-10-15 collaborator CSVs for 60 freshly calculated states |
 | [[adiabatic-weak-rate-sensitivity]] | Conserved cold-interface trajectories: universal ratios audited with six independent dimensional integrations, 153 upstream states, diffusion weighting and hot-slice limits |
 | [[interface-closure]] | Why a fourth relation is needed and which one is authoritative |
 | [[thermal-transparent-closure]] | The baseline $T(0^+)=T(0^-)$ — and why "adiabatic" is the wrong word |
@@ -55,10 +55,12 @@ The nuclear→quark combustion front project. **This is the only page loaded by 
 
 ## Methods
 
+- [[notebook-trajectory-figures]] — Matched manuscript trajectory styles and the historical momentum-flux figure, now reproducible with location labels in `26-10-14.ipynb` and embedded in the meeting notes.
 - [[fixed-interface-analytical-contours]] — Fixed 0.1 MeV comparison, xi=-0.5; 734/734 per method and all 30 semi-analytical 5000 m/s brackets; unshaded through 5000 and shaded through 1000 m/s, with enlarged locally backed labels in the shaded figure.
 - [[analytical-xi-minus0p85-cluster]] — original `26-10-02.ipynb` comparison and local recovery: connected adiabatic analytical contours and supported 2000 m/s band; seven-level isothermal baseline has 297 accepted/25 outside-window targets, warm numerical curves and 58 cold numerical dots.
 - [[isothermal-high-speed-contours]] — `26-10-02.ipynb` calculates all 14 analytical log-temperature levels locally (644 targets), compares saved numerical curves/dots, and resumes pointwise checkpoints; persistent isolated SciPy fixes the macOS import failure, with separate target and per-evaluation progress.
 - [[isothermal-notebook-cold-points]] — Six cold 500/2000 m/s roots plus one 10000 m/s root: 65 numerical dots total; bounded 50000/500000 m/s attempts and a tighter cold check remain explicitly unresolved, with reproducible notebook code and checkpoints.
+- [[isothermal-mfp-overlay]] — `26-10-14.ipynb`: core criterion at fraction 1e-4 has 33 validated roots spanning 0.515 keV–0.172 MeV, with stable-NM/unit-composition shading down to 1e-4 MeV; not a sharp LTE cutoff.
 - [[adiabatic-xi-diagnostics]] — Measured profile xi approaches -1 at high speeds; it fixes semi-analytical speeds to within 0.1%, while full analytical retains composition and integral errors. Best single constant over 50-2000 m/s is xi≈-0.86 (basin -0.845 to -0.89), so -0.85 is already optimal.
 - [[steady-front-bvp]] — the physical-$n_K,J_K$ reaction-diffusion BVPs, flux eigenvalues, EOS reconstruction and compactification.
 - [[isothermal-contour-cluster]] — Piecewise-angular 600-cell isothermal domain, analytical workflow, numerical shell continuation, and failed-cell-only normalized-BVP repair.
@@ -70,7 +72,8 @@ The nuclear→quark combustion front project. **This is the only page loaded by 
 
 ## Paper
 
-- [[combustion-paper]] — manuscript hub and appendix order; Heat Transport follows Strangeness diffusion as Appendix D.
+- [[group-meeting-2026-10-16]] — `26-10-14.md` follows the eight October 8 checklist items and adds the exact-baseline Eq. (35) ceiling comparison, with embedded figures and speaking notes.
+- [[combustion-paper]] — active `Latex_writting/Main.tex` build, October 19 figure/reference repairs, and historical manuscript notes.
 - [[gw-observables-section]] — settled notation, taiji geometry, the six calibrated cases, recurring citation error.
 - [[supernova-quark-oscillations]] — Mathews/Rupp/Boccioli DNP 2026 supernova core oscillations need rapid conversion; laminar fronts move only ~m per ms oscillation.
 

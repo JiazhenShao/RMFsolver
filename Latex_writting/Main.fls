@@ -311,27 +311,37 @@ INPUT ./Hydrodynamical combustion/Plots/pressure_mu_pos.pdf
 INPUT ./Hydrodynamical combustion/Plots/pressure_mu_pos.pdf
 INPUT ./Hydrodynamical combustion/Plots/pressure_mu_pos.pdf
 INPUT ./Hydrodynamical combustion/Plots/pressure_mu_pos.pdf
-INPUT ./Hydrodynamical combustion/Plots/boundary_schematic.pdf
-INPUT ./Hydrodynamical combustion/Plots/boundary_schematic.pdf
-INPUT ./Hydrodynamical combustion/Plots/boundary_schematic.pdf
-INPUT ./Hydrodynamical combustion/Plots/boundary_schematic.pdf
-INPUT ./Hydrodynamical combustion/Plots/isothermal_muB_muK_plane.pdf
-INPUT ./Hydrodynamical combustion/Plots/isothermal_muB_muK_plane.pdf
-INPUT ./Hydrodynamical combustion/Plots/isothermal_muB_muK_plane.pdf
-INPUT ./Hydrodynamical combustion/Plots/isothermal_muB_muK_plane.pdf
-INPUT ./Hydrodynamical combustion/Plots/T_a_constant_pressure.pdf
-INPUT ./Hydrodynamical combustion/Plots/T_a_constant_pressure.pdf
-INPUT ./Hydrodynamical combustion/Plots/T_a_constant_pressure.pdf
-INPUT ./Hydrodynamical combustion/Plots/T_a_constant_pressure.pdf
-INPUT ./Hydrodynamical combustion/Plots/T_a_constant_pressure.pdf
 INPUT /usr/local/texlive/2024/texmf-dist/fonts/tfm/public/cm/cmss8.tfm
+INPUT ./Hydrodynamical combustion/Plots/boundary_schematic.pdf
+INPUT ./Hydrodynamical combustion/Plots/boundary_schematic.pdf
+INPUT ./Hydrodynamical combustion/Plots/boundary_schematic.pdf
+INPUT ./Hydrodynamical combustion/Plots/boundary_schematic.pdf
+INPUT ./Hydrodynamical combustion/Plots/isothermal_muB_muK_plane.pdf
+INPUT ./Hydrodynamical combustion/Plots/isothermal_muB_muK_plane.pdf
+INPUT ./Hydrodynamical combustion/Plots/isothermal_muB_muK_plane.pdf
+INPUT ./Hydrodynamical combustion/Plots/isothermal_muB_muK_plane.pdf
+INPUT ./Hydrodynamical combustion/Plots/T_a_constant_pressure.pdf
+INPUT ./Hydrodynamical combustion/Plots/T_a_constant_pressure.pdf
+INPUT ./Hydrodynamical combustion/Plots/T_a_constant_pressure.pdf
+INPUT ./Hydrodynamical combustion/Plots/T_a_constant_pressure.pdf
+INPUT ./Hydrodynamical combustion/Plots/T_a_constant_pressure.pdf
 INPUT /usr/local/texlive/2024/texmf-dist/fonts/tfm/jknappen/ec/tcrm1000.tfm
-INPUT /usr/local/texlive/2024/texmf-dist/fonts/tfm/public/cm/cmbx10.tfm
-INPUT ./Hydrodynamical combustion/Plots/Numerical-contour.pdf
-INPUT ./Hydrodynamical combustion/Plots/Numerical-contour.pdf
-INPUT ./Hydrodynamical combustion/Plots/Numerical-contour.pdf
-INPUT ./Hydrodynamical combustion/Plots/Numerical-contour.pdf
 INPUT /usr/local/texlive/2024/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc
+INPUT /usr/local/texlive/2024/texmf-dist/fonts/tfm/public/cm/cmbx10.tfm
+INPUT ./Hydrodynamical combustion/Plots/isothermal-numerical-contour.pdf
+INPUT ./Hydrodynamical combustion/Plots/isothermal-numerical-contour.pdf
+INPUT ./Hydrodynamical combustion/Plots/isothermal-numerical-contour.pdf
+INPUT ./Hydrodynamical combustion/Plots/isothermal-numerical-contour.pdf
+INPUT ./Hydrodynamical combustion/Plots/isothermal-numerical-contour.pdf
+INPUT ./Hydrodynamical combustion/Plots/isothermal-analytic-numerical-logT.pdf
+INPUT ./Hydrodynamical combustion/Plots/isothermal-analytic-numerical-logT.pdf
+INPUT ./Hydrodynamical combustion/Plots/isothermal-analytic-numerical-logT.pdf
+INPUT ./Hydrodynamical combustion/Plots/isothermal-analytic-numerical-logT.pdf
+INPUT ./Hydrodynamical combustion/Plots/isothermal-analytic-numerical-logT.pdf
+INPUT ./Hydrodynamical combustion/Plots/Numerical-contour.pdf
+INPUT ./Hydrodynamical combustion/Plots/Numerical-contour.pdf
+INPUT ./Hydrodynamical combustion/Plots/Numerical-contour.pdf
+INPUT ./Hydrodynamical combustion/Plots/Numerical-contour.pdf
 INPUT ./Hydrodynamical combustion/Plots/Contour-diff-meth-0.1-band.pdf
 INPUT ./Hydrodynamical combustion/Plots/Contour-diff-meth-0.1-band.pdf
 INPUT ./Hydrodynamical combustion/Plots/Contour-diff-meth-0.1-band.pdf
@@ -353,12 +363,14 @@ INPUT ./Main.bbl
 INPUT ./Main.bbl
 INPUT Main.bbl
 INPUT /usr/local/texlive/2024/texmf-dist/fonts/tfm/public/cm/cmtt9.tfm
+INPUT /usr/local/texlive/2024/texmf-dist/fonts/tfm/public/cm/cmcsc10.tfm
 INPUT Main.aux
 INPUT ./Main.out
 INPUT ./Main.out
 INPUT /usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb
 INPUT /usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb
 INPUT /usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx9.pfb
+INPUT /usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmcsc10.pfb
 INPUT /usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb
 INPUT /usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb
 INPUT /usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi5.pfb

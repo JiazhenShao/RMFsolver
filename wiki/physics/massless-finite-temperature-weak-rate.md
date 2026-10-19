@@ -1,7 +1,7 @@
 ---
 summary: Exact neutral-ordering cold and T-squared weak rates are derived and checked against a 192-state grid; equal up thresholds produce a genuine T-cubed remainder.
 status: current
-updated: 2026-10-11
+updated: 2026-10-15
 tags: [physics, weak-rates, phase-space, sommerfeld]
 ---
 
@@ -12,6 +12,11 @@ Equation (23) is not an expansion solely in temperature: it also uses nearly equ
 The earlier open question about the finite-imbalance T-squared coefficient was resolved on 2026-10-07 by the standalone derivation in `ref-list/massless-weak-rate/`.
 That package contains the manuscript, local bibliography, Wolfram transcript, independent symbolic helpers, numerical reference, and saved comparison grid.
 See [[unequal-flavor-weak-rate]] for the invariant rate and cold benchmarks.
+
+The collaborator export in `local_analysis_results/26-10-15/massless-phase-space/` freshly evaluates 60 fixed-muB,a states: muB=900,1200 MeV, a=0.146,0.5,0.9 and T=0,0.01,0.1,1,5,10,20,25,50,100 MeV.
+Combined and six panel CSVs distinguish forward/reverse/net unprefactored phase space (MeV^8) from weak rates (MeV^4), include all flavor potentials and the four plotted rate columns, and document the prefactor and detailed balance explicitly.
+The green column replaces only mu_u^5 by (mu_B/3)^5 in Eq.23, not the Eq.24 correction. Separate convergence data include 12 independent radial 3D checks, six analytical cold checks and agreement with all 48 overlapping manuscript rows; all meet the 1e-6 comparison threshold.
+The directory and sibling ZIP include a reproducible driver, unchanged source snapshots, metadata and export verification; no production solver or manuscript calculation was modified.
 
 ## Direct inspection of the original paper
 

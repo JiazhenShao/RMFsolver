@@ -1,0 +1,62 @@
+{
+  "rates-absolute.png": {
+    "source": "ref-list/massless-weak-rate/results/exact-rates.png",
+    "sha256": "ab4726d96886dcd8f4ce97583df2ba1299fc77e8ba53c9098db8be799dc36d7a"
+  },
+  "rates-relative-1200.png": {
+    "source": "ref-list/massless-weak-rate/results/approximation-errors-muB-1200.png",
+    "sha256": "1b81a94697ac4e11be3ee826b17fb40e8bbe2950ae410d161dfce2af4b823f42"
+  },
+  "rates-relative-900.png": {
+    "source": "ref-list/massless-weak-rate/results/approximation-errors-muB-900.png",
+    "sha256": "da14a0aeeb2217e28469a7322f704c1a84e8659e1ad3d3d0df74d9ae7e964f88"
+  },
+  "isothermal-speed-ratios.png": {
+    "source": "ref-list/massless-weak-rate/results/speed-sensitivity.png",
+    "sha256": "599b6a9976efa7953c6b66435fa1a563eb743a7cb701108adb36d5ba856199b2"
+  },
+  "adiabatic-speed-map.png": {
+    "source": "ref-list/massless-weak-rate/results/adiabatic-speed-map.png",
+    "sha256": "7f7b245d98d89af50fde402b4875d9185419b3722b09b9164089e5259d0de9f4"
+  },
+  "adiabatic-trajectory.png": {
+    "source": "ref-list/massless-weak-rate/results/adiabatic-trajectory-diagnostics.png",
+    "sha256": "5b2c8c21e59d95495d99d3ab8baab95ad5e4164f00d87a12d4add876964beb74"
+  },
+  "adiabatic-diffusion-weighting.png": {
+    "source": "ref-list/massless-weak-rate/results/adiabatic-diffusion-weighting.png",
+    "sha256": "5694f248dc080d905983a4f51d9f38bb29648a1c87860a83784e6162280999ce"
+  },
+  "isothermal-log-contours.png": {
+    "source": "local_analysis_results/26-10-14/isothermal-contours-mfp-tail.png",
+    "sha256": "f4f8e57118bdd9d1b8857410c02669b4674a328f724303e402d5d9c34349d169"
+  },
+  "isothermal-core-mfp.png": {
+    "source": "local_analysis_results/26-10-14/isothermal-core-mfp-f1e-4.png",
+    "sha256": "96cb7b72457b01ff04d32ce06a1e044c5cc0411688ab4a1fd2addd27e2b42a24"
+  },
+  "diffusive-flux-shapes.png": {
+    "source": "local_analysis_results/26-09-29/xi-comparison/diffusive-flux-shapes.png",
+    "sha256": "72b521d5b6daeba3eb572a3508122d856d4d3216bf0b4bc2eac6f8fb6f28bab8"
+  },
+  "constant-momentum-profile.png": {
+    "source": "local_analysis_results/26-10-14/constant-momentum-profile.png",
+    "sha256": "471588a4131664f10295598cf8c10bb3355b695562ba2505ec8fcaa2c8bc3f88"
+  },
+  "xi-optimum.png": {
+    "source": "local_analysis_results/26-10-12/xi-optimum/analytical_xi-0.8500.jsonl and benchmark checkpoints via analyze.table()",
+    "sha256": "558cee8705a7c79cfead5d731420475db6b02b9e2a9b3769fea290169067bff5",
+    "best_xi": -0.865,
+    "best_score": 0.14429060294524107,
+    "current_score": 0.14491821047159534,
+    "current_relative_score_increase": 0.004349607760613772,
+    "one_percent_basin": [
+      -0.89,
+      -0.845
+    ]
+  },
+  "aiso-accuracy.png": {
+    "source": "local_analysis_results/26-10-14/aiso-accuracy.png",
+    "sha256": "7623a998b627ec2f0452d290f58e2be88d536d47bff867e4449174564c20c691"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "csv_count": 8,
+  "data_rows": 60,
+  "round_trip_binary64_values_unchanged": true,
+  "rate_normalization_checks_passed": true,
+  "comparison_columns_checked": true,
+  "calculation_source_hashes_verified": true,
+  "csv_sha256": {
+    "convergence.csv": "f7da1f09c06dc31cfca0b3846c96ce0913f3ad4b27ad7329869d085551338957",
+    "phase-space_all.csv": "261e5921d76adf08c909fc721d5353a6caeff185beefaa6d5f7f0e4a9c495e62",
+    "phase-space_muB-1200_a-0.146.csv": "24766d3d81163089a2b1516c2773efc91ed05c532d1e61fd841e735f9ea54135",
+    "phase-space_muB-1200_a-0.5.csv": "186a0ca86f1a16243aa572eb6c6780f57c537372249e9fde173b9356858909ee",
+    "phase-space_muB-1200_a-0.9.csv": "fedc223007b8191765cb51ec3f0f973ed8d8065a2783072db324b1d2a67b79fd",
+    "phase-space_muB-900_a-0.146.csv": "66f5d7e470e0127eabe17913826671866b3fcc47c69852cd782e22fb36f96602",
+    "phase-space_muB-900_a-0.5.csv": "4e49d32675e5e308668af0563254bb73240f7a2b5d2030fab92d761a7964f344",
+    "phase-space_muB-900_a-0.9.csv": "c098f0ff66f752c2bf7f3756a2a3b13eb32d8a2212e0624a9a1e97c776137ef9"
+  }
+}

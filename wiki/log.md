@@ -816,3 +816,84 @@ Evaluated both public analytical methods at xi=-0.85 on all 618 successful T(0+)
 Equal-weight, contour-band-balanced RMS of ln(u_analytic/u_numerical) over 50-2000 m/s is minimized at xi=-0.865 (1% basin -0.89 to -0.845); -0.85 is within 0.5% of that minimum.
 Semi-analytical alone prefers -0.83; full analytical prefers the -1 limit at high speed, which compensates its composition and integral errors rather than measuring a shape factor.
 Evidence in `local_analysis_results/26-10-12/xi-optimum/`. See [[adiabatic-xi-diagnostics]].
+
+## [2026-10-14] implementation | Tunable isothermal mean-free-path / tail-length overlay
+
+Created `26-10-14.ipynb` with saved isothermal data loading, a separate bounded/cached static EOS calculation, and solver-free plotting.
+Default fraction is 1.0, full diffusion; optional Landau diffusion uses the same coefficient in both lengths. Roots require a real density bracket and relative ratio error at most 1e-6; no roots means no overlay or legend.
+Six live endpoint states across three temperatures passed EOS validation, with sampled full-diffusion ratios 2.72603e-7 to 1.11485e-6 and no crossings at fractions 1 or 0.1; fraction/model changes reused the cache. The complete 46-slice assessment was not pre-run, and no BVP was executed.
+Tests cover root search, failure/resume/checkpoint ordering and exact preservation of plotted data. Original notebook, datasets and RMFsolver sources remain unchanged.
+Documented the distinction from the appendix's local-gradient LTE criterion in [[isothermal-mfp-overlay]], added workflow README, and refreshed the index.
+
+## [2026-10-14] physics | Cold core versus downstream-tail validity
+
+Clarified that the tail ratio scales as T^(1/6) with a small dimensional prefactor and cannot justify a sub-keV exclusion or an extrapolated high-temperature cutoff.
+Wolfram verified the cubic-core scale ratio 3*a*sqrt(D_K*gamma_K), its T^(-5/6) behavior at fixed finite composition, and the slow-front interface concentration-gradient ratio 3*u(0+)*(1-a(0+))/a(0+).
+At the illustrative fixed coefficients muB=1200 MeV and a=0.5, the core ratio remains about 0.00404 at 1 keV; no universal 1-keV breakdown was established.
+Recorded the proposed local-gradient diagnostic and its limitations in [[isothermal-mfp-overlay]]. No notebook, solver, or dataset changed, and no EOS/BVP run was performed.
+
+## [2026-10-14] calculation | Standalone core mean-free-path curve at fraction 1e-4
+
+Added independent calculation/resume and visualization cells to the end of `26-10-14.ipynb`, using the static maximum-composition interface and transport coefficients at 0plus rather than the downstream tail.
+Found 33/33 roots with 226 direct-density EOS evaluations, two single-threaded workers, bounded calls, pointwise atomic saves, and tqdm; no BVP or solver-source change.
+Sampled roots range from 0.515 keV near coexistence to 0.172 MeV, with maximum relative criterion error 5.63e-7. One retained quadrature warning passed upstream and interface residual checks.
+Saved separate data and standalone log-temperature PNG/PDF under `local_analysis_results/26-10-14/`; cached notebook reexecution adds no EOS evaluations.
+Documented that exceeding the chosen 1e-4 core tolerance is not a sharp LTE breakdown proof in [[isothermal-mfp-overlay]], and preserved the earlier tail calculation and original inputs.
+
+## [2026-10-14] visualization | Static excluded regions on the core-ratio curve
+
+Added gray stable-NM and unit-composition regions to the standalone core plot in `26-10-14.ipynb`, preserving all 33 core points.
+Reused 19 saved static boundary slices and solved five missing slices directly at fixed density, covering 1e-4 through 1 MeV without extrapolation or BVP runs.
+All 24 boundary slices passed validation; new residuals are below 1.01e-9 MeV with no warnings. Separate boundary checkpoints save before tqdm advances and reuse terminal results.
+Verified region coverage and original core-line coordinates in plotting tests; refreshed the notebook output and PNG/PDF. See [[isothermal-mfp-overlay]].
+
+## [2026-10-15] export | Collaborator phase-space benchmarks
+
+Freshly calculated 60 local massless weak-rate states for muB=900,1200 MeV and a=0.146,0.5,0.9 across ten temperatures from 0 to 100 MeV. Saved combined and six panel CSVs under local_analysis_results/26-10-15/massless-phase-space/, plus a shareable ZIP.
+Exported dimensional flavor potentials, raw forward/reverse/net phase space, the weak prefactor, absolute rates and all four plotted comparison prescriptions. README specifies the exact integral normalization, units, detailed balance and fixed-muB,a EOS path.
+Order/tail refinements pass 1e-6; 12 independent radial 3D checks, six exact cold-polynomial checks and all 48 overlapping manuscript rows agree. Verified CSV round-trip precision, normalization, source snapshots and archive integrity; included reproducible calculation code and metadata. Updated [[massless-finite-temperature-weak-rate]] and the index. No production solver or manuscript files were modified.
+
+## [2026-10-15] visualization | Matched manuscript trajectory figures
+
+Updated the adiabatic legend and A_adb intercept, added a matching-style isothermal cell directly below the retained original, and changed figure input labels to U_bag^(1/4).
+Saved notebook outputs and overwrote T_a_constant_pressure.pdf and isothermal_muB_muK_plane.pdf under the original manuscript paths; the new isothermal cell supports cached replotting after restart.
+Numerical profiles are unchanged; the reconstructed isobar matches their pressure to 1e-15. All 23 unrelated cells are preserved; three new style tests and eight contour-band tests pass.
+The manuscript PDF was rebuilt with the existing citation/reference warnings; only its two trajectory captions were updated to match the new labels/markers and the saved adiabatic interface fraction 0.538, with no body-text changes. See [[notebook-trajectory-figures]].
+
+## [2026-10-15] presentation | October checklist meeting notes
+
+Created root-level `26-10-14.md`, following all eight October 8 checklist items with calculations, saved benchmark tables, source links, and short speaking notes.
+Embedded 11 portable PNGs under `26-10-14.assets/`: ten unchanged existing figures and one saved-data replot of the band-balanced xi fit; source hashes and scan CSV are retained.
+The notes distinguish fixed-profile rate sensitivities from BVP solutions, bounded tail checks from the separate chosen core tolerance, and user-reported Box/Overleaf uploads from locally verified exports.
+No production solver, notebook, manuscript, or underlying result file was modified, and no EOS/BVP calculation was run. See [[group-meeting-2026-10-16]].
+
+## [2026-10-15] visualization | Recovered momentum-flux profile figure
+
+Located the original figure in `26-04-09.ipynb`, cell 9, and its matching vector PDF under `jargon/`.
+The old calculation inputs have changed, and the matching raw profile was not found; recovered six original vector contours, four sampled positions and three endpoints rather than silently substituting another run.
+Appended provenance and cached plotting cells to `26-10-14.ipynb`, preserving all nine original cells. Enlarged fonts, replaced endpoint labels with location notation, exported PNG/PDF, and embedded the PNG in `26-10-14.md`.
+The historical plotted endpoint change is about 0.073 MeV (0.0064%) at figure precision, not a current-EOS verification or general constant-potential error bound.
+Four focused tests pass. No production solver, original notebook or manuscript changed, and no EOS/BVP calculation was run. See [[notebook-trajectory-figures]] and [[group-meeting-2026-10-16]].
+
+## [2026-10-16] physics | Checked the one-percent isothermal ceiling claim
+
+Compared the manuscript Taylor estimate with the exact static neutral-EOS ceiling for 292 successful saved isothermal targets; 113 exceed 1% relative error and the largest error is 8.48%.
+An independent density-cubic/bisection calculation reproduces the saved ceilings within 1.1e-11, with converged iteration counts and pressure/Gibbs residuals below 5e-15.
+Wolfram verifies the cold series, the 1% crossing at a=0.495544, and two finite-temperature counterexamples. The plotted T=10 MeV, 3n0 example itself has only 0.0802% error.
+Saved reproducible code, all target comparisons, and Wolfram inputs/outputs under local_analysis_results/26-10-16/aiso-accuracy/. Updated [[isothermal-maximum-speed]] and the index.
+No manuscript, notebook, or production solver was changed; the solver already obtains its ceiling from the exact static EOS rather than this Taylor estimate.
+
+## [2026-10-16] visualization | Exact-baseline composition-ceiling comparison
+
+Appended provenance and an executed plotting cell to `26-10-14.ipynb`, preserving all 11 pre-existing cells and outputs.
+Added an "Additional Check: Accuracy of Eq. (35)" section to `26-10-14.md`, with the figure, exact-denominator definitions, representative comparisons, and the checked accuracy range.
+The three-panel figure shows values, signed differences, and percentage differences versus exact composition; saved points are colored by temperature and the cold-limit curve is separate.
+Exported PNG/PDF under local_analysis_results/26-10-14/ and a report PNG under 26-10-14.assets/; saved a reproducible source cell with local font/style controls and updated asset provenance.
+Verified all 292 plotted points against the audit, exact zero-error baselines, notebook preservation, and PDF/PNG legibility. No new EOS/BVP solve or manuscript/solver edit was made. See [[isothermal-maximum-speed]] and [[group-meeting-2026-10-16]].
+
+## [2026-10-19] build | Main manuscript LaTeX repair
+
+Restored the missing isothermal log-temperature PDF from the existing generated artifact, separated the duplicate isothermal speed label, and redirected two stale cross-references.
+Added four exact INSPIRE-HEP bibliography exports and regenerated a malformed Main.bbl.
+The active `Latex_writting/Main.tex` now builds successfully to 17 pages with no undefined citations/references; checked the restored figure and affected pages visually.
+Existing package/float warnings and a small equation overfull box remain; no physics formulas, notebooks, or solver files were changed. See [[combustion-paper]].

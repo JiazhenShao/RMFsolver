@@ -1,13 +1,21 @@
 ---
 summary: The front-speed paper — where the files live, house conventions, and what still blocks submission.
 status: current
-updated: 2026-09-17
+updated: 2026-10-19
 tags: [paper, writing, hub]
 ---
 
 # Hydrodynamical combustion paper
 
 The project's primary output. Alford / Brodie / Haber / Shao. PRC two-column, natural units $c=1$.
+
+## Current build (2026-10-19)
+
+The active manuscript is `Latex_writting/Main.tex`, built from `Latex_writting/` with `latexmk -pdf -interaction=nonstopmode -halt-on-error Main.tex`.
+This supersedes the older nested source path and manuscript-state observations below; inspect the live source before relying on them.
+The October 19 build repair restored `Hydrodynamical combustion/Plots/isothermal-analytic-numerical-logT.pdf` from the identical saved PDF under `local_analysis_results/26-10-02/`, separated the main-text and appendix isothermal speed labels, and repaired two stale cross-references.
+Four missing bibliography entries were retrieved verbatim from INSPIRE-HEP: `Ghosh:2026ldg`, `Courant:1928lij`, `Kiuchi:2026pgb`, and `ParticleDataGroup:2026mpi`.
+Regenerating the malformed `Main.bbl` with BibTeX allowed a successful 17-page build with no undefined citations or references; existing package/float warnings and a 5.1-point equation overfull box remain.
 
 ## Files
 
