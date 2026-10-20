@@ -33,6 +33,18 @@ with $\mu_B+\mu_K=\mu_u+2\mu_d$.
 The left side equals $s/n_B(0^+)-\mu_K(1-a)/T(0^+)$. The second term is the entropy carried by the strangeness diffusion current $j(1-a)$.
 Dropping it, i.e. requiring only $s(0^+)\ge s(0^-)$, gives a much weaker bound.
 
+⚠ **Why not just $s/n_B(0^+)\ge s/n_B(0^-)$, i.e. $(h/n_B-\mu_B-a\mu_K)/T$?** That form was proposed on 2026-10-20 because $0^+$ carries strangeness. That strangeness is already counted: it is $a$, and it lowers $\mu_u+2\mu_d$. The extra $-\mu_K(1-a)/T$ is the entropy flux of the diffusion current that delivered it.
+Wolfram, steady slow layer with conserved $j$, $E$, $P$, and $(n_Ku+\nu_K)'=-\Gamma_K$:
+
+$$
+(su)'=\frac{\mu_K(\Gamma_K+\nu_K')}{T},\qquad
+\Big(su-\frac{\mu_K\nu_K}{T}\Big)'=\frac{\mu_K\Gamma_K}{T}-\nu_K\Big(\frac{\mu_K}{T}\Big)'\ge0 .
+$$
+
+Only the second current has a sign-definite divergence.
+Using $su$ at the interface would count the free energy $\mu_K(1-a)$ of $d\to s$ twice: once at the interface and once in the bulk weak source.
+The $s$-only bound is correct only if the strangeness is made inside the microscopic layer ($\nu_K(0^+)=0$), which contradicts the model's K-current matching. The two forms agree at $a(0^+)=0$ and $a(0^+)=1$.
+
 ⚠ If $T(0^+)=T(0^-)$, the condition reduces to the interface affinity $\mu_n(0^-)\ge\mu_u(0^+)+2\mu_d(0^+)$. It is **not** the bulk Gibbs balance $\mu_n=\mu_B+a\mu_K$.
 
 ## Energy-conserving front: bound on the temperature drop
