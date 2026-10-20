@@ -897,3 +897,8 @@ Restored the missing isothermal log-temperature PDF from the existing generated 
 Added four exact INSPIRE-HEP bibliography exports and regenerated a malformed Main.bbl.
 The active `Latex_writting/Main.tex` now builds successfully to 17 pages with no undefined citations/references; checked the restored figure and affected pages visually.
 Existing package/float warnings and a small equation overfull box remain; no physics formulas, notebooks, or solver files were changed. See [[combustion-paper]].
+
+## [2026-10-20] physics | Deconfinement quench temperature
+
+Energy conservation fixes $T$ of freshly deconfined matter: at $3n_0$, $T(0^-)=10$ MeV, pure n->udd deconfinement lacks 149.96 MeV/baryon of enthalpy, and full conversion cools to $T(\infty)=6.868$ MeV; udd is allowed above $5.2836\,n_0$ ($T_q=45.58$ MeV at $6n_0$).
+Wolfram-verified $T^2/T^4$ series and production-EOS checks pass; files in local_analysis_results/26-10-20/deconfinement-quench/. Not signed off. See [[deconfinement-quench-temperature]].
