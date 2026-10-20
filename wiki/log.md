@@ -902,3 +902,8 @@ Existing package/float warnings and a small equation overfull box remain; no phy
 
 Energy conservation fixes $T$ of freshly deconfined matter: at $3n_0$, $T(0^-)=10$ MeV, pure n->udd deconfinement lacks 149.96 MeV/baryon of enthalpy, and full conversion cools to $T(\infty)=6.868$ MeV; udd is allowed above $5.2836\,n_0$ ($T_q=45.58$ MeV at $6n_0$).
 Wolfram-verified $T^2/T^4$ series and production-EOS checks pass; files in local_analysis_results/26-10-20/deconfinement-quench/. Not signed off. See [[deconfinement-quench-temperature]].
+
+## [2026-10-20] physics | Second law across the deconfinement interface
+
+No fixed entanglement entropy is released; the whole front makes 0.247 per baryon at $3n_0$, 10 MeV. Interface entropy production is the affinity of $n\to u+2d$; it caps $a(0^+)\le0.0064$ and the drop $T(0^-)-T(0^+)\le3.143$ MeV (energy gives $\ge3.132$).
+The isothermal `_solve_a_0plus_max` balance gives affinity $-33.2$ MeV/baryon at $a=0.146$; the affinity ceiling is 0.0107. Wolfram quadratic forms match; not signed off, no code changed. See [[interface-second-law]].

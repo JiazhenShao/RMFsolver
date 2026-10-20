@@ -64,6 +64,8 @@ So deconfinement heats only if the released latent heat satisfies $-\Delta g_0>\
 - Where heating happens, it comes from the weak conversion in $x>0$ ($T(0^+)\to T(\infty)$), not from the strong deconfinement step. Rosero-Gil et al. (2020) find 20–60 MeV heating along the flame.
 - The $gap=0$ line is where the exact-trajectory $A$ reaches 1, the $u_{N,\max}\propto1/\sqrt{1-A}$ pole of [[analytic-front-speed]].
 
+Follow-up: the entropy budget and second-law bound on the interface temperature drop are in [[interface-second-law]].
+
 ## Caveats
 
 Massless $s$ overstates the thermal $s\bar s$ part of $c_4$. Slow-front jump conditions drop $O(u^2)$. The upstream matter is pure neutron matter without electrons. The thermalization time is not computed: the result assumes the layer reaches equilibrium (a strong-interaction time of about 1 fm/$c$).

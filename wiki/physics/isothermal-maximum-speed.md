@@ -9,6 +9,8 @@ tags: [physics, analytic, front-speed, isothermal, bound]
 
 For fixed analytical coefficients, the positive branch of [[isothermal-analytic-front-speed]] increases monotonically with $a(0^+)$.  Its thermodynamic upper estimate is therefore obtained by substituting the static-isobar ceiling $a_{\max}(0^+)$.
 
+⚠ 2026-10-20 (unsigned): the ceiling below, $\mu_B(0^-)=\mu_B(0^+)+a\mu_K(0^+)$, gives interface entropy production $-j(1-a)\mu_K/T<0$; the second law requires $\mu_n\ge\mu_B+\mu_K$, which caps $a(0^+)$ at 0.0107 instead of 0.146 at $3n_0$, 10 MeV. See [[interface-second-law]].
+
 ## Accuracy of the Taylor ceiling (2026-10-16)
 
 The manuscript's claim that the approximation agrees with the numerical ceiling to within 1% throughout the explored range is false for the current neutral EOS.

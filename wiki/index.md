@@ -38,6 +38,7 @@ The nuclear→quark combustion front project. **This is the only page loaded by 
 | [[lte-composition-bound]] | $\beta_{\rm LTE}=5u(0^-)\lambda_n$, the exact-local-isobar correction, the coefficient trap |
 | [[interface-temperature-jump]] | The signed observable $\Delta T=T(0^-)-T_{\rm LTE}(0^+)$ and its payload contract |
 | [[deconfinement-quench-temperature]] | Thermalizing newly deconfined matter adds entropy, not energy: n->udd at 3n0, T(0^-)=10 MeV lacks 150 MeV/baryon; full conversion cools 10->6.87 MeV (unsigned) |
+| [[interface-second-law]] | Second law at the flavor-conserving interface is $\mu_n\ge\mu_u+2\mu_d$: caps $a(0^+)$ at 0.0064 and the drop at 3.14 MeV; code isothermal ceiling violates it (unsigned) |
 | [[quark-transport]] | HP93 coefficients — and why $\kappa_{\rm th}$ and $D_K$ do **not** share a relaxation time |
 | [[thermal-limits]] | Current (+---) convention, invariant physical fluxes, and Eckart coefficient 5/2 versus Fourier's 3/2 |
 | [[thermal-limit-ordering]] | Isothermal subsection now isolates pressure and expands in velocity; former Appendix D proof is commented out; finite heat flow survives infinite conductivity |
