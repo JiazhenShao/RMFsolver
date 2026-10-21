@@ -1,7 +1,7 @@
 ---
-summary: Map of the phase_velocity.py public API, including automatic-ceiling analytical and physical-nK numerical isothermal solvers, and which solver answers which question.
+summary: Map of phase_velocity.py APIs; local rates use the modified Madsen (mu_B/3)^5 prefactor and shared transport coupling alpha_s=0.4.
 status: current
-updated: 2026-09-16
+updated: 2026-10-21
 tags: [solver, api, map]
 ---
 
@@ -10,6 +10,15 @@ tags: [solver, api, map]
 `RMFsolver/phase_velocity.py` is the only file under `RMFsolver/` that may be modified without an explicit instruction naming another file (see `AGENTS.md` and the project `CLAUDE.md`).
 
 For the physics formulation behind these APIs, start with [[diffusion-limited-front]] and [[steady-front-bvp]]. For the analytic reduction, see [[analytic-front-speed]].
+
+## Rate and coupling update (2026-10-21)
+
+All local weak-rate calls use the modified Madsen prefactor `(muB/3)**5`, and all transport paths share `alpha_s=0.4`; see [[strangeness-reaction-diffusion]].
+The physical EOS flavor potentials remain unchanged, and the analytical weak coefficient already used `muB/3`.
+The helper name `_exact_kaon_transport_rate` and output label `rate_model="exact_nonleptonic"` are retained for compatibility, not as claims of exact phase-space integration.
+Every result carrying that legacy label, including failures, also has `rate_approximation="madsen_muB_over_3"`.
+Function signatures and conservation-law closures are unchanged; the planned slow-flow numerical redesign is a separate task.
+Saved results have not been rewritten or regenerated, and absence of the new identifier must not be interpreted as evidence for the revised rate.
 
 ## Public API
 
@@ -39,7 +48,7 @@ All three are thin wrappers over one shared eigenvalue solve, `_solve_analytic_v
 The fourth combination (`numerical_I2` + `LTE`) has no public wrapper.
 
 - **Full analytical** keeps the quadratic-temperature $I_2$ bracket from the closed-form derivation. That approximation does *not* enter $a(0^+)$, which comes from the exact EOS definition $a = n_K/n_B$ at $T(0^+)$.
-- **Semi-analytical** follows the conserved $(P,\ h/n_B)$ layer trajectory and integrates $I_2$ numerically with the full diffusion coefficient and exact weak rate. This is the `numerical-I2` method behind the `26-08-02` ray grid.
+- **Semi-analytical** follows the conserved $(P,\ h/n_B)$ layer trajectory and integrates $I_2$ numerically with the full diffusion coefficient and modified Madsen weak rate. This is the `numerical-I2` method; the saved `26-08-02` ray grid predates the rate/coupling update.
 - **LTE** is the preserved closed-form bound where $a(0^+)$ is set by local equilibrium rather than a prescribed temperature — see [[lte-composition-bound]].
 
 `T_0plus` is a **required keyword-only** argument for the first two; `analytic_velocity_bound_lte` does not take it. `interface_fraction_mode` is no longer a parameter — it survives only as an *output* key echoing `interface_control`.
@@ -72,7 +81,7 @@ An explicit `a_0plus` solves the requested composition; omitting it on the PNM b
 For PNM, SYM, and beta-equilibrated upstream matter, the interface K-current is fixed by $j_K(0^+)=j_B[1-Y_p(0^-)/2]$.
 The PNM path uses the same direct fixed-$n_B(0^-)$ branch validator as the analytical solver and reuses its accepted $\mu_B(0^-)$, $P(0^-)$, and $e(0^-)$; it does not run `muB_from_nB_physical`.
 
-At every node the solver closes the quark EOS at fixed $T$, $j_B$, and momentum flux, then evaluates the exact $\mu_K$-dependent nonleptonic rate and the local $D_K[\mu_B(x),T]$.
+At every node the solver closes the quark EOS at fixed $T$, $j_B$, and momentum flux, then evaluates the approximate $\mu_K$-dependent modified Madsen rate and the local $D_K[\mu_B(x),T]$.
 It uses the standard compactified `solve_bvp` formulation with `jB` as the one scalar eigenvalue.
 The physical differential variables remain $n_K$ and $J_K$, but SciPy's internal collocation fields are separately scaled to order unity using fixed density and current scales from the initial endpoint state.
 The solver reconstructs physical fields before every EOS/rate call and returns only physical endpoint/profile values; `bvp_nK_scale`, `bvp_jK_scale`, and their initial-state inputs are included as numerical diagnostics.
@@ -110,7 +119,7 @@ sequentially, with one process pool using the allocation at a time.
 | Front speed at prescribed interface composition | `solve_front_energy_conserving_nK` | — |
 | Maximised front speed at prescribed $T(0^+)$ | `solve_front_energy_conserving_uNmax` | **Untrustworthy below $T(0^+)\approx$ a few MeV** — see [[unmax-degeneracy]] |
 | Front speed with conduction, $a(0^+)$ as output | `solve_front_thermal_conducting` | Current best. See [[thermal-conducting]] |
-| Numerical isothermal front | `solve_front_isothermal` | Solves physical $n_K,J_K$; reports local $a=n_K/n_B$; exact rate and local $D_K$; optional PNM automatic ceiling; no $\Delta\mu_B$ gate. |
+| Numerical isothermal front | `solve_front_isothermal` | Solves physical $n_K,J_K$; reports local $a=n_K/n_B$; modified Madsen rate and local $D_K$; optional PNM automatic ceiling; no $\Delta\mu_B$ gate. |
 | Catch-up / $z(t)$ evolution | `z_time_evolution` | Needs full continuation state, not scalar guesses |
 
 ## Units
@@ -118,7 +127,7 @@ sequentially, with one process pool using the allocation at a time.
 The solver is in **pure natural MeV units end to end**. Conversion from $n_0=0.16\ \mathrm{fm^{-3}}$ is localized at the density-conversion boundary rather than mixed into the front equations. Verified dimensionally:
 
 ```text
-Gamma_K = G_F^2 * mu_u^5 * muK * (muK^2 + 4 pi^2 T^2) = MeV^4   OK
+Gamma_K = G_F^2 * (muB/3)^5 * muK * (muK^2 + 4 pi^2 T^2) = MeV^4 OK
 invD    = MeV = 1/[x]                                            OK
 h*gamma*u = MeV^4                                                OK
 kappa_th * dT/dx = MeV^2 * MeV^2 = MeV^4                         OK
@@ -131,6 +140,8 @@ So $\kappa_{\rm th}$ carries units MeV² and drops in with **no conversion facto
 `paraQMCRMF3` throughout notebooks and scripts.
 
 ⚠ **The old 196/202/228 m/s reference triple is not reproducible under the current API** and should not be reused. Re-measured 2026-08-17 at $n_B = 3n_{\rm sat}$, $B^{1/4} = 180$ MeV, with $\mu_B$ derived from `muB_from_nB_physical` (giving 1190.86/1190.64/1189.74 MeV at $T(0^-)=5/10/20$ — not the 1181 MeV the old note quoted), reading `u_0minus_max`:
+
+The following table is also historical: it predates the 2026-10-21 rate/coupling change and is preserved without recalculation.
 
 | $T(0^-)$ | full, $T(0^+)=5$ | full, $T(0^+)=1$ | semi, $T(0^+)=5$ | LTE |
 |---|---|---|---|---|

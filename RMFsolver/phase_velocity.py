@@ -46,7 +46,7 @@ __all__ = [
     "z_time_evolution",
 ]
 
-_TRANSPORT_ALPHA_S = 0.3
+_TRANSPORT_ALPHA_S = 0.4
 _TRANSPORT_G_S = np.sqrt(4.0 * np.pi * _TRANSPORT_ALPHA_S)
 _TRANSPORT_QD_COEFF = np.sqrt(3.0 * _TRANSPORT_G_S**2 / (2.0 * np.pi**2))
 _TRANSPORT_D_PREFACTOR = 24.0 * _TRANSPORT_ALPHA_S**2 / np.pi
@@ -55,6 +55,9 @@ _TRANSPORT_D_PREFACTOR = 24.0 * _TRANSPORT_ALPHA_S**2 / np.pi
 _TRANSPORT_H_CONST = float(
     gamma_function(8.0 / 3.0) * riemann_zeta(5.0 / 3.0) * (2.0 * np.pi) ** (2.0 / 3.0) / 6.0
 )
+# The legacy rate_model="exact_nonleptonic" label is kept for scan compatibility.
+# rate_approximation identifies the modified Madsen polynomial; no exact
+# phase-space integration or QCD correction to the weak rate is included.
 _FLOAT_TINY = np.finfo(float).tiny
 _ISOTHERMAL_RETRY_ACTIVE = 0
 # Continuation resolution for the conserved-(P, h/nB) conversion-layer sweep.
@@ -563,7 +566,7 @@ def _analytic_I2_numerical(trajectory, a_0plus, B_one_forth, ms=0.0, upB=5000):
 
     D_K and Gamma_K are evaluated on the states of the conserved-(P, h/nB)
     trajectory, using the full diffusion coefficient (both the Landau-damped
-    and Debye-screened terms) and the exact non-leptonic rate, rather than the
+    and Debye-screened terms) and the modified Madsen rate, rather than the
     Landau-only and cubic-rate approximations behind the closed form.
     """
     a_values = np.asarray(trajectory["a"], dtype=float)
@@ -954,14 +957,20 @@ def _analytic_weak_rate_from_mu_q(mu_q):
 
 
 def _exact_kaon_transport_rate(muB, muK, T, ms=0.0, upB=5000):
-    """Return the positive kaon relaxation rate Gamma_K."""
+    """Return the signed modified Madsen rate with the (muB/3)**5 prefactor.
+
+    The function name is legacy: this is an approximate polynomial, not an
+    exact phase-space integral. Gamma_K is positive for positive muK. The EOS
+    flavor potentials remain physical diagnostics, including at finite ms;
+    only the rate's fifth-power prefactor is replaced (see 26-10-14.md).
+    """
     muB = float(muB)
     muK = float(muK)
     T = float(T)
     if (not np.isfinite(muB)) or muB <= 0.0:
-        raise RuntimeError("Exact kaon rate requires muB > 0")
+        raise RuntimeError("Kaon rate requires muB > 0")
     if (not np.isfinite(muK)) or (not np.isfinite(T)) or T < 0.0:
-        raise RuntimeError("Exact kaon rate requires finite muK and T >= 0")
+        raise RuntimeError("Kaon rate requires finite muK and T >= 0")
 
     quark_state = _quark_uds_state(muB, muK, T, ms=ms, upB=upB)
     chemical_potentials = quark_state["chemical_potentials"]
@@ -978,9 +987,9 @@ def _exact_kaon_transport_rate(muB, muK, T, ms=0.0, upB=5000):
         * np.sin(const.Cabibbo_angle_rad) ** 2
         * np.cos(const.Cabibbo_angle_rad) ** 2
     )
-    Gamma_K = float(prefactor * mu_u**5 * muK * (muK**2 + 4.0 * np.pi**2 * T**2))
+    Gamma_K = float(prefactor * (muB / 3.0)**5 * muK * (muK**2 + 4.0 * np.pi**2 * T**2))
     if not np.isfinite(Gamma_K):
-        raise RuntimeError("Exact kaon rate is non-finite")
+        raise RuntimeError("Kaon rate is non-finite")
     return {
         "Gamma_K": Gamma_K,
         "mu_u": mu_u,
@@ -3221,7 +3230,7 @@ def semi_analytic_velocity_bound(
 
     The conversion layer follows the conserved (P, h/nB) trajectory. The exact
     EOS supplies a(0+) = nK/nB at the requested temperature, and I2 is integrated
-    numerically with the full diffusion coefficient and exact weak rate.
+    numerically with the full diffusion coefficient and modified Madsen rate.
     """
     result = _solve_analytic_velocity_bound(
         muB_0minus,
@@ -4022,13 +4031,11 @@ def _microphysics_from_quark_state_isothermal_baseline(muB, T):
     if (not np.isfinite(muQ)) or muQ <= 0.0:
         raise RuntimeError("Local microphysics requires muQ > 0")
 
-    alpha_s = 0.3
-    g_s = np.sqrt(4.0 * np.pi * alpha_s)
-    qD = np.sqrt(3.0 * g_s**2 * muQ**2 / (2.0 * np.pi**2))
-    h_const = 1.81317
-    part1 = h_const * T**(5.0 / 3.0) / qD**(2.0 / 3.0)
+    alpha_s = float(_TRANSPORT_ALPHA_S)
+    qD = _TRANSPORT_QD_COEFF * muQ
+    part1 = _TRANSPORT_H_CONST * T**(5.0 / 3.0) / qD**(2.0 / 3.0)
     part2 = np.pi**3 * T**2 / (12.0 * qD)
-    D = 1.0 / (24.0 * alpha_s**2 / np.pi * (part1 + part2))
+    D = 1.0 / (_TRANSPORT_D_PREFACTOR * (part1 + part2))
     eta = 9.0 * np.pi**2 * T**2 / muQ**2
     weak_rate = _weak_rate_from_mu_q(muQ)
     tau = float(weak_rate["tau"])
@@ -5086,7 +5093,7 @@ def solve_front_isothermal(
     ``a_0plus`` is the local interface fraction nK(0+)/nB(0+).  The BVP
     transports separately scaled internal representations of the physical K
     density and current, reconstructs the physical fields before each local
-    EOS solve, and evaluates both D_K and the exact nonleptonic rate at every
+    EOS solve, and evaluates both D_K and the modified Madsen rate at every
     node. Returned endpoint and profile fields remain in physical units.
 
     ``continuation_guess`` accepts the lightweight ``continuation_state`` from
@@ -5630,6 +5637,7 @@ def solve_front_isothermal(
             "composition_definition": "nK_over_local_nB",
             "current_definition": "u_nK_minus_D_K_dnK_dx",
             "rate_model": "exact_nonleptonic",
+            "rate_approximation": "madsen_muB_over_3",
             "diffusion_model": "local_muB_fixed_T",
             "bvp_status": -999,
             "initial_guess_mode_requested": initial_guess_mode,
@@ -5745,6 +5753,7 @@ def solve_front_isothermal(
         "composition_definition": "nK_over_local_nB",
         "current_definition": "u_nK_minus_D_K_dnK_dx",
         "rate_model": "exact_nonleptonic",
+        "rate_approximation": "madsen_muB_over_3",
         "diffusion_model": "local_muB_fixed_T",
         "_residual": np.asarray(bc_residual, dtype=float),
         "_root_method": "solve_bvp_nK_parameter_1d",
@@ -6110,7 +6119,7 @@ def _solve_front_energy_conserving_nK_once(
     verb=False,
     profile_guess=None,
 ):
-    """Solve the energy-conserving front using absolute nK and the exact rate."""
+    """Solve the energy-conserving front using nK and the modified Madsen rate."""
     T_0minus = float(T_0minus)
     nB_0minus = float(nB_0minus)
     a_0plus = float(a_0plus)
@@ -6241,7 +6250,7 @@ def _solve_front_energy_conserving_nK_once(
         )["Gamma_K"]
         rate_slope = float(rate_probe / delta_nK)
         if (not np.isfinite(rate_slope)) or rate_slope <= 0.0:
-            raise RuntimeError("downstream exact-rate slope must be positive")
+            raise RuntimeError("downstream kaon-rate slope must be positive")
         u_inf = float(thermo["u"])
         lam = float((-u_inf + np.sqrt(u_inf * u_inf + 4.0 * D_inf * rate_slope)) / (2.0 * D_inf))
         target = {
@@ -6391,6 +6400,7 @@ def _solve_front_energy_conserving_nK_once(
             "message": f"absolute-nK energy BVP failed: {exc}; last failure: {last_failure['message']}",
             "a_0plus": a_0plus,
             "rate_model": "exact_nonleptonic",
+            "rate_approximation": "madsen_muB_over_3",
             "composition_definition": "nK_over_local_nB",
             "current_definition": "u_nK_minus_D_dnK_dx",
             "_root_method": "solve_bvp_nK_parameter_1d",
@@ -6472,6 +6482,7 @@ def _solve_front_energy_conserving_nK_once(
         "bvp_nodes": int(sol.x.size),
         "bvp_parameters": np.asarray(sol.p, dtype=float),
         "rate_model": "exact_nonleptonic",
+        "rate_approximation": "madsen_muB_over_3",
         "composition_definition": "nK_over_local_nB",
         "current_definition": "u_nK_minus_D_dnK_dx",
         "_root_method": "solve_bvp_nK_parameter_1d",
@@ -6836,7 +6847,7 @@ def _solve_front_energy_conserving_uNmax_once(
         )["Gamma_K"]
         rate_slope = float(rate_probe / delta_nK)
         if (not np.isfinite(rate_slope)) or rate_slope <= 0.0:
-            raise RuntimeError("uNmax downstream exact-rate slope must be positive")
+            raise RuntimeError("uNmax downstream kaon-rate slope must be positive")
         u_inf = float(thermo_inf["u"])
         lam = float((-u_inf + np.sqrt(u_inf * u_inf + 4.0 * D_inf * rate_slope)) / (2.0 * D_inf))
         if (not np.isfinite(lam)) or lam <= 0.0:
@@ -6976,6 +6987,7 @@ def _solve_front_energy_conserving_uNmax_once(
             "T_0plus": T_0plus,
             "solver_variant": "energy_conserving_nK_fixed_T_0plus",
             "rate_model": "exact_nonleptonic",
+            "rate_approximation": "madsen_muB_over_3",
             "composition_definition": "nK_over_local_nB",
             "current_definition": "u_nK_minus_D_dnK_dx",
             "density_ratio_definition": "lambda_n_equals_nB_0minus_over_nB_inf",
@@ -7064,6 +7076,7 @@ def _solve_front_energy_conserving_uNmax_once(
             "T_0plus": T_0plus,
             "solver_variant": "energy_conserving_nK_fixed_T_0plus",
             "rate_model": "exact_nonleptonic",
+            "rate_approximation": "madsen_muB_over_3",
             "composition_definition": "nK_over_local_nB",
             "current_definition": "u_nK_minus_D_dnK_dx",
             "density_ratio_definition": "lambda_n_equals_nB_0minus_over_nB_inf",
@@ -7105,6 +7118,7 @@ def _solve_front_energy_conserving_uNmax_once(
             "T_0plus": T_0plus,
             "solver_variant": "energy_conserving_nK_fixed_T_0plus",
             "rate_model": "exact_nonleptonic",
+            "rate_approximation": "madsen_muB_over_3",
             "composition_definition": "nK_over_local_nB",
             "current_definition": "u_nK_minus_D_dnK_dx",
             "density_ratio_definition": "lambda_n_equals_nB_0minus_over_nB_inf",
@@ -7239,6 +7253,7 @@ def _solve_front_energy_conserving_uNmax_once(
         "branch_label": "muK-rich",
         "energy_flux_equation": "E_rgamma_const",
         "rate_model": "exact_nonleptonic",
+        "rate_approximation": "madsen_muB_over_3",
         "composition_definition": "nK_over_local_nB",
         "current_definition": "u_nK_minus_D_dnK_dx",
         "density_ratio_definition": "lambda_n_equals_nB_0minus_over_nB_inf",
@@ -8517,6 +8532,7 @@ def _solve_front_thermal_conducting_once(
         "bvp_scales": np.asarray(bvp_scales, dtype=float),
         "solver_variant": "thermal_conducting_nK_jK_T",
         "rate_model": "exact_nonleptonic",
+        "rate_approximation": "madsen_muB_over_3",
         "conductivity_model": kappa_model["name"],
         "conductivity_y_max": float(kappa_model["y_max"]),
         "energy_closure": "F_E = h*gamma*u - kappa_th*dT/dx",

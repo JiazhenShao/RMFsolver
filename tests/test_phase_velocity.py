@@ -1,3 +1,4 @@
+import ast
 import sys
 import warnings
 from pathlib import Path
@@ -1057,6 +1058,7 @@ def test_analytic_velocity_gamma_matches_weak_rate_and_seconds_shortcut():
         145.0,
     )
     mu_q = result["mu_q"]
+    _assert_close(result["alpha_s"], 0.4, rtol=0.0)
     gamma_expected, tau_expected = _weak_rate_expected(mu_q)
     _assert_close(result["gamma"], gamma_expected, rtol=1.0e-12)
     _assert_close(result["tau"], tau_expected, rtol=1.0e-12)
@@ -1082,30 +1084,80 @@ def test_microphysics_helpers_use_precise_weak_rate():
         _assert_close(micro["tau"], tau_expected, rtol=1.0e-12)
 
 
-def test_exact_kaon_transport_rate_uses_eos_mu_u_and_positive_sign():
-    muB = 1100.0
-    muK = 40.0
-    temp = 10.0
-    state = sqm._quark_uds_state(muB, muK, temp, ms=0.0)
-    mu_u = state["chemical_potentials"]["mu_u"]
-    expected = (
+def _kaon_rate_expected(muB, muK, temp):
+    return (
         16.0
         / (5.0 * np.pi**5)
         * const.G_Fermi**2
         * np.sin(const.Cabibbo_angle_rad) ** 2
         * np.cos(const.Cabibbo_angle_rad) ** 2
-        * mu_u**5
+        * (muB / 3.0)**5
         * muK
         * (muK**2 + 4.0 * np.pi**2 * temp**2)
     )
 
-    rate = pv._exact_kaon_transport_rate(muB, muK, temp, ms=0.0)
 
-    _assert_close(rate["Gamma_K"], expected, rtol=1.0e-12)
-    _assert_close(rate["mu_u"], mu_u, rtol=1.0e-12)
-    if rate["Gamma_K"] <= 0.0:
-        raise AssertionError("positive muK must give positive Gamma_K")
-    _assert_close(pv._exact_kaon_transport_rate(muB, 0.0, temp, ms=0.0)["Gamma_K"], 0.0, atol=0.0)
+def test_kaon_transport_rate_uses_baryon_prefactor_and_preserves_eos_diagnostics():
+    muB = 1100.0
+    for ms in (0.0, 100.0):
+        for temp in (0.0, 10.0):
+            for muK in (-80.0, 0.0, 80.0):
+                state = sqm._quark_uds_state(muB, muK, temp, ms=ms)
+                rate = pv._exact_kaon_transport_rate(muB, muK, temp, ms=ms)
+                expected = _kaon_rate_expected(muB, muK, temp)
+                _assert_close(rate["Gamma_K"], expected, rtol=1.0e-12)
+                _assert_close(np.sign(rate["Gamma_K"]), np.sign(muK), atol=0.0)
+                for key in ("mu_u", "mu_d", "mu_s"):
+                    _assert_close(rate[key], state["chemical_potentials"][key], rtol=1.0e-12)
+                if muK == 80.0:
+                    old_rate = expected * (rate["mu_u"] / (muB / 3.0))**5
+                    if np.isclose(old_rate, expected, rtol=1.0e-4, atol=0.0):
+                        raise AssertionError("unequal-flavor test must distinguish the old prefactor")
+
+
+def test_microphysics_uses_shared_alpha_s_0p4_and_consistent_diffusion():
+    muB = 1100.0
+    expected_qD = np.sqrt(6.0 * 0.4 / np.pi) * (muB / 3.0)
+    # HP93 Eq. (25), Gamma(8/3)*zeta(5/3)*(2*pi)**(2/3)/6, evaluated with mpmath.
+    hp93_h_D = 1.8131745180482931
+    _assert_close(pv._TRANSPORT_H_CONST, hp93_h_D, rtol=1.0e-15)
+    for temp in (1.0e-3, 10.0, 100.0):
+        energy = pv._microphysics_from_quark_state_energy(muB, temp)
+        isothermal = pv._microphysics_from_quark_state_isothermal_baseline(muB, temp)
+        expected_invD = 24.0 * 0.4**2 / np.pi * (
+            hp93_h_D * temp**(5.0 / 3.0) / expected_qD**(2.0 / 3.0)
+            + np.pi**3 * temp**2 / (12.0 * expected_qD)
+        )
+        for micro in (energy, isothermal):
+            _assert_close(micro["alpha_s"], 0.4, rtol=0.0)
+            _assert_close(micro["qD"], expected_qD, rtol=1.0e-12)
+        _assert_close(energy["invD"], expected_invD, rtol=1.0e-12)
+        _assert_close(isothermal["D"] * energy["invD"], 1.0, rtol=1.0e-12)
+
+
+def test_all_rate_tagged_result_paths_identify_the_approximation():
+    # Cover every tagged success/failure dictionary without triggering expensive
+    # nonlinear failures in each solver. Runtime cases also check the public output.
+    tree = ast.parse(inspect.getsource(pv))
+    tagged_paths = 0
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Dict):
+            continue
+        entries = {
+            key.value: value for key, value in zip(node.keys, node.values)
+            if isinstance(key, ast.Constant) and isinstance(key.value, str)
+        }
+        if "rate_model" not in entries:
+            continue
+        tagged_paths += 1
+        if ast.literal_eval(entries["rate_model"]) != "exact_nonleptonic":
+            raise AssertionError("legacy rate_model compatibility label changed")
+        if "rate_approximation" not in entries:
+            raise AssertionError(f"missing rate approximation at line {node.lineno}")
+        if ast.literal_eval(entries["rate_approximation"]) != "madsen_muB_over_3":
+            raise AssertionError(f"incorrect rate approximation at line {node.lineno}")
+    if not tagged_paths:
+        raise AssertionError("no rate-tagged result paths were checked")
 
 
 def test_local_energy_closure_uses_absolute_nK_target():
@@ -1168,11 +1220,24 @@ def test_solve_front_energy_conserving_nK_regression():
         raise AssertionError("absolute-nK solver must use only jB as a BVP parameter")
     if result.get("current_definition") != "u_nK_minus_D_dnK_dx":
         raise AssertionError("absolute-nK solver must report the physical kaon current")
+    if result.get("rate_model") != "exact_nonleptonic":
+        raise AssertionError("absolute-nK solver must retain the legacy rate label")
+    if result.get("rate_approximation") != "madsen_muB_over_3":
+        raise AssertionError("absolute-nK solver must identify the modified Madsen rate")
     for key in ("nK", "jK", "a", "nB", "muB", "muK", "T_profile", "Gamma_K_profile"):
         if key not in result:
             raise AssertionError(f"missing profile key {key!r}")
     if "q" in result or "bvp_q" in result:
         raise AssertionError("absolute-nK solver must not return q aliases")
+    np.testing.assert_allclose(
+        result["Gamma_K_profile"],
+        _kaon_rate_expected(
+            np.asarray(result["muB"]), np.asarray(result["muK"]),
+            np.asarray(result["T_profile"]),
+        ),
+        rtol=1.0e-12,
+        atol=0.0,
+    )
     np.testing.assert_allclose(
         np.asarray(result["a"], dtype=float),
         np.asarray(result["nK"], dtype=float) / np.asarray(result["nB"], dtype=float),
@@ -1470,7 +1535,9 @@ def test_solve_front_energy_conserving_uNmax_regression():
     if result.get("current_definition") != "u_nK_minus_D_dnK_dx":
         raise AssertionError("uNmax solver must report the physical kaon current")
     if result.get("rate_model") != "exact_nonleptonic":
-        raise AssertionError("uNmax solver must use the exact nonleptonic rate")
+        raise AssertionError("uNmax solver must retain the legacy rate label")
+    if result.get("rate_approximation") != "madsen_muB_over_3":
+        raise AssertionError("uNmax solver must identify the modified Madsen rate")
     if result.get("_root_method") != "solve_bvp_nK_jK_parameter_jB":
         raise AssertionError("uNmax solver must report the nK/jK BVP method")
     if np.asarray(result["bvp_parameters"]).size != 1:
@@ -1680,6 +1747,14 @@ def test_solve_front_energy_conserving_uNmax_profile():
         raise AssertionError("uNmax profile should expose invD_profile, not D_profile")
 
     T_profile = np.asarray(result["T_profile"], dtype=float)
+    np.testing.assert_allclose(
+        result["Gamma_K_profile"],
+        _kaon_rate_expected(
+            np.asarray(result["muB"]), np.asarray(result["muK"]), T_profile,
+        ),
+        rtol=1.0e-12,
+        atol=0.0,
+    )
     E_profile = np.asarray(result["h_profile"], dtype=float) * np.asarray(result["u"], dtype=float) * np.asarray(result["r_gamma_profile"], dtype=float)
     if not np.all(np.isfinite(T_profile)) or np.any(T_profile <= 0.0):
         raise AssertionError("expected positive finite uNmax temperature profile")
@@ -2040,8 +2115,8 @@ _TC_Z3 = 1.2020569031595943
 
 def _tc_reference_kappa(muB):
     """kappa_th(T->0+) = pi^3 vF^2 qD^2 / (48 zeta(3) alpha_s^2), vF = 1."""
-    qD = pv._TRANSPORT_QD_COEFF * (float(muB) / 3.0)
-    return float(np.pi**3 * qD**2 / (48.0 * _TC_Z3 * pv._TRANSPORT_ALPHA_S**2))
+    qD = np.sqrt(6.0 * 0.4 / np.pi) * (float(muB) / 3.0)
+    return float(np.pi**3 * qD**2 / (48.0 * _TC_Z3 * 0.4**2))
 
 
 def test_thermal_conductivity_zero_temperature_limit_is_finite_and_positive():

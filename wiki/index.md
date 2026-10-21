@@ -1,7 +1,7 @@
 ---
 summary: Catalog of every wiki page. Read this first; drill down from here.
 status: current
-updated: 2026-10-20
+updated: 2026-10-21
 tags: [meta, index]
 ---
 
@@ -29,7 +29,7 @@ The nuclear→quark combustion front project. **This is the only page loaded by 
 | [[bag-model-thermal-gluons]] | Appendix A cites Madsen and Buballa reviews for thermal gluons; combustion precedents, effective-model exceptions and distinction from interaction corrections |
 | [[charge-neutral-quark-eos]] | Appendix A density representation, neutral quartic expansion and consistent density derivatives |
 | [[composition-constraint-plot-audit]] | Neutral and revised simple PI plots match; exact a=1 endpoints are 669.01 and 344.13 MeV at mu_B=1200 MeV |
-| [[strangeness-reaction-diffusion]] | Madsen rate is approximate even in the numerical solver; exact-rate speed impact ≤20% for a(0+)≤0.7, NLO (2609.35165) ≈ +19% speed; diffusion and coupling choice |
+| [[strangeness-reaction-diffusion]] | Live solver uses the approximate Madsen rate with (mu_B/3)^5 and alpha_s=0.4; prior mu_u^5 speed comparisons are historical; no NLO rate correction |
 | [[unequal-flavor-weak-rate]] | General massless collision integral and neutral T=0 checks: full/Eq. (23) rate is 0.932 at a=0.146 and 0.359 at a=0.9 |
 | [[massless-finite-temperature-weak-rate]] | Exact cold/T-squared derivation, 192-state grid, isothermal sensitivity, and 2026-10-15 collaborator CSVs for 60 freshly calculated states |
 | [[adiabatic-weak-rate-sensitivity]] | Conserved cold-interface trajectories: universal ratios audited with six independent dimensional integrations, 153 upstream states, diffusion weighting and hot-slice limits |
@@ -48,7 +48,7 @@ The nuclear→quark combustion front project. **This is the only page loaded by 
 
 | Page | What it settles |
 |---|---|
-| [[phase-velocity-overview]] | Analytical and numerical solver APIs, including the local-fraction isothermal BVP, units, and the editing restriction |
+| [[phase-velocity-overview]] | Solver APIs, local-fraction isothermal BVP, units and editing restriction; revised rate metadata preserves legacy compatibility |
 | [[pnm-density-state-recovery]] | Direct fixed-density upstream PNM recovery replaces the analytical isothermal solver's broad chemical-potential scan |
 | [[unmax-degeneracy]] | At $T(0^+)=0$, `jB` is a non-Lipschitz continuum — `success=True` proves nothing |
 | [[unmax-low-temperature]] | The `logT`→$T^2$ fix (landed) and the $n_K$-resolution limit (open) |

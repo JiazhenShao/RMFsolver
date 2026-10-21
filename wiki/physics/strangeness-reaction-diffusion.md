@@ -1,7 +1,7 @@
 ---
-summary: The numerical front currently uses an approximate low-temperature Madsen weak rate, not the full phase-space integral; alpha_s=0.3 is a phenomenological input.
+summary: The live solver uses the modified Madsen rate with (mu_B/3)^5 and alpha_s=0.4; the former mu_u^5 rate and alpha_s=0.3 benchmarks are historical.
 status: current
-updated: 2026-10-07
+updated: 2026-10-21
 tags: [physics, weak-rates, diffusion, transport]
 ---
 
@@ -14,31 +14,37 @@ The microscopic competition that sets the laminar front speed is:
 
 ## Weak source
 
-For positive $\mu_K$, the active manuscript uses the Madsen form
+Since 2026-10-21, `phase_velocity.py` uses the modified Madsen form selected in `26-10-14.md`:
 
-$$\Gamma_K=\mathcal A_K\mu_u^5\mu_K(\mu_K^2+4\pi^2T^2),$$
+$$\Gamma_K=\mathcal A_K\left(\frac{\mu_B}{3}\right)^5\mu_K(\mu_K^2+4\pi^2T^2),$$
 
 $$\mathcal A_K=\frac{16}{5\pi^5}G_F^2\sin^2\theta_C\cos^2\theta_C.$$
 
-In the quadratic [[quark-matter-eos|EOS]] approximation, with `mu_u = mu_B/3`, this becomes
+Only the fifth-power prefactor changed; the EOS flavor potentials, $\mu_K$, temperature, normalization and signed source convention are preserved.
+This reduces the overestimate in the compared unequal-flavor states but does not recover their exact phase space.
+All local numerical rate calls and the semi-analytical $I_2$ integration use this prescription; the analytical weak coefficient already used $\mu_B/3$.
+The helper `_exact_kaon_transport_rate` and `rate_model="exact_nonleptonic"` are legacy compatibility names; every result carrying that label now also reports `rate_approximation="madsen_muB_over_3"`.
+No exact phase-space integral or QCD weak-rate correction was added, and the existing hydrodynamic closures remain unchanged.
+
+In the quadratic [[quark-matter-eos|EOS]] approximation, this becomes
 
 ```text
 Gamma_K = n_B*gamma_K*(a^3 + 81*pi^2*T^2*a/mu_B^2)
 gamma_K = 128*G_F^2*sin(theta_C)^2*cos(theta_C)^2*mu_B^5/(3^8*5*pi^3)
 ```
 
-The manuscript now writes the thermal factor explicitly and uses the baryon chemical potential throughout; this replaces the former common quark chemical potential and thermal-factor shorthand without changing the rate.
+The earlier manuscript notation rewrite expressed the thermal factor and common quark potential in baryon-potential notation without changing that analytical approximation; the 2026-10-21 change instead replaces the numerical rate prefactor.
 At constant temperature and baryon chemical potential, integrating from zero to the interface fraction gives `I2 = D_K*gamma_K*a(0+)^2*(a(0+)^2 + 162*pi^2*T^2/mu_B^2)/4`.
 The cubic rate term dominates for `a(0+) >> 9*pi*T/mu_B`, not `3*pi*T/mu_B`; the latter was a factor-of-three error corrected on 2026-09-23.
 Wolfram verified the rate substitution and the integral exactly.
 
-The cubic term is suprathermal; the term linear in $a$ is the finite-temperature subthermal contribution. The earlier description of the numerical calculation as using a full rate is superseded by the 2026-10-07 source/code check below: it evaluates the same approximate polynomial with the neutral-EOS chemical potentials.
+The cubic term is suprathermal; the term linear in $a$ is the finite-temperature subthermal contribution. The earlier description of the numerical calculation as using a full rate was superseded by the 2026-10-07 audit below; the later prefactor substitution still leaves an approximate polynomial.
 
 ### Rate approximation audit (2026-10-07)
 
 The `Madsen:1993xx` entry correctly identifies J. Madsen, Phys. Rev. D 47, 325--330 (1993), DOI `10.1103/PhysRevD.47.325`. Indexed text of the original paper, pp. 327--329, distinguishes the exact zero-temperature, zero-strange-mass expressions (20)--(21), their small-imbalance limit (22), and the low-temperature net-rate approximation (23). Section IV states the equal-up/down-chemical-potential and near-equilibrium assumptions and discusses corrections for unequal chemical potentials. The finite-temperature cubic-plus-linear structure used in B1 is the Eq. (23) approximation, not an exact arbitrary-composition rate. A small imbalance relative to the Fermi scale need not be small relative to temperature.
 
-`RMFsolver/phase_velocity.py`, `_exact_kaon_transport_rate`, obtains the neutral chemical potentials, checks their down/strange difference, then directly evaluates the polynomial with the up-quark fifth-power prefactor. It does not integrate weak-interaction phase space. Solving the EOS exactly therefore does not remove the rate approximation, and the spectator-quark explanation alone does not justify the prefactor away from nearly equal flavor chemical potentials. No rate error across saved front profiles has been measured in this audit; that remains an open validation task, especially away from equilibrium.
+At the time of this audit, `_exact_kaon_transport_rate` obtained the neutral chemical potentials, checked their down/strange difference, then evaluated the polynomial with the up-quark fifth-power prefactor; that prefactor was superseded on 2026-10-21 as described above. It did not integrate weak-interaction phase space. Solving the EOS exactly therefore did not remove the rate approximation, and the spectator-quark explanation alone did not justify the prefactor away from nearly equal flavor chemical potentials. No rate error across saved front profiles was measured in this audit.
 
 Source-access limitation: the original PDF could not be downloaded or visually inspected; equation numbering and assumptions were checked against its indexed text. The same polynomial and normalization are independently reproduced in Eqs. (17)--(18) of [Xu et al., Chin. Phys. C 45, 015103 (2021)](https://cpc.ihep.ac.cn/fileZGWLC/journal/article/zgwlc/2021/1/PDF/CPC-2020-0270.pdf). The [original article record](https://journals.aps.org/prd/abstract/10.1103/PhysRevD.47.325) confirms the citation metadata; manuscript and code were not changed.
 
@@ -55,7 +61,7 @@ For unpaired degenerate quark matter,
 $$D_K^{-1}=\frac{8N_f\alpha_s^2}{\pi}
 \left(h_D\frac{T^{5/3}}{q_D^{2/3}}+\frac{\pi^3T^2}{12q_D}\right),$$
 
-with $N_f=3$, $\alpha_s=0.3$, $h_D\simeq1.81$ and
+with $N_f=3$, $\alpha_s=0.4$, $h_D\simeq1.81$ and
 
 ```text
 q_D^2 = g^2*N_f*mu_B^2/(18*pi^2)
@@ -64,7 +70,8 @@ g^2 = 4*pi*alpha_s
 
 The $T^{5/3}$ term comes from Landau-damped transverse gluons and dominates the analytic low-temperature treatment. The full numerical calculation keeps both displayed terms because they become comparable in the merger-temperature range.
 
-The fixed value $\alpha_s=0.3$ is a conventional phenomenological choice in bag-model studies, represented by the parameter survey of Farhi and Jaffe and the review by Madsen. It should not be described as a controlled value obtained by running the vacuum QCD coupling directly to a scale of 400 MeV; modern perturbative calculations find reasonable convergence only at substantially higher quark chemical potentials.
+The former $\alpha_s=0.3$ phenomenological input was replaced by $0.4$ on 2026-10-21 throughout the live module, including screening, both diffusion helpers, analytical coefficients and thermal conductivity.
+The fixed coupling remains a modeling input, not a controlled value obtained by running the vacuum coupling to 400 MeV.
 
 This $D_K$ is **flavor diffusion**, not thermal diffusivity. The two relaxation channels do not share a common time; see [[quark-transport]].
 
@@ -78,15 +85,15 @@ This $D_K$ is **flavor diffusion**, not thermal diffusivity. The two relaxation 
 
 ## Former EOS mismatch and remaining rate limitation
 
-The former mismatch between the manuscript EOS and the neutral numerical EOS was resolved in Appendix A on 2026-10-05; see [[quark-matter-eos]]. The use of $\mu_u\simeq\mu_B/3$ in the analytical approximation is explicitly leading order. A separate limitation remains: the numerical weak-rate polynomial is itself approximate, even when evaluated with exact neutral chemical potentials.
+The former mismatch between the manuscript EOS and the neutral numerical EOS was resolved in Appendix A on 2026-10-05; see [[quark-matter-eos]]. The use of $\mu_u\simeq\mu_B/3$ in the analytical approximation is explicitly leading order. A separate limitation remains: exact EOS reconstruction does not make the modified Madsen weak-rate polynomial exact.
 
 ## Speed impact of the exact rate and the NLO correction (2026-10-07)
 
 Speed scales as $\sqrt{I_2}$, so what matters is $I_2=\int_0^{a(0^+)}\Gamma_K\,da$, not the local rate.
 The numbers below are isothermal estimates at fixed $\mu_B=900$ or 1200 MeV, $T=0$ to 80 MeV.
 They come from the exact tree-level rate of [[massless-finite-temperature-weak-rate]], not from BVP re-solves.
-The rows compare the exact rate with the two rates now in use.
-"Numerical" is Madsen's Eq. (23) at exact neutral potentials, as in `_exact_kaon_transport_rate`.
+These historical rows compare the exact rate with the two prescriptions used before 2026-10-21; their values have not been regenerated.
+"Numerical" is Madsen's Eq. (23) with the former $\mu_u^5$ prefactor.
 "Analytic" is the linearized form $n_B\gamma_K(a^3+81\pi^2T^2a/\mu_B^2)$.
 
 | $a(0^+)$ | 0.3 | 0.5 | 0.7 | 0.9 | 0.99 |
@@ -103,8 +110,8 @@ The correction is $\Gamma^{(1)}/\Gamma^{(0)}=\alpha_s(-0.7366\ln\alpha_s+0.4943)
 Their tree level, $64N_c^2/(45\pi^3)$, equals Madsen's $\mathcal C_K\cdot4\pi^2$.
 The calculation does not cover suprathermal $\mu_K\gg T$, unequal Fermi momenta, or $\mu_q\approx300$--$400$ MeV, where $\alpha_s(2\mu_q)\approx0.5$.
 Applied as a uniform K-factor, it gives speeds about +19% at $\alpha_s=0.3$.
-That partly cancels the tree-level correction: exact tree level times K lies within about ±17% of the current numerical speeds for $a(0^+)\le0.9$, and 13 to 29% below them at 0.99.
-The 2026-10-07 assessment was to keep both rates in the code and analytics, and to revise only the appendix text.
+That partly cancels the tree-level correction: exact tree level times K lies within about ±17% of the former numerical speed estimates for $a(0^+)\le0.9$, and 13 to 29% below them at 0.99.
+The 2026-10-07 decision to retain the old numerical prefactor was superseded by the 2026-10-21 implementation above; the NLO correction remains unimplemented.
 
 **Adiabatic universality (checked 2026-10-11).** The standalone note's Sec. 8.6 gives identical adiabatic speed ratios at every $T(0^-)$, for example Eq. (23) at +3.70%, +16.66% and +56.11% for $a(0^+)=0.146$, 0.5 and 0.9.
 This is an exact scaling of the model, not a bug.

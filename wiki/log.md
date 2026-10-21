@@ -927,6 +927,15 @@ Increased the numerical overview's panel height, included zero in density/speed 
 Refreshed the single plotting cell, its PNG, and `boundary_schematic_real.pdf`; the original figure, manuscript source, all other notebook cells, and numerical data are unchanged.
 Seven boundary-profile checks and three trajectory-style tests pass. Inspected Figure 3 in the rebuilt manuscript; unrelated pre-existing duplicate-label/two unresolved-reference warnings remain. See [[notebook-trajectory-figures]].
 
+## [2026-10-21] implementation | Weak-rate prefactor and shared strong coupling
+
+Updated only `RMFsolver/phase_velocity.py` within the protected solver directory: local rates now use `(muB/3)**5`, and shared transport uses `alpha_s=0.4`, including the formerly separate isothermal setting and thermal conductivity.
+The analytical weak coefficient, EOS flavor diagnostics, conservation laws and numerical workflows are unchanged.
+All nine result dictionaries carrying the legacy `rate_model="exact_nonleptonic"` label now also carry `rate_approximation="madsen_muB_over_3"`; saved artifacts and historical benchmark values were preserved.
+Forty targeted tests pass, covering signed/cold/finite-mass rates, diffusion and conductivity, analytical APIs, numerical I2, warm isothermal profiles, failure metadata and both energy-conserving solvers, including profile rate and conservation checks.
+The two older synthetic analytical tests `test_analytic_velocity_recovers_synthetic_equilibrium_and_uses_eos_density` and `test_analytic_velocity_lte_formula_and_default_mode` still fail with `SlowFrontNoSolution`; both failures were reproduced using unchanged HEAD source and HEAD tests, with the same 42.0272 MeV enthalpy gap.
+Tests used the existing isolated SciPy runtime with direct-function and unittest execution because pytest is absent; no solver tolerance was relaxed. See [[strangeness-reaction-diffusion]] and [[phase-velocity-overview]].
+
 ## [2026-10-21] source-check | HP93 Eq. (25): h_D carries a /6
 
 Checked the local HP93 PDF: Eq. (25) defines $h_D=\Gamma(\tfrac83)\zeta(\tfrac53)(2\pi)^{2/3}/6\simeq1.81$, and quadrature of Eqs. (20) and (23) confirms it.

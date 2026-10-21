@@ -53,6 +53,7 @@ class IsothermalNumericalLocalFractionTests(unittest.TestCase):
             "u_nK_minus_D_K_dnK_dx",
         )
         self.assertEqual(result["rate_model"], "exact_nonleptonic")
+        self.assertEqual(result["rate_approximation"], "madsen_muB_over_3")
         self.assertEqual(result["diffusion_model"], "local_muB_fixed_T")
         self.assertEqual(result["a_0minus"], 1.0)
         self.assertAlmostEqual(result["a_0plus_derived"], 0.6, places=8)
@@ -115,21 +116,28 @@ class IsothermalNumericalLocalFractionTests(unittest.TestCase):
         )
         self.assertAlmostEqual(downstream["muK"], 0.0)
 
-        exact_rates = np.array(
-            [
-                pv._exact_kaon_transport_rate(muB, muK, 10.0, ms=0.0)[
-                    "Gamma_K"
-                ]
-                for muB, muK in zip(result["muB"], result["muK"])
-            ],
-            dtype=float,
+        muB = np.asarray(result["muB"])
+        muK = np.asarray(result["muK"])
+        expected_rates = (
+            16.0 / (5.0 * np.pi**5) * const.G_Fermi**2
+            * np.sin(const.Cabibbo_angle_rad)**2
+            * np.cos(const.Cabibbo_angle_rad)**2
+            * (muB / 3.0)**5 * muK * (muK**2 + 4.0 * np.pi**2 * 10.0**2)
         )
         np.testing.assert_allclose(
             result["Gamma_K"],
-            exact_rates,
+            expected_rates,
             rtol=1.0e-12,
             atol=0.0,
         )
+
+    def test_failed_bvp_preserves_legacy_label_and_identifies_approximation(self):
+        with patch.object(pv, "solve_bvp", side_effect=RuntimeError("forced BVP failure")):
+            result = self._warm_profile(return_profile=False)
+        self.assertFalse(result["success"])
+        self.assertIn("forced BVP failure", result["message"])
+        self.assertEqual(result["rate_model"], "exact_nonleptonic")
+        self.assertEqual(result["rate_approximation"], "madsen_muB_over_3")
 
     def test_bvp_receives_separately_normalized_nK_and_jK_fields(self):
         solve_bvp_original = pv.solve_bvp
