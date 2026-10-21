@@ -4,6 +4,7 @@ import warnings
 from scipy.integrate import solve_bvp, solve_ivp
 from scipy.optimize import fsolve, root_scalar, root
 from scipy.interpolate import CubicSpline
+from scipy.special import gamma as gamma_function, zeta as riemann_zeta
 import RMFsolver.constants as const
 import RMFsolver.RMFparameter as para
 from RMFsolver.SQMsolver import (
@@ -49,7 +50,11 @@ _TRANSPORT_ALPHA_S = 0.3
 _TRANSPORT_G_S = np.sqrt(4.0 * np.pi * _TRANSPORT_ALPHA_S)
 _TRANSPORT_QD_COEFF = np.sqrt(3.0 * _TRANSPORT_G_S**2 / (2.0 * np.pi**2))
 _TRANSPORT_D_PREFACTOR = 24.0 * _TRANSPORT_ALPHA_S**2 / np.pi
-_TRANSPORT_H_CONST = 1.81317
+# Landau-damped transverse coefficient of HP93 Eq. (25):
+# h_D = Gamma(8/3) * zeta(5/3) * (2*pi)**(2/3) / 6 = 1.8131745...
+_TRANSPORT_H_CONST = float(
+    gamma_function(8.0 / 3.0) * riemann_zeta(5.0 / 3.0) * (2.0 * np.pi) ** (2.0 / 3.0) / 6.0
+)
 _FLOAT_TINY = np.finfo(float).tiny
 _ISOTHERMAL_RETRY_ACTIVE = 0
 # Continuation resolution for the conserved-(P, h/nB) conversion-layer sweep.

@@ -28,7 +28,7 @@ $$h_D=\frac{\Gamma(\tfrac{8}{3})\,\zeta(\tfrac{5}{3})\,(2\pi)^{2/3}}{6}=1.813174
 
 Without the $/6$ the expression evaluates to $10.879$.
 Until 2026-10-21 the manuscripts (`Latex_writting/Main.tex`, `Hydrodynamical combustion/Main.tex` and `Notes.tex`, `Latex_drop_in_integrated/section.tex`) printed it without the $/6$ beside "$\simeq1.81$"; the $/6$ has been restored there.
-The code was never affected: `_TRANSPORT_H_CONST = 1.81317` is hardcoded.
+The code was never affected: `_TRANSPORT_H_CONST` was hardcoded as `1.81317` and, since 2026-10-21, is evaluated from the closed form with `scipy.special.gamma` and `zeta` (relative error $5\times10^{-16}$ against 30-digit mpmath).
 The value was rederived from HP93 Eqs. (20) and (23), with transverse term $\frac{\pi}{6}(4\omega^2/\pi q_D^2)^{1/3}$ and the identity $\int_0^\infty s^{5/3}\,\frac{e^{-s}}{(1-e^{-s})^2}\,ds=\Gamma(\tfrac83)\zeta(\tfrac53)$; quadrature agrees to $10^{-20}$.
 The longitudinal coefficient $\pi^3/12$ checks the same way.
 

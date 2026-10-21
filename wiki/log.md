@@ -932,3 +932,8 @@ Seven boundary-profile checks and three trajectory-style tests pass. Inspected F
 Checked the local HP93 PDF: Eq. (25) defines $h_D=\Gamma(\tfrac83)\zeta(\tfrac53)(2\pi)^{2/3}/6\simeq1.81$, and quadrature of Eqs. (20) and (23) confirms it.
 The manuscripts printed the closed form without the $/6$, which evaluates to $10.88$; the $/6$ was restored in `Latex_writting/Main.tex`, `Hydrodynamical combustion/Main.tex` and `Notes.tex`, and `Latex_drop_in_integrated/section.tex` (`Main_old.tex` left as archive).
 Code is unaffected (`_TRANSPORT_H_CONST = 1.81317`), and Eqs. (28) and (36) and the $q_D$ definition match `_TRANSPORT_D_PREFACTOR`. See [[heiselberg-pethick-1993]].
+
+## [2026-10-21] implementation | h_D evaluated from its closed form
+
+`_TRANSPORT_H_CONST` in `RMFsolver/phase_velocity.py` is now computed as $\Gamma(\tfrac83)\zeta(\tfrac53)(2\pi)^{2/3}/6$ with `scipy.special`, replacing the rounded `1.81317`; relative error against 30-digit mpmath is $5\times10^{-16}$, a $2.5\times10^{-6}$ shift from the old value.
+The diffusion test now pins HP93's exact value. In `tests/test_phase_velocity.py` 76/87 pass; all 11 failures reproduce identically with the old constant (stale keys/attributes, the known strict-retry and `SlowFrontNoSolution` cases, and a $1.287\times10^{-6}$ thermal-conducting flux tolerance). See [[heiselberg-pethick-1993]].
