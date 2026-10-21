@@ -898,6 +898,19 @@ Added four exact INSPIRE-HEP bibliography exports and regenerated a malformed Ma
 The active `Latex_writting/Main.tex` now builds successfully to 17 pages with no undefined citations/references; checked the restored figure and affected pages visually.
 Existing package/float warnings and a small equation overfull box remain; no physics formulas, notebooks, or solver files were changed. See [[combustion-paper]].
 
+## [2026-10-19] visualization | Numerical adiabatic boundary overview
+
+Added provenance and an executed four-panel plotting cell to `All_Plots_new.ipynb`, retaining all 27 original cells.
+Used the saved 200-point adiabatic profile without a new solver run; density and speed stay constant after their interface jumps, while composition and temperature relax.
+Overwrote `boundary_schematic.pdf`, saved a PNG preview, and updated only the figure width/caption in the manuscript.
+Four profile/data/style tests and three existing trajectory-style tests pass; the manuscript rebuild succeeds, and the updated Figure 2 was inspected on page 2. See [[notebook-trajectory-figures]].
+
+## [2026-10-20] visualization | Boundary-profile fonts at manuscript scale
+
+Changed the numerical boundary plotting cell to export `boundary_schematic_real.pdf`, leaving the original figure and Main.tex untouched.
+Enlarged all base text to render at 11.37 points in the full-column manuscript figure, adjusted shallow-panel spacing, and refreshed notebook/PDF/PNG outputs without changing the data.
+Five boundary-profile tests, including the new column-scaled font check, and three trajectory-style tests pass; inspected the updated Figure 3 in the compiled manuscript. See [[notebook-trajectory-figures]].
+
 ## [2026-10-20] physics | Deconfinement quench temperature
 
 Energy conservation fixes $T$ of freshly deconfined matter: at $3n_0$, $T(0^-)=10$ MeV, pure n->udd deconfinement lacks 149.96 MeV/baryon of enthalpy, and full conversion cools to $T(\infty)=6.868$ MeV; udd is allowed above $5.2836\,n_0$ ($T_q=45.58$ MeV at $6n_0$).
@@ -907,3 +920,9 @@ Wolfram-verified $T^2/T^4$ series and production-EOS checks pass; files in local
 
 No fixed entanglement entropy is released; the whole front makes 0.247 per baryon at $3n_0$, 10 MeV. Interface entropy production is the affinity of $n\to u+2d$; it caps $a(0^+)\le0.0064$ and the drop $T(0^-)-T(0^+)\le3.143$ MeV (energy gives $\ge3.132$).
 The isothermal `_solve_a_0plus_max` balance gives affinity $-33.2$ MeV/baryon at $a=0.146$; the affinity ceiling is 0.0107. Wolfram quadratic forms match; not signed off, no code changed. See [[interface-second-law]].
+
+## [2026-10-20] visualization | Balanced numerical boundary panels
+
+Increased the numerical overview's panel height, included zero in density/speed limits and ticks, and widened the homogeneous upstream region so both headings stay on their own side of the centered interface.
+Refreshed the single plotting cell, its PNG, and `boundary_schematic_real.pdf`; the original figure, manuscript source, all other notebook cells, and numerical data are unchanged.
+Seven boundary-profile checks and three trajectory-style tests pass. Inspected Figure 3 in the rebuilt manuscript; unrelated pre-existing duplicate-label/two unresolved-reference warnings remain. See [[notebook-trajectory-figures]].

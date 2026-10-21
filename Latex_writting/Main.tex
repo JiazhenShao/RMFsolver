@@ -251,6 +251,13 @@ Our calculations use natural units, $\hbar=c=k_B=1$, and metric signature $(+---
   } \label{fig:boundary_schematic}
 \end{figure}
 
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=1\linewidth]{Hydrodynamical combustion/Plots/boundary_schematic_real.pdf}
+    \caption{Caption}
+    \label{fig:boundary_schematic_real}
+\end{figure}
+
 \section{Formalism and assumptions}
 \label{sec:formalism}
 
@@ -682,7 +689,7 @@ u^{\max}_{\rm adb} (0^-) = (82\,\m\s^{-1})\,
 \end{align}
 where $A_\text{adb}$ is determined by the quark matter equation of state, and is given in Eq.~\eqref{eq:a-max}.
 Thus the typical speed of the boundary is expected to be of order $100\m\,\s^{-1}$.
-\mga{In Sec.~\ref{sec:results} we will see that this agrees well with the numerical solution at lower temperatures and densities.}
+\mga{In Sec.~\ref{sec:XX} we will see that this agrees well with the numerical solution at lower temperatures and densities.}
 In this expression the only factor that could drive the speed to a significantly higher value is $1/\sqrt{1-A_{\rm adb}}$.
 To see when $A_{\rm adb}$ could approach 1 we recall that $A_{\rm adb}$ is the largest possible K fraction in the freshly created quark matter at $x=0^+$.
 The K fraction in neutron matter is 1, so if $A_{\rm adb}=1$ then the pressure at the boundary is so high that that nuclear matter can convert to quark matter with the same flavor content.
@@ -700,7 +707,9 @@ Do we need to re-calculate and re-produce every plot?
     \item use quark EoS without gluons
     \mgacom{No, as long as we can cite reputable sources for the EoS with gluons}
     \item use full phase-space integral rate $\Gamma_K$ for full numerical calculations
-    \mgacom{I don't think we decided on this}
+    \mgacom{I don't think we decided on this}\JScom{Decided from last meeting: use $\Gamma_K(\mu_B,\mu_K,T)
+ =\mathcal C_K(\mu_B/3)^5\mu_K
+ \left(\mu_K^2+4\pi^2T^2\right)$}
     \item don't use relativistic corrections for both isothermal and adiabatic full numerical methods. 
     \item use $\alpha_s = 0.4$
 \end{itemize}
@@ -882,7 +891,7 @@ a\equiv\dfrac{n_K}{n_B}\simeq\dfrac{9\mu_K}{2\mu_B}\,.
 
 
 The rate at which the nonleptonic process relaxes the K density has been calculated by Madsen \cite{Madsen:1993xx}. Since we explore the temperature range $T\lesssim 100\,\MeV$ with $\mu_B/3 \gtrsim 300\,\MeV$ we use the low temperature expansion of the rate (Ref.~\cite{Madsen:1993xx}, Eq.~(23)),
-\mgacom{Are we going to replace $\mu_u$ with $\mu_B/3$?}
+\mgacom{Are we going to replace $\mu_u$ with $\mu_B/3$?}\JScom{I agree. I'm gonna re-calculate everything, but this section should be adjusted. }
 \begin{equation}
  \Gamma_K(\mu_B,\mu_K,T)
  =\mathcal C_K\mu_u^5\mu_K
@@ -1068,7 +1077,7 @@ u^{\max}_{\rm iso}(0^-)\simeq&(98\, {\rm m/s})
 &\times\frac{A_{\rm iso}\sqrt{A_{\rm iso}^2+162\pi^2T^2/(\mu_B^{(+)})^2}}
 {\alpha_s^{5/6}\sqrt{1-A_{\rm iso}}\sqrt{1+\xi A_{\rm iso}}}\ .
 \end{aligned}
-\label{eq:isothermal_speed_scaling_appendix}
+\label{eq:isothermal_speed_scaling}
 \end{equation}
 %
 \mga{Following the discussion in Sec.~\ref{sec:boundary_conditions} we identify $A_{\text{iso}}$ as the value of $a(0^+)$ for which the average chemical potentials at $x=0^0$ and $x=0^+$ are equal.}
@@ -1170,7 +1179,7 @@ u^{\max}_{\rm adb} (0^-) = (82\,\m\s^{-1})\,
 \label{sec:xi-shape}
 
 \mga{
-In defining the integral $I_1$ (Eq.~\eqref{eq:I1_definition}) we used the monotonicity of $a(x)$  to write $I_1$ as an integral from $a=0$ to $a(0^+)$ of the diffusive flux $g(x)\equiv-D_K(x)a'(x)$. We expect $g(a)$ to be a monotonically increasing function, rising from $g(0)=0$ to a maximum value $g(a(0^+)=\Bratio u(0^-)\bigl(1-a(0^+)\bigr)$ (from the jump condition Eq.~\eqref{eq:interface_gradient}) that for brevity we will write as $G$.
+In defining the integral $I_1$ (Eq.~\eqref{eq:I1_definition}) we used the monotonicity of $a(x)$  to write $I_1$ as an integral from $a=0$ to $a(0^+)$ of the diffusive flux $g(x)\equiv-D_K(x)a'(x)$. We expect $g(a)$ to be a monotonically increasing function, rising from $g(0)=0$ to a maximum value $g(a(0^+)=\Bratio u(0^-)\bigl(1-a(0^+)\bigr)$ (from the jump condition Eq.~\eqref{eq:interface_gradient}) which for brevity we will write as $G$.
 
 If $g$ rises linearly from $0$ to $G$ over $0\leq a\leq a(0^+)$ then the area is a triangle, $I_1=\frac12 Ga(0^+)$.
 However, it may not be linear: we can bracket the possibilities for the area as follows.
@@ -1212,7 +1221,7 @@ Each exact numerical solution yields a value for $I_1$ that corresponds to some 
 
 \mgacom{If we want to keep this appendix then we should flesh it out with some info about how to solve the equations, e.g. about shooting with trial values of $u(0^-)$ to find the right value.}
 
-\JS{We solve Eq.~\eqref{eq:reduced_BVP} at fixed temperature in the isothermal case, or at fixed energy flux \eqref{eq:energy_conservation} in the adiabatic case.}
+\JS{We solve Eq.~\eqref{eq:reduced_BVP} at fixed temperature in the isothermal case, or at fixed energy flux \eqref{eq:energy_flux_adiabatic} in the adiabatic case.}
 We compactify the semi-infinite quark region using
 \begin{equation}
  x=-L_0\ln(1-s)\,,

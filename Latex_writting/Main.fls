@@ -316,6 +316,11 @@ INPUT ./Hydrodynamical combustion/Plots/boundary_schematic.pdf
 INPUT ./Hydrodynamical combustion/Plots/boundary_schematic.pdf
 INPUT ./Hydrodynamical combustion/Plots/boundary_schematic.pdf
 INPUT ./Hydrodynamical combustion/Plots/boundary_schematic.pdf
+INPUT ./Hydrodynamical combustion/Plots/boundary_schematic_real.pdf
+INPUT ./Hydrodynamical combustion/Plots/boundary_schematic_real.pdf
+INPUT ./Hydrodynamical combustion/Plots/boundary_schematic_real.pdf
+INPUT ./Hydrodynamical combustion/Plots/boundary_schematic_real.pdf
+INPUT ./Hydrodynamical combustion/Plots/boundary_schematic_real.pdf
 INPUT ./Hydrodynamical combustion/Plots/isothermal_muB_muK_plane.pdf
 INPUT ./Hydrodynamical combustion/Plots/isothermal_muB_muK_plane.pdf
 INPUT ./Hydrodynamical combustion/Plots/isothermal_muB_muK_plane.pdf
@@ -325,9 +330,8 @@ INPUT ./Hydrodynamical combustion/Plots/T_a_constant_pressure.pdf
 INPUT ./Hydrodynamical combustion/Plots/T_a_constant_pressure.pdf
 INPUT ./Hydrodynamical combustion/Plots/T_a_constant_pressure.pdf
 INPUT ./Hydrodynamical combustion/Plots/T_a_constant_pressure.pdf
-INPUT /usr/local/texlive/2024/texmf-dist/fonts/tfm/jknappen/ec/tcrm1000.tfm
-INPUT /usr/local/texlive/2024/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc
 INPUT /usr/local/texlive/2024/texmf-dist/fonts/tfm/public/cm/cmbx10.tfm
+INPUT /usr/local/texlive/2024/texmf-dist/fonts/tfm/jknappen/ec/tcrm1000.tfm
 INPUT ./Hydrodynamical combustion/Plots/isothermal-numerical-contour.pdf
 INPUT ./Hydrodynamical combustion/Plots/isothermal-numerical-contour.pdf
 INPUT ./Hydrodynamical combustion/Plots/isothermal-numerical-contour.pdf
@@ -342,6 +346,7 @@ INPUT ./Hydrodynamical combustion/Plots/Numerical-contour.pdf
 INPUT ./Hydrodynamical combustion/Plots/Numerical-contour.pdf
 INPUT ./Hydrodynamical combustion/Plots/Numerical-contour.pdf
 INPUT ./Hydrodynamical combustion/Plots/Numerical-contour.pdf
+INPUT /usr/local/texlive/2024/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc
 INPUT ./Hydrodynamical combustion/Plots/Contour-diff-meth-0.1-band.pdf
 INPUT ./Hydrodynamical combustion/Plots/Contour-diff-meth-0.1-band.pdf
 INPUT ./Hydrodynamical combustion/Plots/Contour-diff-meth-0.1-band.pdf

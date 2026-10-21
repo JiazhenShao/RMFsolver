@@ -1,15 +1,15 @@
 # Fdb version 4
-["bibtex Main"] 1792425344.5538 "Main.aux" "Main.bbl" "Main" 1792425490.18402 0
+["bibtex Main"] 1792512496.58451 "Main.aux" "Main.bbl" "Main" 1792532351.66142 0
   "./JHEP.bst" 1781322020 19417 a7ed04a9ced0771914c1489d07a03c3a ""
-  "./MainNotes.bib" 1792425489.65811 0 d41d8cd98f00b204e9800998ecf8427e ""
+  "./MainNotes.bib" 1792532351.07916 0 d41d8cd98f00b204e9800998ecf8427e ""
   "./reflist.bib" 1792425238.74578 89104 f60864dbe2b075196b9130bc5b7db858 ""
-  "Main.aux" 1792425489.91687 22916 55d8b7cea7bca1679c693c074fdba618 "pdflatex"
+  "Main.aux" 1792532351.35717 23113 c20d9916e4ab6def15561f545babfe17 "pdflatex"
   (generated)
   "Main.bbl"
   "Main.blg"
   (rewritten before read)
-["pdflatex"] 1792425489.22706 "/Users/janshao/NSM_related/Latex_writting/Main.tex" "Main.pdf" "Main" 1792425490.18417 0
-  "/Users/janshao/NSM_related/Latex_writting/Main.tex" 1792425238.72732 94597 25724c3601b87e5148dae8acd4a59bf8 ""
+["pdflatex"] 1792532350.55518 "/Users/janshao/NSM_related/Latex_writting/Main.tex" "Main.pdf" "Main" 1792532351.66158 0
+  "/Users/janshao/NSM_related/Latex_writting/Main.tex" 1792512495.27828 95012 ce26fc0545c6f70dcef500d8347e9b56 ""
   "/usr/local/texlive/2024/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc" 1136849721 2900 1537cc8184ad1792082cd229ecc269f4 ""
   "/usr/local/texlive/2024/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
   "/usr/local/texlive/2024/texmf-dist/fonts/tfm/jknappen/ec/tcrm1000.tfm" 1136768653 1536 e07581a4bb3136ece9eeb4c3ffab8233 ""
@@ -212,15 +212,16 @@
   "Hydrodynamical combustion/Plots/Numerical-T0plus-compare-fixnB.pdf" 1786724898.15991 22280 6c2a942d38b609b686985fc43ef63966 ""
   "Hydrodynamical combustion/Plots/Numerical-contour.pdf" 1787593296.91431 29771 5daca5d70b10459fc887c77881205a42 ""
   "Hydrodynamical combustion/Plots/T_a_constant_pressure.pdf" 1792094771.4524 25350 2feac8107d6aa516de2ce29dfebffe4c ""
-  "Hydrodynamical combustion/Plots/boundary_schematic.pdf" 1790703394.49014 11120 98a00cea863282bade63f99b13e9eccd ""
+  "Hydrodynamical combustion/Plots/boundary_schematic.pdf" 1792463402.83345 28317 6f6c5362613bb311a6ef94f8509b91db ""
+  "Hydrodynamical combustion/Plots/boundary_schematic_real.pdf" 1792532278.77712 28356 e0f14808df443743763ab73e1b458630 ""
   "Hydrodynamical combustion/Plots/isothermal-analytic-numerical-logT.pdf" 1792425174.11467 55174 4c5eafbe1cdad8b9ebb47d9eea089b4e ""
   "Hydrodynamical combustion/Plots/isothermal-numerical-contour.pdf" 1790705868.57476 39922 21a06e0f569e2250a233ae17b33a6df4 ""
   "Hydrodynamical combustion/Plots/isothermal_muB_muK_plane.pdf" 1792423784.66272 24860 ed18be6c6346cde988f38c512a6fa8d8 ""
   "Hydrodynamical combustion/Plots/pressure_mu_pos.pdf" 1790703412.20384 11544 860ceb383c9787f4d7031883e1afd6ef ""
-  "Main.aux" 1792425489.91687 22916 55d8b7cea7bca1679c693c074fdba618 "pdflatex"
-  "Main.bbl" 1792425381.15786 17472 14f5c56c60196f027c1f9fbacd145257 "bibtex Main"
-  "Main.out" 1792425489.9179 4861 f236fe10fa488e8f37cd520fc45c9b1d "pdflatex"
-  "Main.tex" 1792425238.72732 94597 25724c3601b87e5148dae8acd4a59bf8 ""
+  "Main.aux" 1792532351.35717 23113 c20d9916e4ab6def15561f545babfe17 "pdflatex"
+  "Main.bbl" 1792512496.68198 17472 14f5c56c60196f027c1f9fbacd145257 "bibtex Main"
+  "Main.out" 1792532351.35854 4862 adbb14bc789a59ceb20048324186c10b "pdflatex"
+  "Main.tex" 1792512495.27828 95012 ce26fc0545c6f70dcef500d8347e9b56 ""
   "reflist.bib" 1792425238.74578 89104 f60864dbe2b075196b9130bc5b7db858 ""
   (generated)
   "Main.aux"

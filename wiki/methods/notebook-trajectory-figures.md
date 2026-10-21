@@ -1,7 +1,7 @@
 ---
-summary: All_Plots_new has matched trajectory styles; run the new cached isothermal cell last to export the manuscript PDF.
+summary: All_Plots_new exports matched trajectory figures and a four-panel numerical adiabatic boundary profile from saved data.
 status: current
-updated: 2026-10-15
+updated: 2026-10-20
 tags: [methods, notebooks, figures, manuscript]
 ---
 
@@ -28,6 +28,22 @@ Only the two matching captions in `Latex_writting/Main.tex` were updated: they u
 The completed adiabatic-label comment was removed; the manuscript body was not changed.
 The manuscript rebuild succeeds with its pre-existing undefined-citation/reference and float-placement warnings.
 See [[quark-matter-eos]] and [[steady-front-bvp]].
+
+## Numerical Boundary Overview (2026-10-19)
+
+The cell `adiabatic-boundary-profile`, immediately after the shared profile-generation cells in `All_Plots_new.ipynb`, replaces the schematic with four shallow panels for baryon density, fluid speed, K fraction, and temperature.
+It reads the existing `local_analysis_results/All_Plots_new/energy_conserving_nK_TN10_TQstar3_nBN3n0_B180.csv` without importing or rerunning the solver.
+The legacy filename is misleading: this saved profile has T(0-) = 10 MeV, T(0+) = 6.990575 MeV, nB(0-) = 3 n0, U_bag^(1/4) = 180 MeV, and a(0+) = 0.538.
+All 200 quark samples are plotted directly, after unit conversion, through 548.219 nm; the final composition is 0.003318, not exactly zero, and the endpoint is not labeled infinity.
+Density jumps from 3 to 4.527883 n0 and speed from 137.627 to 91.1864 m/s; both remain constant on the quark side in this massless example, unlike the former sketch.
+The green/magenta/blue curves retain the original colors, with red added for temperature, open axes, and a dotted interface marker.
+The cell overwrites `Latex_writting/Hydrodynamical combustion/Plots/boundary_schematic.pdf` and writes a PNG to `local_analysis_results/All_Plots_new/adiabatic_boundary_profile.png`.
+As of October 20, the notebook exports instead to `boundary_schematic_real.pdf` in the same folder, preserving `boundary_schematic.pdf` for the separate original figure.
+Axis labels, ticks, panel labels, and phase headings use 22-point source fonts, which render at 11.37 points at the manuscript's full column width, above its 10-point body text.
+The source figure was initially 6.4 by 5.1 inches; the October 20 layout revision increases it to 6.4 by 6.6 inches, includes zero on the density/speed axes, and centers the interface between equal-width phase regions.
+The headings fit wholly within their respective regions, with symmetric flow arrows; seven profile/layout tests now cover these constraints as well as font scaling and unchanged numerical data.
+Only the corresponding figure width and caption changed in `Latex_writting/Main.tex`; its 17-page PDF builds with no unresolved references, and the figure was checked on page 2.
+All 27 pre-existing notebook cells are preserved, and four numerical-profile checks plus three existing trajectory-style tests pass.
 
 ## Historical Momentum-Flux Profile
 
