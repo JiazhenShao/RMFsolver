@@ -1,5 +1,5 @@
 ---
-summary: Map of phase_velocity.py APIs; local rates use the modified Madsen (mu_B/3)^5 prefactor and shared transport coupling alpha_s=0.4.
+summary: Map of phase_velocity.py APIs, including separate isobaric slow-front BVPs and moving-flux comparison solvers with shared modified Madsen microphysics.
 status: current
 updated: 2026-10-21
 tags: [solver, api, map]
@@ -17,18 +17,20 @@ All local weak-rate calls use the modified Madsen prefactor `(muB/3)**5`, and al
 The physical EOS flavor potentials remain unchanged, and the analytical weak coefficient already used `muB/3`.
 The helper name `_exact_kaon_transport_rate` and output label `rate_model="exact_nonleptonic"` are retained for compatibility, not as claims of exact phase-space integration.
 Every result carrying that legacy label, including failures, also has `rate_approximation="madsen_muB_over_3"`.
-Function signatures and conservation-law closures are unchanged; the planned slow-flow numerical redesign is a separate task.
+The rate update did not change existing function signatures or conservation-law closures; the subsequently added isobaric slow-front APIs are documented separately in [[slow-front-solvers]].
 Saved results have not been rewritten or regenerated, and absence of the new identifier must not be interpreted as evidence for the revised rate.
 
 ## Public API
 
-Front solvers: `solve_front_isothermal` · `solve_front_energy_conserving_nK` · `solve_front_energy_conserving_uNmax` · `solve_front_thermal_conducting`
+Isobaric slow-front solvers: `solve_front_isothermal_slow` · `solve_front_adiabatic_slow` — neutral EOS paths precomputed independently of `jB`, supporting `ms=0` and `ms>0`; see [[slow-front-solvers]] for closures, cold handling and validation status.
+
+Existing comparison and conducting solvers: `solve_front_isothermal` · `solve_front_energy_conserving_nK` · `solve_front_energy_conserving_uNmax` · `solve_front_thermal_conducting`
 
 Analytic velocity: `analytic_velocity_isothermal` · `analytic_velocity_bound` · `semi_analytic_velocity_bound` · `analytic_velocity_bound_lte`
 
 Helpers: `u_0minus` · `z_time_evolution` · plus the EOS wrappers `PNM` `PNM_n` `edensNM` `edensNM_n` `sNM_n` `muB_from_nB_physical` `hNM` `hNM_n` `nB_NM` `Pi_NM` `hQM` `Pi_QM`.
 
-⚠ `__all__` lists only seven names — `analytic_velocity_isothermal`, `analytic_velocity_bound`, the four `solve_front_*`, and `z_time_evolution`. `semi_analytic_velocity_bound`, `analytic_velocity_bound_lte` and `u_0minus` are **public but not exported**, so `from ... import *` silently omits them. Import them by name.
+⚠ `__all__` lists nine names — `analytic_velocity_isothermal`, `analytic_velocity_bound`, the six `solve_front_*` APIs above, and `z_time_evolution`. `semi_analytic_velocity_bound`, `analytic_velocity_bound_lte` and `u_0minus` are **public but not exported**, so `from ... import *` silently omits them. Import them by name.
 
 Endpoint notation in the current API is location based throughout: examples include `u_0minus`, `u_0minus_max`, `a_0plus_LTE`, `T_inf`, and `muB_inf`.
 Older non-location endpoint identifiers in archived notes are stale and must not be copied into new work.
@@ -69,9 +71,10 @@ At positive $T$, failure to find the eigenvalue within $u(0^-)<1$ returns the st
 An automatic ceiling at $a(0^+)=1$ returns `composition_ceiling_saturated`, while a resolved momentum-flux ratio above the default $10^{-3}$ validity threshold returns `momentum_flux_ratio_above_tolerance`; neither status supplies a plotted speed.
 The present function requires `NM_type="PNM"` and `ms=0`; see [[isothermal-analytic-front-speed]] for the derivation and result dictionary contract.
 
-## Isothermal numerical entry point
+## Existing isothermal numerical comparison
 
-`solve_front_isothermal(T, nB_0minus, B_one_forth, a_0plus=np.nan, ms=0, ..., NM_type="PNM", ...)` is the exact fixed-temperature BVP counterpart.
+`solve_front_isothermal(T, nB_0minus, B_one_forth, a_0plus=np.nan, ms=0, ..., NM_type="PNM", ...)` is the fixed-temperature BVP with the moving momentum-flux closure.
+It is retained for comparison with the isobaric `solve_front_isothermal_slow`; neither uses an exact arbitrary-composition weak rate.
 
 Optional `continuation_guess` and `return_continuation` arguments now transfer a nearby accepted solution's adapted compact mesh and physical $n_K,J_K$ profiles.
 The returned `continuation_state` avoids the extra EOS reconstruction performed by `return_profile=True`; existing default calls are unchanged.
@@ -116,10 +119,12 @@ sequentially, with one process pool using the allocation at a time.
 | Same, with $I_2$ integrated numerically | `semi_analytic_velocity_bound` | Slower, no quadratic-$T$ bracket. Supplies the hidden ray mesh and analytic seeds. |
 | Analytic bound with $a(0^+)$ from local equilibrium | `analytic_velocity_bound_lte` | No $T(0^+)$ input. See [[lte-composition-bound]] |
 | Hydro-consistent analytic speed with $T(x)=T(0^-)$ and prescribed or automatic-ceiling local $a(0^+)$ | `analytic_velocity_isothermal` | Applies the $\Delta\mu_B$ stable-phase gate and analytical-validity masks; massless baseline only. |
+| Isobaric numerical front at fixed temperature | `solve_front_isothermal_slow` | Precomputed fixed-$P,T$ neutral path; massless or massive; see [[slow-front-solvers]]. |
+| Isobaric numerical adiabatic front | `solve_front_adiabatic_slow` | Prescribe exactly one of `a_0plus` or `T_0plus`; exact-cold and convergence checks pass at representative massless/massive states. See [[slow-front-solvers]] for bounds and the inherited massive-EOS cutoff. |
 | Front speed at prescribed interface composition | `solve_front_energy_conserving_nK` | — |
 | Maximised front speed at prescribed $T(0^+)$ | `solve_front_energy_conserving_uNmax` | **Untrustworthy below $T(0^+)\approx$ a few MeV** — see [[unmax-degeneracy]] |
 | Front speed with conduction, $a(0^+)$ as output | `solve_front_thermal_conducting` | Current best. See [[thermal-conducting]] |
-| Numerical isothermal front | `solve_front_isothermal` | Solves physical $n_K,J_K$; reports local $a=n_K/n_B$; modified Madsen rate and local $D_K$; optional PNM automatic ceiling; no $\Delta\mu_B$ gate. |
+| Numerical isothermal comparison retaining moving momentum flux | `solve_front_isothermal` | Solves physical $n_K,J_K$; reports local $a=n_K/n_B$; modified Madsen rate and local $D_K$; optional PNM automatic ceiling; no $\Delta\mu_B$ gate. |
 | Catch-up / $z(t)$ evolution | `z_time_evolution` | Needs full continuation state, not scalar guesses |
 
 ## Units

@@ -48,10 +48,11 @@ The nuclear→quark combustion front project. **This is the only page loaded by 
 
 | Page | What it settles |
 |---|---|
-| [[phase-velocity-overview]] | Solver APIs, local-fraction isothermal BVP, units and editing restriction; revised rate metadata preserves legacy compatibility |
+| [[phase-velocity-overview]] | Solver APIs, separate isobaric and moving-flux BVPs, units and editing restriction; revised rate metadata preserves legacy compatibility |
+| [[slow-front-solvers]] | Isobaric isothermal/adiabatic BVPs with a precomputed neutral EOS path and finite diffusion-density integral; 16 test methods verified across targeted runs, with massive-EOS and runtime limits |
 | [[pnm-density-state-recovery]] | Direct fixed-density upstream PNM recovery replaces the analytical isothermal solver's broad chemical-potential scan |
-| [[unmax-degeneracy]] | At $T(0^+)=0$, `jB` is a non-Lipschitz continuum — `success=True` proves nothing |
-| [[unmax-low-temperature]] | The `logT`→$T^2$ fix (landed) and the $n_K$-resolution limit (open) |
+| [[unmax-degeneracy]] | Older physical-$n_K$ comparison solver: at $T(0^+)=0$, `jB` is a non-Lipschitz continuum and `success=True` proves nothing; distinct from the new integral-field cold treatment |
+| [[unmax-low-temperature]] | Older physical-$n_K$ comparison solver: the `logT`→$T^2$ fix (landed) and density-resolution limit (open); the new integral-field formulation is documented separately |
 | [[thermal-conducting]] | $T$ as a propagated field; $a(0^+)$ becomes an output; six debugging facts |
 | [[known-issues]] | Completed numerical-isothermal failure audit, edge recovery and current bounds, cold quadrature, finite-$m_s$ cost, GIL-bound cells, and bisection asymmetry |
 
@@ -64,7 +65,7 @@ The nuclear→quark combustion front project. **This is the only page loaded by 
 - [[isothermal-notebook-cold-points]] — Six cold 500/2000 m/s roots plus one 10000 m/s root: 65 numerical dots total; bounded 50000/500000 m/s attempts and a tighter cold check remain explicitly unresolved, with reproducible notebook code and checkpoints.
 - [[isothermal-mfp-overlay]] — `26-10-14.ipynb`: core criterion at fraction 1e-4 has 33 validated roots spanning 0.515 keV–0.172 MeV, with stable-NM/unit-composition shading down to 1e-4 MeV; not a sharp LTE cutoff.
 - [[adiabatic-xi-diagnostics]] — Measured profile xi approaches -1 at high speeds; it fixes semi-analytical speeds to within 0.1%, while full analytical retains composition and integral errors. Best single constant over 50-2000 m/s is xi≈-0.86 (basin -0.845 to -0.89), so -0.85 is already optimal.
-- [[steady-front-bvp]] — the physical-$n_K,J_K$ reaction-diffusion BVPs, flux eigenvalues, EOS reconstruction and compactification.
+- [[steady-front-bvp]] — the physical-$n_K,J_K$ moving-flux BVPs, eigenvalues, EOS reconstruction and compactification, distinguished from the new isobaric integral-field formulation.
 - [[isothermal-contour-cluster]] — Piecewise-angular 600-cell isothermal domain, analytical workflow, numerical shell continuation, and failed-cell-only normalized-BVP repair.
 - [[isothermal-targeted-shots]] — Latest bounded follow-up: 20 designated targets, a persistent 120-call ceiling, numerical midpoint connectivity checks, and per-target plots.
 - [[isothermal-cold-numerical-probes]] — Full BVP solutions at 0.01 MeV recovered at three near-coexistence densities with a layer-resolved initial guess; one tighter check passes, higher-density robustness remains unresolved.
@@ -86,7 +87,7 @@ The nuclear→quark combustion front project. **This is the only page loaded by 
 ## Open questions
 
 1. $G_{\rm int}$ for a sharp nuclear–quark interface — no literature value ([[kapitza-resistance]]).
-2. The ~8% BVP-vs-reference systematic, seen plateau-free, unexplained ([[unmax-degeneracy]]).
+2. The older physical-$n_K$ comparison solver's ~8% BVP-vs-reference systematic, seen plateau-free and unexplained ([[unmax-degeneracy]]).
 3. Whether the conduction result licenses the "$a(0^+)$ is determined" claim — gated on seed/mesh/schedule independence tests ([[thermal-conducting]]).
 4. Reconciling the $3\,\mathrm{Le}$ coefficient generalisation with the corrected HP93 reading ([[lte-composition-bound]]).
 5. Whether the relativistic $\gamma_v^2$ factor belongs in every K-diffusion BVP and jump equation ([[diffusion-limited-front]]).

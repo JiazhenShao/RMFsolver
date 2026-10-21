@@ -946,3 +946,20 @@ Code is unaffected (`_TRANSPORT_H_CONST = 1.81317`), and Eqs. (28) and (36) and 
 
 `_TRANSPORT_H_CONST` in `RMFsolver/phase_velocity.py` is now computed as $\Gamma(\tfrac83)\zeta(\tfrac53)(2\pi)^{2/3}/6$ with `scipy.special`, replacing the rounded `1.81317`; relative error against 30-digit mpmath is $5\times10^{-16}$, a $2.5\times10^{-6}$ shift from the old value.
 The diffusion test now pins HP93's exact value. In `tests/test_phase_velocity.py` 76/87 pass; all 11 failures reproduce identically with the old constant (stale keys/attributes, the known strict-retry and `SlowFrontNoSolution` cases, and a $1.287\times10^{-6}$ thermal-conducting flux tolerance). See [[heiselberg-pethick-1993]].
+
+## [2026-10-21] implementation | Separate isobaric slow-front BVPs
+
+Added `solve_front_isothermal_slow` and `solve_front_adiabatic_slow` in `RMFsolver/phase_velocity.py`, with the existing nuclear RMF, analytical, conducting and moving-flux comparison APIs retained.
+The new massless/massive branches precompute fixed-$P,T$ or fixed-$P,h/n_B$ neutral EOS paths independently of `jB`, then solve two spatial fields by collocation using the finite integral $r=\int D_K\,dn_K$ and a shifted current.
+The solver retains the actual-path Robin tail, exact-one adiabatic interface input, deliberate infinite cold diffusion coefficient, massive-flavor low-temperature EOS cutoff, modified Madsen rate, `alpha_s=0.4`, and closed-form HP93 coefficient.
+Chemical-imbalance/cold charts preserve the finite-mass temperature turn, while the new automatic-ceiling caller brackets above massive equilibrium without changing the shared physical ceiling condition.
+The diffusion-integral tolerance defaults to `1e-6`; thermodynamic interpolation and per-law conservation checks retain `1e-8` gates, with density, integral and reaction residuals checked separately.
+All 16 new test methods pass across targeted unittest/direct runs, covering cold limits, seed/mesh/tail/table variations, warm comparison solvers, continuation, failures, automatic ceilings, and no EOS calls inside collocation; this was not one uninterrupted batch.
+For the representative massive cold state, tightening `path_rtol` to `5e-7` changes flux by $6.1\times10^{-10}$ relatively and passes common-grid profile comparisons; the stricter `2e-7` attempt was stopped for runtime and remains unverified.
+The selected existing-API regression run passes 37 of 43 tests before and after, with identical six failure names and messages; the API export check passes.
+See [[slow-front-solvers]], [[phase-velocity-overview]] and [[steady-front-bvp]]; historical cold-pathology values are preserved in [[unmax-degeneracy]] and [[unmax-low-temperature]].
+
+## [2026-10-21] verification | Slow-front solvers against the manuscript's first-order system
+
+Confirmed `solve_front_isothermal_slow` and `solve_front_adiabatic_slow` implement the manuscript's $O(u)$ equations (constant $un_B$, $P$, $T$ or $hu$; $J_K=un_K-D_K\,dn_K/dx$; $dJ_K/dx=-\Gamma_K$; $J_K(0^+)=u(0^-)n_K(0^-)$).
+Four massless solves were checked with an independent manuscript-formula EOS and bisection shooting: closures hold to $4.4\times10^{-10}$, ODE residuals to $3.2\times10^{-7}$, and shooting eigenvalues agree to $4.9\times10^{-9}$. See [[slow-front-solvers]].

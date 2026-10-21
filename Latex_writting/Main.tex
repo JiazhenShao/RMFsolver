@@ -621,7 +621,7 @@ This supports our use of the planar approximation, since the typical curvature o
 
 \mga{The adiabatic limit is obtained by}
 setting thermal conductivity $\kappa_{\rm th}=0$ and radiative energy loss $Q_\nu=0$ in Eq.~\eqref{eq:front_system_thermal}.
-\mga{Dropping terms of order $u^2$ we obtain} the adiabatic steady-state  equations \JScom{the numerical code still includes full relativistic corrections, }
+\mga{Dropping terms of order $u^2$ we obtain} the adiabatic steady-state  equations
 %
 \begin{subequations}\label{eq:front_system_adiabatic}
 \begin{align}
@@ -894,7 +894,7 @@ The rate at which the nonleptonic process relaxes the K density has been calcula
 \mgacom{Are we going to replace $\mu_u$ with $\mu_B/3$?}\JScom{I agree. I'm gonna re-calculate everything, but this section should be adjusted. }
 \begin{equation}
  \Gamma_K(\mu_B,\mu_K,T)
- =\mathcal C_K\mu_u^5\mu_K
+ =\mathcal C_K\JS{(\mu_B/3)^5}\mu_K
  \left(\mu_K^2+4\pi^2T^2\right)\,,
 \label{eq:exact_rate}
 \end{equation}
@@ -906,12 +906,11 @@ where
 \label{eq:exact_prefactor}
 \end{equation}
 where $G_F=1.16637\times10^{-11}\,\MeV^{-2}$ is the Fermi constant and $\theta_C=13.02^\circ$ is the Cabibbo angle.
-We take
-$\mu_u=\mu_B/3+2\mu_Q/3$, where electric charge chemical potential $\mu_Q$ is fixed by charge neutrality,
-$2n_u-n_d-n_s=0$. \mga{For our numerical computations we use \eqref{eq:exact_rate}.}
+\JS{We evaluate Madsen's $\mu_u^5$ prefactor at the mean quark chemical potential $\mu_B/3$.}
+\mga{For our numerical computations we use \eqref{eq:exact_rate}.}
 
 For the analytic approximations in Secs.~\ref{sec:isothermal-analytic} and \ref{sec:adiabatic-analytic}, we use the quadratic approximation to the equation of state (Sec.~\ref{sec:bag_model}) to express the rate in terms of the K fraction.
-Using \eqref{eq:a-muK} and $\mu_u\simeq\mu_B/3$, we obtain
+\JS{Using \eqref{eq:a-muK}, we obtain}
 \begin{equation}
 \begin{array}{rl}
  \Gamma_K(a,T) &\approx n_B\gamma_K\left(a^3+\dfrac{81\pi^2T^2}{\mu_B^2}a\right)\,, \\[2ex]
@@ -1221,7 +1220,7 @@ Each exact numerical solution yields a value for $I_1$ that corresponds to some 
 
 \mgacom{If we want to keep this appendix then we should flesh it out with some info about how to solve the equations, e.g. about shooting with trial values of $u(0^-)$ to find the right value.}
 
-\JS{We solve Eq.~\eqref{eq:reduced_BVP} at fixed temperature in the isothermal case, or at fixed energy flux \eqref{eq:energy_flux_adiabatic} in the adiabatic case.}
+\JS{We solve Eq.~\eqref{eq:reduced_BVP} at fixed temperature in the isothermal case, or at fixed energy flux \eqref{eq:energy_conservation} in the adiabatic case.}
 We compactify the semi-infinite quark region using
 \begin{equation}
  x=-L_0\ln(1-s)\,,
@@ -1354,7 +1353,7 @@ q_{\rm th}^x=-\kappa_{\rm th}\left[(1+u^2)\frac{dT}{dx}
 \label{eq:eckart_heat_flux_steady}
 \end{equation}
 Baryon conservation gives $du/dx=-(u/n_B)\,dn_B/dx$, so the acceleration term is of order $u^2$ and is negligible because $u$ and $n_B$ are nearly constant on either side of the boundary.
-Keeping the transport terms to leading order in $u\sim3\times10^{-7}$ ($u^2\sim10^{-13}$), while retaining the relativistic form of the ideal-fluid fluxes, is consistent with the adiabatic numerical check of relative $n_B$ and $P$ variations below $10^{-10}$ and $10^{-12}$, respectively (Appendix~\ref{sec:thermal-equilibrium}).
+Keeping the transport terms to leading order in $u\sim3\times10^{-7}$ ($u^2\sim10^{-13}$), \JS{as we do for the ideal-fluid fluxes}, is consistent with the adiabatic numerical check of relative $n_B$ and $P$ variations below $10^{-10}$ and $10^{-12}$, respectively (Appendix~\ref{sec:thermal-equilibrium}).
 This gives Fourier's law,
 \begin{equation}
     q_{\rm th}^x\simeq-\kappa_{\rm th}\frac{dT}{dx}\ ,

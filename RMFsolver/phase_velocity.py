@@ -1,9 +1,10 @@
 import numpy as np
 import time
 import warnings
+from functools import lru_cache
 from scipy.integrate import solve_bvp, solve_ivp
-from scipy.optimize import fsolve, root_scalar, root
-from scipy.interpolate import CubicSpline
+from scipy.optimize import fsolve, root_scalar, root, minimize_scalar
+from scipy.interpolate import BPoly, CubicSpline, PchipInterpolator
 from scipy.special import gamma as gamma_function, zeta as riemann_zeta
 import RMFsolver.constants as const
 import RMFsolver.RMFparameter as para
@@ -44,6 +45,8 @@ __all__ = [
     "solve_front_energy_conserving_uNmax",
     "solve_front_thermal_conducting",
     "z_time_evolution",
+    "solve_front_isothermal_slow",
+    "solve_front_adiabatic_slow",
 ]
 
 _TRANSPORT_ALPHA_S = 0.4
@@ -9665,3 +9668,639 @@ def z_time_evolution(
     if return_solver_results:
         result["solver_results"] = list(reversed(solver_results))
     return result
+
+
+# Isobaric slow fronts. These routines deliberately do not use the moving
+# momentum/relativistic energy closures of the comparison solvers above.
+def _slow_quark_state(muB, muK, T, B_one_forth, ms):
+    """Unboosted, charge-neutral thermodynamics in the existing EOS."""
+    P = float(PQM(muB, muK, B_one_forth, T, ms=ms))
+    e = float(edensQM(muB, muK, B_one_forth, T, ms=ms))
+    nB = float(nB_QM(muB, muK, B_one_forth, T, ms=ms))
+    nK = float(nK_QM(muB, muK, B_one_forth, T, ms=ms))
+    if not np.all(np.isfinite([P, e, nB, nK])) or nB <= 0:
+        raise RuntimeError("Nonphysical quark state on slow-front path")
+    return dict(muB=float(muB), muK=float(muK), T=float(T), P=P, e=e,
+                h=P + e, nB=nB, nK=nK, a=nK / nB)
+
+
+def _slow_isobar_state(pressure, muK, T, bag, ms, muB_guess=None):
+    """Positive-muB state shared by the path and automatic interface bracket."""
+    pressure_scale = max(abs(pressure), bag**4, 1.0)
+    def residual(muB):
+        return (PQM(muB, muK, bag, T, ms=ms) - pressure) / pressure_scale
+    if muB_guess is not None:
+        candidate = root(lambda value: [residual(float(value[0]))], [muB_guess], tol=1e-10)
+        if candidate.x[0] > 0 and abs(residual(float(candidate.x[0]))) < 1e-11:
+            return _slow_quark_state(float(candidate.x[0]), muK, T, bag, ms)
+    hi = max(2000.0, 4 * ms)
+    if residual(1e-6) >= 0:
+        raise RuntimeError("Isobar has no positive baryon chemical potential")
+    while residual(hi) < 0:
+        hi *= 2
+        if hi > 1e6:
+            raise RuntimeError("Cannot bracket the isobar")
+    muB = root_scalar(residual, bracket=(1e-6, hi), xtol=1e-9, rtol=1e-13).root
+    return _slow_quark_state(muB, muK, T, bag, ms)
+
+
+class _SlowFrontPath:
+    """Flux-independent EOS path and integral r = integral D_K dnK.
+
+    All EOS roots are completed before collocation. The table parameter w is
+    muK/muK(0+) for isothermal and near-equilibrium warm paths. Adiabatic
+    paths reaching lower temperatures join a chemical-imbalance chart to
+    T^(1/3) affine in w^2, resolving the integrable cold diffusion singularity.
+    None of these table coordinates is the spatial coordinate.
+    """
+
+    def __init__(self, closure, pressure, h_over_nB, T, bag, ms,
+                 a_0plus, T_0plus, path_rtol):
+        self.closure, self.pressure, self.h_over_nB = closure, pressure, h_over_nB
+        self.bag, self.ms, self.path_rtol = bag, ms, path_rtol
+        self.pressure_scale = max(abs(pressure), bag**4, 1.0)
+        self._points = {}
+        self._cold_integrands = {}
+        if closure == "isothermal":
+            self.inf = self.isobar(0.0, T)
+            self.interface = self.at_fraction(a_0plus, T)
+        else:
+            # At fixed P the equilibrated h/nB increases from its cold value.
+            cold = self.isobar(0.0, 0.0)
+            if cold["h"] / cold["nB"] >= h_over_nB:
+                raise RuntimeError("No positive-temperature equilibrated slow-front endpoint")
+            hi = 2.0
+            while self.energy_error(self.isobar(0.0, hi)) < 0:
+                hi *= 1.5
+                if hi > 1000:
+                    raise RuntimeError("Cannot bracket the equilibrated temperature")
+            T_inf = root_scalar(lambda temp: self.energy_error(self.isobar(0.0, temp)),
+                                bracket=(0.0, hi), xtol=1e-10, rtol=1e-12).root
+            self.inf = self.isobar(0.0, T_inf)
+            if T_0plus is not None:
+                if ms == 0 and T_0plus >= T_inf:
+                    raise RuntimeError("Massless K-rich interface requires T_0plus < T_inf")
+                self.interface = self.at_temperature(T_0plus)
+            else:
+                # Solve P, h/nB and the requested local fraction together.
+                def equations(v):
+                    muB, muK, temperature = v
+                    if muB <= 0 or muK < 0 or temperature < 0:
+                        return np.full(3, 1e3)
+                    state = self.state(muB, muK, temperature)
+                    return [self.pressure_error(state), self.energy_error(state),
+                            state["a"] - a_0plus]
+                solved = root(equations, [self.inf["muB"],
+                                          max(1.0, 0.5 * self.inf["muB"] * a_0plus),
+                                          0.7 * T_inf], tol=1e-10)
+                if np.max(np.abs(equations(solved.x))) > 1e-9:
+                    raise RuntimeError("Requested adiabatic interface fraction is unavailable")
+                self.interface = self.state(*solved.x)
+        if not (0 <= self.inf["a"] < self.interface["a"] < 1):
+            raise RuntimeError("Slow front requires an interior, K-rich interface")
+        self.tau_inf = self.inf["T"]**(1.0 / 3.0)
+        self.delta_tau = self.tau_inf - self.interface["T"]**(1.0 / 3.0)
+        self.cold_chart = closure == "adiabatic" and self.interface["T"] < 0.9 * self.inf["T"]
+        self._points[0.0], self._points[1.0] = self.inf, self.interface
+        self.core_join = 0.125
+        if self.cold_chart:
+            # At finite ms, T can turn very slightly near equilibrium. A
+            # temperature-only chart would skip the small-muK segment. Use
+            # muK there, joining the cold T^(1/3) chart with matching first
+            # and second derivatives. This changes only parameterization.
+            step = 1e-4
+            ks = []
+            for offset in (-2, -1, 0, 1, 2):
+                w = self.core_join + offset * step
+                state = self.at_temperature((self.tau_inf - self.delta_tau * w*w)**3)
+                self._points[w] = state
+                ks.append(state["muK"])
+            slope = (ks[0] - 8 * ks[1] + 8 * ks[3] - ks[4]) / (12 * step)
+            curvature = (-ks[0] + 16 * ks[1] - 30 * ks[2] + 16 * ks[3] - ks[4]) / (12 * step**2)
+            self.core_muK = BPoly.from_derivatives([0, self.core_join],
+                [[0, ks[2] / self.core_join, 0], [ks[2], slope, curvature]])
+        self._tabulate()
+
+    def state(self, muB, muK, T):
+        return _slow_quark_state(muB, muK, T, self.bag, self.ms)
+
+    def pressure_error(self, state):
+        return (state["P"] - self.pressure) / self.pressure_scale
+
+    def energy_error(self, state):
+        if self.ms == 0:
+            # Exact conformal identity, not a constant-muB approximation.
+            nB_target = 4 * (self.pressure + self.bag**4) / self.h_over_nB
+            return nB_target / state["nB"] - 1
+        return state["h"] / state["nB"] / self.h_over_nB - 1
+
+    def isobar(self, muK, T, muB_guess=None):
+        return _slow_isobar_state(self.pressure, muK, T, self.bag, self.ms, muB_guess)
+
+    def _composition_root(self, T, residual, allow_turn=False):
+        lo = self.isobar(0, T)
+        near_turn = allow_turn and T >= self.inf["T"] * (1 - 1e-12)
+        if residual(lo) >= 0 or near_turn:
+            if not allow_turn:
+                raise RuntimeError("Requested interface is not on the positive-imbalance branch")
+            # T may have a shallow maximum at positive muK for finite ms.
+            # Select the K-rich (larger-muK) root if two interfaces exist.
+            def objective(k):
+                return residual(self.isobar(k, T))
+            hi = 50.0
+            for _ in range(20):
+                if objective(hi) > 0:
+                    break
+                hi *= 1.5
+            minimum = minimize_scalar(objective, bounds=(0, hi), method="bounded",
+                                      options={"xatol": 1e-8})
+            if not minimum.success or minimum.fun >= 0 or objective(hi) <= 0:
+                raise RuntimeError("Requested interface temperature has no resolved K-rich root")
+            solution = root_scalar(objective, bracket=(minimum.x, hi), xtol=1e-10, rtol=1e-12)
+            return self.isobar(solution.root, T)
+        hi = 50.0
+        for _ in range(20):
+            state = self.isobar(hi, T)
+            if residual(state) >= 0:
+                muK = root_scalar(lambda k: residual(self.isobar(k, T)),
+                                  bracket=(0.0, hi), xtol=1e-10, rtol=1e-12).root
+                return self.isobar(muK, T)
+            if state["a"] >= 1 - 1e-10:
+                break
+            hi *= 1.5
+        raise RuntimeError("Requested interface exceeds the physical composition branch")
+
+    def at_fraction(self, fraction, T):
+        return self._composition_root(T, lambda state: state["a"] - fraction)
+
+    def at_temperature(self, T):
+        return self._composition_root(T, self.energy_error, allow_turn=True)
+
+    def at_imbalance(self, muK):
+        def equations(v):
+            # Finite log iterates keep speculative root steps in the EOS domain.
+            muB, T = np.exp(np.clip(v, -30, 20))
+            state = self.state(muB, muK, T)
+            return [self.pressure_error(state), self.energy_error(state)]
+        solved = root(equations, np.log([self.inf["muB"], self.inf["T"]]), tol=1e-10)
+        if np.max(np.abs(equations(solved.x))) > 1e-10 or np.any(np.abs(solved.x) >= 20):
+            raise RuntimeError("Equilibrium chemical-imbalance continuation failed")
+        muB, T = np.exp(solved.x)
+        return self.state(muB, muK, T)
+
+    def point(self, w):
+        w = float(w)
+        if w in self._points:
+            return self._points[w]
+        if self.closure == "isothermal":
+            state = self.isobar(w * self.interface["muK"], self.inf["T"],
+                                self.inf["muB"] * (1 - w) + self.interface["muB"] * w)
+        else:
+            if not self.cold_chart:
+                state = self.at_imbalance(w * self.interface["muK"])
+                self._points[w] = state
+                return state
+            if w < self.core_join:
+                muK = float(self.core_muK(w))
+                state = self.at_imbalance(muK)
+                self._points[w] = state
+                return state
+            T = (self.tau_inf - self.delta_tau * w*w)**3
+            nearest = min(self._points, key=lambda old: abs(old - w))
+            seed = self._points[nearest]
+            # Positive chemical imbalance selects the continuous physical root.
+            def equations(v):
+                muB, muK = np.exp(np.clip(v, -30, 20))
+                state = self.state(muB, muK, T)
+                return [self.pressure_error(state), self.energy_error(state)]
+            guess = [seed["muB"], max(seed["muK"], w * self.interface["muK"], 1e-6)]
+            try:
+                solved = root(equations, np.log(guess), tol=1e-10)
+                valid = (np.max(np.abs(equations(solved.x))) <= 1e-10 and
+                         np.all(np.abs(solved.x) < 20))
+            except (RuntimeError, ValueError, FloatingPointError):
+                valid = False
+            if not valid:
+                state = self.at_temperature(T)
+            else:
+                state = self.state(*np.exp(solved.x), T)
+        self._points[w] = state
+        return state
+
+    def _cold_integrand(self, w, state):
+        """D dnK/dw using implicit derivatives in T^2, including T=0.
+
+        d(T^2)/dw and invD both contain T^(5/3); cancel that factor
+        analytically. One-sided thermal derivatives at zero retain the
+        existing massive-EOS low-T approximation instead of changing it.
+        """
+        if w in self._cold_integrands:
+            return self._cold_integrands[w]
+        muB, muK, T = state["muB"], state["muK"], state["T"]
+        def quantities(b, k, t2):
+            st = self.state(b, k, np.sqrt(t2))
+            return np.array([self.pressure_error(st), self.energy_error(st), st["nK"]])
+        columns = []
+        for axis, value in enumerate((muB, muK, T*T)):
+            step = max(abs(value) * 1e-4, 1e-4)
+            center = [muB, muK, T*T]
+            def offset(amount):
+                args = center.copy()
+                args[axis] += amount * step
+                return quantities(*args)
+            if axis == 2 and value < 2 * step:
+                derivative = (-3 * offset(0) + 4 * offset(1) - offset(2)) / (2 * step)
+            else:
+                derivative = (offset(-2) - 8 * offset(-1) + 8 * offset(1) - offset(2)) / (12 * step)
+            columns.append(derivative)
+        derivatives = np.asarray(columns).T
+        chemical_slopes = np.linalg.solve(derivatives[:2, :2], -derivatives[:2, 2])
+        dnK_dT2 = derivatives[2, 2] + derivatives[2, :2] @ chemical_slopes
+        qD = _TRANSPORT_QD_COEFF * muB / 3
+        tau = T**(1.0 / 3.0)
+        denominator = _TRANSPORT_D_PREFACTOR * (
+            _TRANSPORT_H_CONST / qD**(2.0 / 3.0) + np.pi**3 * tau / (12 * qD))
+        value = float(-12 * self.delta_tau * w * dnK_dT2 / denominator)
+        self._cold_integrands[w] = value
+        return value
+
+    def _tabulate(self):
+        # Refine both the thermodynamic interpolation and the diffusion integral.
+        w = np.linspace(0.0, 1.0, 33)
+        names = ("muB", "muK", "T", "nB", "nK", "a")
+        thermo_rtol = min(self.path_rtol, 1e-8)
+        def table(nodes):
+            states = [self.point(t) for t in nodes]
+            data = np.array([[st[key] for key in names] for st in states]).T
+            if np.any(np.diff(data[4]) <= 0):
+                # At the cold endpoint differences below machine precision
+                # are allowed; the regular integral remains strictly monotone.
+                if np.min(np.diff(data[4])) < -1e-9 * max(abs(data[4, -1]), 1):
+                    raise RuntimeError("Slow-front path lost its monotone density branch")
+            thermo = CubicSpline(nodes, data, axis=1)
+            invD = np.array([_microphysics_from_quark_state_energy(st["muB"], st["T"],
+                              allow_zero_temperature=True)["invD"] for st in states])
+            integrand = np.empty(len(nodes))
+            ordinary = np.ones(len(nodes), dtype=bool)
+            if self.cold_chart:
+                # Use ordinary spline derivatives through the massive EOS's
+                # thermal transition. The implicit derivative is needed only
+                # where the cold nK differences lose floating-point precision.
+                ordinary = data[2] >= 0.02
+            integrand[ordinary] = thermo(nodes[ordinary], 1)[4] / invD[ordinary]
+            for i in np.flatnonzero(~ordinary):
+                integrand[i] = self._cold_integrand(nodes[i], states[i])
+            if not np.all(np.isfinite(integrand)) or np.any(integrand <= 0):
+                raise RuntimeError("Diffusion-density integral is not positive and finite")
+            primitive = CubicSpline(nodes, integrand).antiderivative()
+            return states, data, thermo, primitive
+
+        for iteration in range(14):
+            states, data, thermo, primitive = table(w)
+            mid = (w[:-1] + w[1:]) / 2
+            fine_w = np.sort(np.concatenate([w, mid]))
+            fine_states, fine_data, fine_thermo, fine_primitive = table(fine_w)
+            exact = fine_data[:, 1::2]
+            scales = np.maximum(np.max(np.abs(data), axis=1), 1.0)
+            errors = np.max(np.abs(thermo(mid) - exact) / scales[:, None], axis=0)
+            differences = np.abs(np.diff(fine_primitive(w)) - np.diff(primitive(w)))
+            integral_scale = fine_primitive(1) - fine_primitive(0)
+            integral_error = np.max(np.abs((fine_primitive(w) - fine_primitive(0)) -
+                                          (primitive(w) - primitive(0)))) / integral_scale
+            if np.max(errors) < thermo_rtol and integral_error < self.path_rtol:
+                w, states, data, thermo, primitive = fine_w, fine_states, fine_data, fine_thermo, fine_primitive
+                break
+            refine = ((errors >= thermo_rtol) |
+                      (differences > self.path_rtol * integral_scale * np.diff(w)))
+            if not np.any(refine):
+                refine[np.argmax(differences)] = True
+            w = np.sort(np.concatenate([w, mid[refine]]))
+        else:
+            raise RuntimeError("Slow-front EOS/diffusion table did not converge")
+        self.table_nodes, self.table_error = len(w), float(max(np.max(errors), integral_error))
+        r = primitive(w) - primitive(0)
+        self.r_scale = float(r[-1])
+        self.primitive = primitive
+        self.thermo = thermo
+        self.w_from_r = PchipInterpolator(r / self.r_scale, w)
+        # Smooth C2 interpolants and their derivatives are used by collocation.
+        z = r / self.r_scale
+        rates = np.array([_exact_kaon_transport_rate(st["muB"], st["muK"], st["T"],
+                                                   ms=self.ms)["Gamma_K"] for st in states])
+        self.fraction = CubicSpline(z, data[5])
+        self.rate = CubicSpline(z, rates)
+        self.da_dr = float(self.fraction(0, 1) / self.r_scale)
+        self.drate_dr = float(self.rate(0, 1) / self.r_scale)
+        if self.drate_dr <= 0:
+            raise RuntimeError("Equilibrium has no exponentially decaying K tail")
+
+    def coordinate(self, z):
+        """Invert the stored integral, without an EOS root or derivative loss."""
+        w = self.w_from_r(z)
+        for _ in range(8):
+            residual = self.primitive(w) - self.primitive(0) - z * self.r_scale
+            if np.max(np.abs(residual)) <= 1e-13 * self.r_scale:
+                return w
+            w = np.clip(w - residual / self.primitive(w, 1), 0, 1)
+        raise RuntimeError("Diffusion integral inversion failed")
+
+    def fields(self, z):
+        """Interpolated chemical potentials/temperature; no EOS roots."""
+        w = self.coordinate(z)
+        fields = self.thermo(w)[:3]
+        if self.cold_chart:
+            # Interpolating T itself can overshoot below zero near its cubic
+            # cold endpoint. Its known parameterization is nonnegative.
+            tau = self.interface["T"]**(1.0 / 3.0) + self.delta_tau * (1 - w*w)
+            fields[2] = np.where(w >= self.core_join, tau**3, fields[2])
+        return fields
+
+
+@lru_cache(maxsize=8)
+def _slow_front_path(closure, pressure, h_over_nB, T, bag, ms,
+                     a_0plus, T_0plus, path_rtol):
+    # The cached path is immutable after construction and contains no BVP data.
+    return _SlowFrontPath(closure, pressure, h_over_nB, T, bag, ms,
+                          a_0plus, T_0plus, path_rtol)
+
+
+def _solve_front_slow(closure, T, nB_0minus, B_one_forth, a_0plus, T_0plus,
+                      ms, param, NM_type, tail_eps, n_mesh, tol_bvp, max_nodes,
+                      jB_guess, kappa_factor, return_profile, verb,
+                      continuation_guess, return_continuation, path_rtol):
+    for name, value in (("nB_0minus", nB_0minus), ("B_one_forth", B_one_forth),
+                        ("tol_bvp", tol_bvp), ("kappa_factor", kappa_factor),
+                        ("path_rtol", path_rtol)):
+        if not np.isfinite(value) or value <= 0:
+            raise ValueError(name + " must be positive and finite")
+    if not np.isfinite(T) or T < 0 or (closure == "isothermal" and T == 0):
+        raise ValueError("Temperature must be nonnegative (strictly positive for isothermal)")
+    if not np.isfinite(ms) or ms < 0:
+        raise ValueError("ms must be nonnegative and finite")
+    if (not 0 < tail_eps < 1 or not 0 < 1 - tail_eps < 1
+            or n_mesh < 13 or max_nodes < n_mesh):
+        raise ValueError("Invalid tail truncation or BVP mesh controls")
+    if jB_guess is not None and (not np.isfinite(jB_guess) or jB_guess <= 0):
+        raise ValueError("jB_guess must be positive and finite")
+    auto = closure == "isothermal" and np.isnan(a_0plus)
+    if not auto and a_0plus is not None and (not np.isfinite(a_0plus) or not 0 < a_0plus < 1):
+        raise ValueError("a_0plus must lie strictly between zero and one")
+    if auto and NM_type != "PNM":
+        raise ValueError("Automatic isothermal interface ceiling requires NM_type='PNM'")
+    result = {
+        "success": False, "status": "thermodynamic_path_failed", "message": "",
+        "hydrodynamic_model": "nonrelativistic_isobaric", "closure": closure,
+        # Legacy label retained for saved-result readers; the rate is approximate.
+        "rate_model": "exact_nonleptonic", "rate_approximation": "madsen_muB_over_3",
+        "alpha_s": float(_TRANSPORT_ALPHA_S), "h_D": float(_TRANSPORT_H_CONST),
+        "ms": float(ms), "quark_branch": "massless" if ms == 0 else "massive",
+        "composition_definition": "nK_over_local_nB",
+        "current_definition": "u_nK_minus_D_K_dnK_dx",
+        "tail_eps": float(tail_eps), "kappa_factor": float(kappa_factor),
+        "tol_bvp": float(tol_bvp), "path_rtol": float(path_rtol),
+        "bvp_max_rms_residual": np.nan,
+        "massive_low_temperature_eos": "existing_SQMsolver_cutoff" if ms else None,
+    }
+    try:
+        upstream = _isothermal_upstream_nuclear_state(T, nB_0minus, param, NM_type)
+        result.update(upstream)
+        if auto:
+            equilibrium = _slow_isobar_state(upstream["P_0minus"], 0.0, T, B_one_forth, ms)
+            # The massive equilibrium already has a_inf > 0. The legacy
+            # near-zero floor would require negative muK and is off this branch.
+            a_floor = max(1e-8, equilibrium["a"] * (1 + 1e-6))
+            ceiling = _solve_a_0plus_max(upstream["muB_0minus"], upstream["P_0minus"],
+                                        T, B_one_forth, ms=ms, a_floor=a_floor)
+            result.update(a_0plus_max=ceiling["a_0plus_max"],
+                          a_0plus_max_status=ceiling["status"])
+            if ceiling["status"] != "interior":
+                raise RuntimeError("Automatic interface ceiling is not interior")
+            a_0plus = ceiling["a_0plus_max"]
+        path = _slow_front_path(closure, upstream["P_0minus"],
+                                upstream["h_0minus"] / nB_0minus, float(T),
+                                float(B_one_forth), float(ms), a_0plus, T_0plus,
+                                float(path_rtol))
+        if not path.interface["a"] < upstream["a_0minus"]:
+            raise RuntimeError("Interface fraction must be below the upstream K fraction")
+    except (RuntimeError, ValueError, FloatingPointError) as exc:
+        result["message"] = str(exc)
+        return result
+    for suffix, state in (("0plus", path.interface), ("inf", path.inf)):
+        for key, value in state.items():
+            result[key + "_" + suffix] = value
+    result.update(a_0plus_source="maximum" if auto else (
+        "temperature" if T_0plus is not None else "prescribed"),
+        T_0minus=float(T), path_nodes=path.table_nodes, path_error=path.table_error,
+        r_0plus=path.r_scale)
+    a_inf, a_0minus = path.inf["a"], upstream["a_0minus"]
+    rate_primitive = path.rate.antiderivative()
+    current_scale = np.sqrt(2 * path.r_scale * (rate_primitive(1) - rate_primitive(0)))
+    jB_scale = current_scale / (a_0minus - a_inf)
+    jB_initial = jB_scale if jB_guess is None else float(jB_guess)
+
+    def tail(jB):
+        A, B = jB * path.da_dr, path.drate_dr
+        discriminant = np.hypot(A, 2 * np.sqrt(B))
+        lam = 2 * B / (discriminant + A) if A >= 0 else (discriminant - A) / 2
+        dlog_lam = -A / (2 * lam + A)
+        return lam, dlog_lam
+
+    def flux(p):
+        # Limit trial iterates to finite arithmetic, never an accepted speed.
+        return jB_scale * np.exp(np.clip(p[0], -40, 40))
+
+    def interpolate(spline, z, derivative=False):
+        clipped = np.clip(z, 0, 1)
+        slope = spline(clipped, 1)
+        return slope if derivative else spline(clipped) + (z - clipped) * slope
+
+    def rhs(s, y, p):
+        jB = flux(p)
+        lam, _ = tail(jB)
+        dx_ds = kappa_factor / lam / (1 - s)
+        return np.vstack((dx_ds / path.r_scale * (
+            jB * (interpolate(path.fraction, y[0]) - a_inf) - current_scale * y[1]),
+            -dx_ds * interpolate(path.rate, y[0]) / current_scale))
+
+    def jacobian(s, y, p):
+        jB = flux(p)
+        lam, dlog_lam = tail(jB)
+        dx_ds = kappa_factor / lam / (1 - s)
+        jac = np.zeros((2, 2, len(s)))
+        jac[0, 0] = dx_ds * jB * interpolate(path.fraction, y[0], True) / path.r_scale
+        jac[0, 1] = -dx_ds * current_scale / path.r_scale
+        jac[1, 0] = -dx_ds * interpolate(path.rate, y[0], True) / current_scale
+        dp = -dlog_lam * rhs(s, y, p)
+        dp[0] += dx_ds * jB * (interpolate(path.fraction, y[0]) - a_inf) / path.r_scale
+        return jac, dp[:, None, :]
+
+    def boundary(left, right, p):
+        jB = flux(p)
+        lam, _ = tail(jB)
+        return np.array([left[0] - 1,
+                         left[1] - jB * (a_0minus - a_inf) / current_scale,
+                         right[1] - (jB * path.da_dr + lam) * path.r_scale / current_scale * right[0]])
+
+    mesh = _thermal_compact_mesh(n_mesh, tail_eps)
+    shape = (1 - mesh)**kappa_factor
+    guess = np.vstack((shape, jB_initial * (a_0minus - a_inf) / current_scale * shape))
+    if continuation_guess is not None:
+        required = ("model", "closure", "ms", "s", "r_fraction", "current_excess_fraction", "jB")
+        if any(key not in continuation_guess for key in required):
+            raise ValueError("Incomplete slow-front continuation state")
+        if (continuation_guess["model"] != "slow_front_v1" or
+                continuation_guess["closure"] != closure or continuation_guess["ms"] != ms):
+            raise ValueError("Incompatible slow-front continuation state")
+        old_s = np.asarray(continuation_guess["s"], dtype=float)
+        if (old_s.ndim != 1 or len(old_s) < 2 or not np.all(np.isfinite(old_s))
+                or np.any(np.diff(old_s) <= 0)
+                or old_s[0] != 0 or old_s[-1] >= 1):
+            raise ValueError("Invalid continuation mesh")
+        jB_initial = float(continuation_guess["jB"])
+        if not np.isfinite(jB_initial) or jB_initial <= 0:
+            raise ValueError("Invalid continuation baryon flux")
+        for row, key in enumerate(("r_fraction", "current_excess_fraction")):
+            values = np.asarray(continuation_guess[key], dtype=float)
+            if values.shape != old_s.shape or not np.all(np.isfinite(values)):
+                raise ValueError("Invalid continuation fields")
+            guess[row] = np.interp(mesh, old_s, values)
+            beyond = mesh > old_s[-1]
+            guess[row, beyond] = values[-1] * ((1 - mesh[beyond]) / (1 - old_s[-1]))**kappa_factor
+        guess[1] *= jB_initial * (a_0minus - a_inf) / current_scale
+    result["status"] = "bvp_failed"
+    try:
+        sol = solve_bvp(rhs, boundary, mesh, guess, p=[np.log(jB_initial / jB_scale)],
+                        tol=tol_bvp, bc_tol=min(1e-8, tol_bvp * 0.01),
+                        max_nodes=max_nodes, fun_jac=jacobian, verbose=2 if verb else 0)
+    except (ValueError, RuntimeError, FloatingPointError) as exc:
+        result["message"] = str(exc)
+        return result
+    jB = float(flux(sol.p))
+    lam, _ = tail(jB)
+    result.update(message=sol.message, bvp_status=int(sol.status), bvp_nodes=len(sol.x),
+                  bvp_max_rms_residual=float(np.max(sol.rms_residuals)), jB=jB,
+                  u_0minus=jB / nB_0minus, u_0plus=jB / path.interface["nB"],
+                  u_inf=jB / path.inf["nB"], jK_inf=jB * a_inf,
+                  lambda_inf=float(lam), compact_scale=float(kappa_factor / lam),
+                  boundary_residuals=boundary(sol.y[:, 0], sol.y[:, -1], sol.p))
+    if not sol.success:
+        return result
+    try:
+        s = np.unique(np.concatenate([sol.x, (sol.x[:-1] + sol.x[1:]) / 2]))
+        y = sol.sol(s)
+        if (np.min(y[0]) < -1e-9 or np.max(y[0]) > 1 + 1e-9 or
+                np.max(np.diff(y[0])) > 1e-8 or abs(sol.p[0]) >= 39):
+            result.update(status="profile_rejected", message="BVP left the physical monotone path")
+            return result
+        z = np.clip(y[0], 0, 1)  # Only roundoff excursions survived the check above.
+        chemical_fields = path.fields(z)
+        chemical_fields[:, 0] = [path.interface[k] for k in ("muB", "muK", "T")]
+        # Direct EOS validation includes all adapted nodes and midpoints, even if
+        # the caller does not request the (larger) profile payload.
+        states = [path.state(*values) for values in chemical_fields.T]
+        closure_errors = [abs(path.pressure_error(st)) for st in states]
+        if closure == "adiabatic":
+            closure_errors += [abs(path.energy_error(st)) for st in states]
+        else:
+            closure_errors += [abs(st["T"] / T - 1) for st in states]
+        profile = {key: np.array([st[key] for st in states]) for key in states[0]}
+        profile["Gamma_K"] = np.array([_exact_kaon_transport_rate(st["muB"], st["muK"],
+                                        st["T"], ms=ms)["Gamma_K"] for st in states])
+        profile["invD_K"] = np.array([_microphysics_from_quark_state_energy(st["muB"], st["T"],
+                                      allow_zero_temperature=True)["invD"] for st in states])
+        profile.update(s_coord=s, x=-kappa_factor / lam * np.log1p(-s), r=z * path.r_scale,
+                       jK=jB * a_inf + current_scale * y[1], u=jB / profile["nB"])
+        conservation_errors = {
+            "baryon_flux": float(np.max(np.abs(profile["nB"] * profile["u"] / jB - 1))),
+            "pressure": float(np.max(np.abs(profile["P"] - upstream["P_0minus"])) /
+                              max(abs(upstream["P_0minus"]), 1.0)),
+        }
+        if closure == "adiabatic":
+            conservation_errors["enthalpy_flux"] = float(np.max(np.abs(
+                profile["h"] * profile["u"] / (upstream["h_0minus"] * jB / nB_0minus) - 1)))
+        else:
+            conservation_errors["temperature"] = float(np.max(np.abs(profile["T"] / T - 1)))
+        result["conservation_errors"] = conservation_errors
+        with np.errstate(divide="ignore"):
+            profile["D_K"] = 1 / profile["invD_K"]
+        # Derivatives of the collocation polynomial, not re-evaluation of its RHS.
+        dydx = sol.sol(s, 1) * (lam * (1 - s) / kappa_factor)
+        integral_residual = dydx[0] * path.r_scale - jB * profile["a"] + profile["jK"]
+        w = path.coordinate(z)
+        dnK_dx = path.thermo(w, 1)[4] * path.r_scale / path.primitive(w, 1) * dydx[0]
+        density_rhs = profile["invD_K"] * (jB * profile["a"] - profile["jK"])
+        constitutive = dnK_dx - density_rhs
+        profile["dnK_dx"] = dnK_dx
+        reaction = dydx[1] * current_scale + profile["Gamma_K"]
+        result.update(closure_error_max=float(max(closure_errors)),
+                      diffusion_integral_residual_norm=float(np.max(np.abs(integral_residual)) / current_scale),
+                      constitutive_residual_norm=float(np.max(np.abs(constitutive)) / max(np.max(np.abs(density_rhs)), _FLOAT_TINY)),
+                      reaction_residual_norm=float(np.max(np.abs(reaction)) / np.max(profile["Gamma_K"])),
+                      a_monotone_nonincreasing=bool(np.max(np.diff(profile["a"])) <= 1e-8))
+        accepted = (result["closure_error_max"] <= 1e-8 and
+                    max(conservation_errors.values()) <= 1e-8 and
+                    max(result["constitutive_residual_norm"], result["reaction_residual_norm"],
+                        result["diffusion_integral_residual_norm"]) <= max(5 * tol_bvp, 1e-7)
+                    and np.max(np.abs(result["boundary_residuals"])) <= 1e-7)
+        result.update(success=bool(accepted), status="converged" if accepted else "profile_rejected")
+        if not accepted:
+            result["message"] = "Direct EOS or physical ODE residual validation failed"
+        if return_profile:
+            result.update(profile)
+        if return_continuation and accepted:
+            result["continuation_state"] = dict(model="slow_front_v1", closure=closure, ms=float(ms),
+                s=sol.x.copy(), r_fraction=sol.y[0].copy(), jB=jB,
+                current_excess_fraction=sol.y[1] * current_scale / (jB * (a_0minus - a_inf)))
+        return result
+    except (RuntimeError, ValueError, FloatingPointError) as exc:
+        result.update(success=False, status="profile_rejected", message=str(exc))
+        return result
+
+
+def solve_front_isothermal_slow(
+    T, nB_0minus, B_one_forth, a_0plus=np.nan, *, ms=0.0,
+    param=para.paraQMCRMF3, NM_type="PNM", tail_eps=1e-8, n_mesh=300,
+    tol_bvp=1e-4, max_nodes=50000, jB_guess=None, kappa_factor=1.0,
+    return_profile=False, verb=False, continuation_guess=None,
+    return_continuation=False, path_rtol=1e-6,
+):
+    """Numerical isobaric fixed-T front, with massless or massive quark EOS.
+
+    Conserves u*nB, T and P and solves the two spatial K equations using
+    solve_bvp. a_0plus is nK(0+)/nB(0+); NaN selects the existing PNM interface
+    ceiling. u is the nonrelativistic velocity in natural units. Old solver
+    APIs remain separate. path_rtol controls EOS/integral table refinement.
+    """
+    return _solve_front_slow("isothermal", float(T), float(nB_0minus), float(B_one_forth),
+        float(a_0plus), None, float(ms), param, NM_type, float(tail_eps), int(n_mesh),
+        float(tol_bvp), int(max_nodes), jB_guess, float(kappa_factor), return_profile,
+        verb, continuation_guess, return_continuation, float(path_rtol))
+
+
+def solve_front_adiabatic_slow(
+    T_0minus, nB_0minus, B_one_forth, *, a_0plus=None, T_0plus=None, ms=0.0,
+    param=para.paraQMCRMF3, NM_type="PNM", tail_eps=1e-8, n_mesh=300,
+    tol_bvp=1e-4, max_nodes=50000, jB_guess=None, kappa_factor=1.0,
+    return_profile=False, verb=False, continuation_guess=None,
+    return_continuation=False, path_rtol=1e-6,
+):
+    """Numerical isobaric adiabatic front conserving u*nB, h*u and P.
+
+    Exactly one of local a_0plus or T_0plus must be supplied. T_0plus=0 is an
+    exact endpoint of the existing EOS, evaluated through a regular integral
+    of D_K dnK, not a small positive temperature floor. For ms>0 this retains
+    SQMsolver's low-T strange-quark cutoff approximation. Returned D_K is
+    infinite there, invD_K is zero, and the evolved density integral is finite.
+    """
+    if (a_0plus is None) == (T_0plus is None):
+        raise ValueError("Supply exactly one of a_0plus or T_0plus")
+    if T_0plus is not None:
+        T_0plus = float(T_0plus)
+        if not np.isfinite(T_0plus) or T_0plus < 0:
+            raise ValueError("T_0plus must be nonnegative and finite")
+    if a_0plus is not None:
+        a_0plus = float(a_0plus)
+    return _solve_front_slow("adiabatic", float(T_0minus), float(nB_0minus), float(B_one_forth),
+        a_0plus, T_0plus, float(ms), param, NM_type, float(tail_eps), int(n_mesh),
+        float(tol_bvp), int(max_nodes), jB_guess, float(kappa_factor), return_profile,
+        verb, continuation_guess, return_continuation, float(path_rtol))

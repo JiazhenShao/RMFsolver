@@ -1,13 +1,17 @@
 ---
 summary: Two independent low-T problems in solve_front_energy_conserving_uNmax — the logT→T² closure fix (landed) and the nK-resolution limit (open).
 status: current
-updated: 2026-08-17
+updated: 2026-10-21
 tags: [solver, numerics]
 ---
 
 # uNmax low-temperature limit
 
 Investigated 2026-07-29. Two independent problems near $T(0^+) = 0$; one fixed, one structural.
+
+These findings remain specific to the older physical-density BVP and its historical numerical results.
+The separate isobaric `solve_front_adiabatic_slow` added on 2026-10-21 precomputes the EOS path and evolves the regular integral $r=\int D_K\,dn_K$; its verified representative cold/refinement checks and modeling limits are in [[slow-front-solvers]].
+It does not modify the closures or repair the older branch described below.
 
 ## Fixed — the `logT` → $w = T^2$ closure
 

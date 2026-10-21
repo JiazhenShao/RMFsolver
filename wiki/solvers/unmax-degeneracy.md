@@ -1,13 +1,17 @@
 ---
 summary: At T(0+)=0 the uNmax eigenvalue jB is a non-Lipschitz continuum, not a set of branches — success=True proves nothing there.
 status: current
-updated: 2026-08-17
+updated: 2026-10-21
 tags: [solver, pathology, core-finding]
 ---
 
 # The uNmax $T(0^+)=0$ plateau degeneracy
 
 Diagnosed 2026-08-04. The most consequential numerical finding in the project — it invalidated a class of cluster results and motivated [[thermal-conducting]].
+
+Scope update (2026-10-21): these findings and numerical values describe the older `solve_front_energy_conserving_uNmax` physical-density BVP, which remains unchanged.
+The new `solve_front_adiabatic_slow` uses a flux-independent isobaric EOS path and evolves $r=\int D_K\,dn_K$ to retain a finite cold constitutive equation; see [[slow-front-solvers]].
+The new formulation passes representative exact-cold, seed, temperature and refinement checks; their bounds and inherited massive-EOS limitation are documented separately in [[slow-front-solvers]].
 
 ## The claim
 
@@ -51,4 +55,5 @@ The "the exact-zero result looks sound" conclusion in [[unmax-low-temperature]],
 
 ## Fix direction
 
-Reformulate away from $n_K$-in-$x$: with $v = T^{1/3}$ both $dn_K/dv$ and `invD` scale as $v^5$, so $(dn_K/dv)/\mathrm{invD}$ is regular (verified constant to ~2% over three decades in $T$), and the phase-plane graph $j_K(n_K)$ has no translation freedom and no plateau. The route actually taken was [[thermal-conducting]].
+Reformulate away from $n_K$-in-$x$: with $v = T^{1/3}$ both $dn_K/dv$ and `invD` scale as $v^5$, so $(dn_K/dv)/\mathrm{invD}$ is regular (verified constant to ~2% over three decades in $T$), and the phase-plane graph $j_K(n_K)$ has no translation freedom and no plateau. The route initially taken was [[thermal-conducting]].
+The 2026-10-21 [[slow-front-solvers]] addition uses the regular diffusion integral while retaining a spatial two-field `solve_bvp`, rather than adopting phase-plane shooting.

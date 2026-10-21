@@ -1,15 +1,19 @@
 ---
-summary: The energy-conserving and isothermal fronts are reduced reaction-diffusion BVPs in physical nK and JK with pointwise EOS reconstruction.
+summary: Older moving-flux BVPs evolve physical nK and JK with pointwise EOS reconstruction; new isobaric slow-front BVPs precompute the EOS path and evolve a diffusion-density integral.
 status: current
-updated: 2026-08-27
+updated: 2026-10-21
 tags: [method, bvp, numerical, front]
 ---
 
 # Reduced steady-front boundary-value problem
 
-The ideal energy-conserving and isothermal calculations propagate the physical K density/current pair.
+The existing moving-flux energy-conserving and isothermal calculations propagate the physical K density/current pair.
 Baryon density, flow, and chemical potentials are reconstructed algebraically from the EOS and conserved fluxes; temperature is reconstructed in the energy-conserving branch and fixed in the isothermal branch.
 This distinction resolves the recurring but incorrect “five first-order fields need five interface data” counting.
+
+The separate `solve_front_isothermal_slow` and `solve_front_adiabatic_slow` APIs added on 2026-10-21 instead impose constant $P$ and either constant $T$ or constant $h/n_B$, precompute a neutral EOS path independent of $j_B$, and collocate the spatial diffusion-density integral with the K current.
+They retain two differential fields and one flux eigenvalue, support massless and massive strange-quark branches, and do not use shooting.
+Their exact-cold treatment, shifted tail, API and verified representative convergence checks are documented in [[slow-front-solvers]]; the moving momentum and relativistic energy closures below describe the older comparison APIs.
 
 ## Differential fields
 
@@ -52,7 +56,8 @@ T(x)=T(0^-),
 $$
 
 and reconstructs the local state from $n_K$, $T(0^-)$, $j_B$, and $\Pi$.
-Both branches then evaluate the local $D_K$ and exact $\Gamma_K(\mu_B,\mu_K,T,m_s)$ for the two ODEs.
+Both branches then evaluate the local $D_K$ and approximate modified Madsen source $\Gamma_K(\mu_B,\mu_K,T,m_s)$ for the two ODEs.
+The legacy helper/rate label containing `exact` does not denote exact weak-interaction phase-space integration; see [[strangeness-reaction-diffusion]].
 In particular, fixed temperature does not make $D_K$ constant because $D_K$ also depends on $\mu_B$ through the quark chemical potential.
 
 The physical choice of $n_K,J_K$ does not require passing their raw magnitudes to the collocation algorithm.
@@ -93,7 +98,7 @@ Solutions must be stable under changes of $L_0$ and $\epsilon_{\rm tail}$.
 Some energy-conserving branches use interface-fraction continuation when a direct solve fails; the physical-field isothermal solver currently attempts the requested interface fraction directly.
 Negative temperatures, nonpositive densities, failed EOS closures and nonphysical transport coefficients are rejected.
 
-This is the manuscript-level method. Current implementation-specific continuation, low-temperature and tail behavior live under [[phase-velocity-overview]], [[unmax-low-temperature]], [[unmax-degeneracy]] and [[thermal-conducting]].
+This describes the manuscript-level method and the older comparison solvers. Current implementation-specific continuation, low-temperature and tail behavior live under [[phase-velocity-overview]], [[unmax-low-temperature]], [[unmax-degeneracy]] and [[thermal-conducting]]; the new isobaric formulation is in [[slow-front-solvers]].
 
 ## Local-fraction convention
 
