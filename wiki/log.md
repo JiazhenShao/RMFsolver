@@ -926,3 +926,9 @@ The isothermal `_solve_a_0plus_max` balance gives affinity $-33.2$ MeV/baryon at
 Increased the numerical overview's panel height, included zero in density/speed limits and ticks, and widened the homogeneous upstream region so both headings stay on their own side of the centered interface.
 Refreshed the single plotting cell, its PNG, and `boundary_schematic_real.pdf`; the original figure, manuscript source, all other notebook cells, and numerical data are unchanged.
 Seven boundary-profile checks and three trajectory-style tests pass. Inspected Figure 3 in the rebuilt manuscript; unrelated pre-existing duplicate-label/two unresolved-reference warnings remain. See [[notebook-trajectory-figures]].
+
+## [2026-10-21] source-check | HP93 Eq. (25): h_D carries a /6
+
+Checked the local HP93 PDF: Eq. (25) defines $h_D=\Gamma(\tfrac83)\zeta(\tfrac53)(2\pi)^{2/3}/6\simeq1.81$, and quadrature of Eqs. (20) and (23) confirms it.
+The manuscripts printed the closed form without the $/6$, which evaluates to $10.88$; the $/6$ was restored in `Latex_writting/Main.tex`, `Hydrodynamical combustion/Main.tex` and `Notes.tex`, and `Latex_drop_in_integrated/section.tex` (`Main_old.tex` left as archive).
+Code is unaffected (`_TRANSPORT_H_CONST = 1.81317`), and Eqs. (28) and (36) and the $q_D$ definition match `_TRANSPORT_D_PREFACTOR`. See [[heiselberg-pethick-1993]].

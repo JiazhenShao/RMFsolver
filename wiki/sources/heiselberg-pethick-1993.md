@@ -1,7 +1,7 @@
 ---
-summary: Heiselberg & Pethick 1993, PRD 48 2916 — the transport source for both kappa_th and D_K. Paywalled, no arXiv preprint.
+summary: Heiselberg & Pethick 1993, PRD 48 2916 — the transport source for both kappa_th and D_K; its Eq. (25) h_D carries a /6 the manuscripts had dropped. Paywalled, no arXiv preprint.
 status: current
-updated: 2026-08-11
+updated: 2026-10-21
 tags: [source, transport]
 ---
 
@@ -12,12 +12,29 @@ tags: [source, transport]
 ## Access
 
 **No arXiv preprint. Paywalled at APS.** The PDF is held locally at `~/Documents/GRAD_STUDY/Research/Dense_Matter/ref[35]-D_Q.pdf` — this is the only reachable copy, and an earlier attempt to build the solver without it stalled on Eq. (62) being unrecoverable.
+`pdftoppm` is not installed, so `Read` cannot render it; a short Swift script using `PDFKit` extracts page text and PNGs.
 
 ## What it supplies
 
 Both the quark thermal conductivity $\kappa_T$ and the flavor diffusion coefficient $D_K$ used throughout [[quark-transport]].
 
 Equations that matter: **Eq. (7)** susceptibilities · **Eq. (8)** fixes the log branch · **Eq. (21)** momentum-relaxation integrand · **Eq. (59)** the $I_\kappa$ integral · **Eq. (60)** its low-$y$ asymptote · **Eq. (62)** · **Appendix B** the analytic-vs-numerical constant gap.
+
+## ⚠ Flavor diffusion: the $h_D$ prefactor has a $/6$
+
+HP93 Eq. (25) defines the low-$T$ transverse coefficient (our $h_D$) as
+
+$$h_D=\frac{\Gamma(\tfrac{8}{3})\,\zeta(\tfrac{5}{3})\,(2\pi)^{2/3}}{6}=1.8131745\ldots$$
+
+Without the $/6$ the expression evaluates to $10.879$.
+Until 2026-10-21 the manuscripts (`Latex_writting/Main.tex`, `Hydrodynamical combustion/Main.tex` and `Notes.tex`, `Latex_drop_in_integrated/section.tex`) printed it without the $/6$ beside "$\simeq1.81$"; the $/6$ has been restored there.
+The code was never affected: `_TRANSPORT_H_CONST = 1.81317` is hardcoded.
+The value was rederived from HP93 Eqs. (20) and (23), with transverse term $\frac{\pi}{6}(4\omega^2/\pi q_D^2)^{1/3}$ and the identity $\int_0^\infty s^{5/3}\,\frac{e^{-s}}{(1-e^{-s})^2}\,ds=\Gamma(\tfrac83)\zeta(\tfrac53)$; quadrature agrees to $10^{-20}$.
+The longitudinal coefficient $\pi^3/12$ checks the same way.
+
+The rest of the chain matches the code and manuscripts:
+Eq. (28) $\tau_s^{-1}=\frac{8N_q}{3\pi}\alpha_s^2\left[h_D T^{5/3}/q_D^{2/3}+\pi^3T^2/(12q_D)\right]$ for $T\ll q_D$, Eq. (36) $D=\tau_s/3$, and $q_D^2=g^2N_q\mu_q^2/(2\pi^2)$ (p. 2918).
+Together these give $D_K^{-1}=\frac{8N_f\alpha_s^2}{\pi}[\ldots]$, i.e. `_TRANSPORT_D_PREFACTOR = 24*alpha_s**2/pi` for $N_f=3$.
 
 ## ⚠ The misreading to avoid
 
