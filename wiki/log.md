@@ -963,3 +963,92 @@ See [[slow-front-solvers]], [[phase-velocity-overview]] and [[steady-front-bvp]]
 
 Confirmed `solve_front_isothermal_slow` and `solve_front_adiabatic_slow` implement the manuscript's $O(u)$ equations (constant $un_B$, $P$, $T$ or $hu$; $J_K=un_K-D_K\,dn_K/dx$; $dJ_K/dx=-\Gamma_K$; $J_K(0^+)=u(0^-)n_K(0^-)$).
 Four massless solves were checked with an independent manuscript-formula EOS and bisection shooting: closures hold to $4.4\times10^{-10}$, ODE residuals to $3.2\times10^{-7}$, and shooting eigenvalues agree to $4.9\times10^{-9}$. See [[slow-front-solvers]].
+
+## [2026-10-22] audit | Analytical methods versus the new slow-front closures
+
+Confirmed that analytical weak-rate normalization, `alpha_s=0.4`, and exact HP93 `h_D` already propagate, while endpoint matching retains moving-momentum/relativistic energy terms.
+Documented the semi-analytical $10^{-3}$ MeV cutoff, massless/PNM assumptions behind the integrated speed denominator, and finite-mass density/equilibrium-current corrections needed before extending it.
+At one common warm massless state with $\xi=-0.5$, isothermal, semi-analytical adiabatic, and full analytical adiabatic speeds exceed the matching new BVP by 3.038%, 3.822%, and 18.505%; endpoint pressure corrections are about $10^{-12}$ or smaller.
+Four microphysics and three analytical regression checks passed; Wolfram verified the general integral identity and existing closed-form bracket.
+See [[analytic-slow-front-audit]]; solver code, saved artifacts, historical benchmarks, and the nested repository were unchanged.
+
+## [2026-10-23] plan | Analytical slow-front approximation choices
+
+Recorded the updated three-branch plan in `docs/superpowers/plans/2026-10-23-analytic-slow-front.md`.
+The new isothermal analytical branch will use leading Landau-damped diffusion, superseding the earlier proposed full-diffusion choice, while retaining exact full-EOS automatic ceiling selection and an explicitly documented frozen-background convention.
+The full analytical adiabatic branch will use the manuscript quadratic EOS, quadratic ceiling and closed-form integral; the semi-analytical branch will follow the full constrained EOS curve with full diffusion and an exact cold integral.
+All remove velocity-dependent endpoint matching, retain the revised rate, `alpha_s=0.4` and exact `h_D`, and initially restrict the new analytical APIs to massless quarks and PNM.
+This was a plan/documentation update only; no solver or manuscript code, saved artifact, historical benchmark or nested-repository file was modified. See [[analytic-slow-front-audit]].
+
+## [2026-10-23] implementation | Separate slow analytical front estimates
+
+Added `analytic_velocity_isothermal_slow`, `analytic_velocity_adiabatic_slow`, and `semi_analytic_velocity_adiabatic_slow`, with massless PNM scope and flux-independent thermodynamic backgrounds.
+The isothermal estimate uses leading diffusion and exact full-EOS ceiling selection; full analytical adiabatic uses quadratic pressure, retained leading density, quadratic ceiling and closed integral consistently; semi-analytical adiabatic uses the full conserved EOS path, full diffusion and a regular exact-cold numerical integral.
+All 11 new test methods pass, including independent manuscript-formula/quadrature checks, direct EOS conservation, cold limits/refinement, hot-limit precision, domain cases and failure metadata.
+The selected existing 60-test regression has 55 passes and the same five pre-existing failures before and after; only the existing export-list expectation changed, to include the new APIs.
+Independent reviews and Wolfram checks confirmed endpoint/integral algebra, and an AST comparison verified that every existing solver function/class body remains unchanged.
+The manuscript now states the coupling and reproducible approximation recipes; its numbered analytical equations are unchanged.
+The temporary manuscript build succeeds; its unresolved `sec:XX` reference and equation-width warning also reproduce before the changes, and tracked build outputs are preserved.
+The new consistently quadratic warm adiabatic example differs substantially from the former hybrid calculation, while the full-EOS semi-analytical example remains close; new comparison values are recorded separately from historical benchmarks in [[analytic-slow-front-solvers]].
+Only `phase_velocity.py` changed under `RMFsolver/`; saved calculation artifacts and the nested repository remain untouched. See also [[analytic-front-speed]], [[isothermal-analytic-front-speed]] and [[phase-velocity-overview]].
+
+## [2026-10-23] verification | Slow analytical branches against the manuscript and the relativistic methods
+
+Checked the three slow analytical APIs at four states: their formulas match the manuscript, and old relativistic and new slow BVPs agree to 7 digits, so relativity changes nothing.
+Isothermal Landau-only diffusion overestimates the BVP by 17–33% (full diffusion: 0.6–6.3%); the semi-analytical adiabatic branch is within 3.8%.
+The quadratic adiabatic branch's leading-density endpoint gives $T(\infty)\approx18$ instead of 31.8 MeV and speeds 52–61% low; full-EOS endpoints (old hybrid) give −0.1% to +18.5%. See [[analytic-slow-front-solvers]].
+
+## [2026-10-24] implementation | Numerical nonrelativistic adiabatic contour at 0.1 MeV
+
+Copied the August 21 numerical radial-shell/angular-wavefront workflow to `new_paper_calculations/26-10-24/` and switched its dispatch to `solve_front_adiabatic_slow`.
+The completed August 24 relativistic numerical reference supplies a 30-by-18 upstream grid and exact scalar flux seeds; no analytical initial-guess calculation runs.
+Adapted normalized slow-profile continuation, physical residual validation, provenance-aware resume, bounded tighter-table retries, conditional additional RMF starts, and immediate-angle profile recovery while preserving all physical acceptance gates.
+The clean local run accepts 540/540 targets with no timeouts; maximum pressure and enthalpy-flux errors are `5.805e-9` and `1.806e-10`.
+All 10 migration tests and six smoke points pass; independent profile checks agree with EOS/rate/diffusion formulas, and six tighter reruns shift speeds by at most `4.134e-7` relatively.
+Saved the numerical payload, PNG/PDF contour, portable run instructions, and verification report.
+The inherited grid reaches 4023.32 m/s and does not cover the new 5000 m/s contour; the historical boundary is retained only as sampling provenance.
+No solver source, manuscript, original saved artifact, or nested repository was changed by this task. See [[nonrelativistic-adiabatic-contour]] and [[slow-front-solvers]].
+
+## [2026-10-26] visualization | Nonrelativistic adiabatic contour and relativistic overlay
+
+Created and executed `26-10-26.ipynb` with two embedded plots matching the supplied reference figure: the nonrelativistic contour and a solid/dashed overlay against the saved historical relativistic result.
+Both use the reference colors, labeled speed levels, typography, and gray thermodynamic regions, and export PNG/PDF figures to `local_analysis_results/26-10-26/`.
+Added 209 separately saved numerical solves in `new_paper_calculations/26-10-26/`, connecting the 50 m/s curve and resolving 5000 m/s brackets on all 30 rays to radial-fraction width at most 0.0025.
+All supplementary solves satisfy the unchanged acceptance gates; maximum pressure error is `6.238e-9`, and saved rates match the prescribed formula within `4.45e-16` relatively.
+The original numerical artifacts and solver source are unchanged. The notebook identifies the relativistic curves as historical and explains that rate/transport changes prevent interpreting the overlay as a pure relativity comparison.
+See [[nonrelativistic-adiabatic-contour]] for input provenance, boundary checks, and reproduction commands.
+
+## [2026-10-26] visualization | Boundary-profile 40:60 phase split
+
+Changed only the numerical boundary plotting cell to use -400 to 600 nm, with negative-position ticks and a 40:60 neutron/quark width ratio.
+Recentered phase headings and arrows, retained the numerical data and large fonts, and refreshed the existing `boundary_schematic_real.pdf` export plus notebook/PNG outputs.
+All eight profile/layout tests pass; checked the exported PDF visually. Main.tex and the original figure are unchanged. See [[notebook-trajectory-figures]].
+
+## [2026-10-26] calculation | Exact-cold adiabatic analytical contours
+
+Implemented shared local/cluster runners for the unchanged slow analytical APIs at exactly $T(0^+)=0$, $\xi=-0.85$, massless quarks and the existing QMC-RMF3 PNM calibration.
+Completed 101 full-analytical and 61 semi-analytical rays, with no unresolved contours, boundaries or failed active samples; the full analytical 2000/5000 m/s levels are outside the selected window.
+Direct cold EOS boundary classification avoids unnecessary near-zero-speed diffusion-table timeouts; six angular rounds certify crossings of the plot boundary. Completed physics records were reused with explicit provenance and unchanged-physics checks.
+All 36 targeted tests pass, as do local/cluster parity and the full saved-data audit; maximum pressure error is 1.818e-9.
+Appended three executed plots to 26-10-26.ipynb, with PNG/PDF exports and an explicitly labeled numerical reference at $T(0^+)=0.1$ MeV. Original solver files, numerical artifacts and the first seven notebook cells are unchanged.
+See [[cold-adiabatic-analytical-contours]] for coverage, validation and reproduction commands.
+
+## [2026-10-26] correction | Consistent second-order adiabatic endpoint
+
+Corrected only `analytic_velocity_adiabatic_slow` inside the solver module: quadratic pressure and heat now determine the physical quartic root, removing the leading-density suppression of temperature and ceiling by approximately `1/sqrt(3)`.
+Kept the conserved density, closed integral, rate, transport constants, all other solver bodies and manuscript speed formulas unchanged; added explicit residuals and higher-order density diagnostics.
+Updated the matching analytical contour classifier, added the two endpoint equations in a minimal unnumbered `\JS` manuscript insertion, and marked the earlier full-analytical results as superseded history.
+All 39 targeted analytical/contour tests pass; the historical 60-test selection retains its five pre-existing failures. Fifteen spatial BVP tests pass after bounded retries; the remaining cold seed-independence test times out at 600 seconds both before and after correction, with no new assertion failure.
+Completed a fresh analytical-only scan at exact zero interface temperature: 61 rays cover all seven requested levels through 5000 m/s in 17.9 minutes, with no failed or unresolved portions and no old record reuse.
+Both manuscript builds pass with unchanged numbering and warnings; 10,015 protected historical files remain byte-identical. Existing notebooks and figures were not regenerated, and no commit or push was made.
+See [[analytic-slow-front-solvers]], [[cold-adiabatic-analytical-contours]], and `local_analysis_results/26-10-26-second-order/REPORT.md` for validation values, all changed expectations, hashes and reproduction commands.
+
+## [2026-10-26] visualization | Replace the superseded full-analytical contours
+
+At the user’s request, replaced the analytical branch of the canonical combined plotting manifest with the corrected second-order scan, preserving the semi-analytical branch and separate source identities/record directories.
+Executed notebook cells 8, 10 and 14; overwrote the full-analytical and comparison-overlay PNG/PDF exports, with staggered contour labels. Numerical cells 0–6 and semi-analytical cells 11–12 and their exports remain unchanged.
+Archived the pre-refresh notebook and combined manifest under `local_analysis_results/26-10-26-second-order/notebook-refresh/`; the corrected standalone scan and original point records are unchanged. See [[cold-adiabatic-analytical-contours]] and that directory’s `verification.json`.
+
+## [2026-10-26] query | Error budget of the corrected full-analytical adiabatic speed
+
+The code was checked against the manuscript's adiabatic appendix and all constants (`q_D`, the `D_K` prefactor, `h_D`, `gamma_K`) agree. A one-at-a-time ladder from semi-analytical to full analytical at eight states shows the 10–47% overshoot comes from Landau-only diffusion (+10–18%), partly offset by the cubic rate (−0.5 to −17%), plus the ellipse (+0.3–14%) and the quadratic ceiling amplified near $a\to1$ (up to +32%). Filed [[adiabatic-analytic-error-budget]]; scripts in `new_paper_calculations/26-10-26/analytic_error_budget/`.

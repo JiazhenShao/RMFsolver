@@ -1,0 +1,12 @@
+{
+  "numbered_environments_identical": 64,
+  "auxiliary_labels_same_numbers": 100,
+  "protected_speed_prefactor_occurrences": 2,
+  "tracked_artifacts_unchanged": 120,
+  "warnings_before": 16,
+  "warnings_after": 16,
+  "new_warnings": [],
+  "removed_warnings": [],
+  "source_sha256_before": "a6b284f40dfa2e3187ede4b2fa8ffa44ea08810f05928f8bf7c3179eb7c5b35b",
+  "source_sha256_after": "ccca3bd174785589048ba2a202a19596de1b0ae1fbbddc03811188767a2f82dc"
+}

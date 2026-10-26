@@ -58,6 +58,14 @@ class BoundaryProfileTests(unittest.TestCase):
             self.assertLessEqual(axis.get_ylim()[0], 0.0)
             self.assertIn(0.0, axis.get_yticks())
 
+    def test_forty_sixty_split_and_negative_ticks(self):
+        for axis in self.scope["axes"]:
+            left, right = axis.get_xlim()
+            self.assertAlmostEqual(-left / (right - left), 0.4)
+            self.assertTrue(np.any(axis.get_xticks() < 0.0))
+        labels = [label.get_text() for label in self.scope["axes"][-1].get_xticklabels()]
+        self.assertTrue(any(label.startswith(("-", "\N{MINUS SIGN}")) for label in labels))
+
     def test_phase_headers_stay_in_their_regions(self):
         self.scope["fig"].canvas.draw()
         axis = self.scope["axes"][0]

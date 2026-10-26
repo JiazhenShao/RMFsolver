@@ -1,0 +1,131 @@
+{
+  "passed": true,
+  "executed_cells": [
+    8,
+    10,
+    14
+  ],
+  "unchanged_cells": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    11,
+    12
+  ],
+  "numerical_and_semi_exports_preserved": {
+    "local_analysis_results/26-10-26/adiabatic-nonrelativistic-contour.png": "beff4533374e1c67f3cb4d93fa47207c51712553e604886968ee78f818e4d28a",
+    "local_analysis_results/26-10-26/adiabatic-relativistic-vs-nonrelativistic.png": "3db5f6fc52e91f0028ac639931efd6963b057e40177d47c6ac3ec3b28cbcf633",
+    "local_analysis_results/26-10-26/adiabatic-semi-analytical-cold.png": "a1c2423484c5e7ace6d549266b6655623027d3b547b6b2a961ab374a4be88ee0",
+    "local_analysis_results/26-10-26/adiabatic-semi-analytical-cold.pdf": "d0b0c24752ff3132de285d2bb4c5e2a50eaaabcadd42088fc7efa385df9a780f",
+    "local_analysis_results/26-10-26/adiabatic-relativistic-vs-nonrelativistic.pdf": "69e0dba29817356973c602fd5a32e6126a69ef7ec230d906fde5800d856678b8",
+    "local_analysis_results/26-10-26/adiabatic-nonrelativistic-contour.pdf": "a5bf1aaebff2505793d08066ee341e2c63e1568a1c22895dd2cfd1912e61dd87"
+  },
+  "combined_data": "new_paper_calculations/26-10-26/local/adiabatic-T0plus0-xi-minus0p85.npy",
+  "full_analytical_source": "new_paper_calculations/26-10-26/local/adiabatic-T0plus0-xi-minus0p85-second-order.npy",
+  "coverage": {
+    "analytic": {
+      "rays": 61,
+      "failures": 0,
+      "unresolved": 0,
+      "unresolved_boundaries": 0,
+      "supported_levels": [
+        50.0,
+        100.0,
+        200.0,
+        500.0,
+        1000.0,
+        2000.0,
+        5000.0
+      ],
+      "outside_window_levels": []
+    },
+    "semi_analytic": {
+      "rays": 61,
+      "failures": 0,
+      "unresolved": 0,
+      "unresolved_boundaries": 0,
+      "supported_levels": [
+        50.0,
+        100.0,
+        200.0,
+        500.0,
+        1000.0,
+        2000.0,
+        5000.0
+      ],
+      "outside_window_levels": []
+    }
+  },
+  "method_identities": {
+    "analytic": {
+      "format": "cold_adiabatic_contours_v1",
+      "physics": {
+        "T_0plus_MeV": 0.0,
+        "xi": -0.85,
+        "ms_MeV": 0.0,
+        "NM_type": "PNM",
+        "B14_MeV": 189.1565957288247,
+        "n0_MeV3": 1229360.5098323745,
+        "path_rtol": 1e-06
+      },
+      "code_sha256": {
+        "new_paper_calculations/26-10-26/shared/cold_scan.py": "5bcb61ecbeed3eb15154544b33d515b52edae66af18b5e5478ed5d6a4c87af09",
+        "new_paper_calculations/26-10-26/shared/cold_physics.py": "8e0a06bea40856a0b14328618b31805dad0c81f4f1191e846182db2852f26ef0",
+        "new_paper_calculations/26-10-26/shared/bounded_call.py": "d4ff49d8c77fff1009051c4af243d1ef747e7391ad4ab2f8acb85b79d6c8e4f3",
+        "RMFsolver/RMFparameter.py": "8367c6fe7ada2c4eaccb1d55386ae3634671ca1ab6fe1e07b35f1b15eb6d29ca",
+        "RMFsolver/SQMsolver.py": "607364993aae3fe4d6e30e40bd06f5bdb6b3840c51fa290c3cc1fb642aaaea6f",
+        "RMFsolver/Solver.py": "ca5573057ec7830c91a316fe76f04c9ce1adbe67c8330830dd1d704339056a26",
+        "RMFsolver/__init__.py": "7d338f23deb30e80fbdae68f8be18a65bcf2c2d7a009aed11a6fea6b0d68444d",
+        "RMFsolver/constants.py": "47a66aa23f2ce5c4c04441237d361531ec9898e7de00a9287b18681ad8fdf509",
+        "RMFsolver/phase_velocity.py": "3c22ccbb039bcc0b7812daeed4c2e233cfdf09c8d5f650a2160c415bc494140b",
+        "RMFsolver/setup.py": "1e7f61d4c90ddcf1cf0219516ba0e993f4842ec9e9263cb97c038407757b4ed4",
+        "RMFsolver/tov.py": "ee36ff5fd3ca27480361e36c87369ffb75863a91d2912bc2c903f5828ffdec71",
+        "RMFsolver/tov_solve.py": "16c683c839a787d939d27998979cf31bc69e1ae6fc1a68719207633ebf2eeb96"
+      },
+      "input_sha256": "ddf4e25f2d877bcc5d22e881b64ada82776461e87e9f73443809c6cabd6eca60",
+      "method_timeout": 120.0,
+      "angular_rounds": 6,
+      "smoke": false
+    },
+    "semi_analytic": {
+      "format": "cold_adiabatic_contours_v1",
+      "physics": {
+        "T_0plus_MeV": 0.0,
+        "xi": -0.85,
+        "ms_MeV": 0.0,
+        "NM_type": "PNM",
+        "B14_MeV": 189.1565957288247,
+        "n0_MeV3": 1229360.5098323745,
+        "path_rtol": 1e-06
+      },
+      "code_sha256": {
+        "new_paper_calculations/26-10-26/shared/cold_scan.py": "5bcb61ecbeed3eb15154544b33d515b52edae66af18b5e5478ed5d6a4c87af09",
+        "new_paper_calculations/26-10-26/shared/cold_physics.py": "6cde232463b611b343199ca815ee6d22a5c16c5bb0da3994362821993815b0d9",
+        "new_paper_calculations/26-10-26/shared/bounded_call.py": "d4ff49d8c77fff1009051c4af243d1ef747e7391ad4ab2f8acb85b79d6c8e4f3",
+        "RMFsolver/RMFparameter.py": "8367c6fe7ada2c4eaccb1d55386ae3634671ca1ab6fe1e07b35f1b15eb6d29ca",
+        "RMFsolver/SQMsolver.py": "607364993aae3fe4d6e30e40bd06f5bdb6b3840c51fa290c3cc1fb642aaaea6f",
+        "RMFsolver/Solver.py": "ca5573057ec7830c91a316fe76f04c9ce1adbe67c8330830dd1d704339056a26",
+        "RMFsolver/__init__.py": "7d338f23deb30e80fbdae68f8be18a65bcf2c2d7a009aed11a6fea6b0d68444d",
+        "RMFsolver/constants.py": "47a66aa23f2ce5c4c04441237d361531ec9898e7de00a9287b18681ad8fdf509",
+        "RMFsolver/phase_velocity.py": "8bfdd9c23538e432e43f6b9898375a0c51b1f29c814eb8e945994ec56136c9d1",
+        "RMFsolver/setup.py": "1e7f61d4c90ddcf1cf0219516ba0e993f4842ec9e9263cb97c038407757b4ed4",
+        "RMFsolver/tov.py": "ee36ff5fd3ca27480361e36c87369ffb75863a91d2912bc2c903f5828ffdec71",
+        "RMFsolver/tov_solve.py": "16c683c839a787d939d27998979cf31bc69e1ae6fc1a68719207633ebf2eeb96"
+      },
+      "input_sha256": "ddf4e25f2d877bcc5d22e881b64ada82776461e87e9f73443809c6cabd6eca60",
+      "method_timeout": 120.0,
+      "angular_rounds": 6,
+      "smoke": false
+    }
+  },
+  "refreshed_exports": [
+    "local_analysis_results/26-10-26/adiabatic-cold-analytical-vs-numerical.png",
+    "local_analysis_results/26-10-26/adiabatic-cold-analytical-vs-numerical.pdf",
+    "local_analysis_results/26-10-26/adiabatic-full-analytical-cold.png",
+    "local_analysis_results/26-10-26/adiabatic-full-analytical-cold.pdf"
+  ]
+}

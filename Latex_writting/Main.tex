@@ -254,7 +254,7 @@ Our calculations use natural units, $\hbar=c=k_B=1$, and metric signature $(+---
 \begin{figure}[t]
     \centering
     \includegraphics[width=1\linewidth]{Hydrodynamical combustion/Plots/boundary_schematic_real.pdf}
-    \caption{Caption}
+    \caption{Caption\LBcom{note y labels have odd spacing}}
     \label{fig:boundary_schematic_real}
 \end{figure}
 
@@ -638,11 +638,6 @@ setting thermal conductivity $\kappa_{\rm th}=0$ and radiative energy loss $Q_\n
 %
 where $h=P+\eps$ is the enthalpy.
 The first three equations impose constant baryon flux, enthalpy flux and pressure.
-%\begin{equation}
-% E=hu\,.
-% \label{eq:energy_flux_adiabatic}
-%\end{equation}
-%\mgacom{Do we need to define $E$? Do we use it anywhere?}
 These fluxes are fixed by choosing the baryon density, temperature, and speed of the incoming nuclear matter, $(n_B(0^-)$, $T(0^-)$, and $u(0^-)$.  Eq.~\eqref{eq:K_conservation} leads to the same K transport equations as in the isothermal case \eqref{eq:reduced_BVP}, with the same boundary conditions  (Sec.~\ref{sec:boundary_conditions}). As before, there is only one value of the boundary speed $u(0^-)$ that yields a well-behaved solution to the equations.
 The difference is that in the evolution procedure described in Sec.~\ref{sec:isothermal-equations} we now determine $T(x)$ from the constant enthalpy flux. 
 
@@ -697,76 +692,83 @@ In this case no weak interactions are needed, so it is not surprising that \mga{
 
 
 
+\begin{figure}
+    %\centering
+    \includegraphics[width=\linewidth]{Hydrodynamical combustion/Plots/isothermal-numerical-contour.pdf}
+    \caption{Contour plot of the numerically calculated maximum isothermal boundary propagation speed as a function of neutron matter density and ambient temperature.
+    \mgacom{``Stable Neutron Matter''$\to$``Quark matter not favored''; ``$a(0^+)\to 1$''$\to$``udd quark matter favored''}}
+    \label{fig:speed-isothermal-linear}
+\end{figure}
+
+\begin{figure}
+    %\centering
+    \includegraphics[width=\linewidth]{Hydrodynamical combustion/Plots/isothermal-analytic-numerical-logT.pdf}
+    \caption{Contour plot of the maximum isothermal boundary propagation speed as a function of neutron matter density and ambient temperature. Solid lines and dots show the same numerically calculated speeds as are plotted in Fig.~\ref{fig:speed-isothermal-linear}. Dashed lines are the analytic approximation Eq.~\eqref{eq:isothermal_speed_scaling}.
+    \mgacom{Can we label the dashed lines at $T<1\,\MeV$, and maybe have fewer of them?}
+    \LBcom{Instead of line for numerical $T>20$ why not just show $T<20$ in this figure?}}
+    \label{fig:speed-isothermal-log}
+\end{figure}
+
 
 \section{Results}
 \label{sec:results}
 
-\JS{
-Do we need to re-calculate and re-produce every plot? 
-\begin{itemize}
-    \item use quark EoS without gluons
-    \mgacom{No, as long as we can cite reputable sources for the EoS with gluons}
-    \item use full phase-space integral rate $\Gamma_K$ for full numerical calculations
-    \mgacom{I don't think we decided on this}\JScom{Decided from last meeting: use $\Gamma_K(\mu_B,\mu_K,T)
- =\mathcal C_K(\mu_B/3)^5\mu_K
- \left(\mu_K^2+4\pi^2T^2\right)$}
-    \item don't use relativistic corrections for both isothermal and adiabatic full numerical methods. 
-    \item use $\alpha_s = 0.4$
-\end{itemize}
-}
-
-\mga{We will calculate the maximum phase boundary propagation speed by numerically solving the steady state equations for the boundary profile, in the isothermal (Sec.~\ref{sec:isothermal-equations},\ref{sec:boundary_conditions})
+\mga{We will show results for the maximum phase boundary propagation speed obtained by numerically solving the steady-state equations for the boundary profile, in the isothermal (Sec.~\ref{sec:speed-isothermal})
 %\eqref{eq:front_system_isothermal} 
-and adiabatic  (Sec.~\ref{sec:adiabatic-equations})
+and adiabatic  (Sec.~\ref{sec:speed-adiabatic})
 %\eqref{eq:front_system_adiabatic} 
-limits.
+limits.\LBcom{max only in adiabatic case. in isothermal do we have a choice?}
 
 For the quark matter EoS, the only free parameter is the bag constant, which we set to $U_\text{bag}^{1/4}=189.2\,\MeV$, which 
 places the zero-temperature nuclear-quark phase transition at density $n_B^{\rm crit}(T{=}0)=3n_0$.
-
 }
 
-\AHcom{I think if we have Fig1 as schematic, we should have an equivalent figure here with an actual result?}
+\AHcom{I think if we have Fig1 as schematic, we should have an equivalent figure here with an actual result?}\LBcom{See fig 3. Can/should we explain it here in the results section or prior? it seems useful to show it early in the paper.}
 
 
 
 \subsection{Isothermal case}
 
 \mga{
-In Figs.~\ref{fig:speed-isothermal-linear} and \ref{fig:speed-isothermal-log} we show contour plots of the numerically calculated maximum boundary propagation speed, as a function of the neutron matter density and the ambient temperature.
-The white region is the range of densities and temperatures where the boundary propagates because neutron matter is metastable against conversion to quark matter with different flavor content, specifically, more strangeness. In the grey region at lower left, the ambient pressure is below the transition pressure so quark matter is not favored over neutron matter. As one would expect, the propagation speed drops to zero as the system approaches this regime.
-In the grey region at upper right, the pressure is so high that quark matter with the same flavor content as neutron matter is thermodynamically favored ($P>P_\text{2-flav}$ in Fig.~\ref{fig:pressure-mu}) so boundary propagation can proceed without weak interactions. In our formalism the propagation speed diverges because $A_\text{adb}\to 1$ as one approaches that regime.
+Figs.~\ref{fig:speed-isothermal-linear} and \ref{fig:speed-isothermal-log} show contour plots of the numerically calculated maximum boundary propagation speed, as a function of the neutron matter density and the ambient temperature.
+The white region is the range of densities and temperatures where the boundary propagates because neutron matter is metastable against conversion to quark matter with different flavor content, specifically, more strangeness. 
 
-In Fig.~\ref{fig:speed-isothermal-linear} we see that the speed also appears to diverge at $T\to 0$ at fixed neutron matter density. To clarify this we also provide a log scale plot, Fig.~\ref{fig:speed-isothermal-log}, which shows shows the same numerically calculated data (solid lines and points) along with the values yielded by the analytic approximation Eq.~\eqref{eq:isothermal_speed_scaling}. Firstly, this confirms that the analytic approximation is reasonably accurate. Secondly, since the analytic approximation can be evaluated at low temperatures where the numerical method becomes difficult to implement, it allows us to see how low the temperature would have to be for the phase boundary to move appreciably on the distance and time scales relevant for mergers, supernovas, etc.
+In the lower-left grey region, the ambient pressure is below the transition pressure, so quark matter is not favored over neutron matter. As one would expect, the propagation speed drops to zero as the system approaches this regime. 
+\LB{The boundary of the lower-left grey region is determined entirely by thermodynamics, i.e., by static properties of the EoS. We compare the pressure of neutron matter and beta-equilibrated quark matter ($\mu_K=0$) and determine the $\mu_B^{\text{tr}}$ where both pressures are equal. We then translate that $\mu_B^{\text{tr}}$ to the baryon density in the neutron matter phase, which we use in our figures. We follow this procedure for each temperature shown on the y-axis.
+The boundary is located at $3\,n_B$ due to our choice of bag constant in the quark matter phase. As the temperature increases, the lower-left grey boundary moves to lower densities because \LBcom{I am confused. The pressure of quark matter should increase more than neutron matter to move this boundary to lower $n_B$? Why is the low temp approx for quark matter good then?}}.
+%\mgacom{Explain its shape}
+
+In the grey region at upper right, the pressure is so high that quark matter with the same flavor content as neutron matter is thermodynamically favored ($P>P_\text{2-flav}$ in Fig.~\ref{fig:pressure-mu}) so boundary propagation can proceed without weak interactions. In our formalism, the propagation speed diverges as one approaches that regime because $A_\text{adb}\to 1$.\LBcom{This last sentence is not clear. Maybe we need more words.}
+\LB{The upper-right grey region is determined by static properties of the EoS, similar to the lower-left grey boundary. For each temperature, we determine the $\mu_B^{\text{tr}}$ where the pressure between neutron matter and quark matter with the same flavor content ($n_s=0$) is equal.}
+
+%\mgacom{Explain its shape}
+
+In Fig.~\ref{fig:speed-isothermal-linear} we see that the speed also appears to diverge at $T\to 0$ at fixed neutron matter density. To clarify this we also provide a log scale plot, Fig.~\ref{fig:speed-isothermal-log}, which shows shows the same numerically calculated data (solid lines and points) along with the values yielded by the analytic approximation Eq.~\eqref{eq:isothermal_speed_scaling} (dashed lines). Firstly, this confirms that the analytic approximation is reasonably accurate. Secondly, since the analytic approximation can be evaluated at low temperatures where the numerical method becomes difficult to implement, it allows us to see how low the temperature would have to be for the phase boundary to move appreciably on the distance and time scales relevant for mergers, supernovas, etc.
 Finally, the analytic approximation shows us why the speed diverges at low temperature: it is because the K-diffusion coefficient (which is proportional to the mean free path) diverges at low temperature.  \mgacom{Talk about when this invalidates our approach as mfp gets comparable to the conversion region}
 
-The main message of Figs.~\ref{fig:speed-isothermal-linear} and \ref{fig:speed-isothermal-log} is that under typical thermodynamic conditions of mergers and supernovas ($T\gtrsim 1,\MeV$) the phase boundary between metastable nuclear matter and quark matter will propagate at speeds of order 100 to $1000\,\m\s^{-1}$ at most. (Recall that in making approximations and parameter choices we favored those that led to faster speeds.) In mature single neutron stars, which have lower core temperatures, the boundary could move faster.
+From Figs.~\ref{fig:speed-isothermal-linear} and \ref{fig:speed-isothermal-log} we conclude that under typical thermodynamic conditions of mergers and supernovas ($T\gtrsim 1,\MeV$) an isothermal phase boundary between metastable nuclear matter and quark matter will propagate at speeds of order 100 to $1000\,\m\s^{-1}$ at most. (Recall that in making approximations and parameter choices we favored those that led to faster speeds.) In mature single neutron stars, which have lower core temperatures, the boundary could move faster.
 }
 
-\begin{itemize}
-  \item about contour plot: 
-  \begin{itemize}
-    \item existence of stable neutron matter region, and why it takes that shape
-    \item $A_{\rm adb}>1$ region and why that shape
-    \item velocity in between, also mention it diverge as the input goes close to $A_{\rm adb}=1$
-  \end{itemize}
-\end{itemize}
+
+\subsection{Adiabatic case}
+
+\mga{In the adiabatic case we choose the temperature of the metastable neutron matter, $T(0^-)$. Solving the steady state equations determines the temperature profile of the quark matter. Fig.~\ref{fig:speed-adiabatic} shows contour plots of the numerically calculated maximum boundary propagation speed, as a function of the neutron matter density and temperature.
+As in the isothermal case, the white region is the range of densities and temperatures where the boundary propagates because neutron matter is metastable against conversion to quark matter with different flavor content.
+
+In the grey region at lower left, a transition to quark matter is not favored under adiabatic conditions. As we approach that edge of the white region,...
+\mgacom{Introduce Jun's analysis in terms of EoS here?}
+As one would expect, the propagation speed drops to zero as the system approaches this regime. \mgacom{Explain its shape}
+
+In the grey region at upper right, the pressure is so high that quark matter with the same flavor content as neutron matter is thermodynamically favored ($P>P_\text{2-flav}$ in Fig.~\ref{fig:pressure-mu}) so boundary propagation can proceed without weak interactions. In our formalism the propagation speed diverges as one approaches that regime because $A_\text{adb}\to 1$.
+\mgacom{Explain its shape}
+
+\mgacom{Discuss low $T$ limit.}
 
 
-
-\begin{figure}
-    \centering
-    \includegraphics[width=\linewidth]{Hydrodynamical combustion/Plots/isothermal-numerical-contour.pdf}
-    \caption{Contour plot of the numerically calculated maximum isothermal boundary propagation speed as a function of neutron matter density and ambient temperature.}
-    \label{fig:speed-isothermal-linear}
-\end{figure}
-
-\begin{figure}
-    \centering
-    \includegraphics[width=\linewidth]{Hydrodynamical combustion/Plots/isothermal-analytic-numerical-logT.pdf}
-    \caption{Contour plot of the maximum isothermal boundary propagation speed as a function of neutron matter density and ambient temperature. Solid lines and dots give the same numerically calculated values as are plotted in Fig.~\ref{fig:speed-isothermal-linear}. Dashed lines are the analytic approximation Eq.~\eqref{eq:isothermal_speed_scaling}.}
-    \label{fig:speed-isothermal-log}
-\end{figure}
+The results shown in Fig.~\ref{fig:speed-adibatic}
+show that XXX .
+%is that under typical thermodynamic conditions of mergers and supernovas ($T\gtrsim 1,\MeV$) an isothermal  phase boundary between metastable nuclear matter and quark matter will propagate at speeds of order 100 to $1000\,\m\s^{-1}$ at most. (Recall that in making approximations and parameter choices we favored those that led to faster speeds.) In mature single neutron stars, which have lower core temperatures, the boundary could move faster.
+}
 
 
 
@@ -778,7 +780,9 @@ The main message of Figs.~\ref{fig:speed-isothermal-linear} and \ref{fig:speed-i
   Full numerical phase-boundary speed $u(0^-)$ in $\m\,\s^{-1}$ as a function of the upstream baryon density and temperature, with $T(0^+)=0.1\,\MeV$ and $n_B^{\rm crit}(T{=}0)=3n_0\,.$
   The white band is the domain in which the moving-front solution exists.
   Below the lower boundary neutron matter is stable against the assumed conversion, while the region with $A_{\rm adb}\geq1$ lies outside the weak-interaction-limited branch described by our model.
-  The contours are drawn at $50\,,$ $100\,,$ $200\,,$ $500\,,$ $1000\,,$ $2000\,,$ and $5000\,\m\,\s^{-1}\,.$}
+  The contours are drawn at $50\,,$ $100\,,$ $200\,,$ $500\,,$ $1000\,,$ $2000\,,$ and $5000\,\m\,\s^{-1}\,.$
+  \LBcom{50 m/s contour ends at low $n_B$.}
+  }
   \label{fig:numerical}
   % Legacy aliases retained for collaborator notes later in the manuscript.
   \label{fig:u-analytical-loglog}
@@ -817,6 +821,7 @@ Given the estimates presented in the previous paragraphs, a more detailed calcul
         \item surface tension?
 \end{itemize}
 }
+\LBcom{If the phase conversion does not happen quick enough, could a compression from the merger lead to collapse because there is not enough pressure support? If the conversion were instant then at some density where nuclear matter is metastable, the quark matter phase would provide more pressure to support against collapse.}
 \section*{Acknowledgements} We thank XXX (Nils Andersson? Suprovo Ghosh?) for valuable feedback and discussions.
 MGA, LB, and AH are partly supported by the U.S. Department of Energy, Office of Science, Office of Nuclear Physics, under Award No.~\#DE-FG02-05ER41375. A.H.~furthermore acknowledges financial support by the UKRI under the Horizon Europe Guarantee project EP/Z000939/1.
 
@@ -936,7 +941,7 @@ the single gluon exchange perturbative expression \cite{Haensel:1992zz,Heiselber
  \right)\,,
 \label{eq:diffusion_coefficient}
 \end{equation}
-Here $N_f=3$ is the number of active quark flavors, $\alpha_s=0.3$ is the strong coupling, $h_D = \Gamma(\frac{8}{3})\zeta(\frac{5}{3})(2\pi)^{2/3} \JS{/6}\simeq1.81$ is a numerical prefactor, $q_D$ is the Debye wavenumber defined by $q_D^2=g^2N_f\mu_B^2/(18\pi^2)\,,$ and $g^2=4\pi\alpha_s\,.$
+Here $N_f=3$ is the number of active quark flavors, $\alpha_s=\JS{0.4}$ is the strong coupling, $h_D = \Gamma(\frac{8}{3})\zeta(\frac{5}{3})(2\pi)^{2/3} \JS{/6}\simeq1.81$ is a numerical prefactor, $q_D$ is the Debye wavenumber defined by $q_D^2=g^2N_f\mu_B^2/(18\pi^2)\,,$ and $g^2=4\pi\alpha_s\,.$
 In our numerical calculations we set $\al_s=0.3$
 \cite{Farhi:1984qu,Madsen:1998uh} \mgacom{Where does Farhi or Madsen say that $\al_s=0.3$ is appropriate?
 The particle data group \cite{ParticleDataGroup:2026mpi} (Fig 9.3) implies that $\al_s\gtrsim 0.4$ at energies below $1\,\GeV$.

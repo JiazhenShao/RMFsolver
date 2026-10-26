@@ -1,7 +1,7 @@
 ---
 summary: All_Plots_new exports matched trajectory figures and a four-panel numerical adiabatic boundary profile from saved data.
 status: current
-updated: 2026-10-20
+updated: 2026-10-26
 tags: [methods, notebooks, figures, manuscript]
 ---
 
@@ -42,6 +42,9 @@ As of October 20, the notebook exports instead to `boundary_schematic_real.pdf` 
 Axis labels, ticks, panel labels, and phase headings use 22-point source fonts, which render at 11.37 points at the manuscript's full column width, above its 10-point body text.
 The source figure was initially 6.4 by 5.1 inches; the October 20 layout revision increases it to 6.4 by 6.6 inches, includes zero on the density/speed axes, and centers the interface between equal-width phase regions.
 The headings fit wholly within their respective regions, with symmetric flow arrows; seven profile/layout tests now cover these constraints as well as font scaling and unchanged numerical data.
+On October 26, the x limits changed to -400 through 600 nm for an exact 40:60 neutron/quark split, with ticks every 200 nm on both sides.
+The phase headings use the narrower STIX serif at the unchanged source font size so they remain inside their regions; the exported full-column text size is about 11.0 points.
+Eight profile/layout tests pass, including the split and negative-tick checks, and the notebook overwrites the same `boundary_schematic_real.pdf` referenced by Main.tex.
 Only the corresponding figure width and caption changed in `Latex_writting/Main.tex`; its 17-page PDF builds with no unresolved references, and the figure was checked on page 2.
 All 27 pre-existing notebook cells are preserved, and four numerical-profile checks plus three existing trajectory-style tests pass.
 

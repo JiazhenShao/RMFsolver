@@ -1,0 +1,123 @@
+{
+  "additional_accepted_bvps": 209,
+  "complete_5000_rays": 30,
+  "maximum_conservation_errors": {
+    "baryon_flux": 2.220446049250313e-16,
+    "pressure": 6.2374212841569975e-09,
+    "enthalpy_flux": 1.6644374767338377e-10
+  },
+  "maximum_rate_relative_error": 4.440892098500626e-16,
+  "maximum_fraction_bracket_width": 0.0025000000000000577,
+  "minimum_upper_bracket_speed_m_s": 5003.572655164437,
+  "maximum_inner_extension_speed_m_s": 23.383401409146014,
+  "reference_boundary_full_eos_audit": {
+    "inner": [
+      {
+        "theta_deg": 0.0,
+        "relative_specific_enthalpy_mismatch": 2.2181079195604525e-10
+      },
+      {
+        "theta_deg": 8.181818181818182,
+        "relative_specific_enthalpy_mismatch": -9.657663557760543e-11
+      },
+      {
+        "theta_deg": 16.363636363636363,
+        "relative_specific_enthalpy_mismatch": -3.330126174816428e-10
+      },
+      {
+        "theta_deg": 24.545454545454543,
+        "relative_specific_enthalpy_mismatch": -2.6935120800430923e-12
+      },
+      {
+        "theta_deg": 32.72727272727273,
+        "relative_specific_enthalpy_mismatch": 3.429323491843661e-11
+      },
+      {
+        "theta_deg": 40.909090909090914,
+        "relative_specific_enthalpy_mismatch": -2.5346391652192324e-13
+      },
+      {
+        "theta_deg": 49.090909090909086,
+        "relative_specific_enthalpy_mismatch": 2.7617019782155694e-11
+      },
+      {
+        "theta_deg": 57.27272727272727,
+        "relative_specific_enthalpy_mismatch": -8.280676144778454e-11
+      },
+      {
+        "theta_deg": 65.45454545454545,
+        "relative_specific_enthalpy_mismatch": 4.55784299191464e-11
+      },
+      {
+        "theta_deg": 73.63636363636363,
+        "relative_specific_enthalpy_mismatch": -4.485412041788095e-12
+      },
+      {
+        "theta_deg": 81.81818181818183,
+        "relative_specific_enthalpy_mismatch": -1.4470979969871678e-11
+      },
+      {
+        "theta_deg": 90.0,
+        "relative_specific_enthalpy_mismatch": -3.502753642692369e-12
+      }
+    ],
+    "outer": [
+      {
+        "theta_deg": 0.0,
+        "relative_specific_enthalpy_mismatch": -3.7109894416298417e-06
+      },
+      {
+        "theta_deg": 8.181818181818182,
+        "relative_specific_enthalpy_mismatch": -2.989102010353406e-07
+      },
+      {
+        "theta_deg": 16.363636363636363,
+        "relative_specific_enthalpy_mismatch": -1.3118084420948861e-06
+      },
+      {
+        "theta_deg": 24.545454545454543,
+        "relative_specific_enthalpy_mismatch": -8.478421059665564e-07
+      },
+      {
+        "theta_deg": 32.72727272727273,
+        "relative_specific_enthalpy_mismatch": 4.975018609298942e-06
+      },
+      {
+        "theta_deg": 40.909090909090914,
+        "relative_specific_enthalpy_mismatch": -9.22425682159389e-06
+      },
+      {
+        "theta_deg": 49.090909090909086,
+        "relative_specific_enthalpy_mismatch": -3.035108493421035e-07
+      },
+      {
+        "theta_deg": 57.27272727272727,
+        "relative_specific_enthalpy_mismatch": 7.856451273546838e-06
+      },
+      {
+        "theta_deg": 65.45454545454545,
+        "relative_specific_enthalpy_mismatch": 8.455031563991966e-06
+      },
+      {
+        "theta_deg": 73.63636363636363,
+        "relative_specific_enthalpy_mismatch": -5.834268713478252e-06
+      },
+      {
+        "theta_deg": 81.81818181818183,
+        "relative_specific_enthalpy_mismatch": 6.4366378584868045e-06
+      },
+      {
+        "theta_deg": 90.0,
+        "relative_specific_enthalpy_mismatch": -5.825155291794282e-06
+      }
+    ]
+  },
+  "notebook_plot_cells": [
+    3,
+    5
+  ],
+  "notebook_executed": true,
+  "notebook_sha256": "0ec7cc51a545af7b0a28c37376556160334d9f5e1bdefd3e1f687be32e81c2fc",
+  "base_sha256": "6f86b671bbd7efc447cbf9330c53d2f2abd1c1d7b6b7fa893dcc55db606042b3",
+  "extension_sha256": "c7c4e7e98087b411e19131df88cd3335a5794aeabac61df620e96aa70262726b"
+}

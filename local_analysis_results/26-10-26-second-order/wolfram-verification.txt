@@ -1,0 +1,21 @@
+Wolfram Language verification of second-order endpoint algebra.
+
+Input:
+pressurePlusBag=muB^4/(108 Pi^2)+muB^2 T^2/6;
+densitySecond=D[pressurePlusBag,muB];
+Series[4 pressurePlusBag/densitySecond,{T,0,4}]
+Expand[(C-muB^4-18 Pi^2 muB^2 T^2)/.T^2->muB (H-muB)/(9 Pi^2)]
+FullSimplify[4 pressurePlusBag/(densitySecond*(muB+9 Pi^2 T^2/muB))-1]
+FullSimplify[(9/4)(C-muB^4)/muB^4-(9/2)(H-muB)/muB/.C->2 H muB^3-muB^4]
+Factor[D[muB^4-2 H muB^3+C,muB]]
+
+Outputs:
+muB + 9*Pi^2*T^2/muB - 81*Pi^4*T^4/muB^3 + O(T^5)
+C - 2*H*muB^3 + muB^4
+-81*Pi^4*T^4/(muB^2+9*Pi^2*T^2)^2
+0
+-2*(3*H-2*muB)*muB^2
+
+The undefined-symbol messages refer to the deliberately symbolic T and H.
+All algebraic expressions were evaluated. The residual from the unexpanded
+ratio is fourth order and is a diagnostic, not an endpoint acceptance gate.

@@ -1,0 +1,29 @@
+--- local_analysis_results/26-10-26-second-order/cold_physics.py.before	2026-10-26 12:40:54
++++ new_paper_calculations/26-10-26/shared/cold_physics.py	2026-10-26 12:49:36
+@@ -82,7 +82,7 @@
+ 
+     On the full massless isobar, the physical interval is between the cold
+     equilibrated and unit-composition enthalpies per baryon. Quadratic matching
+-    uses its own leading density and A_adb. Both criteria are independent of xi.
++    uses its second-order endpoint and A_adb. Both criteria are independent of xi.
+     """
+     sys.path.insert(0, str(ROOT))
+     from RMFsolver import phase_velocity as pv
+@@ -104,8 +104,15 @@
+     cold = pv._slow_isobar_state(pressure,0.,0.,bag,0.)
+     lower = H - cold['h']/cold['nB']
+     if method == 'analytic':
+-        muB = np.cbrt(27*np.pi**2*4*(pressure+bag**4)/H)
+-        upper = 4/9 - (H/muB-1)
++        C = 108*np.pi**2*(pressure+bag**4)
++        lower = H - C**.25
++        if lower > 0:
++            muB = H*brentq(lambda x:x**4-2*x**3+C/H**4,0.,C**.25/H,xtol=1e-15)
++            upper = 2/9 - (H/muB-1)
++        else:
++            # The stable side has no positive-temperature endpoint. Its
++            # composition ceiling cannot exclude a state before coexistence.
++            upper = 2/9
+     else:
+         def isobar(k):
+             return pv._slow_isobar_state(pressure,k,0.,bag,0.)

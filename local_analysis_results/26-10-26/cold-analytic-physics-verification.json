@@ -1,0 +1,537 @@
+{
+  "schema_version": 1,
+  "created_utc": "2026-10-26T15:39:08.443106+00:00",
+  "physics": {
+    "T_0plus_MeV": 0.0,
+    "xi": -0.85,
+    "B_one_forth_MeV": 189.1565957288247,
+    "n0_MeV3": 1229360.5098323745,
+    "ms_MeV": 0.0,
+    "NM_type": "PNM",
+    "parameter_set": "QMC-RMF3"
+  },
+  "tolerances": {
+    "conservation": 1e-08,
+    "refinement_speed_relative": 0.0001,
+    "path_rtol_retry_sequence": [
+      1e-06,
+      5e-07,
+      2e-07,
+      1e-07
+    ]
+  },
+  "source_sha256": {
+    "new_paper_calculations/26-10-26/shared/verify_cold_physics.py": "ebc1800214b194121f49f49453c7310f9065c7bf4a3986477fe54c060badfa73",
+    "RMFsolver/phase_velocity.py": "8bfdd9c23538e432e43f6b9898375a0c51b1f29c814eb8e945994ec56136c9d1",
+    "tests/test_phase_velocity_analytic_slow.py": "0fb42fb73f6ddbc901db98c121b0290aeee492bddc51066aa64578cc76d4b9ab"
+  },
+  "limitations": [
+    "This validates representative physical states, not every contour point.",
+    "Warm-to-cold convergence is fractional-power; no tiny equality tolerance is imposed.",
+    "The rate law is the modified-Madsen approximation, not a phase-space integration."
+  ],
+  "states": [
+    {
+      "T_0minus_MeV": 0.0,
+      "nB_0minus_over_n0": 3.5,
+      "methods": {
+        "analytic_velocity_adiabatic_slow": {
+          "I2": 1.101671973487657e-14,
+          "velocity_m_s": 99.69158696297202,
+          "a_0plus": 0.2952698763302774,
+          "T_inf": 18.182922240375515,
+          "D_K_0plus": "+Infinity",
+          "invD_K_0plus": 0.0,
+          "conservation_errors": {
+            "pressure": 7.449277094414977e-16,
+            "enthalpy_per_baryon": 4.440892098500626e-16,
+            "baryon_flux": 0.0
+          },
+          "max_conservation_error": 7.449277094414977e-16,
+          "baryon_flux_relative_error": 0.0,
+          "cold_attempts": [
+            {
+              "path_rtol": null,
+              "success": true,
+              "status": "moving_front",
+              "message": "Slow analytical integrated speed evaluated",
+              "elapsed_seconds": 0.11608783295378089
+            }
+          ],
+          "integral_check": {
+            "I2_quadrature": 1.1016719734876559e-14,
+            "quad_error_estimate": 1.2231015905502307e-28,
+            "relative_error": 1.0024810414420433e-15,
+            "coordinate": "t=(1-a^2/A_adb^2)^(1/6)"
+          },
+          "warm_to_cold": [
+            {
+              "T_0plus_MeV": 0.01,
+              "attempts": [
+                {
+                  "path_rtol": null,
+                  "success": true,
+                  "status": "moving_front",
+                  "message": "Slow analytical integrated speed evaluated",
+                  "elapsed_seconds": 0.1127379999961704
+                }
+              ],
+              "velocity_m_s": 96.05173076129377,
+              "relative_speed_difference_from_cold": 0.036511167216449175,
+              "max_conservation_error": 7.449277094414977e-16
+            },
+            {
+              "T_0plus_MeV": 1e-05,
+              "attempts": [
+                {
+                  "path_rtol": null,
+                  "success": true,
+                  "status": "moving_front",
+                  "message": "Slow analytical integrated speed evaluated",
+                  "elapsed_seconds": 0.11278650001622736
+                }
+              ],
+              "velocity_m_s": 99.33360391422471,
+              "relative_speed_difference_from_cold": 0.0035909053075890798,
+              "max_conservation_error": 7.449277094414977e-16
+            }
+          ],
+          "warm_to_cold_error_ratio": 0.0983508767687736
+        },
+        "semi_analytic_velocity_adiabatic_slow": {
+          "I2": 2.8115489820554584e-14,
+          "velocity_m_s": 217.66626786347942,
+          "a_0plus": 0.5049385903768062,
+          "T_inf": 31.43335866230687,
+          "D_K_0plus": "+Infinity",
+          "invD_K_0plus": 0.0,
+          "conservation_errors": {
+            "pressure": 2.2917421633076637e-11,
+            "enthalpy_per_baryon": 6.299183397118213e-12,
+            "constant_density": 6.789013795582832e-12,
+            "baryon_flux": 0.0
+          },
+          "max_conservation_error": 2.2917421633076637e-11,
+          "baryon_flux_relative_error": 0.0,
+          "cold_attempts": [
+            {
+              "path_rtol": 1e-06,
+              "success": true,
+              "status": "moving_front",
+              "message": "Slow analytical integrated speed evaluated",
+              "elapsed_seconds": 0.4131245838943869
+            }
+          ],
+          "integral_check": {
+            "path_samples": 65,
+            "direct_checks": {
+              "pressure": 2.2917421633076637e-11,
+              "enthalpy_per_baryon": 6.299183397118213e-12,
+              "constant_density": 6.789013795582832e-12,
+              "stored_pressure": 0.0,
+              "stored_density": 0.0,
+              "rate_relative_error": 3.936417219885136e-16,
+              "inverse_diffusion_relative_error": 6.349864619183768e-16
+            },
+            "I2_quadrature": 2.8115490383785512e-14,
+            "quad_error_estimate": 5.169293341690209e-22,
+            "I2_relative_error": 2.003276202385503e-08,
+            "path_nodes": 383,
+            "path_error": 1.7400771636084515e-07,
+            "independence_limit": "Direct rate quadrature reuses the existing diffusion primitive; it bypasses the stored rate spline."
+          },
+          "refinement": {
+            "attempts": [
+              {
+                "path_rtol": 5e-07,
+                "success": true,
+                "status": "moving_front",
+                "message": "Slow analytical integrated speed evaluated",
+                "elapsed_seconds": 0.2180217921268195
+              }
+            ],
+            "path_rtol": 5e-07,
+            "relative_speed_change": 1.7118222822073584e-09,
+            "refined_velocity_m_s": 217.6662682360854,
+            "refined_max_conservation_error": 1.4133606547197216e-11
+          },
+          "warm_to_cold": [
+            {
+              "T_0plus_MeV": 0.01,
+              "attempts": [
+                {
+                  "path_rtol": 1e-06,
+                  "success": true,
+                  "status": "moving_front",
+                  "message": "Slow analytical integrated speed evaluated",
+                  "elapsed_seconds": 0.46306862495839596
+                }
+              ],
+              "velocity_m_s": 209.04535650858057,
+              "relative_speed_difference_from_cold": 0.03960609716663079,
+              "max_conservation_error": 8.62472646193182e-11
+            },
+            {
+              "T_0plus_MeV": 1e-05,
+              "attempts": [
+                {
+                  "path_rtol": 1e-06,
+                  "success": true,
+                  "status": "moving_front",
+                  "message": "Slow analytical integrated speed evaluated",
+                  "elapsed_seconds": 0.44039116706699133
+                }
+              ],
+              "velocity_m_s": 216.80315608455965,
+              "relative_speed_difference_from_cold": 0.003965298745605902,
+              "max_conservation_error": 2.022879129777491e-11
+            }
+          ],
+          "warm_to_cold_error_ratio": 0.10011839159317049
+        }
+      },
+      "passed": true
+    },
+    {
+      "T_0minus_MeV": 30.0,
+      "nB_0minus_over_n0": 3.5,
+      "methods": {
+        "analytic_velocity_adiabatic_slow": {
+          "I2": 1.5970811351928403e-14,
+          "velocity_m_s": 128.4021710560511,
+          "a_0plus": 0.34617326714005614,
+          "T_inf": 21.318828935456057,
+          "D_K_0plus": "+Infinity",
+          "invD_K_0plus": 0.0,
+          "conservation_errors": {
+            "pressure": 3.7246385472074885e-16,
+            "enthalpy_per_baryon": 2.220446049250313e-16,
+            "baryon_flux": 0.0
+          },
+          "max_conservation_error": 3.7246385472074885e-16,
+          "baryon_flux_relative_error": 0.0,
+          "cold_attempts": [
+            {
+              "path_rtol": null,
+              "success": true,
+              "status": "moving_front",
+              "message": "Slow analytical integrated speed evaluated",
+              "elapsed_seconds": 0.35485574998892844
+            }
+          ],
+          "integral_check": {
+            "I2_quadrature": 1.5970811351928387e-14,
+            "quad_error_estimate": 1.773116248485572e-28,
+            "relative_error": 9.878783085441194e-16,
+            "coordinate": "t=(1-a^2/A_adb^2)^(1/6)"
+          },
+          "warm_to_cold": [
+            {
+              "T_0plus_MeV": 0.01,
+              "attempts": [
+                {
+                  "path_rtol": null,
+                  "success": true,
+                  "status": "moving_front",
+                  "message": "Slow analytical integrated speed evaluated",
+                  "elapsed_seconds": 0.3525230831000954
+                }
+              ],
+              "velocity_m_s": 123.96056109624415,
+              "relative_speed_difference_from_cold": 0.034591392990294956,
+              "max_conservation_error": 3.7246385472074885e-16
+            },
+            {
+              "T_0plus_MeV": 1e-05,
+              "attempts": [
+                {
+                  "path_rtol": null,
+                  "success": true,
+                  "status": "moving_front",
+                  "message": "Slow analytical integrated speed evaluated",
+                  "elapsed_seconds": 0.3513224998023361
+                }
+              ],
+              "velocity_m_s": 127.96494837631214,
+              "relative_speed_difference_from_cold": 0.0034051034818413763,
+              "max_conservation_error": 3.7246385472074885e-16
+            }
+          ],
+          "warm_to_cold_error_ratio": 0.09843788259110352
+        },
+        "semi_analytic_velocity_adiabatic_slow": {
+          "I2": 3.916083556101422e-14,
+          "velocity_m_s": 301.44998512607793,
+          "a_0plus": 0.5889401222086135,
+          "T_inf": 36.82226133452742,
+          "D_K_0plus": "+Infinity",
+          "invD_K_0plus": 0.0,
+          "conservation_errors": {
+            "pressure": 2.928012854730751e-11,
+            "enthalpy_per_baryon": 9.639178344400534e-12,
+            "constant_density": 8.695932862679001e-12,
+            "baryon_flux": 0.0
+          },
+          "max_conservation_error": 2.928012854730751e-11,
+          "baryon_flux_relative_error": 0.0,
+          "cold_attempts": [
+            {
+              "path_rtol": 1e-06,
+              "success": true,
+              "status": "moving_front",
+              "message": "Slow analytical integrated speed evaluated",
+              "elapsed_seconds": 0.6624930421821773
+            }
+          ],
+          "integral_check": {
+            "path_samples": 65,
+            "direct_checks": {
+              "pressure": 2.928012854730751e-11,
+              "enthalpy_per_baryon": 9.639178344400534e-12,
+              "constant_density": 8.695932862679001e-12,
+              "stored_pressure": 0.0,
+              "stored_density": 0.0,
+              "rate_relative_error": 4.707945400764527e-16,
+              "inverse_diffusion_relative_error": 5.574001069743195e-16
+            },
+            "I2_quadrature": 3.916083673614485e-14,
+            "quad_error_estimate": 3.5029814172863013e-22,
+            "I2_relative_error": 3.0007801864654805e-08,
+            "path_nodes": 381,
+            "path_error": 1.7990340066738275e-07,
+            "independence_limit": "Direct rate quadrature reuses the existing diffusion primitive; it bypasses the stored rate spline."
+          },
+          "refinement": {
+            "attempts": [
+              {
+                "path_rtol": 5e-07,
+                "success": true,
+                "status": "moving_front",
+                "message": "Slow analytical integrated speed evaluated",
+                "elapsed_seconds": 0.49284458393231034
+              }
+            ],
+            "path_rtol": 5e-07,
+            "relative_speed_change": 1.9004095628954628e-09,
+            "refined_velocity_m_s": 301.44998569895637,
+            "refined_max_conservation_error": 2.577785092136831e-11
+          },
+          "warm_to_cold": [
+            {
+              "T_0plus_MeV": 0.01,
+              "attempts": [
+                {
+                  "path_rtol": 1e-06,
+                  "success": true,
+                  "status": "moving_front",
+                  "message": "Slow analytical integrated speed evaluated",
+                  "elapsed_seconds": 0.7143452919553965
+                }
+              ],
+              "velocity_m_s": 289.96801997367135,
+              "relative_speed_difference_from_cold": 0.038089121641868354,
+              "max_conservation_error": 1.9012566449762513e-10
+            },
+            {
+              "T_0plus_MeV": 1e-05,
+              "attempts": [
+                {
+                  "path_rtol": 1e-06,
+                  "success": true,
+                  "status": "moving_front",
+                  "message": "Slow analytical integrated speed evaluated",
+                  "elapsed_seconds": 0.7070344160310924
+                }
+              ],
+              "velocity_m_s": 300.29955975400134,
+              "relative_speed_difference_from_cold": 0.003816305950705041,
+              "max_conservation_error": 2.4926026085621955e-11
+            }
+          ],
+          "warm_to_cold_error_ratio": 0.10019411806309753
+        }
+      },
+      "passed": true
+    },
+    {
+      "T_0minus_MeV": 70.0,
+      "nB_0minus_over_n0": 2.5,
+      "methods": {
+        "analytic_velocity_adiabatic_slow": {
+          "I2": 1.504066607278447e-14,
+          "velocity_m_s": 150.5399531799193,
+          "a_0plus": 0.37581595405354795,
+          "T_inf": 21.73280264737872,
+          "D_K_0plus": "+Infinity",
+          "invD_K_0plus": 0.0,
+          "conservation_errors": {
+            "pressure": 2.7934789104056165e-16,
+            "enthalpy_per_baryon": 2.220446049250313e-16,
+            "baryon_flux": 0.0
+          },
+          "max_conservation_error": 2.7934789104056165e-16,
+          "baryon_flux_relative_error": 0.0,
+          "cold_attempts": [
+            {
+              "path_rtol": null,
+              "success": true,
+              "status": "moving_front",
+              "message": "Slow analytical integrated speed evaluated",
+              "elapsed_seconds": 0.23909266688860953
+            }
+          ],
+          "integral_check": {
+            "I2_quadrature": 1.5040666072784458e-14,
+            "quad_error_estimate": 1.6698493779703735e-28,
+            "relative_error": 8.391765645522065e-16,
+            "coordinate": "t=(1-a^2/A_adb^2)^(1/6)"
+          },
+          "warm_to_cold": [
+            {
+              "T_0plus_MeV": 0.01,
+              "attempts": [
+                {
+                  "path_rtol": null,
+                  "success": true,
+                  "status": "moving_front",
+                  "message": "Slow analytical integrated speed evaluated",
+                  "elapsed_seconds": 0.23844283306971192
+                }
+              ],
+              "velocity_m_s": 145.36643419109106,
+              "relative_speed_difference_from_cold": 0.034366418213542735,
+              "max_conservation_error": 2.7934789104056165e-16
+            },
+            {
+              "T_0plus_MeV": 1e-05,
+              "attempts": [
+                {
+                  "path_rtol": null,
+                  "success": true,
+                  "status": "moving_front",
+                  "message": "Slow analytical integrated speed evaluated",
+                  "elapsed_seconds": 0.23577449982985854
+                }
+              ],
+              "velocity_m_s": 150.03063026039743,
+              "relative_speed_difference_from_cold": 0.003383307279982716,
+              "max_conservation_error": 2.7934789104056165e-16
+            }
+          ],
+          "warm_to_cold_error_ratio": 0.09844806226124142
+        },
+        "semi_analytic_velocity_adiabatic_slow": {
+          "I2": 3.595055510974516e-14,
+          "velocity_m_s": 371.9104426454081,
+          "a_0plus": 0.6371254769318158,
+          "T_inf": 37.51404667572773,
+          "D_K_0plus": "+Infinity",
+          "invD_K_0plus": 0.0,
+          "conservation_errors": {
+            "pressure": 2.8640887456643024e-11,
+            "enthalpy_per_baryon": 9.657386002004387e-12,
+            "constant_density": 1.0929257499014966e-11,
+            "baryon_flux": 0.0
+          },
+          "max_conservation_error": 2.8640887456643024e-11,
+          "baryon_flux_relative_error": 1.1647515155137618e-16,
+          "cold_attempts": [
+            {
+              "path_rtol": 1e-06,
+              "success": true,
+              "status": "moving_front",
+              "message": "Slow analytical integrated speed evaluated",
+              "elapsed_seconds": 0.5440705840010196
+            }
+          ],
+          "integral_check": {
+            "path_samples": 65,
+            "direct_checks": {
+              "pressure": 2.8640887456643024e-11,
+              "enthalpy_per_baryon": 9.657386002004387e-12,
+              "constant_density": 1.0929257499014966e-11,
+              "stored_pressure": 0.0,
+              "stored_density": 0.0,
+              "rate_relative_error": 4.577348483648703e-16,
+              "inverse_diffusion_relative_error": 5.417893239849975e-16
+            },
+            "I2_quadrature": 3.595055578271269e-14,
+            "quad_error_estimate": 7.708851507295983e-23,
+            "I2_relative_error": 1.8719252524687612e-08,
+            "path_nodes": 383,
+            "path_error": 1.831348261903405e-07,
+            "independence_limit": "Direct rate quadrature reuses the existing diffusion primitive; it bypasses the stored rate spline."
+          },
+          "refinement": {
+            "attempts": [
+              {
+                "path_rtol": 5e-07,
+                "success": true,
+                "status": "moving_front",
+                "message": "Slow analytical integrated speed evaluated",
+                "elapsed_seconds": 0.3832563329488039
+              }
+            ],
+            "path_rtol": 5e-07,
+            "relative_speed_change": 4.669396633945219e-09,
+            "refined_velocity_m_s": 371.9104443820055,
+            "refined_max_conservation_error": 1.7786545802370962e-11
+          },
+          "warm_to_cold": [
+            {
+              "T_0plus_MeV": 0.01,
+              "attempts": [
+                {
+                  "path_rtol": 1e-06,
+                  "success": true,
+                  "status": "moving_front",
+                  "message": "Slow analytical integrated speed evaluated",
+                  "elapsed_seconds": 0.6095502499956638
+                }
+              ],
+              "velocity_m_s": 357.72750613812076,
+              "relative_speed_difference_from_cold": 0.03813535432456209,
+              "max_conservation_error": 8.099850397859341e-11
+            },
+            {
+              "T_0plus_MeV": 1e-05,
+              "attempts": [
+                {
+                  "path_rtol": 1e-06,
+                  "success": true,
+                  "status": "moving_front",
+                  "message": "Slow analytical integrated speed evaluated",
+                  "elapsed_seconds": 0.5455086249858141
+                }
+              ],
+              "velocity_m_s": 370.488797462342,
+              "relative_speed_difference_from_cold": 0.0038225470975053063,
+              "max_conservation_error": 5.977514107275042e-11
+            }
+          ],
+          "warm_to_cold_error_ratio": 0.10023630736382835
+        }
+      },
+      "passed": true
+    }
+  ],
+  "passed": true,
+  "regression": {
+    "command": [
+      "/Users/janshao/NSM_related/bin/python3",
+      "-B",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "tests",
+      "-p",
+      "test_phase_velocity_analytic_slow.py",
+      "-v"
+    ],
+    "returncode": 0,
+    "stdout": "",
+    "stderr": "test_cold_limit_and_path_refinement (test_phase_velocity_analytic_slow.AnalyticSlowTests.test_cold_limit_and_path_refinement) ... ok\ntest_exact_cold_upstream_and_rounded_adiabatic_scaling (test_phase_velocity_analytic_slow.AnalyticSlowTests.test_exact_cold_upstream_and_rounded_adiabatic_scaling) ... ok\ntest_failure_metadata_and_no_moving_endpoint_calls (test_phase_velocity_analytic_slow.AnalyticSlowTests.test_failure_metadata_and_no_moving_endpoint_calls) ... ok\ntest_isothermal_exact_ceiling_and_explicit_equivalence (test_phase_velocity_analytic_slow.AnalyticSlowTests.test_isothermal_exact_ceiling_and_explicit_equivalence) ... ok\ntest_isothermal_manuscript_integral_and_scaling (test_phase_velocity_analytic_slow.AnalyticSlowTests.test_isothermal_manuscript_integral_and_scaling) ... ok\ntest_isothermal_zero_composition_and_saturated_ceiling (test_phase_velocity_analytic_slow.AnalyticSlowTests.test_isothermal_zero_composition_and_saturated_ceiling) ... ok\ntest_public_interfaces_and_domains (test_phase_velocity_analytic_slow.AnalyticSlowTests.test_public_interfaces_and_domains) ... ok\ntest_quadratic_adiabatic_endpoints_and_independent_integral (test_phase_velocity_analytic_slow.AnalyticSlowTests.test_quadratic_adiabatic_endpoints_and_independent_integral) ... ok\ntest_quadratic_hot_limit_avoids_subtractive_cancellation (test_phase_velocity_analytic_slow.AnalyticSlowTests.test_quadratic_hot_limit_avoids_subtractive_cancellation) ... ok\ntest_quadratic_warm_interface_survives_ceiling_above_one (test_phase_velocity_analytic_slow.AnalyticSlowTests.test_quadratic_warm_interface_survives_ceiling_above_one) ... ok\ntest_semi_analytical_full_eos_path_and_integral (test_phase_velocity_analytic_slow.AnalyticSlowTests.test_semi_analytical_full_eos_path_and_integral) ... ok\n\n----------------------------------------------------------------------\nRan 11 tests in 17.238s\n\nOK\n"
+  },
+  "elapsed_seconds": 26.090293290792033
+}

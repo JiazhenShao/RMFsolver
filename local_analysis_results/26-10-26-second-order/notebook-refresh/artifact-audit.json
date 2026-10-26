@@ -1,0 +1,16 @@
+{
+  "passed": true,
+  "authorized_changed_files": [
+    "26-10-26.ipynb",
+    "new_paper_calculations/26-10-26/local/adiabatic-T0plus0-xi-minus0p85.npy",
+    "local_analysis_results/26-10-26/adiabatic-cold-analytical-vs-numerical.pdf",
+    "local_analysis_results/26-10-26/adiabatic-cold-analytical-vs-numerical.png",
+    "local_analysis_results/26-10-26/adiabatic-full-analytical-cold.png",
+    "local_analysis_results/26-10-26/adiabatic-full-analytical-cold.pdf"
+  ],
+  "all_other_protected_files_unchanged": 10009,
+  "executed_figures": [
+    10,
+    14
+  ]
+}

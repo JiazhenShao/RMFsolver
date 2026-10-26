@@ -1,11 +1,15 @@
 ---
-summary: The fixed-temperature speed uses the local K fraction; along the representative isobar, neglecting the baryon-density derivative changes a' by at most 0.47%.
+summary: The slow isothermal analytical speed uses static full-EOS endpoints, leading diffusion frozen at the interface chemical potential, and the downstream density ratio; exact endpoint densities remain distinct.
 status: current
-updated: 2026-10-01
+updated: 2026-10-23
 tags: [physics, analytic, front-speed, isothermal]
 ---
 
 # Isothermal analytic front speed
+
+**2026-10-23:** `analytic_velocity_isothermal_slow` evaluates the frozen-background formula with static full-EOS endpoints and leading Landau diffusion. It is separate from the retained moving-momentum `analytic_velocity_isothermal` comparison API. Exact isobaric density need not be constant; the small drift in the historical example below is not a general bound. See [[analytic-slow-front-solvers]] for the live API contract and validation record, and [[analytic-slow-front-audit]] for the preceding audit.
+
+**Historical 2026-10-22 audit:** the moving-momentum endpoint matching qualification still applies to the retained comparison API. The new analytical API also remains massless and PNM-only; the numerical slow-front solvers retain both massless and massive EOS branches.
 
 Replacing energy-flux conservation by $T(x)=\mathrm{const}$ removes the temperature trajectory from the [[analytic-front-speed|piecewise-constant speed estimate]].
 With the cubic-plus-thermal-linear weak source and constant quark-side coefficients, the positive incoming speed is
@@ -122,8 +126,8 @@ $$
 
 Wolfram verified the derivative and limit on 2026-10-01; its input and output are recorded in `local_analysis_results/26-10-01/isothermal-logT-audit/README.md`.
 ⚠ Exactly $\xi=-1$ sets the above area $I_1$ to zero, whereas a nontrivial finite front with positive diffusion has $I_1>0$.
-Thus this is an optimistic limiting envelope of the reduced model, not an attained finite-profile shape or a rigorous upper bound on the full local-diffusion/exact-rate BVP.
-The public analytical API still rejects exactly $\xi=-1$; a limiting-formula plotting path would require an explicit change.
+Thus this is an optimistic limiting envelope of the reduced model, not an attained finite-profile shape or a rigorous upper bound on the BVP with local diffusion and the approximate weak rate.
+The retained `analytic_velocity_isothermal` comparison API rejects exactly $\xi=-1$. The slow analytical API checks the algebraic speed denominator, so its acceptance of a limiting value does not establish a realizable finite-profile shape.
 The frozen-endpoint audit of [[isothermal-log-temperature-contours]] found 0.76–5.34% speed excess at the three saved 0.01-MeV probes and 11.4–76.3% excess at the 27 new converged points; the former probes are closer to $\xi=-0.5$.
 These comparisons are not new implicit analytical eigenvalue solves or profile-integrated measurements of $\xi$.
 
@@ -182,7 +186,7 @@ $$
 
 For each trial baryon current $j_B$, the fixed upstream state gives $u(0^-)=j_B/n_B(0^-)$ and $\Pi=P(0^-)+h(0^-)u^2(0^-)$.
 The solver reconstructs $n_B(x)$, $u(x)$, $\mu_B(x)$, and $\mu_K(x)$ pointwise from fixed $T$, $j_B$, $\Pi$, and the current value of $n_K$.
-It then recomputes both the exact nonleptonic source $\Gamma_K$ and $D_K[\mu_B(x),T]$ at every BVP node.
+It then recomputes both the approximate modified Madsen source $\Gamma_K$ and $D_K[\mu_B(x),T]$ at every BVP node.
 
 The upstream local fraction for a nuclear proton fraction $Y_p$ is
 
@@ -334,8 +338,21 @@ A direct diagnostic scan of the live QMC-RMF3 and massless bag-model EOS gives t
 
 For these branches, neutron matter is stable on the lower-density side of the tabulated curve.  The second calibration is the one chosen so cold coexistence occurs at $3n_0$.
 
-## Analytical API
+## Slow analytical API and reproducible frozen prescription
 
+`analytic_velocity_isothermal_slow(T, nB_0minus, B_one_forth, a_0plus=np.nan, *, xi=0, ...)` requires $T>0$, massless quarks, and PNM. Its endpoint solve is independent of the final current:
+
+1. Recover the upstream PNM state at the supplied $T,n_B(0^-)$. Solve the full neutral quark EOS at $P=P(0^-)$, the same $T$, and $\mu_K(\infty)=0$ to obtain the equilibrium endpoint and the common-pressure $\Delta\mu_B$ classifier.
+2. At the same $P,T$, solve the full EOS for the requested local $a(0^+)$. With `a_0plus=np.nan`, solve instead the exact ceiling $\mu_B(0^-)=\mu_B(0^+)+a(0^+)\mu_K(0^+)$; the Taylor ceiling is not substituted. Explicit fractions keep their prescribed-composition semantics without imposing this ceiling.
+3. Freeze $\gamma_K$, $q_D$, and the leading Landau diffusion term at $\mu_B(0^+)$, set $\eta=81\pi^2T^2/\mu_B^2(0^+)$, and use $\lambda_n=n_B(0^-)/n_B(\infty)$ in the cubic closed $I_2$ and speed formula above.
+
+This prescription intentionally combines interface transport coefficients with the equilibrium density reference. The full-EOS values $n_B(0^+)$ and $n_B(\infty)$ are both returned and need not coincide. The formula treats the local interface fraction as the boundary value of a constant-density reduced problem; it does not impose equality of the exact endpoint densities. The endpoint velocities are recovered afterward as $u=j_B/n_B$ with $j_B=n_B(0^-)u(0^-)$; there is no moving-momentum eigenvalue solve.
+
+The shared constants are $\alpha_s=0.4$ and $h_D=\Gamma(8/3)\zeta(5/3)(2\pi)^{2/3}/6$. The result identifies `eos_approximation="full_neutral_frozen_background"`, `diffusion_approximation="leading_landau"`, `integral_approximation="closed_form_cubic"`, `transport_reference="muB_0plus"`, and `density_reference="nB_inf"`. It retains the compatibility `rate_model="exact_nonleptonic"` alongside `rate_approximation="madsen_muB_over_3"`; this is the approximate modified Madsen rate.
+
+Stable neutron matter and coexistence return zero speed with `front_exists=False`. An automatic ceiling at unity returns `composition_ceiling_saturated` with no finite speed. These are algebraic slow-front estimates, with conservation residuals for static $P,T$ matching; the old moving-flux residual and velocity-root masks belong to the comparison API below.
+
+## Retained moving-flux analytical API
 `analytic_velocity_isothermal(T_0minus, nB_0minus, B_one_forth, a_0plus=np.nan, *, xi=0, ...)` implements the local-fraction formula as a finite-flux scalar eigenvalue.
 An explicit finite `a_0plus` evaluates that prescribed interface composition.
 Omitting it activates the PNM-only automatic ceiling defined by
@@ -364,7 +381,7 @@ A nonzero strange-quark mass gives $n_K(\infty)\neq0$ and requires rewriting the
 
 Isothermality by itself does not make $D_K$ independent of position because [[strangeness-reaction-diffusion|the transport coefficient]] also depends on $q_D\propto\mu_q$.
 The coefficients are constant only in the analytical reduction because it also freezes $\mu_q$.
-The numerical `solve_front_isothermal` instead updates $D_K$ with the local $\mu_B(x)$ and evaluates the exact $\mu_K$-dependent rate at every node.
+The numerical `solve_front_isothermal` instead updates $D_K$ with the local $\mu_B(x)$ and evaluates the approximate modified Madsen $\mu_K$-dependent rate at every node.
 Consequently, its source integral is not the polynomial endpoint expression $I_2$ above.
 
 ## Symbolic check
@@ -407,7 +424,7 @@ and returned `v -> 2 I2/[(aMinus-aPlus) lambdaN^2 (aMinus+xi aPlus)]`.
 
 ## Velocity convention and the static-isobar bound
 
-The variable the solvers call $u$ is the **proper** velocity $\gamma v$, not the 3-velocity.
+In the retained moving-flux comparison solvers, $u$ is the **proper** velocity $\gamma v$, not the 3-velocity. The new explicitly nonrelativistic slow-front APIs use $u$ as the slow velocity in units of $c$.
 The module's own `_relativistic_gamma_from_u` (15 call sites) has always returned $\gamma=\sqrt{1+u^2}$, which is the same statement.
 
 This makes the isothermal junction conditions exact as written.
@@ -442,6 +459,6 @@ The boundary-fitted analytical and exact numerical contour workflow that uses th
 
 ## Sources
 
-- `RMFsolver/phase_velocity.py`, `analytic_velocity_isothermal`, `solve_front_isothermal`, `_exact_kaon_transport_rate`, and the fixed-$T$ local EOS closure helpers.
+- `RMFsolver/phase_velocity.py`, `analytic_velocity_isothermal_slow`, `analytic_velocity_isothermal`, `solve_front_isothermal`, `_exact_kaon_transport_rate`, and the fixed-$T$ local EOS closure helpers.
 - `Latex_writting/Hydrodynamical combustion/Notes.tex`, “Isothermal Notes (Mar 16, 2026).”
 - [[analytic-front-speed]] for the corresponding non-isothermal construction.

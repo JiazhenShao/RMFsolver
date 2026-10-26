@@ -1,0 +1,447 @@
+{
+  "phase": "after",
+  "group": "historical_60",
+  "selection": [
+    "test_phase_velocity.test_phase_velocity_public_api_surface",
+    "test_phase_velocity.test_analytic_velocity_recovers_synthetic_equilibrium_and_uses_eos_density",
+    "test_phase_velocity.test_analytic_velocity_lte_formula_and_default_mode",
+    "test_phase_velocity.test_analytic_lte_a_0plus_stable_expression_and_slow_front_limit",
+    "test_phase_velocity.test_analytic_lte_domain_is_checked_with_a_0plus_lte_not_A",
+    "test_phase_velocity.test_analytic_A_matches_exact_eos_nK_over_nB",
+    "test_phase_velocity.test_analytic_velocity_rejects_removed_interface_mode_selector",
+    "test_phase_velocity.test_analytic_velocity_solves_hydro_jump_internally_without_jB_input",
+    "test_phase_velocity.test_analytic_methods_accept_zero_upstream_temperature",
+    "test_phase_velocity.test_analytic_methods_reject_negative_upstream_temperature",
+    "test_phase_velocity.test_analytic_velocity_gamma_matches_weak_rate_and_seconds_shortcut",
+    "test_phase_velocity.test_analytic_velocity_validates_xi_endpoint_and_density_domain",
+    "test_phase_velocity.test_microphysics_helpers_use_precise_weak_rate",
+    "test_phase_velocity.test_kaon_transport_rate_uses_baryon_prefactor_and_preserves_eos_diagnostics",
+    "test_phase_velocity.test_microphysics_uses_shared_alpha_s_0p4_and_consistent_diffusion",
+    "test_phase_velocity.test_all_rate_tagged_result_paths_identify_the_approximation",
+    "test_phase_velocity.test_energy_microphysics_zero_temperature_uses_inverse_diffusion_limit",
+    "test_phase_velocity.test_energy_microphysics_positive_temperature_computes_inverse_diffusion_directly",
+    "test_phase_velocity.test_local_energy_closure_uses_absolute_nK_target",
+    "test_phase_velocity.test_new_nK_energy_solver_public_signature",
+    "test_phase_velocity.test_nK_tail_residual_retains_massive_equilibrium_offset",
+    "test_phase_velocity.test_uNmax_default_jB_guess_matches_energy_nK_policy",
+    "test_phase_velocity.test_solve_front_isothermal_warm_case_remains_finite",
+    "test_phase_velocity.test_solve_front_energy_conserving_nK_regression",
+    "test_phase_velocity.test_solve_front_energy_conserving_uNmax_regression",
+    "test_phase_velocity_fixed_T_analytic.FixedTemperatureAnalyticApiTests.test_fixed_muB_interface_state_uses_exact_eos_at_requested_temperature",
+    "test_phase_velocity_fixed_T_analytic.FixedTemperatureAnalyticApiTests.test_public_analytic_methods_have_distinct_fixed_temperature_apis",
+    "test_phase_velocity_numerical_i2.NumericalI2ClosureTests.test_dense_state_keeps_positive_muK_continuation_branch",
+    "test_phase_velocity_isothermal_analytic.AnalyticVelocityIsothermalApiTests.test_adaptive_log_root_is_not_clipped_at_one_or_one_trillionth",
+    "test_phase_velocity_isothermal_analytic.AnalyticVelocityIsothermalApiTests.test_adaptive_log_root_reports_slow_front_limit_without_branch_jump",
+    "test_phase_velocity_isothermal_analytic.AnalyticVelocityIsothermalApiTests.test_adaptive_log_root_reuses_bracket_endpoint_evaluations",
+    "test_phase_velocity_isothermal_analytic.AnalyticVelocityIsothermalApiTests.test_analytic_path_uses_direct_density_state_instead_of_muB_scan",
+    "test_phase_velocity_isothermal_analytic.AnalyticVelocityIsothermalApiTests.test_current_analytic_model_rejects_non_pure_neutron_matter",
+    "test_phase_velocity_isothermal_analytic.AnalyticVelocityIsothermalApiTests.test_delta_muB_within_tolerance_returns_coexistence_zero",
+    "test_phase_velocity_isothermal_analytic.AnalyticVelocityIsothermalApiTests.test_input_domain_is_validated_before_eos_evaluation",
+    "test_phase_velocity_isothermal_analytic.AnalyticVelocityIsothermalApiTests.test_live_eos_classifies_both_sides_of_isothermal_coexistence",
+    "test_phase_velocity_isothermal_analytic.AnalyticVelocityIsothermalApiTests.test_live_low_temperature_case_reports_slow_front_breakdown",
+    "test_phase_velocity_isothermal_analytic.AnalyticVelocityIsothermalApiTests.test_moving_branch_solves_finite_flux_formula_with_local_interface_fraction",
+    "test_phase_velocity_isothermal_analytic.AnalyticVelocityIsothermalApiTests.test_positive_delta_muB_returns_stable_neutron_matter_zero",
+    "test_phase_velocity_isothermal_analytic.AnalyticVelocityIsothermalApiTests.test_public_api_has_the_requested_signature",
+    "test_phase_velocity_isothermal_analytic.AnalyticVelocityIsothermalApiTests.test_public_api_returns_structured_slow_front_invalid_result",
+    "test_phase_velocity_isothermal_analytic.AnalyticVelocityIsothermalApiTests.test_zero_interface_composition_returns_zero_without_transport",
+    "test_phase_velocity_isothermal_analytic.AnalyticVelocityIsothermalApiTests.test_zero_temperature_quark_favored_state_is_classified_but_not_solved",
+    "test_phase_velocity_isothermal_analytic.DirectPnmDensityStateTests.test_live_hot_low_density_state_skips_agreed_negative_pressure_branch",
+    "test_phase_velocity_isothermal_analytic.DirectPnmDensityStateTests.test_rejects_an_agreed_state_that_fails_forward_density_validation",
+    "test_phase_velocity_isothermal_analytic.DirectPnmDensityStateTests.test_rejects_bad_scaled_residual_then_stops_after_two_states_agree",
+    "test_phase_velocity_isothermal_analytic.DirectPnmDensityStateTests.test_requires_two_physical_density_solutions_to_agree",
+    "test_phase_velocity_isothermal_a_0plus_max.TestAnalyticBranch.test_auto_matches_explicitly_passing_the_ceiling",
+    "test_phase_velocity_isothermal_a_0plus_max.TestAnalyticBranch.test_explicit_input_leaves_the_ceiling_unevaluated",
+    "test_phase_velocity_isothermal_a_0plus_max.TestAnalyticBranch.test_out_of_range_composition_still_raises",
+    "test_phase_velocity_isothermal_a_0plus_max.TestAnalyticBranch.test_resolved_composition_is_the_reported_ceiling",
+    "test_phase_velocity_isothermal_a_0plus_max.TestAnalyticBranch.test_saturated_ceiling_reports_instead_of_returning_a_speed",
+    "test_phase_velocity_isothermal_a_0plus_max.TestAnalyticBranch.test_stable_neutron_matter_still_gates_before_the_ceiling",
+    "test_phase_velocity_isothermal_a_0plus_max.TestCeilingSolve.test_ceiling_saturates_beyond_the_strangeness_free_boundary",
+    "test_phase_velocity_isothermal_a_0plus_max.TestCeilingSolve.test_ceiling_vanishes_on_the_coexistence_boundary",
+    "test_phase_velocity_isothermal_a_0plus_max.TestCeilingSolve.test_interior_root_satisfies_the_balance",
+    "test_phase_velocity_isothermal_a_0plus_max.TestCeilingSolve.test_residual_at_zero_composition_reduces_to_delta_muB",
+    "test_phase_velocity_isothermal_a_0plus_max.TestNumericalBranch.test_auto_ceiling_requires_PNM",
+    "test_phase_velocity_isothermal_a_0plus_max.TestNumericalBranch.test_auto_resolves_to_the_same_ceiling_as_the_helper",
+    "test_phase_velocity_isothermal_a_0plus_max.TestNumericalBranch.test_out_of_range_composition_still_raises"
+  ],
+  "timeout_seconds_per_test": 180,
+  "records": [
+    {
+      "id": "test_phase_velocity.test_phase_velocity_public_api_surface",
+      "status": "PASS",
+      "seconds": 4.741712473332882e-05,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity.test_analytic_velocity_recovers_synthetic_equilibrium_and_uses_eos_density",
+      "status": "ERROR",
+      "seconds": 11.813681124942377,
+      "error": "Traceback (most recent call last):\n  File \"/Users/janshao/NSM_related/tests/test_phase_velocity.py\", line 768, in test_analytic_velocity_recovers_synthetic_equilibrium_and_uses_eos_density\n    result, state, calls = _run_analytic_velocity_with_synthetic_nuclear_state(\n                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/janshao/NSM_related/tests/test_phase_velocity.py\", line 206, in _run_analytic_velocity_with_synthetic_nuclear_state\n    result = solver(\n             ^^^^^^^\n  File \"/Users/janshao/NSM_related/RMFsolver/phase_velocity.py\", line 3203, in analytic_velocity_bound\n    result = _solve_analytic_velocity_bound(\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/janshao/NSM_related/RMFsolver/phase_velocity.py\", line 2053, in _solve_analytic_velocity_bound\n    _raise_scan_failure(\n  File \"/Users/janshao/NSM_related/RMFsolver/phase_velocity.py\", line 644, in _raise_scan_failure\n    raise SlowFrontNoSolution(\nRMFsolver.phase_velocity.SlowFrontNoSolution: No steadily moving conversion front exists: the metastable neutron matter has enthalpy per baryon 1001.2332 MeV, below the coldest equilibrated quark matter on the P_0minus isobar at 1043.2604 MeV (gap 42.0272 MeV). Energy-plus-baryon flux conservation has no root, so only the static u_0minus = 0 coexistence exists at this metastability and temperature.\n"
+    },
+    {
+      "id": "test_phase_velocity.test_analytic_velocity_lte_formula_and_default_mode",
+      "status": "ERROR",
+      "seconds": 10.663865624926984,
+      "error": "Traceback (most recent call last):\n  File \"/Users/janshao/NSM_related/tests/test_phase_velocity.py\", line 832, in test_analytic_velocity_lte_formula_and_default_mode\n    result, _, _ = _run_analytic_velocity_with_synthetic_nuclear_state(\n                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/janshao/NSM_related/tests/test_phase_velocity.py\", line 206, in _run_analytic_velocity_with_synthetic_nuclear_state\n    result = solver(\n             ^^^^^^^\n  File \"/Users/janshao/NSM_related/RMFsolver/phase_velocity.py\", line 3273, in analytic_velocity_bound_lte\n    result = _solve_analytic_velocity_bound(\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/janshao/NSM_related/RMFsolver/phase_velocity.py\", line 2053, in _solve_analytic_velocity_bound\n    _raise_scan_failure(\n  File \"/Users/janshao/NSM_related/RMFsolver/phase_velocity.py\", line 644, in _raise_scan_failure\n    raise SlowFrontNoSolution(\nRMFsolver.phase_velocity.SlowFrontNoSolution: No steadily moving conversion front exists: the metastable neutron matter has enthalpy per baryon 1001.2332 MeV, below the coldest equilibrated quark matter on the P_0minus isobar at 1043.2604 MeV (gap 42.0272 MeV). Energy-plus-baryon flux conservation has no root, so only the static u_0minus = 0 coexistence exists at this metastability and temperature.\n"
+    },
+    {
+      "id": "test_phase_velocity.test_analytic_lte_a_0plus_stable_expression_and_slow_front_limit",
+      "status": "PASS",
+      "seconds": 0.0007902919314801693,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity.test_analytic_lte_domain_is_checked_with_a_0plus_lte_not_A",
+      "status": "ERROR",
+      "seconds": 9.057858250103891,
+      "error": "Traceback (most recent call last):\n  File \"/Users/janshao/NSM_related/tests/test_phase_velocity.py\", line 902, in test_analytic_lte_domain_is_checked_with_a_0plus_lte_not_A\n    result, _, _ = _run_analytic_velocity_with_synthetic_nuclear_state(\n                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/janshao/NSM_related/tests/test_phase_velocity.py\", line 206, in _run_analytic_velocity_with_synthetic_nuclear_state\n    result = solver(\n             ^^^^^^^\n  File \"/Users/janshao/NSM_related/RMFsolver/phase_velocity.py\", line 3273, in analytic_velocity_bound_lte\n    result = _solve_analytic_velocity_bound(\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/janshao/NSM_related/RMFsolver/phase_velocity.py\", line 2053, in _solve_analytic_velocity_bound\n    _raise_scan_failure(\n  File \"/Users/janshao/NSM_related/RMFsolver/phase_velocity.py\", line 644, in _raise_scan_failure\n    raise SlowFrontNoSolution(\nRMFsolver.phase_velocity.SlowFrontNoSolution: No steadily moving conversion front exists: the metastable neutron matter has enthalpy per baryon 1001.2332 MeV, below the coldest equilibrated quark matter on the P_0minus isobar at 1043.2604 MeV (gap 42.0272 MeV). Energy-plus-baryon flux conservation has no root, so only the static u_0minus = 0 coexistence exists at this metastability and temperature.\n"
+    },
+    {
+      "id": "test_phase_velocity.test_analytic_A_matches_exact_eos_nK_over_nB",
+      "status": "ERROR",
+      "seconds": 10.867609375156462,
+      "error": "Traceback (most recent call last):\n  File \"/Users/janshao/NSM_related/tests/test_phase_velocity.py\", line 921, in test_analytic_A_matches_exact_eos_nK_over_nB\n    result, _, _ = _run_analytic_velocity_with_synthetic_nuclear_state(\n                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/janshao/NSM_related/tests/test_phase_velocity.py\", line 206, in _run_analytic_velocity_with_synthetic_nuclear_state\n    result = solver(\n             ^^^^^^^\n  File \"/Users/janshao/NSM_related/RMFsolver/phase_velocity.py\", line 3203, in analytic_velocity_bound\n    result = _solve_analytic_velocity_bound(\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/janshao/NSM_related/RMFsolver/phase_velocity.py\", line 2053, in _solve_analytic_velocity_bound\n    _raise_scan_failure(\n  File \"/Users/janshao/NSM_related/RMFsolver/phase_velocity.py\", line 644, in _raise_scan_failure\n    raise SlowFrontNoSolution(\nRMFsolver.phase_velocity.SlowFrontNoSolution: No steadily moving conversion front exists: the metastable neutron matter has enthalpy per baryon 1001.2332 MeV, below the coldest equilibrated quark matter on the P_0minus isobar at 1043.2604 MeV (gap 42.0272 MeV). Energy-plus-baryon flux conservation has no root, so only the static u_0minus = 0 coexistence exists at this metastability and temperature.\n"
+    },
+    {
+      "id": "test_phase_velocity.test_analytic_velocity_rejects_removed_interface_mode_selector",
+      "status": "PASS",
+      "seconds": 0.00025220797397196293,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity.test_analytic_velocity_solves_hydro_jump_internally_without_jB_input",
+      "status": "PASS",
+      "seconds": 2.3442296248394996,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity.test_analytic_methods_accept_zero_upstream_temperature",
+      "status": "PASS",
+      "seconds": 0.0001366250216960907,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity.test_analytic_methods_reject_negative_upstream_temperature",
+      "status": "PASS",
+      "seconds": 4.63749747723341e-05,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity.test_analytic_velocity_gamma_matches_weak_rate_and_seconds_shortcut",
+      "status": "PASS",
+      "seconds": 6.064479749882594,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity.test_analytic_velocity_validates_xi_endpoint_and_density_domain",
+      "status": "FAIL",
+      "seconds": 6.0921352920122445,
+      "error": "Traceback (most recent call last):\n  File \"/Users/janshao/NSM_related/tests/test_phase_velocity.py\", line 1327, in test_analytic_velocity_validates_xi_endpoint_and_density_domain\n    raise AssertionError(\"expected invalid A_boundary to raise RuntimeError\")\nAssertionError: expected invalid A_boundary to raise RuntimeError\n"
+    },
+    {
+      "id": "test_phase_velocity.test_microphysics_helpers_use_precise_weak_rate",
+      "status": "PASS",
+      "seconds": 0.00010941596701741219,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity.test_kaon_transport_rate_uses_baryon_prefactor_and_preserves_eos_diagnostics",
+      "status": "PASS",
+      "seconds": 0.15583908301778138,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity.test_microphysics_uses_shared_alpha_s_0p4_and_consistent_diffusion",
+      "status": "PASS",
+      "seconds": 0.00015075015835464,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity.test_all_rate_tagged_result_paths_identify_the_approximation",
+      "status": "PASS",
+      "seconds": 0.1998112911824137,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity.test_energy_microphysics_zero_temperature_uses_inverse_diffusion_limit",
+      "status": "PASS",
+      "seconds": 0.00010537495836615562,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity.test_energy_microphysics_positive_temperature_computes_inverse_diffusion_directly",
+      "status": "PASS",
+      "seconds": 3.474997356534004e-05,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity.test_local_energy_closure_uses_absolute_nK_target",
+      "status": "PASS",
+      "seconds": 0.0006332499906420708,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity.test_new_nK_energy_solver_public_signature",
+      "status": "PASS",
+      "seconds": 0.00011487491428852081,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity.test_nK_tail_residual_retains_massive_equilibrium_offset",
+      "status": "PASS",
+      "seconds": 0.027111666975542903,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity.test_uNmax_default_jB_guess_matches_energy_nK_policy",
+      "status": "PASS",
+      "seconds": 0.00012037507258355618,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity.test_solve_front_isothermal_warm_case_remains_finite",
+      "status": "PASS",
+      "seconds": 11.36223924998194,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity.test_solve_front_energy_conserving_nK_regression",
+      "status": "PASS",
+      "seconds": 13.798997750040144,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity.test_solve_front_energy_conserving_uNmax_regression",
+      "status": "PASS",
+      "seconds": 6.991652667056769,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity_fixed_T_analytic.FixedTemperatureAnalyticApiTests.test_fixed_muB_interface_state_uses_exact_eos_at_requested_temperature",
+      "status": "PASS",
+      "seconds": 0.002899749903008342,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity_fixed_T_analytic.FixedTemperatureAnalyticApiTests.test_public_analytic_methods_have_distinct_fixed_temperature_apis",
+      "status": "PASS",
+      "seconds": 0.0001924580428749323,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity_numerical_i2.NumericalI2ClosureTests.test_dense_state_keeps_positive_muK_continuation_branch",
+      "status": "PASS",
+      "seconds": 28.211473459145054,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity_isothermal_analytic.AnalyticVelocityIsothermalApiTests.test_adaptive_log_root_is_not_clipped_at_one_or_one_trillionth",
+      "status": "PASS",
+      "seconds": 0.0016224998980760574,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity_isothermal_analytic.AnalyticVelocityIsothermalApiTests.test_adaptive_log_root_reports_slow_front_limit_without_branch_jump",
+      "status": "PASS",
+      "seconds": 0.0002162500750273466,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity_isothermal_analytic.AnalyticVelocityIsothermalApiTests.test_adaptive_log_root_reuses_bracket_endpoint_evaluations",
+      "status": "PASS",
+      "seconds": 0.0001271669752895832,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity_isothermal_analytic.AnalyticVelocityIsothermalApiTests.test_analytic_path_uses_direct_density_state_instead_of_muB_scan",
+      "status": "PASS",
+      "seconds": 0.0008215000852942467,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity_isothermal_analytic.AnalyticVelocityIsothermalApiTests.test_current_analytic_model_rejects_non_pure_neutron_matter",
+      "status": "PASS",
+      "seconds": 0.00026483391411602497,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity_isothermal_analytic.AnalyticVelocityIsothermalApiTests.test_delta_muB_within_tolerance_returns_coexistence_zero",
+      "status": "PASS",
+      "seconds": 0.00032970798201859,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity_isothermal_analytic.AnalyticVelocityIsothermalApiTests.test_input_domain_is_validated_before_eos_evaluation",
+      "status": "PASS",
+      "seconds": 0.00031691696494817734,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity_isothermal_analytic.AnalyticVelocityIsothermalApiTests.test_live_eos_classifies_both_sides_of_isothermal_coexistence",
+      "status": "PASS",
+      "seconds": 2.2792616670485586,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity_isothermal_analytic.AnalyticVelocityIsothermalApiTests.test_live_low_temperature_case_reports_slow_front_breakdown",
+      "status": "PASS",
+      "seconds": 0.4075135418679565,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity_isothermal_analytic.AnalyticVelocityIsothermalApiTests.test_moving_branch_solves_finite_flux_formula_with_local_interface_fraction",
+      "status": "PASS",
+      "seconds": 0.014273040927946568,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity_isothermal_analytic.AnalyticVelocityIsothermalApiTests.test_positive_delta_muB_returns_stable_neutron_matter_zero",
+      "status": "PASS",
+      "seconds": 0.0005212498363107443,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity_isothermal_analytic.AnalyticVelocityIsothermalApiTests.test_public_api_has_the_requested_signature",
+      "status": "PASS",
+      "seconds": 0.00018466589972376823,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity_isothermal_analytic.AnalyticVelocityIsothermalApiTests.test_public_api_returns_structured_slow_front_invalid_result",
+      "status": "PASS",
+      "seconds": 0.0003802499268203974,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity_isothermal_analytic.AnalyticVelocityIsothermalApiTests.test_zero_interface_composition_returns_zero_without_transport",
+      "status": "PASS",
+      "seconds": 0.0003042919561266899,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity_isothermal_analytic.AnalyticVelocityIsothermalApiTests.test_zero_temperature_quark_favored_state_is_classified_but_not_solved",
+      "status": "PASS",
+      "seconds": 0.00027783308178186417,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity_isothermal_analytic.DirectPnmDensityStateTests.test_live_hot_low_density_state_skips_agreed_negative_pressure_branch",
+      "status": "PASS",
+      "seconds": 1.0529100419953465,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity_isothermal_analytic.DirectPnmDensityStateTests.test_rejects_an_agreed_state_that_fails_forward_density_validation",
+      "status": "PASS",
+      "seconds": 0.00047329114750027657,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity_isothermal_analytic.DirectPnmDensityStateTests.test_rejects_bad_scaled_residual_then_stops_after_two_states_agree",
+      "status": "PASS",
+      "seconds": 0.0003623750526458025,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity_isothermal_analytic.DirectPnmDensityStateTests.test_requires_two_physical_density_solutions_to_agree",
+      "status": "PASS",
+      "seconds": 0.00031445897184312344,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity_isothermal_a_0plus_max.TestAnalyticBranch.test_auto_matches_explicitly_passing_the_ceiling",
+      "status": "PASS",
+      "seconds": 3.4309938750229776,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity_isothermal_a_0plus_max.TestAnalyticBranch.test_explicit_input_leaves_the_ceiling_unevaluated",
+      "status": "PASS",
+      "seconds": 1.6663355000782758,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity_isothermal_a_0plus_max.TestAnalyticBranch.test_out_of_range_composition_still_raises",
+      "status": "PASS",
+      "seconds": 9.325006976723671e-05,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity_isothermal_a_0plus_max.TestAnalyticBranch.test_resolved_composition_is_the_reported_ceiling",
+      "status": "PASS",
+      "seconds": 1.8589267921634018,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity_isothermal_a_0plus_max.TestAnalyticBranch.test_saturated_ceiling_reports_instead_of_returning_a_speed",
+      "status": "PASS",
+      "seconds": 3.196835916955024,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity_isothermal_a_0plus_max.TestAnalyticBranch.test_stable_neutron_matter_still_gates_before_the_ceiling",
+      "status": "PASS",
+      "seconds": 1.0482196661178023,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity_isothermal_a_0plus_max.TestCeilingSolve.test_ceiling_saturates_beyond_the_strangeness_free_boundary",
+      "status": "PASS",
+      "seconds": 3.3929851250723004,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity_isothermal_a_0plus_max.TestCeilingSolve.test_ceiling_vanishes_on_the_coexistence_boundary",
+      "status": "PASS",
+      "seconds": 2.225790125085041,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity_isothermal_a_0plus_max.TestCeilingSolve.test_interior_root_satisfies_the_balance",
+      "status": "PASS",
+      "seconds": 1.6768431670498103,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity_isothermal_a_0plus_max.TestCeilingSolve.test_residual_at_zero_composition_reduces_to_delta_muB",
+      "status": "PASS",
+      "seconds": 1.3194170841015875,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity_isothermal_a_0plus_max.TestNumericalBranch.test_auto_ceiling_requires_PNM",
+      "status": "PASS",
+      "seconds": 0.00024262513034045696,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity_isothermal_a_0plus_max.TestNumericalBranch.test_auto_resolves_to_the_same_ceiling_as_the_helper",
+      "status": "PASS",
+      "seconds": 22.870466582942754,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity_isothermal_a_0plus_max.TestNumericalBranch.test_out_of_range_composition_still_raises",
+      "status": "PASS",
+      "seconds": 0.00022358284331858158,
+      "error": null
+    }
+  ],
+  "started_epoch": 1793037067.690191,
+  "source_sha256": {
+    "RMFsolver/phase_velocity.py": "3c22ccbb039bcc0b7812daeed4c2e233cfdf09c8d5f650a2160c415bc494140b",
+    "tests/test_phase_velocity.py": "e69f28ad69aca66da23e563ccf7f5d77d06368adfa82f66d78cd8a024d8f00b3",
+    "tests/test_phase_velocity_fixed_T_analytic.py": "447b5d396744bb9eda7a426803b0283c0b54fdf828864ae2f1fcfd5bd6d5a55e",
+    "tests/test_phase_velocity_isothermal_a_0plus_max.py": "8501e7a6426b8d09ca370b5bb71dfb237e247d922941f4ea87d065e35254cc4b",
+    "tests/test_phase_velocity_isothermal_analytic.py": "8e0a3f210d974d4b090b7dda85c66788a84b7788db5c44e62be728c59b696e43",
+    "tests/test_phase_velocity_numerical_i2.py": "38edddd7b9aa75d5dad7074713a35969f9b00401f836a79418a95b2ed105543d"
+  },
+  "scipy_version": "1.18.1",
+  "scipy_path": "/Users/janshao/NSM_related/local_analysis_results/26-10-02/runtime/scipy-1.18.1-cpython-312-darwin-arm64/scipy/__init__.py",
+  "phase_velocity_import_path": "/Users/janshao/NSM_related/RMFsolver/phase_velocity.py",
+  "imports_complete_epoch": 1793037068.912928,
+  "tests_run": 60,
+  "passed": 55,
+  "failed": 1,
+  "errors": 4,
+  "finished_epoch": 1793037233.055653
+}

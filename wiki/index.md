@@ -1,7 +1,7 @@
 ---
 summary: Catalog of every wiki page. Read this first; drill down from here.
 status: current
-updated: 2026-10-21
+updated: 2026-10-26
 tags: [meta, index]
 ---
 
@@ -50,6 +50,9 @@ The nuclear→quark combustion front project. **This is the only page loaded by 
 |---|---|
 | [[phase-velocity-overview]] | Solver APIs, separate isobaric and moving-flux BVPs, units and editing restriction; revised rate metadata preserves legacy compatibility |
 | [[slow-front-solvers]] | Isobaric isothermal/adiabatic BVPs with a precomputed neutral EOS path and finite diffusion-density integral; 16 test methods verified across targeted runs, with massive-EOS and runtime limits |
+| [[analytic-slow-front-solvers]] | Three static analytical APIs; corrected second-order adiabatic heat matching removes the leading-density sqrt(3) ceiling error, with unchanged closed integral and verified benchmarks |
+| [[adiabatic-analytic-error-budget]] | Corrected full-analytical adiabatic speed matches the manuscript; its 10–47% excess over semi splits into Landau-only D_K, cubic rate, ellipse and quadratic-ceiling factors |
+| [[analytic-slow-front-audit]] | Historical moving-flux analytical audit and the decisions implemented by the separate slow analytical APIs |
 | [[pnm-density-state-recovery]] | Direct fixed-density upstream PNM recovery replaces the analytical isothermal solver's broad chemical-potential scan |
 | [[unmax-degeneracy]] | Older physical-$n_K$ comparison solver: at $T(0^+)=0$, `jB` is a non-Lipschitz continuum and `success=True` proves nothing; distinct from the new integral-field cold treatment |
 | [[unmax-low-temperature]] | Older physical-$n_K$ comparison solver: the `logT`→$T^2$ fix (landed) and density-resolution limit (open); the new integral-field formulation is documented separately |
@@ -58,7 +61,9 @@ The nuclear→quark combustion front project. **This is the only page loaded by 
 
 ## Methods
 
-- [[notebook-trajectory-figures]] — Matched trajectories and the balanced four-panel `boundary_schematic_real.pdf` export with zero-inclusive axes and body-text-sized fonts, plus the historical momentum-flux figure.
+- [[nonrelativistic-adiabatic-contour]] — Fixed 0.1 MeV slow-front workflow: 540 base points plus 209 numerical extensions complete all 30 rays through 5000 m/s; executed styled and historical-relativistic overlay plots in `26-10-26.ipynb`.
+- [[cold-adiabatic-analytical-contours]] — Corrected exact-cold analytical scan: 61 rays and all seven levels through 5000 m/s; notebook and combined plotting data refreshed with method-specific provenance, preserving semi-analytical and numerical results.
+- [[notebook-trajectory-figures]] — Matched trajectories and the four-panel `boundary_schematic_real.pdf` export with a 40:60 phase split, negative-position ticks, and body-text-sized fonts.
 - [[fixed-interface-analytical-contours]] — Fixed 0.1 MeV comparison, xi=-0.5; 734/734 per method and all 30 semi-analytical 5000 m/s brackets; unshaded through 5000 and shaded through 1000 m/s, with enlarged locally backed labels in the shaded figure.
 - [[analytical-xi-minus0p85-cluster]] — original `26-10-02.ipynb` comparison and local recovery: connected adiabatic analytical contours and supported 2000 m/s band; seven-level isothermal baseline has 297 accepted/25 outside-window targets, warm numerical curves and 58 cold numerical dots.
 - [[isothermal-high-speed-contours]] — `26-10-02.ipynb` calculates all 14 analytical log-temperature levels locally (644 targets), compares saved numerical curves/dots, and resumes pointwise checkpoints; persistent isolated SciPy fixes the macOS import failure, with separate target and per-evaluation progress.

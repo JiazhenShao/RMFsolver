@@ -1,0 +1,102 @@
+{
+  "phase": "after",
+  "group": "analytic_slow",
+  "selection": [
+    "test_phase_velocity_analytic_slow.AnalyticSlowTests.test_public_interfaces_and_domains",
+    "test_phase_velocity_analytic_slow.AnalyticSlowTests.test_isothermal_manuscript_integral_and_scaling",
+    "test_phase_velocity_analytic_slow.AnalyticSlowTests.test_isothermal_exact_ceiling_and_explicit_equivalence",
+    "test_phase_velocity_analytic_slow.AnalyticSlowTests.test_quadratic_adiabatic_endpoints_and_independent_integral",
+    "test_phase_velocity_analytic_slow.AnalyticSlowTests.test_semi_analytical_full_eos_path_and_integral",
+    "test_phase_velocity_analytic_slow.AnalyticSlowTests.test_cold_limit_and_path_refinement",
+    "test_phase_velocity_analytic_slow.AnalyticSlowTests.test_failure_metadata_and_no_moving_endpoint_calls",
+    "test_phase_velocity_analytic_slow.AnalyticSlowTests.test_quadratic_warm_interface_survives_ceiling_above_one",
+    "test_phase_velocity_analytic_slow.AnalyticSlowTests.test_quadratic_hot_limit_avoids_subtractive_cancellation",
+    "test_phase_velocity_analytic_slow.AnalyticSlowTests.test_exact_cold_upstream_and_rounded_adiabatic_scaling",
+    "test_phase_velocity_analytic_slow.AnalyticSlowTests.test_isothermal_zero_composition_and_saturated_ceiling"
+  ],
+  "timeout_seconds_per_test": 180,
+  "records": [
+    {
+      "id": "test_phase_velocity_analytic_slow.AnalyticSlowTests.test_public_interfaces_and_domains",
+      "status": "PASS",
+      "seconds": 0.00022783316671848297,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity_analytic_slow.AnalyticSlowTests.test_isothermal_manuscript_integral_and_scaling",
+      "status": "PASS",
+      "seconds": 1.3489903330337256,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity_analytic_slow.AnalyticSlowTests.test_isothermal_exact_ceiling_and_explicit_equivalence",
+      "status": "PASS",
+      "seconds": 2.6756772499065846,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity_analytic_slow.AnalyticSlowTests.test_quadratic_adiabatic_endpoints_and_independent_integral",
+      "status": "PASS",
+      "seconds": 4.2400189160835,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity_analytic_slow.AnalyticSlowTests.test_semi_analytical_full_eos_path_and_integral",
+      "status": "PASS",
+      "seconds": 4.204491291893646,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity_analytic_slow.AnalyticSlowTests.test_cold_limit_and_path_refinement",
+      "status": "PASS",
+      "seconds": 11.697207833873108,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity_analytic_slow.AnalyticSlowTests.test_failure_metadata_and_no_moving_endpoint_calls",
+      "status": "PASS",
+      "seconds": 11.618522624950856,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity_analytic_slow.AnalyticSlowTests.test_quadratic_warm_interface_survives_ceiling_above_one",
+      "status": "PASS",
+      "seconds": 7.368979665916413,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity_analytic_slow.AnalyticSlowTests.test_quadratic_hot_limit_avoids_subtractive_cancellation",
+      "status": "PASS",
+      "seconds": 3.9581318330019712,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity_analytic_slow.AnalyticSlowTests.test_exact_cold_upstream_and_rounded_adiabatic_scaling",
+      "status": "PASS",
+      "seconds": 1.7823271669913083,
+      "error": null
+    },
+    {
+      "id": "test_phase_velocity_analytic_slow.AnalyticSlowTests.test_isothermal_zero_composition_and_saturated_ceiling",
+      "status": "PASS",
+      "seconds": 4.94059900008142,
+      "error": null
+    }
+  ],
+  "started_epoch": 1793037195.501929,
+  "source_sha256": {
+    "RMFsolver/phase_velocity.py": "3c22ccbb039bcc0b7812daeed4c2e233cfdf09c8d5f650a2160c415bc494140b",
+    "tests/test_phase_velocity_analytic_slow.py": "3bd0513d16a33bd9f3ccfe0c465adb88b257d92a0f6cc684da3cd1fb102759b8"
+  },
+  "source_root": "/Users/janshao/NSM_related",
+  "selection_file": "/Users/janshao/NSM_related/local_analysis_results/26-10-26-second-order/regression_selection.json",
+  "scipy_version": "1.18.1",
+  "scipy_path": "/Users/janshao/NSM_related/local_analysis_results/26-10-02/runtime/scipy-1.18.1-cpython-312-darwin-arm64/scipy/__init__.py",
+  "phase_velocity_import_path": "/Users/janshao/NSM_related/RMFsolver/phase_velocity.py",
+  "imports_complete_epoch": 1793037196.440756,
+  "tests_run": 11,
+  "passed": 11,
+  "failed": 0,
+  "errors": 0,
+  "finished_epoch": 1793037250.283243
+}

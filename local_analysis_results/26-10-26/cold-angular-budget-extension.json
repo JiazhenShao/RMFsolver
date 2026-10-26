@@ -1,0 +1,11 @@
+{
+  "reused_records": 8533,
+  "previous_angular_rounds": 5,
+  "angular_rounds": 6,
+  "physics_unchanged": true,
+  "only_source_change": "default angular rounds 5 -> 6",
+  "retained_completed_rays": {
+    "analytic": 61,
+    "semi_analytic": 61
+  }
+}

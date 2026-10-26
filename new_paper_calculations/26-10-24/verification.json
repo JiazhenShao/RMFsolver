@@ -1,0 +1,673 @@
+{
+  "successful_cells": 540,
+  "total_cells": 540,
+  "shape": [
+    30,
+    18
+  ],
+  "maximum_errors": {
+    "baryon_flux": 2.220446049250313e-16,
+    "pressure": 5.804761027579895e-09,
+    "enthalpy_flux": 1.805173788227421e-10,
+    "closure_error_max": 1.3050242220069849e-09,
+    "bvp_max_rms_residual": 1.53219686545206e-05,
+    "constitutive_residual_norm": 7.474164268335096e-06,
+    "diffusion_integral_residual_norm": 1.0740451058081374e-06,
+    "reaction_residual_norm": 3.3667032900778014e-07
+  },
+  "profile_rate_relative_error": 4.440892098500626e-16,
+  "profile_diffusion_relative_error": 1.1102230246251565e-16,
+  "profile_baryon_flux_relative_error": 2.220446049250313e-16,
+  "massless_density_relative_variation": 5.253860679843569e-10,
+  "velocity_range_m_s": [
+    30.1982373224988,
+    4023.324917858634
+  ],
+  "complete_5000_contour_bracket": false,
+  "cells_using_table_refinement_retry": 145,
+  "cells_using_nuclear_seed_extension": 1,
+  "bvp_attempt_records": 540,
+  "timed_out_trials": 0,
+  "result_sha256": "6f86b671bbd7efc447cbf9330c53d2f2abd1c1d7b6b7fa893dcc55db606042b3",
+  "source_sha256": "e27079d1d1c4d58b32cb9fa1935cd2f306f50118d36e5463969d977cb7fb1e38",
+  "source_hashes_match": true,
+  "unittest_checks_passed": 10,
+  "smoke_cells_passed": 6,
+  "refinement": {
+    "checkpoint_snapshot_sha256": "16a2953b0e7cb9d68f4aaed9c112fa070bcd83ebc83c3b217de4581e542f6ee3",
+    "checkpoint_finished": false,
+    "snapshot_successes": 476,
+    "independent_formulas": "Massless neutral free-gas EOS from nB,a,T; Madsen rate with (muB/3)^5; HP93 diffusion alpha_s=0.4",
+    "cases": [
+      {
+        "source_grid_index": [
+          0,
+          0
+        ],
+        "source_speed_m_s": 30.26152809865913,
+        "source_jB": 0.3779848367101575,
+        "source_path_rtol": 1e-06,
+        "independent_saved_profile": {
+          "profile_samples": 599,
+          "eos_relative_max": {
+            "P": 2.25055984885027e-15,
+            "h": 6.22227055699068e-16,
+            "e": 5.428033676833507e-16,
+            "muB": 1.907152613475808e-16,
+            "muK": 4.033269636242129e-15
+          },
+          "rate_relative_max": 9.994303659844834e-15,
+          "inverse_diffusion_relative_max": 5.075726619099191e-16,
+          "diffusion_relative_max": 3.605807018558916e-16,
+          "direct_conservation": {
+            "baryon_flux": 0.0,
+            "pressure": 2.4856120704022284e-11,
+            "enthalpy_flux": 4.123923424970144e-12
+          },
+          "profile_current_interface_relative": 1.0486167489887066e-11,
+          "constitutive_saved_derivative_relative": 1.4385949003397536e-07
+        },
+        "reruns": [
+          {
+            "seed_factor": 1.0,
+            "seconds": 0.5429043329786509,
+            "success": true,
+            "status": "converged",
+            "message": "The algorithm converged to the desired accuracy.",
+            "path_refinement_attempts": [
+              {
+                "path_rtol": 2e-07,
+                "status": "converged",
+                "message": "The algorithm converged to the desired accuracy."
+              }
+            ],
+            "jB": 0.3779849929565292,
+            "speed_m_s": 30.26154060776931,
+            "speed_relative_change": 4.13366771701007e-07,
+            "speed_percent_change": 4.13366771701007e-05,
+            "conservation_errors": {
+              "baryon_flux": 0.0,
+              "pressure": 3.261567596956534e-11,
+              "enthalpy_flux": 5.414890758004276e-12
+            },
+            "closure_error_max": 1.619351789573032e-11,
+            "constitutive_residual_norm": 7.170173450500859e-07,
+            "reaction_residual_norm": 4.213712496249911e-06,
+            "diffusion_integral_residual_norm": 2.7262077373573627e-07,
+            "path_nodes": 315,
+            "bvp_nodes": 600
+          },
+          {
+            "seed_factor": 1.5,
+            "seconds": 0.2844018330797553,
+            "success": true,
+            "status": "converged",
+            "message": "The algorithm converged to the desired accuracy.",
+            "path_refinement_attempts": [
+              {
+                "path_rtol": 2e-07,
+                "status": "converged",
+                "message": "The algorithm converged to the desired accuracy."
+              }
+            ],
+            "jB": 0.37798483290540025,
+            "speed_m_s": 30.26152779404964,
+            "speed_relative_change": -1.0065899114231058e-08,
+            "speed_percent_change": -1.0065899114231058e-06,
+            "conservation_errors": {
+              "baryon_flux": 0.0,
+              "pressure": 3.261680124948977e-11,
+              "enthalpy_flux": 5.4150017803067385e-12
+            },
+            "closure_error_max": 1.61940765915124e-11,
+            "constitutive_residual_norm": 1.4568160416027368e-07,
+            "reaction_residual_norm": 7.410357425395473e-09,
+            "diffusion_integral_residual_norm": 1.8192223608686935e-10,
+            "path_nodes": 315,
+            "bvp_nodes": 600
+          }
+        ]
+      },
+      {
+        "source_grid_index": [
+          15,
+          8
+        ],
+        "source_speed_m_s": 345.8434479795805,
+        "source_jB": 4.402695515876683,
+        "source_path_rtol": 5e-07,
+        "independent_saved_profile": {
+          "profile_samples": 599,
+          "eos_relative_max": {
+            "P": 1.8029367303500194e-15,
+            "h": 5.748743777075463e-16,
+            "e": 5.08545056616878e-16,
+            "muB": 1.9642254963008232e-16,
+            "muK": 1.1501534568111234e-15
+          },
+          "rate_relative_max": 2.666478090227767e-15,
+          "inverse_diffusion_relative_max": 3.7438468778826267e-16,
+          "diffusion_relative_max": 3.6970140999427284e-16,
+          "direct_conservation": {
+            "baryon_flux": 0.0,
+            "pressure": 4.837068905010337e-11,
+            "enthalpy_flux": 1.17922338560561e-11
+          },
+          "profile_current_interface_relative": 2.4802100373477742e-09,
+          "constitutive_saved_derivative_relative": 9.92529735026981e-07
+        },
+        "reruns": [
+          {
+            "seed_factor": 1.0,
+            "seconds": 0.9213345837779343,
+            "success": true,
+            "status": "converged",
+            "message": "The algorithm converged to the desired accuracy.",
+            "path_refinement_attempts": [
+              {
+                "path_rtol": 2e-07,
+                "status": "converged",
+                "message": "The algorithm converged to the desired accuracy."
+              }
+            ],
+            "jB": 4.4026953140670955,
+            "speed_m_s": 345.8434321269004,
+            "speed_relative_change": -4.583773438593397e-08,
+            "speed_percent_change": -4.583773438593397e-06,
+            "conservation_errors": {
+              "baryon_flux": 0.0,
+              "pressure": 6.866123950333609e-11,
+              "enthalpy_flux": 1.699540508326436e-11
+            },
+            "closure_error_max": 4.2553622937990834e-11,
+            "constitutive_residual_norm": 1.1548423523922731e-07,
+            "reaction_residual_norm": 5.840849023906416e-09,
+            "diffusion_integral_residual_norm": 1.1613172470987523e-08,
+            "path_nodes": 697,
+            "bvp_nodes": 600
+          },
+          {
+            "seed_factor": 1.5,
+            "seconds": 0.45031258277595043,
+            "success": true,
+            "status": "converged",
+            "message": "The algorithm converged to the desired accuracy.",
+            "path_refinement_attempts": [
+              {
+                "path_rtol": 2e-07,
+                "status": "converged",
+                "message": "The algorithm converged to the desired accuracy."
+              }
+            ],
+            "jB": 4.402695322424429,
+            "speed_m_s": 345.84343278339117,
+            "speed_relative_change": -4.3939503369117006e-08,
+            "speed_percent_change": -4.3939503369117006e-06,
+            "conservation_errors": {
+              "baryon_flux": 0.0,
+              "pressure": 6.866214097170129e-11,
+              "enthalpy_flux": 1.6995627127869284e-11
+            },
+            "closure_error_max": 4.255418163377292e-11,
+            "constitutive_residual_norm": 4.6854531340357304e-08,
+            "reaction_residual_norm": 3.6675198670085172e-09,
+            "diffusion_integral_residual_norm": 5.884810552265802e-09,
+            "path_nodes": 697,
+            "bvp_nodes": 600
+          }
+        ]
+      },
+      {
+        "source_grid_index": [
+          29,
+          0
+        ],
+        "source_speed_m_s": 56.435133172062365,
+        "source_jB": 0.2314238475234242,
+        "source_path_rtol": 1e-06,
+        "independent_saved_profile": {
+          "profile_samples": 599,
+          "eos_relative_max": {
+            "P": 1.0783167486136044e-14,
+            "h": 6.967916312013879e-16,
+            "e": 5.311746447218027e-16,
+            "muB": 2.0739034209326595e-16,
+            "muK": 3.1433010265327246e-15
+          },
+          "rate_relative_max": 9.665253147070989e-15,
+          "inverse_diffusion_relative_max": 4.027003709837746e-16,
+          "diffusion_relative_max": 3.8223242180811363e-16,
+          "direct_conservation": {
+            "baryon_flux": 2.220446049250313e-16,
+            "pressure": 1.1349654450657481e-10,
+            "enthalpy_flux": 3.668176873361517e-12
+          },
+          "profile_current_interface_relative": 9.009459844833145e-12,
+          "constitutive_saved_derivative_relative": 1.4133917846402043e-07
+        },
+        "reruns": [
+          {
+            "seed_factor": 1.0,
+            "seconds": 0.5453337079379708,
+            "success": true,
+            "status": "converged",
+            "message": "The algorithm converged to the desired accuracy.",
+            "path_refinement_attempts": [
+              {
+                "path_rtol": 2e-07,
+                "status": "converged",
+                "message": "The algorithm converged to the desired accuracy."
+              }
+            ],
+            "jB": 0.2314239356732169,
+            "speed_m_s": 56.43515466831412,
+            "speed_relative_change": 3.8090194087736506e-07,
+            "speed_percent_change": 3.8090194087736506e-05,
+            "conservation_errors": {
+              "baryon_flux": 2.220446049250313e-16,
+              "pressure": 1.4223907744116662e-10,
+              "enthalpy_flux": 4.599098879509711e-12
+            },
+            "closure_error_max": 9.826225020288196e-12,
+            "constitutive_residual_norm": 6.477900659596445e-07,
+            "reaction_residual_norm": 3.866913984034385e-06,
+            "diffusion_integral_residual_norm": 2.3491191211769404e-07,
+            "path_nodes": 313,
+            "bvp_nodes": 600
+          },
+          {
+            "seed_factor": 1.5,
+            "seconds": 0.27984125004149973,
+            "success": true,
+            "status": "converged",
+            "message": "The algorithm converged to the desired accuracy.",
+            "path_refinement_attempts": [
+              {
+                "path_rtol": 2e-07,
+                "status": "converged",
+                "message": "The algorithm converged to the desired accuracy."
+              }
+            ],
+            "jB": 0.2314238452074903,
+            "speed_m_s": 56.43513260729758,
+            "speed_relative_change": -1.0007326078920187e-08,
+            "speed_percent_change": -1.0007326078920187e-06,
+            "conservation_errors": {
+              "baryon_flux": 2.220446049250313e-16,
+              "pressure": 1.4224716481678132e-10,
+              "enthalpy_flux": 4.599320924114636e-12
+            },
+            "closure_error_max": 9.826783716070277e-12,
+            "constitutive_residual_norm": 1.4113601342684952e-07,
+            "reaction_residual_norm": 6.903373015337541e-09,
+            "diffusion_integral_residual_norm": 1.6466530257534623e-10,
+            "path_nodes": 313,
+            "bvp_nodes": 600
+          }
+        ]
+      }
+    ],
+    "regression_fixes": {
+      "bridge_without_reference_returns_candidates": true,
+      "collocation_true_for_saved_successes": true,
+      "nested_state_resume_rejected": true,
+      "prepared_domain_hash_recorded": true
+    }
+  },
+  "cold_edge_recovery": {
+    "extra_seeds": [
+      [
+        35.0,
+        25.0,
+        -3.0
+      ],
+      [
+        40.0,
+        30.0,
+        -3.0
+      ]
+    ],
+    "seed_diagnostics": [
+      {
+        "seed": [
+          30.0,
+          20.0,
+          -3.0
+        ],
+        "fields": [
+          80.55010817132144,
+          89.78414249197901,
+          -2.611077061305929,
+          1505.8652907057178
+        ],
+        "scaled_residual": 2.4484616408158753e-10,
+        "density_relative_residual": 1.0260015059770922e-11,
+        "accepted": true
+      },
+      {
+        "seed": [
+          70.0,
+          70.0,
+          -3.0
+        ],
+        "fields": [
+          41.26280748234987,
+          73.95189257125655,
+          -2.922632885508706,
+          -4340.436200244259
+        ],
+        "scaled_residual": 8.0707195208219,
+        "density_relative_residual": -1.0,
+        "accepted": false
+      },
+      {
+        "seed": [
+          90.0,
+          95.0,
+          -3.0
+        ],
+        "fields": [
+          0.0034908753875648735,
+          6.371124307839731,
+          -0.8620602607736011,
+          -41551.47353849224
+        ],
+        "scaled_residual": 1.0,
+        "density_relative_residual": -1.0,
+        "accepted": false
+      },
+      {
+        "seed": [
+          50.0,
+          45.0,
+          -3.0
+        ],
+        "fields": [
+          -105.60522264488051,
+          89.78414249288389,
+          -2.6110770613026855,
+          2790.6764216998836
+        ],
+        "scaled_residual": 9.945146115319023e-11,
+        "density_relative_residual": 2.02100558510665e-11,
+        "accepted": false
+      },
+      {
+        "seed": [
+          110.0,
+          120.0,
+          -3.0
+        ],
+        "fields": [
+          72.78590448518058,
+          118.16562152449441,
+          -2.997899048026907,
+          -4372.424860165367
+        ],
+        "scaled_residual": 12.90909242113312,
+        "density_relative_residual": -1.0,
+        "accepted": false
+      },
+      {
+        "seed": [
+          35.0,
+          25.0,
+          -3.0
+        ],
+        "fields": [
+          80.55010817287783,
+          89.78414249197613,
+          -2.6110770613113172,
+          1505.8652906983552
+        ],
+        "scaled_residual": 2.748651931060285e-12,
+        "density_relative_residual": -2.2093438190040615e-14,
+        "accepted": true
+      },
+      {
+        "seed": [
+          40.0,
+          30.0,
+          -3.0
+        ],
+        "fields": [
+          80.55010817414734,
+          89.7841424917455,
+          -2.6110770615513057,
+          1505.865290697153
+        ],
+        "scaled_residual": 3.323088935174696e-10,
+        "density_relative_residual": 2.6149304943601237e-11,
+        "accepted": true
+      },
+      {
+        "seed": [
+          45.0,
+          35.0,
+          -3.0
+        ],
+        "fields": [
+          80.55010813630695,
+          89.78414250065869,
+          -2.6110770547484248,
+          1505.8652909266627
+        ],
+        "scaled_residual": 1.4391211054502365e-08,
+        "density_relative_residual": 2.8187252532063667e-10,
+        "accepted": true
+      },
+      {
+        "seed": [
+          50.0,
+          40.0,
+          -3.0
+        ],
+        "fields": [
+          80.55010817329567,
+          89.78414249182747,
+          -2.611077061399443,
+          1505.865290692833
+        ],
+        "scaled_residual": 2.6649228631176837e-10,
+        "density_relative_residual": -1.8331225426493347e-11,
+        "accepted": true
+      },
+      {
+        "seed": [
+          60.0,
+          50.0,
+          -3.0
+        ],
+        "fields": [
+          80.55010816755895,
+          89.78414248811065,
+          -2.611077064348714,
+          1505.8652907038058
+        ],
+        "scaled_residual": 5.719156921298987e-09,
+        "density_relative_residual": 4.279754328706531e-11,
+        "accepted": true
+      },
+      {
+        "seed": [
+          70.0,
+          60.0,
+          -3.0
+        ],
+        "fields": [
+          80.5501082093616,
+          89.7841424924387,
+          -2.6110770604513887,
+          1505.8652905166757
+        ],
+        "scaled_residual": 5.936502894423702e-09,
+        "density_relative_residual": -2.942454058185717e-10,
+        "accepted": true
+      }
+    ],
+    "recovery": [
+      {
+        "source_grid_index": [
+          0,
+          14
+        ],
+        "profile_source": [
+          1,
+          14
+        ],
+        "seconds": 0.5581014170311391,
+        "success": true,
+        "status": "converged",
+        "message": "The algorithm converged to the desired accuracy.",
+        "jB": 24.672853672276815,
+        "u_0minus": 4.311821564234108e-06,
+        "path_rtol": 1e-06,
+        "path_refinement_attempts": [
+          {
+            "path_rtol": 1e-06,
+            "status": "converged",
+            "message": "The algorithm converged to the desired accuracy."
+          }
+        ],
+        "conservation_errors": {
+          "baryon_flux": 2.220446049250313e-16,
+          "pressure": 2.942139554472507e-10,
+          "enthalpy_flux": 8.1032736076736e-11
+        },
+        "closure_error_max": 2.942139554472507e-10,
+        "constitutive_residual_norm": 7.164131463932305e-08,
+        "reaction_residual_norm": 4.1810540937873705e-10,
+        "diffusion_integral_residual_norm": 1.5912294362257592e-09,
+        "bvp_max_rms_residual": 2.607159291557491e-07
+      },
+      {
+        "source_grid_index": [
+          0,
+          15
+        ],
+        "profile_source": [
+          1,
+          15
+        ],
+        "seconds": 0.47778575005941093,
+        "success": true,
+        "status": "converged",
+        "message": "The algorithm converged to the desired accuracy.",
+        "jB": 34.53269947780801,
+        "u_0minus": 5.861299024477917e-06,
+        "path_rtol": 1e-06,
+        "path_refinement_attempts": [
+          {
+            "path_rtol": 1e-06,
+            "status": "converged",
+            "message": "The algorithm converged to the desired accuracy."
+          }
+        ],
+        "conservation_errors": {
+          "baryon_flux": 0.0,
+          "pressure": 8.554596860750786e-10,
+          "enthalpy_flux": 1.6483236997544282e-10
+        },
+        "closure_error_max": 8.554596860750786e-10,
+        "constitutive_residual_norm": 2.349797715452595e-07,
+        "reaction_residual_norm": 4.2662385801796655e-09,
+        "diffusion_integral_residual_norm": 5.752072648945699e-09,
+        "bvp_max_rms_residual": 3.1955874619662037e-07
+      },
+      {
+        "source_grid_index": [
+          0,
+          16
+        ],
+        "profile_source": [
+          1,
+          16
+        ],
+        "seconds": 0.4705862500704825,
+        "success": true,
+        "status": "converged",
+        "message": "The algorithm converged to the desired accuracy.",
+        "jB": 51.7096101825212,
+        "u_0minus": 8.531319220487992e-06,
+        "path_rtol": 1e-06,
+        "path_refinement_attempts": [
+          {
+            "path_rtol": 1e-06,
+            "status": "converged",
+            "message": "The algorithm converged to the desired accuracy."
+          }
+        ],
+        "conservation_errors": {
+          "baryon_flux": 2.220446049250313e-16,
+          "pressure": 9.372388155112908e-10,
+          "enthalpy_flux": 1.759579149052115e-10
+        },
+        "closure_error_max": 9.372388155112908e-10,
+        "constitutive_residual_norm": 3.722104060961201e-07,
+        "reaction_residual_norm": 4.111447750608007e-09,
+        "diffusion_integral_residual_norm": 1.0282724320764182e-08,
+        "bvp_max_rms_residual": 6.016391622925503e-07
+      },
+      {
+        "source_grid_index": [
+          0,
+          17
+        ],
+        "profile_source": [
+          1,
+          17
+        ],
+        "seconds": 0.48480299999937415,
+        "success": true,
+        "status": "converged",
+        "message": "The algorithm converged to the desired accuracy.",
+        "jB": 60.628798182306966,
+        "u_0minus": 9.910468562504787e-06,
+        "path_rtol": 1e-06,
+        "path_refinement_attempts": [
+          {
+            "path_rtol": 1e-06,
+            "status": "converged",
+            "message": "The algorithm converged to the desired accuracy."
+          }
+        ],
+        "conservation_errors": {
+          "baryon_flux": 2.220446049250313e-16,
+          "pressure": 9.78799849300678e-10,
+          "enthalpy_flux": 1.72831748912472e-10
+        },
+        "closure_error_max": 9.78799849300678e-10,
+        "constitutive_residual_norm": 4.594676960174752e-07,
+        "reaction_residual_norm": 4.225039227729779e-09,
+        "diffusion_integral_residual_norm": 1.295099765894501e-08,
+        "bvp_max_rms_residual": 7.953408043553406e-07
+      }
+    ],
+    "recovered_upstream": {
+      "muB_0minus": 1505.8652906983552,
+      "P_0minus": 2099432087.1444159,
+      "e_0minus": 6517342381.388217,
+      "h_0minus": 8616774468.532633,
+      "nB_0minus": 5722141.629638334,
+      "h_over_nB_0minus": 1505.8652906983802,
+      "sigma_0minus": 80.55010817287783,
+      "upstream_rmf_scaled_residual": 2.748651931060285e-12,
+      "upstream_density_relative_residual": -2.2093438190040615e-14,
+      "upstream_seed_count": 6
+    },
+    "original_seed_tuple_restored": true,
+    "original_seed_failure": "PNM density solve at nB_0minus=5.722142e+06, T_0minus=0 could not pin the physical branch: seed (70.0, 70.0, -3.0): scaled RMF residual 8.071e+00 exceeds 1.0e-06; seed (90.0, 95.0, -3.0): scaled RMF residual 1.000e+00 exceeds 1.0e-06; seed (50.0, 45.0, -3.0): scalar field sigma=-105.605223 is not positive; seed (110.0, 120.0, -3.0): scaled RMF residual 1.291e+01 exceeds 1.0e-06; no two physical seeds agreed; accepted states: (sigma=80.550108, muB=1505.865291)",
+    "extra_pair_alone": {
+      "muB_0minus": 1505.8652906983552,
+      "P_0minus": 2099432087.1444159,
+      "e_0minus": 6517342381.388217,
+      "h_0minus": 8616774468.532633,
+      "nB_0minus": 5722141.629638334,
+      "h_over_nB_0minus": 1505.8652906983802,
+      "sigma_0minus": 80.55010817287783,
+      "upstream_rmf_scaled_residual": 2.748651931060285e-12,
+      "upstream_density_relative_residual": -2.2093438190040615e-14,
+      "upstream_seed_count": 2
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "slow_bvp": [
+    "test_phase_velocity_slow.SlowFrontTests.test_cold_adiabatic_is_a_regular_seed_independent_limit",
+    "test_phase_velocity_slow.SlowFrontTests.test_massive_cold_table_mesh_and_tail_convergence"
+  ]
+}

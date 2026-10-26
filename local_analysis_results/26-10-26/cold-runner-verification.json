@@ -1,0 +1,14 @@
+{
+  "local_cluster_parity": true,
+  "exact_matching_points": 4,
+  "orchestration_tests_passed": 25,
+  "real_production_interrupt_exit_code": 130,
+  "real_production_resume_workers": 8,
+  "live_classifier_state_method_pairs": 10,
+  "geometry_boundary_integral_separation_test": true,
+  "post_boundary_change_local_cluster_parity": true,
+  "analytical_physics_regression_tests_passed": 11,
+  "total_targeted_tests_passed": 36,
+  "angular_refinement_rounds": 6,
+  "final_local_cluster_parity": true
+}

@@ -47,6 +47,9 @@ __all__ = [
     "z_time_evolution",
     "solve_front_isothermal_slow",
     "solve_front_adiabatic_slow",
+    "analytic_velocity_isothermal_slow",
+    "analytic_velocity_adiabatic_slow",
+    "semi_analytic_velocity_adiabatic_slow",
 ]
 
 _TRANSPORT_ALPHA_S = 0.4
@@ -10304,3 +10307,337 @@ def solve_front_adiabatic_slow(
         a_0plus, T_0plus, float(ms), param, NM_type, float(tail_eps), int(n_mesh),
         float(tol_bvp), int(max_nodes), jB_guess, float(kappa_factor), return_profile,
         verb, continuation_guess, return_continuation, float(path_rtol))
+
+
+# Analytical slow fronts use flux-independent thermodynamic endpoints. Their
+# frozen-background/shape approximations are separate from the spatial BVPs.
+def _analytic_slow_result(closure, eos, diffusion, integral, T, nB, bag, xi, ms, NM_type):
+    """Validate common inputs and initialize metadata, including failure paths."""
+    for name, value in (("nB_0minus", nB), ("B_one_forth", bag)):
+        if not np.isfinite(value) or value <= 0:
+            raise ValueError(name + " must be positive and finite")
+    if not np.isfinite(T) or T < 0 or (closure == "isothermal" and T == 0):
+        raise ValueError("Temperature must be nonnegative (strictly positive for isothermal)")
+    if not np.isfinite(xi):
+        raise ValueError("xi must be finite")
+    if ms != 0:
+        raise ValueError("Slow analytical branches require massless quarks (ms=0)")
+    if NM_type != "PNM":
+        raise ValueError("Slow analytical branches require NM_type='PNM'")
+    return {
+        "success": False, "front_exists": False, "status": "thermodynamic_state_failed",
+        "message": "", "hydrodynamic_model": "nonrelativistic_isobaric",
+        "closure": closure, "eos_approximation": eos,
+        "diffusion_approximation": diffusion, "integral_approximation": integral,
+        # Legacy label only: the rate is the approximate modified Madsen rate.
+        "rate_model": "exact_nonleptonic", "rate_approximation": "madsen_muB_over_3",
+        "alpha_s": float(_TRANSPORT_ALPHA_S), "h_D": float(_TRANSPORT_H_CONST),
+        "ms": 0.0, "NM_type": "PNM", "quark_branch": "massless", "xi": float(xi),
+        "T_0minus": float(T), "nB_0minus": float(nB), "B_one_forth": float(bag),
+        "composition_definition": "nK_over_local_nB",
+        "density_reference": "nB_inf", "u_0minus": np.nan, "jB": np.nan,
+        "velocity_m_s": np.nan, "I2": np.nan, "conservation_errors": {},
+    }
+
+
+def _analytic_leading_diffusion(muB, T):
+    """Leading HP93 Landau term only; never changes the full transport helpers."""
+    qD = _TRANSPORT_QD_COEFF * (muB / 3.0)
+    invD = _TRANSPORT_D_PREFACTOR * _TRANSPORT_H_CONST * T**(5.0 / 3.0) / qD**(2.0 / 3.0)
+    return dict(qD=float(qD), D_K=float(1.0 / invD) if invD > 0 else np.inf,
+                invD_K=float(invD))
+
+
+def _analytic_slow_endpoints(result, interface, equilibrium):
+    """Store endpoints and check conservation in the explicitly selected EOS."""
+    for suffix, state in (("0plus", interface), ("inf", equilibrium)):
+        for key, value in state.items():
+            result[key + "_" + suffix] = float(value)
+    pressure_scale = max(abs(result["P_0minus"]), result["B_one_forth"]**4, 1.0)
+    errors = {"pressure": max(abs(st["P"] - result["P_0minus"]) / pressure_scale
+                              for st in (interface, equilibrium))}
+    if result["closure"] == "isothermal":
+        errors["temperature"] = max(abs(st["T"] / result["T_0minus"] - 1)
+                                    for st in (interface, equilibrium))
+    else:
+        H = result["h_0minus"] / result["nB_0minus"]
+        errors["enthalpy_per_baryon"] = max(abs(st["h"] / st["nB"] / H - 1)
+                                            for st in (interface, equilibrium))
+    if not np.all(np.isfinite(list(errors.values()))) or max(errors.values()) > 1e-8:
+        raise RuntimeError("Analytical thermodynamic endpoint failed conservation checks")
+    result["conservation_errors"] = errors
+    result["conservation_eos"] = result["eos_approximation"]
+    result["lambda_n"] = result["nB_0minus"] / equilibrium["nB"]
+
+
+def _analytic_slow_speed(result, I2):
+    """Apply the PNM integrated speed closure without a moving-endpoint root."""
+    a = result["a_0plus"]
+    denominator = result["lambda_n"]**2 * (1 - a) * (1 + result["xi"] * a)
+    if not 0 <= a < 1 or not np.isfinite(denominator) or denominator <= 0:
+        result["status"] = "invalid_speed_denominator"
+        raise RuntimeError("Analytical speed requires 0 <= a_0plus < 1 and a positive denominator")
+    if not np.isfinite(I2) or I2 < 0 or (a > 0 and I2 == 0):
+        raise RuntimeError("Analytical I2 is nonphysical")
+    u_squared = 2 * I2 / denominator
+    if not np.isfinite(u_squared):
+        raise RuntimeError("Analytical speed is nonfinite")
+    u = float(np.sqrt(u_squared))
+    jB = result["nB_0minus"] * u
+    result.update(success=True, front_exists=bool(a > 0),
+                  status="moving_front" if a > 0 else "zero_interface_composition",
+                  message="Slow analytical integrated speed evaluated", I2=float(I2),
+                  u_0minus=u, u_0minus_squared=float(u_squared),
+                  u_0minus_formula_squared=float(u_squared), jB=float(jB),
+                  velocity_m_s=float(u * const.c_km * 1000),
+                  analytic_velocity_residual=0.0)
+    for suffix in ("0plus", "inf"):
+        result["u_" + suffix] = float(jB / result["nB_" + suffix])
+    result["conservation_errors"]["baryon_flux"] = 0.0
+    return result
+
+
+def analytic_velocity_isothermal_slow(
+    T, nB_0minus, B_one_forth, a_0plus=np.nan, *, xi=0.0, ms=0.0,
+    param=para.paraQMCRMF3, NM_type="PNM", delta_muB_tol=1e-6,
+):
+    """Static-isobar isothermal estimate with leading Landau diffusion.
+
+    Massless quarks/PNM only. NaN composition selects the exact average-
+    chemical-potential ceiling, muB(0-)=muB(0+)+a(0+)*muK(0+). Explicit
+    fractions retain the comparison API's semantics and do not impose that
+    ceiling. Transport is frozen at muB(0+), while the density ratio uses
+    nB(inf); both physical endpoint densities are returned. I2 is the cubic
+    manuscript integral, not the integral of the full EOS local rate.
+
+    Temperatures are MeV, densities MeV^3 and u is the slow velocity in units
+    of c. Positive T is required. No moving momentum/energy matching is done.
+    """
+    T, nB_0minus, B_one_forth = map(float, (T, nB_0minus, B_one_forth))
+    a_0plus, xi = float(a_0plus), float(xi)
+    result = _analytic_slow_result("isothermal", "full_neutral_frozen_background",
+        "leading_landau", "closed_form_cubic", T, nB_0minus, B_one_forth, xi, ms, NM_type)
+    auto = np.isnan(a_0plus)
+    if not auto and (not np.isfinite(a_0plus) or not 0 <= a_0plus < 1):
+        raise ValueError("a_0plus must be NaN (automatic) or satisfy 0 <= a_0plus < 1")
+    if not np.isfinite(delta_muB_tol) or delta_muB_tol < 0:
+        raise ValueError("delta_muB_tol must be nonnegative and finite")
+    result.update(a_0plus_source="maximum" if auto else "input", a_0plus_max=np.nan,
+                  a_0plus_max_status="not_evaluated", a_0plus_max_residual=np.nan,
+                  transport_reference="muB_0plus", delta_muB_tol=float(delta_muB_tol))
+    try:
+        result.update(_isothermal_upstream_nuclear_state(T, nB_0minus, param, NM_type))
+        equilibrium = _slow_isobar_state(result["P_0minus"], 0.0, T, B_one_forth, 0.0)
+        delta = equilibrium["muB"] - result["muB_0minus"]
+        result["delta_muB"] = float(delta)
+        if delta >= -delta_muB_tol:
+            _analytic_slow_endpoints(result, equilibrium, equilibrium)
+            _analytic_slow_speed(result, 0.0)
+            status = "stable_neutron_matter" if delta > delta_muB_tol else "isothermal_coexistence"
+            result.update(status=status, phase_region=status,
+                          message="No positive-composition conversion front on this isobar")
+            return result
+        result["phase_region"] = "quark_matter_favored"
+        if auto:
+            ceiling = _solve_a_0plus_max(result["muB_0minus"], result["P_0minus"], T, B_one_forth)
+            result.update(a_0plus_max=ceiling["a_0plus_max"],
+                          a_0plus_max_status=ceiling["status"],
+                          a_0plus_max_residual=ceiling["gibbs_residual"])
+            if ceiling["status"] == "saturated":
+                result.update(status="composition_ceiling_saturated",
+                              message="Automatic ceiling is one, outside the finite-speed domain")
+                return result
+            if ceiling["status"] != "interior":
+                result.update(status="composition_ceiling_unavailable",
+                              message="No positive interior interface ceiling was resolved")
+                return result
+            a_0plus = float(ceiling["a_0plus_max"])
+            muB, muK = ceiling["muB_0plus"], ceiling["muK_0plus"]
+        elif a_0plus > 0:
+            # The shared interface helper is used only at jB=0: its pressure
+            # residual reduces to the EOS pressure, independent of the speed.
+            muB, muK = _solve_interface_0plus_from_local_a_and_Pi(
+                a_0plus, result["P_0minus"], 0.0, B_one_forth, T)
+        else:
+            muB, muK = equilibrium["muB"], 0.0
+        interface = _slow_quark_state(muB, muK, T, B_one_forth, 0.0)
+        _analytic_slow_endpoints(result, interface, equilibrium)
+        result["composition_residual"] = float(interface["a"] - a_0plus)
+        if abs(result["composition_residual"]) > 1e-8:
+            raise RuntimeError("Static interface failed its prescribed composition")
+        result["a_0plus"] = a_0plus
+        result.update(_analytic_leading_diffusion(muB, T))
+        weak = _weak_rate_from_mu_q(muB / 3)
+        result.update(gamma_K=weak["gamma"], tau=weak["tau"], tau_seconds=weak["tau_seconds"])
+        eta = 81 * np.pi**2 * T**2 / muB**2
+        result["eta"] = float(eta)
+        I2 = result["D_K"] * weak["gamma"] * a_0plus**2 * (a_0plus**2 + 2*eta) / 4
+        return _analytic_slow_speed(result, I2)
+    except (RuntimeError, ValueError, FloatingPointError) as exc:
+        result.update(success=False, front_exists=False, message=str(exc))
+        return result
+
+
+def analytic_velocity_adiabatic_slow(
+    T_0minus, nB_0minus, B_one_forth, *, T_0plus, xi=0.0, ms=0.0,
+    param=para.paraQMCRMF3, NM_type="PNM",
+):
+    """Manuscript quadratic-EOS, closed-I2 adiabatic slow-front estimate.
+
+    Matches quadratic pressure and the consistently second-order equilibrium
+    relation H=muB+9*pi^2*T_inf^2/muB. Their physical quartic root sets muB,
+    T_inf and A_adb. The conserved density remains nB=4*(P+bag^4)/H; its
+    difference from dP/dmuB is a higher-order diagnostic, not an acceptance
+    gate. The quadratic T-a ellipse and leading Landau diffusion give closed
+    I2. T_0plus=0 uses its finite cold limit with infinite local D_K. No
+    full-EOS ceiling is substituted.
+    """
+    T_0minus, nB_0minus, B_one_forth, T_0plus, xi = map(
+        float, (T_0minus, nB_0minus, B_one_forth, T_0plus, xi))
+    result = _analytic_slow_result("adiabatic", "quadratic_pressure_second_order_density",
+        "leading_landau", "closed_form_quadratic", T_0minus, nB_0minus, B_one_forth, xi, ms, NM_type)
+    if not np.isfinite(T_0plus) or T_0plus < 0:
+        raise ValueError("T_0plus must be nonnegative and finite")
+    result.update(T_0plus=T_0plus, a_0plus_source="temperature", transport_reference="muB_inf")
+    try:
+        result.update(_isothermal_upstream_nuclear_state(T_0minus, nB_0minus, param, NM_type))
+        pressure = result["P_0minus"]
+        H = result["h_0minus"] / nB_0minus
+        h = 4 * (pressure + B_one_forth**4)
+        if H <= 0 or h <= 0:
+            raise RuntimeError("Nonpositive enthalpy in the quadratic endpoint")
+        nB = h / H
+        C = 108 * np.pi**2 * (pressure + B_one_forth**4)
+        cold_muB = C**0.25
+        if cold_muB >= H:
+            result["status"] = "no_adiabatic_equilibrium"
+            raise RuntimeError("Quadratic isobar has no positive-temperature adiabatic equilibrium")
+        endpoint = root_scalar(lambda x: x**4 - 2*x**3 + C/H**4,
+                               bracket=(0.0, cold_muB/H), method="brentq", xtol=1e-15)
+        if not endpoint.converged:
+            raise RuntimeError("Second-order quadratic endpoint root did not converge")
+        muB = float(H * endpoint.root)
+        T_inf = float(np.sqrt(muB * (H - muB) / (9*np.pi**2)))
+        A = float(3/np.sqrt(2) * np.sqrt((H - muB) / muB))
+        A_eq = float(1.5 * np.sqrt(C - muB**4) / muB**2)
+        residuals = dict(
+            quartic=float((muB**4 - 2*H*muB**3 + C)/C),
+            pressure=float((C - muB**4 - 18*np.pi**2*muB**2*T_inf**2)/C),
+            heat=float((H - muB - 9*np.pi**2*T_inf**2/muB)/H),
+            A_adb=float(A/A_eq - 1),
+        )
+        nB_second_order = muB**3/(27*np.pi**2) + muB*T_inf**2/3
+        result.update(quadratic_endpoint_residuals=residuals,
+                      nB_inf_second_order=float(nB_second_order),
+                      nB_inf_second_order_relative_difference=float(nB_second_order/nB - 1),
+                      unexpanded_enthalpy_per_baryon_relative_residual=float(h/nB_second_order/H - 1))
+        if (not np.all(np.isfinite(list(residuals.values())))
+                or max(abs(value) for value in residuals.values()) > 1e-10):
+            raise RuntimeError("Second-order quadratic endpoint failed residual checks")
+        if T_0plus >= T_inf:
+            raise RuntimeError("Positive-composition interface requires T_0plus < T_inf")
+        # Difference of squares avoids cancellation near the hot endpoint.
+        a = float(np.sqrt(81*np.pi**2/(2*muB**2) * (T_inf-T_0plus)*(T_inf+T_0plus)))
+        if not 0 < a < 1:
+            raise RuntimeError("Quadratic interface fraction must satisfy 0 < a_0plus < 1")
+        def state(temperature, fraction):
+            muK = 2*muB*fraction/9
+            P = (-B_one_forth**4 + muB**4/(108*np.pi**2)
+                 + muB**2*muK**2/(12*np.pi**2) + muB**2*temperature**2/6)
+            enthalpy = 4*(P+B_one_forth**4)
+            return dict(muB=muB, muK=muK, T=temperature, nB=nB, nK=fraction*nB,
+                        a=fraction, P=P, h=enthalpy, e=enthalpy-P)
+        interface, equilibrium = state(T_0plus, a), state(T_inf, 0.0)
+        for suffix, endpoint_state in (("0plus", interface), ("inf", equilibrium)):
+            for key, value in endpoint_state.items():
+                result[key + "_" + suffix] = float(value)
+        pressure_scale = max(abs(pressure), B_one_forth**4, 1.0)
+        errors = {"pressure": max(abs(st["P"]-pressure)/pressure_scale
+                                   for st in (interface, equilibrium)),
+                  # Check the retained heat relation, not the identity h/(h/H).
+                  "enthalpy_per_baryon": abs(residuals["heat"])}
+        if not np.all(np.isfinite(list(errors.values()))) or max(errors.values()) > 1e-8:
+            raise RuntimeError("Analytical thermodynamic endpoint failed conservation checks")
+        result.update(conservation_errors=errors, conservation_eos=result["eos_approximation"],
+                      lambda_n=nB_0minus/nB)
+        weak = _weak_rate_from_mu_q(muB/3)
+        # expm1 preserves small I2 near T_0plus=T_inf. Compute the cold limit
+        # separately, and avoid log1p loss for very small positive temperatures.
+        if T_0plus == 0:
+            bracket = 24.0/7.0
+        else:
+            log_z = (2*np.log1p((T_0plus-T_inf)/T_inf) if T_0plus > T_inf/2
+                     else 2*(np.log(T_0plus)-np.log(T_inf)))
+            bracket = -3*np.expm1(log_z/6) - (3.0/7.0)*np.expm1(7*log_z/6)
+        I2 = (9*np.pi**(7.0/3.0)*weak["gamma"] / (8*np.sqrt(2)*_TRANSPORT_H_CONST
+              *_TRANSPORT_ALPHA_S**(5.0/3.0)*muB) * A**(7.0/3.0) * bracket)
+        result.update(A_adb=A, A_boundary=A, closed_form_I2_correction=float(bracket),
+                      gamma_K=weak["gamma"], tau=weak["tau"], tau_seconds=weak["tau_seconds"])
+        for suffix, temp in (("0plus", T_0plus), ("inf", T_inf)):
+            for key, value in _analytic_leading_diffusion(muB, temp).items():
+                result[key + "_" + suffix] = value
+        return _analytic_slow_speed(result, I2)
+    except (RuntimeError, ValueError, FloatingPointError) as exc:
+        result.update(success=False, front_exists=False, message=str(exc))
+        return result
+
+
+def semi_analytic_velocity_adiabatic_slow(
+    T_0minus, nB_0minus, B_one_forth, *, T_0plus, xi=0.0, ms=0.0,
+    param=para.paraQMCRMF3, NM_type="PNM", path_rtol=1e-6,
+):
+    """Full-EOS conserved-path I2 estimate, with full two-term diffusion.
+
+    Massless PNM only: at fixed P, h=4*(P+bag^4), so fixed h/nB implies
+    constant nB and equilibrium a=0. Uses the precomputed slow-front path,
+    I2=integral Gamma_K dr/nB_inf^2, including the exact cold endpoint via
+    regular T^(1/3) quadrature. No spatial BVP or moving endpoint solve occurs.
+    thermodynamic_path is a path through state space, not a spatial profile;
+    its samples run from the prescribed interface to equilibrium.
+    """
+    T_0minus, nB_0minus, B_one_forth, T_0plus, xi, path_rtol = map(
+        float, (T_0minus, nB_0minus, B_one_forth, T_0plus, xi, path_rtol))
+    result = _analytic_slow_result("adiabatic", "full_neutral_conserved_path",
+        "full_two_term", "numerical_constrained_path", T_0minus, nB_0minus, B_one_forth, xi, ms, NM_type)
+    if not np.isfinite(T_0plus) or T_0plus < 0:
+        raise ValueError("T_0plus must be nonnegative and finite")
+    if not np.isfinite(path_rtol) or path_rtol <= 0:
+        raise ValueError("path_rtol must be positive and finite")
+    result.update(T_0plus=T_0plus, a_0plus_source="temperature", path_rtol=path_rtol,
+                  transport_reference="local_constrained_path")
+    try:
+        result.update(_isothermal_upstream_nuclear_state(T_0minus, nB_0minus, param, NM_type))
+        H = result["h_0minus"] / nB_0minus
+        path = _slow_front_path("adiabatic", result["P_0minus"], H, T_0minus,
+                                B_one_forth, 0.0, None, T_0plus, path_rtol)
+        _analytic_slow_endpoints(result, path.interface, path.inf)
+        I2 = float(path.r_scale * path.rate.integrate(0.0, 1.0) / path.inf["nB"]**2)
+        # Validate interpolated states against direct EOS evaluations. Endpoints
+        # retain the exact prescribed temperature, including exactly zero.
+        fields = path.fields(np.linspace(1.0, 0.0, 65))
+        states = [path.interface] + [_slow_quark_state(*fields[:, i], B_one_forth, 0.0)
+                                    for i in range(1, fields.shape[1]-1)] + [path.inf]
+        thermo = {key: np.array([st[key] for st in states]) for key in path.inf}
+        errors = result["conservation_errors"]
+        errors["pressure"] = float(np.max(np.abs(thermo["P"]-result["P_0minus"]))
+            / max(abs(result["P_0minus"]), B_one_forth**4, 1.0))
+        errors["enthalpy_per_baryon"] = float(np.max(np.abs(thermo["h"]/thermo["nB"]/H-1)))
+        errors["constant_density"] = float(np.max(np.abs(thermo["nB"]/path.inf["nB"]-1)))
+        if not np.all(np.isfinite(list(errors.values()))) or max(errors.values()) > 1e-8:
+            raise RuntimeError("Semi-analytical path failed direct EOS conservation checks")
+        micro = [_microphysics_from_quark_state_energy(st["muB"], st["T"],
+                   allow_zero_temperature=True) for st in states]
+        thermo["invD_K"] = np.array([entry["invD"] for entry in micro])
+        thermo["D_K"] = np.divide(1.0, thermo["invD_K"],
+                                   out=np.full(len(states), np.inf), where=thermo["invD_K"] > 0)
+        thermo["Gamma_K"] = np.array([_exact_kaon_transport_rate(st["muB"], st["muK"], st["T"])
+                                       ["Gamma_K"] for st in states])
+        for suffix, i in (("0plus", 0), ("inf", -1)):
+            for key in ("D_K", "invD_K", "Gamma_K"):
+                result[key + "_" + suffix] = float(thermo[key][i])
+        result.update(thermodynamic_path=thermo, path_nodes=path.table_nodes,
+                      path_error=path.table_error, r_0plus=path.r_scale, I2_numerical=I2)
+        return _analytic_slow_speed(result, I2)
+    except (RuntimeError, ValueError, FloatingPointError) as exc:
+        result.update(success=False, front_exists=False, message=str(exc))
+        return result

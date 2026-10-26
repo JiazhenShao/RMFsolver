@@ -1,7 +1,7 @@
 ---
-summary: Map of phase_velocity.py APIs, including separate isobaric slow-front BVPs and moving-flux comparison solvers with shared modified Madsen microphysics.
+summary: Map of phase_velocity.py APIs, separating static slow analytical estimates, isobaric slow-front BVPs, and retained moving-flux comparison solvers.
 status: current
-updated: 2026-10-21
+updated: 2026-10-23
 tags: [solver, api, map]
 ---
 
@@ -26,18 +26,34 @@ Isobaric slow-front solvers: `solve_front_isothermal_slow` · `solve_front_adiab
 
 Existing comparison and conducting solvers: `solve_front_isothermal` · `solve_front_energy_conserving_nK` · `solve_front_energy_conserving_uNmax` · `solve_front_thermal_conducting`
 
-Analytic velocity: `analytic_velocity_isothermal` · `analytic_velocity_bound` · `semi_analytic_velocity_bound` · `analytic_velocity_bound_lte`
+Slow analytical velocity: `analytic_velocity_isothermal_slow` · `analytic_velocity_adiabatic_slow` · `semi_analytic_velocity_adiabatic_slow` — static endpoints followed by an integrated speed estimate; massless PNM only.
+
+Retained analytical comparison APIs: `analytic_velocity_isothermal` · `analytic_velocity_bound` · `semi_analytic_velocity_bound` · `analytic_velocity_bound_lte`
 
 Helpers: `u_0minus` · `z_time_evolution` · plus the EOS wrappers `PNM` `PNM_n` `edensNM` `edensNM_n` `sNM_n` `muB_from_nB_physical` `hNM` `hNM_n` `nB_NM` `Pi_NM` `hQM` `Pi_QM`.
 
-⚠ `__all__` lists nine names — `analytic_velocity_isothermal`, `analytic_velocity_bound`, the six `solve_front_*` APIs above, and `z_time_evolution`. `semi_analytic_velocity_bound`, `analytic_velocity_bound_lte` and `u_0minus` are **public but not exported**, so `from ... import *` silently omits them. Import them by name.
+⚠ `__all__` lists twelve names — the three new slow analytical APIs, `analytic_velocity_isothermal`, `analytic_velocity_bound`, the six `solve_front_*` APIs above, and `z_time_evolution`. `semi_analytic_velocity_bound`, `analytic_velocity_bound_lte` and `u_0minus` are **public but not exported**, so `from ... import *` silently omits them. Import them by name.
 
 Endpoint notation in the current API is location based throughout: examples include `u_0minus`, `u_0minus_max`, `a_0plus_LTE`, `T_inf`, and `muB_inf`.
 Older non-location endpoint identifiers in archived notes are stale and must not be copied into new work.
 
 `solve_front_adiabatic` and `solve_front_energy_conserving` **no longer exist** — removed in a restructuring. Older notes and specs referencing them are stale.
 
-## Three analytic velocity entry points
+## Static slow analytical entry points
+
+All three new branches determine thermodynamic endpoints without a moving-flux root, then evaluate $u^2(0^-)=2I_2/\{\lambda_n^2[1-a(0^+)][1+\xi a(0^+)]\}$ with $\lambda_n=n_B(0^-)/n_B(\infty)$. They use the shared $\alpha_s=0.4$ and exact $h_D$ expression, retain the approximate modified Madsen rate, and return location-based endpoints and explicit approximation/conservation metadata. `xi=0` is the API default; the APIs require finite `xi` and a positive speed denominator, whereas the manuscript's finite-profile shape interpretation uses $-1<\xi<1$. These are integrated estimates, not spatial BVP solutions.
+
+| Function | Thermodynamic and transport prescription | Interface control |
+|---|---|---|
+| `analytic_velocity_isothermal_slow` | Full neutral EOS at fixed $P,T$; leading Landau diffusion and cubic closed $I_2$, frozen at $\mu_B(0^+)$; equilibrium density ratio | Explicit local `a_0plus`, or exact static ceiling when omitted/NaN; requires $T>0$ |
+| `analytic_velocity_adiabatic_slow` | Quadratic pressure, leading $n_B$ and $a$, constant $\mu_B$; quadratic ellipse and closed $I_2$ with leading diffusion | Required keyword-only `T_0plus`, including zero |
+| `semi_analytic_velocity_adiabatic_slow` | Full neutral EOS path at fixed $P,h/n_B$; full diffusion and local rate integrated numerically | Required keyword-only `T_0plus`, including zero; `path_rtol=1e-6` |
+
+The isothermal frozen prescription does not identify the exact interface and equilibrium densities; see [[isothermal-analytic-front-speed]] for its reproducible recipe. The full adiabatic branch derives both its endpoints and composition ceiling in the same quadratic approximation, while the semi-analytical branch permits variable $\mu_B$ along its constant-density full-EOS path; see [[analytic-front-speed]]. At an exact cold adiabatic interface, $D_K(0^+)$ is infinite but $I_2$ is finite. The semi-analytical `thermodynamic_path` contains states from interface to equilibrium and is not a spatial profile.
+
+These branches require `ms=0` and `NM_type="PNM"`; this restriction does not alter either mass branch of the numerical slow-front solvers. Existing analytical comparison APIs and their saved artifacts remain unchanged. See [[analytic-slow-front-solvers]] for validation and limitations, and [[analytic-slow-front-audit]] for the preceding audit.
+
+## Three retained adiabatic analytical comparison entry points
 
 All three are thin wrappers over one shared eigenvalue solve, `_solve_analytic_velocity_bound`, selected by two switches: `velocity_closure` (how $I_2$ is obtained) and `interface_control` (what fixes $a(0^+)$).
 
@@ -57,7 +73,7 @@ The fourth combination (`numerical_I2` + `LTE`) has no public wrapper.
 
 All three return the same key set (~70 keys); only the values and the `velocity_method` / `analytic_formula_variant` / `interface_fraction_mode` tags differ.
 
-## Isothermal analytical entry point
+## Retained isothermal analytical comparison entry point
 
 `analytic_velocity_isothermal(T_0minus, nB_0minus, B_one_forth, a_0plus=np.nan, *, xi=0, ...)` is separate from the three energy-conserving methods above.
 It replaces energy conservation by $T(x)=T(0^-)$ and couples the closed-form reaction--diffusion speed to exact baryon- and momentum-flux endpoint states through a scalar eigenvalue solve.
@@ -115,6 +131,9 @@ sequentially, with one process pool using the allocation at a time.
 
 | Question | Solver | Caveat |
 |---|---|---|
+| Static isothermal analytical estimate | `analytic_velocity_isothermal_slow` | Full-EOS endpoints, leading diffusion, cubic $I_2$; massless PNM and $T>0$. |
+| Fully analytical slow adiabatic estimate | `analytic_velocity_adiabatic_slow` | Consistent quadratic EOS and closed $I_2$; required `T_0plus`, including zero. |
+| Full-EOS slow adiabatic integral estimate | `semi_analytic_velocity_adiabatic_slow` | Full conserved thermodynamic path and diffusion; required `T_0plus`, including zero. |
 | Fast analytic bound at prescribed $T(0^+)$ | `analytic_velocity_bound` | Closed-form $I_2$. Feeds [[two-block-contour-scans]]. |
 | Same, with $I_2$ integrated numerically | `semi_analytic_velocity_bound` | Slower, no quadratic-$T$ bracket. Supplies the hidden ray mesh and analytic seeds. |
 | Analytic bound with $a(0^+)$ from local equilibrium | `analytic_velocity_bound_lte` | No $T(0^+)$ input. See [[lte-composition-bound]] |

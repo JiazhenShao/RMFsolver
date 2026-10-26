@@ -1,0 +1,96 @@
+{
+  "groups": {
+    "historical_60": {
+      "before": {
+        "tests_run": 60,
+        "passed": 55,
+        "failed": 1,
+        "errors": 4
+      },
+      "after": {
+        "tests_run": 60,
+        "passed": 55,
+        "failed": 1,
+        "errors": 4
+      },
+      "status_differences": [],
+      "before_source_sha256": "8bfdd9c23538e432e43f6b9898375a0c51b1f29c814eb8e945994ec56136c9d1",
+      "after_source_sha256": "3c22ccbb039bcc0b7812daeed4c2e233cfdf09c8d5f650a2160c415bc494140b"
+    },
+    "analytic_slow": {
+      "before": {
+        "tests_run": 11,
+        "passed": 11,
+        "failed": 0,
+        "errors": 0
+      },
+      "after": {
+        "tests_run": 11,
+        "passed": 11,
+        "failed": 0,
+        "errors": 0
+      },
+      "status_differences": [],
+      "before_source_sha256": "8bfdd9c23538e432e43f6b9898375a0c51b1f29c814eb8e945994ec56136c9d1",
+      "after_source_sha256": "3c22ccbb039bcc0b7812daeed4c2e233cfdf09c8d5f650a2160c415bc494140b"
+    },
+    "slow_bvp": {
+      "before": {
+        "tests_run": 16,
+        "passed": 14,
+        "failed": 0,
+        "errors": 2
+      },
+      "after": {
+        "tests_run": 16,
+        "passed": 13,
+        "failed": 0,
+        "errors": 3
+      },
+      "status_differences": [
+        {
+          "test": "test_phase_velocity_slow.SlowFrontTests.test_adiabatic_massless_and_massive",
+          "before": "PASS",
+          "after": "TIMEOUT"
+        }
+      ],
+      "before_source_sha256": "8bfdd9c23538e432e43f6b9898375a0c51b1f29c814eb8e945994ec56136c9d1",
+      "after_source_sha256": "3c22ccbb039bcc0b7812daeed4c2e233cfdf09c8d5f650a2160c415bc494140b"
+    }
+  },
+  "retries": {
+    "baseline_600_slow_bvp": [
+      {
+        "test": "test_phase_velocity_slow.SlowFrontTests.test_cold_adiabatic_is_a_regular_seed_independent_limit",
+        "status": "TIMEOUT",
+        "seconds": 600.0147433751263
+      },
+      {
+        "test": "test_phase_velocity_slow.SlowFrontTests.test_massive_cold_table_mesh_and_tail_convergence",
+        "status": "PASS",
+        "seconds": 350.21363658318296
+      }
+    ],
+    "after_600_slow_bvp": [
+      {
+        "test": "test_phase_velocity_slow.SlowFrontTests.test_cold_adiabatic_is_a_regular_seed_independent_limit",
+        "status": "TIMEOUT",
+        "seconds": 600.0126973749138
+      },
+      {
+        "test": "test_phase_velocity_slow.SlowFrontTests.test_massive_cold_table_mesh_and_tail_convergence",
+        "status": "PASS",
+        "seconds": 338.8191505840514
+      }
+    ],
+    "after_600_warm_slow_bvp": [
+      {
+        "test": "test_phase_velocity_slow.SlowFrontTests.test_adiabatic_massless_and_massive",
+        "status": "PASS",
+        "seconds": 238.4383105840534
+      }
+    ]
+  },
+  "new_assertion_failures": false,
+  "limitation": "Cold tests that time out at both bounds remain incomplete; no claim of a complete passing BVP suite."
+}

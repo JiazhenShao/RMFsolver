@@ -1,0 +1,13 @@
+{
+  "verified_unchanged_physics_ast": true,
+  "reused": {
+    "accepted": 1898,
+    "excluded": 526
+  },
+  "retired_boundary_failures": 5,
+  "old_physics_sha256": "3d6493039f39e0c579381e6d3eb1df6d9984fbb31299ad740529dae2404373c0",
+  "new_physics_sha256": "6cde232463b611b343199ca815ee6d22a5c16c5bb0da3994362821993815b0d9",
+  "reason": "Use direct EOS classification for boundaries; avoid unnecessary vanishing-I2 table construction",
+  "old_physics_source_reconstruction": "Current cold_physics.py prefix before def classify, trailing whitespace stripped and one newline appended",
+  "old_physics_source_reconstructed_sha256": "3d6493039f39e0c579381e6d3eb1df6d9984fbb31299ad740529dae2404373c0"
+}

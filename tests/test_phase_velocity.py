@@ -376,6 +376,9 @@ def test_phase_velocity_public_api_surface():
         "z_time_evolution",
         "solve_front_isothermal_slow",
         "solve_front_adiabatic_slow",
+        "analytic_velocity_isothermal_slow",
+        "analytic_velocity_adiabatic_slow",
+        "semi_analytic_velocity_adiabatic_slow",
     ]
     if pv.__all__ != expected_public:
         raise AssertionError(f"expected __all__={expected_public!r}, got {pv.__all__!r}")

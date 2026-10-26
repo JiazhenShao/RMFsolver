@@ -1,0 +1,86 @@
+--- local_analysis_results/26-10-26-second-order/phase_velocity.py.before	2026-10-26 12:40:54
++++ RMFsolver/phase_velocity.py	2026-10-26 12:49:36
+@@ -10484,16 +10484,17 @@
+ ):
+     """Manuscript quadratic-EOS, closed-I2 adiabatic slow-front estimate.
+ 
+-    Uses quadratic pressure with retained leading nB=muB^3/(27*pi^2) and
+-    a=9*muK/(2*muB), and h=4*(P+bag^4). The retained nB is not the derivative
+-    of every quadratic pressure term. Matching P and h/nB sets a constant
+-    nB and muB. A_adb and the T-a ellipse use this same approximation, with
+-    leading Landau diffusion in I2. T_0plus=0 uses the finite closed integral;
+-    its local D_K is infinite. No full-EOS ceiling is substituted.
++    Matches quadratic pressure and the consistently second-order equilibrium
++    relation H=muB+9*pi^2*T_inf^2/muB. Their physical quartic root sets muB,
++    T_inf and A_adb. The conserved density remains nB=4*(P+bag^4)/H; its
++    difference from dP/dmuB is a higher-order diagnostic, not an acceptance
++    gate. The quadratic T-a ellipse and leading Landau diffusion give closed
++    I2. T_0plus=0 uses its finite cold limit with infinite local D_K. No
++    full-EOS ceiling is substituted.
+     """
+     T_0minus, nB_0minus, B_one_forth, T_0plus, xi = map(
+         float, (T_0minus, nB_0minus, B_one_forth, T_0plus, xi))
+-    result = _analytic_slow_result("adiabatic", "quadratic_pressure_leading_density",
++    result = _analytic_slow_result("adiabatic", "quadratic_pressure_second_order_density",
+         "leading_landau", "closed_form_quadratic", T_0minus, nB_0minus, B_one_forth, xi, ms, NM_type)
+     if not np.isfinite(T_0plus) or T_0plus < 0:
+         raise ValueError("T_0plus must be nonnegative and finite")
+@@ -10506,12 +10507,33 @@
+         if H <= 0 or h <= 0:
+             raise RuntimeError("Nonpositive enthalpy in the quadratic endpoint")
+         nB = h / H
+-        muB = float(np.cbrt(27 * np.pi**2 * nB))
+-        if H <= muB:
++        C = 108 * np.pi**2 * (pressure + B_one_forth**4)
++        cold_muB = C**0.25
++        if cold_muB >= H:
+             result["status"] = "no_adiabatic_equilibrium"
+             raise RuntimeError("Quadratic isobar has no positive-temperature adiabatic equilibrium")
+-        T_inf = float(np.sqrt(muB * (H - muB) / (18*np.pi**2)))
+-        A = float(1.5 * np.sqrt((H - muB) / muB))
++        endpoint = root_scalar(lambda x: x**4 - 2*x**3 + C/H**4,
++                               bracket=(0.0, cold_muB/H), method="brentq", xtol=1e-15)
++        if not endpoint.converged:
++            raise RuntimeError("Second-order quadratic endpoint root did not converge")
++        muB = float(H * endpoint.root)
++        T_inf = float(np.sqrt(muB * (H - muB) / (9*np.pi**2)))
++        A = float(3/np.sqrt(2) * np.sqrt((H - muB) / muB))
++        A_eq = float(1.5 * np.sqrt(C - muB**4) / muB**2)
++        residuals = dict(
++            quartic=float((muB**4 - 2*H*muB**3 + C)/C),
++            pressure=float((C - muB**4 - 18*np.pi**2*muB**2*T_inf**2)/C),
++            heat=float((H - muB - 9*np.pi**2*T_inf**2/muB)/H),
++            A_adb=float(A/A_eq - 1),
++        )
++        nB_second_order = muB**3/(27*np.pi**2) + muB*T_inf**2/3
++        result.update(quadratic_endpoint_residuals=residuals,
++                      nB_inf_second_order=float(nB_second_order),
++                      nB_inf_second_order_relative_difference=float(nB_second_order/nB - 1),
++                      unexpanded_enthalpy_per_baryon_relative_residual=float(h/nB_second_order/H - 1))
++        if (not np.all(np.isfinite(list(residuals.values())))
++                or max(abs(value) for value in residuals.values()) > 1e-10):
++            raise RuntimeError("Second-order quadratic endpoint failed residual checks")
+         if T_0plus >= T_inf:
+             raise RuntimeError("Positive-composition interface requires T_0plus < T_inf")
+         # Difference of squares avoids cancellation near the hot endpoint.
+@@ -10525,7 +10547,19 @@
+             enthalpy = 4*(P+B_one_forth**4)
+             return dict(muB=muB, muK=muK, T=temperature, nB=nB, nK=fraction*nB,
+                         a=fraction, P=P, h=enthalpy, e=enthalpy-P)
+-        _analytic_slow_endpoints(result, state(T_0plus, a), state(T_inf, 0.0))
++        interface, equilibrium = state(T_0plus, a), state(T_inf, 0.0)
++        for suffix, endpoint_state in (("0plus", interface), ("inf", equilibrium)):
++            for key, value in endpoint_state.items():
++                result[key + "_" + suffix] = float(value)
++        pressure_scale = max(abs(pressure), B_one_forth**4, 1.0)
++        errors = {"pressure": max(abs(st["P"]-pressure)/pressure_scale
++                                   for st in (interface, equilibrium)),
++                  # Check the retained heat relation, not the identity h/(h/H).
++                  "enthalpy_per_baryon": abs(residuals["heat"])}
++        if not np.all(np.isfinite(list(errors.values()))) or max(errors.values()) > 1e-8:
++            raise RuntimeError("Analytical thermodynamic endpoint failed conservation checks")
++        result.update(conservation_errors=errors, conservation_eos=result["eos_approximation"],
++                      lambda_n=nB_0minus/nB)
+         weak = _weak_rate_from_mu_q(muB/3)
+         # expm1 preserves small I2 near T_0plus=T_inf. Compute the cold limit
+         # separately, and avoid log1p loss for very small positive temperatures.

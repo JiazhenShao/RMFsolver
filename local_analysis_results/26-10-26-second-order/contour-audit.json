@@ -1,0 +1,49 @@
+{
+  "passed": true,
+  "output": "new_paper_calculations/26-10-26/local/adiabatic-T0plus0-xi-minus0p85-second-order.npy",
+  "coverage": {
+    "analytic": {
+      "rays": 61,
+      "failures": 0,
+      "unresolved": 0,
+      "unresolved_boundaries": 0,
+      "supported_levels": [
+        50.0,
+        100.0,
+        200.0,
+        500.0,
+        1000.0,
+        2000.0,
+        5000.0
+      ],
+      "outside_window_levels": []
+    }
+  },
+  "counts": {
+    "thermodynamics_only/excluded": 574,
+    "speed/accepted": 2732,
+    "thermodynamics_only/interior": 509,
+    "speed/excluded": 787
+  },
+  "max_conservation_errors": {
+    "pressure": 2.607246983045242e-15,
+    "enthalpy_per_baryon": 7.186477658119741e-17,
+    "baryon_flux": 0
+  },
+  "max_endpoint_residuals": {
+    "quartic": 1.3304558361496018e-15,
+    "pressure": 1.262817645663283e-15,
+    "heat": 7.186477658119741e-17,
+    "A_adb": 9.103828801926284e-14
+  },
+  "max_level_relative_error": 0.0009981248213561944,
+  "max_radial_bracket": 0.0009862786325783857,
+  "max_accepted_angular_error": 0.0010092129233491265,
+  "minimum_T_inf_at_speed_ge_50": 6.009883774090031,
+  "minimum_relative_heat_gap_at_speed_ge_50": 0.0026568735416640957,
+  "old_phase_velocity_sha256": "8bfdd9c23538e432e43f6b9898375a0c51b1f29c814eb8e945994ec56136c9d1",
+  "new_phase_velocity_sha256": "3c22ccbb039bcc0b7812daeed4c2e233cfdf09c8d5f650a2160c415bc494140b",
+  "source_hashes_match": true,
+  "old_record_reuse": false,
+  "runtime_s": 1074.5958214590792
+}

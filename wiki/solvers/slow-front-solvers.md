@@ -1,7 +1,7 @@
 ---
 summary: New isobaric slow-front BVPs precompute a flux-independent neutral EOS path and evolve a diffusion-density integral; massless and massive branches share the existing microphysics.
 status: current
-updated: 2026-10-21
+updated: 2026-10-24
 tags: [solver, bvp, isobaric, isothermal, adiabatic, cold-limit]
 ---
 
@@ -9,6 +9,7 @@ tags: [solver, bvp, isobaric, isothermal, adiabatic, cold-limit]
 
 `solve_front_isothermal_slow` and `solve_front_adiabatic_slow` in `RMFsolver/phase_velocity.py` precompute the neutral isobaric EOS path independently of baryon flux, then use spatial `solve_bvp` collocation with two fields and one flux eigenvalue, without shooting.
 The nuclear RMF model, analytical APIs, thermal-conducting solver, and older moving-flux BVPs remain unchanged; see [[phase-velocity-overview]] and [[steady-front-bvp]].
+The fixed 0.1 MeV adiabatic cluster workflow and its verified 540-point contour are documented in [[nonrelativistic-adiabatic-contour]], including bounded numerical-initialization recovery without solver source changes.
 
 ## Closures and branches
 

@@ -1,0 +1,70 @@
+{
+  "passed": true,
+  "physical_settings": {
+    "T_0plus_MeV": 0.0,
+    "xi": -0.85,
+    "ms_MeV": 0.0,
+    "NM_type": "PNM",
+    "B14_MeV": 189.1565957288247,
+    "n0_MeV3": 1229360.5098323745,
+    "path_rtol": 1e-06
+  },
+  "record_counts": {
+    "semi_analytic/speed/accepted": 2923,
+    "semi_analytic/thermodynamics_only/excluded": 602,
+    "analytic/thermodynamics_only/excluded": 533,
+    "analytic/speed/accepted": 3357,
+    "semi_analytic/thermodynamics_only/interior": 566,
+    "analytic/speed/excluded": 923,
+    "analytic/thermodynamics_only/interior": 435,
+    "semi_analytic/speed/excluded": 643
+  },
+  "coverage": {
+    "analytic": {
+      "rays": 101,
+      "failures": 0,
+      "unresolved": 0,
+      "unresolved_boundaries": 0,
+      "supported_levels": [
+        50.0,
+        100.0,
+        200.0,
+        500.0,
+        1000.0
+      ],
+      "outside_window_levels": [
+        2000.0,
+        5000.0
+      ]
+    },
+    "semi_analytic": {
+      "rays": 61,
+      "failures": 0,
+      "unresolved": 0,
+      "unresolved_boundaries": 0,
+      "supported_levels": [
+        50.0,
+        100.0,
+        200.0,
+        500.0,
+        1000.0,
+        2000.0,
+        5000.0
+      ],
+      "outside_window_levels": []
+    }
+  },
+  "max_conservation_errors": {
+    "pressure": 1.8177619813592832e-09,
+    "enthalpy_per_baryon": 2.148654587585952e-10,
+    "constant_density": 7.741027818752855e-10,
+    "baryon_flux": 0
+  },
+  "largest_level_relative_error": 0.0009992732305427188,
+  "largest_radial_bracket": 0.0009993888294234088,
+  "max_accepted_angular_interpolation_error": 0.0015979200770005302,
+  "nonmonotone_intervals": [],
+  "source_hashes_match": true,
+  "reference_T_0plus_MeV": 0.1,
+  "runtime_last_invocation_s": 262.37811666703783
+}
