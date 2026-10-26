@@ -51,7 +51,7 @@ The nuclear→quark combustion front project. **This is the only page loaded by 
 | [[phase-velocity-overview]] | Solver APIs, separate isobaric and moving-flux BVPs, units and editing restriction; revised rate metadata preserves legacy compatibility |
 | [[slow-front-solvers]] | Isobaric isothermal/adiabatic BVPs with a precomputed neutral EOS path and finite diffusion-density integral; 16 test methods verified across targeted runs, with massive-EOS and runtime limits |
 | [[analytic-slow-front-solvers]] | Three static analytical APIs; corrected second-order adiabatic heat matching removes the leading-density sqrt(3) ceiling error, with unchanged closed integral and verified benchmarks |
-| [[adiabatic-analytic-error-budget]] | Corrected full-analytical adiabatic speed matches the manuscript; its 10–47% excess over semi splits into Landau-only D_K, cubic rate, ellipse and quadratic-ceiling factors |
+| [[adiabatic-analytic-error-budget]] | Corrected full-analytical adiabatic speed matches the manuscript; its 10–47% excess over semi splits into Landau-only D_K, cubic rate, ellipse and quadratic-ceiling factors; effective contour-fit xi = -0.46 |
 | [[analytic-slow-front-audit]] | Historical moving-flux analytical audit and the decisions implemented by the separate slow analytical APIs |
 | [[pnm-density-state-recovery]] | Direct fixed-density upstream PNM recovery replaces the analytical isothermal solver's broad chemical-potential scan |
 | [[unmax-degeneracy]] | Older physical-$n_K$ comparison solver: at $T(0^+)=0$, `jB` is a non-Lipschitz continuum and `success=True` proves nothing; distinct from the new integral-field cold treatment |

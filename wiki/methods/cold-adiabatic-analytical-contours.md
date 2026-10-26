@@ -275,3 +275,12 @@ retain their calculation identity and sampling-budget provenance.
 `local_analysis_results/26-10-26/cold-angular-budget-extension.json`
 records that check. The final resumed invocation took 262.4 seconds; this
 is only the last refinement stage, not the total calculation time.
+
+## Fitted-$\xi$ full-analytical rerun (2026-10-26)
+
+At the user's request the full-analytical scan was rerun at the contour-fitted $\xi=-0.46$ (see [[adiabatic-analytic-error-budget]]).
+The output is the separate file `local/adiabatic-T0plus0-xi-minus0p46-second-order.npy`: 61 rays, no failures, all seven levels, 870 s on 8 workers.
+At 1133 coordinates shared with the $\xi=-0.85$ second-order scan, its speeds equal the rescaled $\xi=-0.85$ speeds to $3\times10^{-16}$.
+Notebook cells 16–19 (tag `xi-fit-analytical-contours`) plot it alone and over the numerical contours, with the $\xi=-0.85$ curves dotted for reference.
+Cells 0–15, the $\xi=-0.85$ data and their figures are unchanged.
+Details are in `new_paper_calculations/26-10-26/xi_fit/README.md`.

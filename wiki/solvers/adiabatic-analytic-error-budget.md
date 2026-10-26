@@ -15,6 +15,12 @@ The code takes $n_B^{(+)}=4(P+U_{\rm bag})/(h/n_B)$, which differs from $\partia
 
 The remaining excess is therefore a modelling error, not a bug.
 
+The manuscript's Eq. (nB-approx) now carries the full derivative of the quadratic pressure, $\mu_B^3/27\pi^2+\mu_B\mu_K^2/6\pi^2+\mu_BT^2/3$ (2026-10-26).
+At fixed $\mu_B$ and $P$ the two second-order terms sum to a constant, so $n_B^{(+)}$ is exactly constant along the isobar.
+The heat matching must still be expanded, $h/n_B\simeq\mu_B+9\pi^2T(\infty)^2/\mu_B$.
+Solving the unexpanded ratio from Eqs. (A4) and (A6) mixes orders and gives $A_{\rm adb}=0.157,\ 0.299,\ 0.494,\ 1.073$ at the first, second, third and seventh ladder states below.
+The expanded relation gives $0.156,\ 0.293,\ 0.469,\ 0.865$, and the full EOS gives $0.156,\ 0.293,\ 0.467,\ 0.846$.
+
 ## Ladder from semi-analytical to full analytical
 
 Starting from the semi-analytical path (full EOS, full $D_K$, exact local rate), one approximation is swapped in at a time.
@@ -42,3 +48,20 @@ Across the 1062 paired contour points, the median analytic/semi ratio is $1.10$ 
 The notebook overlay's numerical curves use $T(0^+)=0.1$ MeV, which lowers BVP speeds by $11$–$13\%$, so against that overlay the excess looks larger than it is at matched $T(0^+)$.
 
 Scripts and logs: `new_paper_calculations/26-10-26/analytic_error_budget/`.
+
+## Effective $\xi$ calibration (2026-10-26)
+
+At the user's request, $\xi$ was fitted so the full-analytical contours (at $T(0^+)=0$, as plotted) best match the numerical contours at $T(0^+)=0.1$ MeV.
+The fit minimizes the RMS radial offset of the level crossings over 30 rays and 7 levels (50–5000 m/s), measured in plot-normalized $\rho$ ($n_B/n_0=1+4.5\rho\cos\theta$, $T=120\,\mathrm{MeV}\,\rho\sin\theta$).
+$\xi$ enters only through $1+\xi a$, so the fit is an exact rescaling of one sampled analytic scan.
+
+| Comparison | best $\xi$ (contours) | RMS $\Delta\rho$ at $-0.85$ → best | best $\xi$ (log speed) |
+|---|---:|---:|---:|
+| analytic $T(0^+)=0$ vs numerical 0.1 MeV | $-0.46$ | $0.032\to0.013$ | $-0.38$ |
+| analytic $T(0^+)=0.1$ MeV, matched | $-0.555$ | $0.027\to0.011$ | $-0.48$ |
+
+The minimum is flat between $-0.50$ and $-0.40$, where RMS $\Delta\rho$ stays within $0.0131$–$0.0134$.
+A constant $\xi$ cannot remove the residual shape, because its leverage scales with $a$.
+At the fitted value the 50–200 m/s analytical contours remain up to $\Delta\rho=0.02$ inside, 1000–2000 m/s up to $0.014$ outside, and 5000 m/s up to $0.022$ inside.
+This value is an effective calibration that absorbs the error budget above and the $T(0^+)$ mismatch, not the profile-shape value $\xi=-0.85$ that the manuscript quotes from numerical $I_1$.
+Scripts, samples, log and figure: `new_paper_calculations/26-10-26/xi_fit/`.

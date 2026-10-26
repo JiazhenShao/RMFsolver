@@ -1052,3 +1052,11 @@ Archived the pre-refresh notebook and combined manifest under `local_analysis_re
 ## [2026-10-26] query | Error budget of the corrected full-analytical adiabatic speed
 
 The code was checked against the manuscript's adiabatic appendix and all constants (`q_D`, the `D_K` prefactor, `h_D`, `gamma_K`) agree. A one-at-a-time ladder from semi-analytical to full analytical at eight states shows the 10–47% overshoot comes from Landau-only diffusion (+10–18%), partly offset by the cubic rate (−0.5 to −17%), plus the ellipse (+0.3–14%) and the quadratic ceiling amplified near $a\to1$ (up to +32%). Filed [[adiabatic-analytic-error-budget]]; scripts in `new_paper_calculations/26-10-26/analytic_error_budget/`.
+
+## [2026-10-26] query | Effective xi for the full-analytical adiabatic contours
+
+Fitted $\xi$ so the full-analytical contours at $T(0^+)=0$ match the numerical $T(0^+)=0.1$ MeV contours. The best value is $\xi=-0.46$, which cuts the RMS radial contour offset from 0.032 to 0.013; matched $T(0^+)$ gives $-0.555$. Recorded in [[adiabatic-analytic-error-budget]], with scripts and figure in `new_paper_calculations/26-10-26/xi_fit/`.
+
+## [2026-10-26] calculation | Full-analytical contours rerun at fitted xi=-0.46
+
+Reran `analytic_velocity_adiabatic_slow` over the cold contour scan at $\xi=-0.46$ into a separate output: complete, no failures, and equal to the rescaled $\xi=-0.85$ records to machine precision. Appended notebook cells 16–19 with two new figure exports; earlier cells and figures are unchanged. See [[cold-adiabatic-analytical-contours]].
