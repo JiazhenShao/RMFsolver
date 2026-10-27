@@ -1060,3 +1060,10 @@ Fitted $\xi$ so the full-analytical contours at $T(0^+)=0$ match the numerical $
 ## [2026-10-26] calculation | Full-analytical contours rerun at fitted xi=-0.46
 
 Reran `analytic_velocity_adiabatic_slow` over the cold contour scan at $\xi=-0.46$ into a separate output: complete, no failures, and equal to the rescaled $\xi=-0.85$ records to machine precision. Appended notebook cells 16–19 with two new figure exports; earlier cells and figures are unchanged. See [[cold-adiabatic-analytical-contours]].
+
+## [2026-10-27] diagnose | Cold failure of the slow isothermal BVP
+
+Mapped default `solve_front_isothermal_slow` over 35 states (0.01-10 MeV, 3.05-4.8 n0): 16 fail, all with max_nodes exceeded after diverging Newton iterates in about 2 s.
+The tail-scaled compact coordinate places the conversion layer at $s\sim10^{-5}$-$10^{-8}$, inside the first default mesh interval; this layer position predicts 34/35 outcomes.
+A layer-shaped guess converges at 3.05 n0, 0.01 MeV (3249.94 m/s, 8.9 s), but `continuation_guess` cannot carry a resolved layer onto the fixed mesh at higher density; the 55-99% tail-derivative error changes no speed.
+No solver source changed. See [[isothermal-slow-cold-failure]].
