@@ -174,6 +174,21 @@ class EvaluationTests(unittest.TestCase):
             with self.subTest(change=change):
                 self.assertEqual(record["status"], expected)
 
+    def test_table_failure_uses_tolerance_ladder(self):
+        good = self.numerical_once()
+        calls = []
+        def table(*args, **kwargs):
+            calls.append(kwargs["path_rtol"])
+            if kwargs["path_rtol"] > 1.5e-7:
+                return dict(success=False, status="thermodynamic_path_failed",
+                            message="Slow-front EOS/diffusion table did not converge")
+            return good
+        with patch.object(pv, "solve_front_isothermal_slow", side_effect=table):
+            record, _ = self.evaluation.evaluate("numerical", 3.5, 10.0)
+        self.assertEqual(record["status"], "accepted")
+        np.testing.assert_allclose(calls, [1e-6, 5e-7, 2e-7, 1e-7])
+        self.assertEqual(record["path_rtol_used"], 1e-7)
+
     def test_two_attempt_cap(self):
         calls = []
         def failing(*args, **kwargs):
@@ -236,6 +251,17 @@ class EngineTests(unittest.TestCase):
         self.assertLess(time.perf_counter() - started, 25.0)
         self.assertEqual(payload["status"][0, 1], "timeout")
         self.assertEqual(int(np.sum(payload["status"] == "accepted")), 10)
+
+    def test_repair_reevaluates_only_unaccepted_points_in_place(self):
+        self.run_engine(evaluator="tests._iso_fake_evaluator:slow", timeout_s=3.0)
+        before = self.engine.common.load(self.path)
+        payload = self.engine.repair(self.path, workers=2, evaluator="tests._iso_fake_evaluator:evaluate",
+                                     timeout_s=10.0)
+        self.assertEqual(payload["status"][0, 1], "accepted")
+        self.assertTrue(payload["records"][0, 1]["repaired"])
+        self.assertEqual(payload["identity"], before["identity"])
+        self.assertEqual(payload["repairs"][-1]["points"], [(0, 1)])
+        self.assertEqual(payload["new_evaluations"], 1)
 
     def test_profiles_sidecar_matches_accepted_points(self):
         payload = self.run_engine()
@@ -317,6 +343,73 @@ class XiCacheTests(unittest.TestCase):
         code = ("import sys; sys.path.insert(0, %r); import _iso_xi; "
                 "assert 'RMFsolver.phase_velocity' not in sys.modules") % str(WORKFLOW)
         subprocess.run([sys.executable, "-c", code], check=True)
+
+
+def fake_payload(speed=None):
+    mesh = synthetic_mesh()
+    status = mesh["point_status"].copy()
+    speeds = 50.0 * np.exp(mesh["x"]) * (1 + mesh["T"] / 100.0) if speed is None else speed
+    status[status == "pending"] = "accepted"
+    speeds = np.where(status == "accepted", speeds, np.nan)
+    return dict(mesh=mesh, status=status, speed_m_s=speeds)
+
+
+class PlotTests(unittest.TestCase):
+    def test_outside_panel_points_masked_in_contour_arrays(self):
+        import _iso_plot as plot
+        x, T, logv = plot.contour_arrays(fake_payload())
+        outside = synthetic_mesh()["point_status"] == "outside_panel"
+        self.assertTrue(np.all(logv.mask[outside]))
+        self.assertFalse(np.any(logv.mask[~outside]))
+
+    def test_coverage_reports_rays_missing_top_level(self):
+        import _iso_plot as plot
+        payload = fake_payload()
+        report = plot.coverage(payload, levels=(300.0, 1e6))
+        self.assertEqual(report[1e6]["missing"], {0: "above_outer_column", 1: "above_outer_column",
+                                                  2: "above_outer_column"})
+        self.assertIn(1, report[300.0]["bracketed"])
+
+    def test_gray_polygons_lie_outside_mesh_points(self):
+        from matplotlib.path import Path as MplPath
+        import _iso_boundaries as boundaries
+        import _iso_plot as plot
+        import polar_mesh
+        mesh = polar_mesh.build_mesh(workers=4, theta=np.radians((15.0, 45.0, 75.0)))
+        curves = boundaries.boundary_curves(n_rows=4, n_rays=6, workers=4, extra_rays=mesh["boundaries"])
+        polygons = plot.gray_polygons(curves, x_limits=(1.0, 5.5), T_limits=(0.0, 115.0))
+        points = np.column_stack([mesh["x"][mesh["point_status"] == "pending"],
+                                  mesh["T"][mesh["point_status"] == "pending"]])
+        for name, polygon in polygons.items():
+            with self.subTest(name=name):
+                self.assertFalse(np.any(MplPath(polygon).contains_points(points)))
+
+    def test_linear_style_matches_reference_values(self):
+        import ast
+        import subprocess
+        import _iso_plot as plot
+        source = subprocess.run([sys.executable, str(ROOT / ".claude/tools/nbsrc.py"),
+                                 str(ROOT / "All_Plots_new.ipynb"), "-c", "25"],
+                                capture_output=True, text=True, check=True).stdout
+        reference = {}
+        for line in source.splitlines():
+            if line.startswith("NUMERICAL_") and " = " in line:
+                name, value = line.split(" = ", 1)
+                try:
+                    reference[name[len("NUMERICAL_"):].lower()] = ast.literal_eval(value)
+                except (ValueError, SyntaxError):
+                    pass
+        style = plot.LINEAR_REFERENCE_STYLE
+        compared = 0
+        for key, value in reference.items():
+            if key in plot.FONT_RULE_KEYS or key.startswith("output"):
+                continue
+            if key in style:
+                compared += 1
+                with self.subTest(key=key):
+                    self.assertEqual(style[key], value)
+        self.assertGreaterEqual(compared, 30)
+        self.assertGreaterEqual(style["contour_label_font_size"], 16)
 
 
 if __name__ == "__main__":

@@ -86,10 +86,39 @@ def run(mesh, out_path, method, workers, evaluator="_iso_evaluate:evaluate", tim
             payload = _fresh_payload(mesh, identity, method)
     else:
         payload = _fresh_payload(mesh, identity, method)
-    profiles_dir = path.with_name(path.stem + "-profiles")
-    payload.update(path=str(path), profiles_dir=str(profiles_dir), new_evaluations=0)
-    tasks = [(int(i), int(j), method, float(mesh["x"][i, j]), float(mesh["T"][i, j]))
-             for i, j in np.argwhere(payload["status"] == "pending")]
+    payload.update(path=str(path), profiles_dir=str(path.with_name(path.stem + "-profiles")),
+                   new_evaluations=0)
+    return _schedule(payload, path, _tasks(payload, ("pending",)), evaluator, workers, timeout_s, progress)
+
+
+def repair(out_path, workers, evaluator=None, timeout_s=120.0, statuses=("unresolved", "timeout"),
+           progress=False):
+    """Re-evaluate only non-accepted points in place with the current code.
+
+    The payload identity is kept; each repaired record is marked and the pass is
+    logged with the source hashes it ran with, so provenance stays explicit.
+    """
+    path = Path(out_path)
+    payload = common.load(path)
+    evaluator = evaluator or payload["identity"]["evaluator"]
+    tasks = _tasks(payload, statuses)
+    payload.update(path=str(path), profiles_dir=str(path.with_name(path.stem + "-profiles")),
+                   new_evaluations=0)
+    payload.setdefault("repairs", []).append(dict(time=time.time(), evaluator=evaluator,
+                                                  statuses=statuses, sources=common.source_hashes(),
+                                                  points=[(t[0], t[1]) for t in tasks]))
+    return _schedule(payload, path, tasks, evaluator, workers, timeout_s, progress,
+                     mark=lambda record: record.update(repaired=True))
+
+
+def _tasks(payload, statuses):
+    mesh, method = payload["mesh"], payload["method"]
+    return [(int(i), int(j), method, float(mesh["x"][i, j]), float(mesh["T"][i, j]))
+            for i, j in np.argwhere(np.isin(payload["status"].astype(str), statuses))]
+
+
+def _schedule(payload, path, tasks, evaluator, workers, timeout_s, progress, mark=None):
+    method, profiles_dir = payload["method"], Path(payload["profiles_dir"])
     total, started = len(tasks), time.perf_counter()
     context = multiprocessing.get_context("spawn")
     common._single_thread()
@@ -104,6 +133,8 @@ def run(mesh, out_path, method, workers, evaluator="_iso_evaluate:evaluate", tim
                 slot = busy[connection]
                 i, j, record, profile = connection.recv()
                 slot.task = None
+                if mark:
+                    mark(record)
                 if profile is not None:
                     profiles_dir.mkdir(parents=True, exist_ok=True)
                     temporary = profiles_dir / f"{i}_{j}.tmp.npz"

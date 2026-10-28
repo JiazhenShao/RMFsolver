@@ -118,16 +118,19 @@ def _ray_points(theta):
     return ray["x_inner"], ray["T_inner"], ray["x_outer"], ray["T_outer"]
 
 
-def boundary_curves(n_rows=40, n_rays=81, T_rows_max=10.0, workers=1):
+def boundary_curves(n_rows=40, n_rays=81, T_rows_max=10.0, workers=1, extra_rays=()):
     """Smooth inner/outer boundary curves for the gray regions of both figures.
 
     Fixed-T rows on a logarithmic grid cover 0.01 MeV to T_rows_max, where the
     boundaries are nearly vertical; Chebyshev-clustered rays cover the upper
     part, where they bend toward the n_0 edge. Each curve is sorted by T.
+    extra_rays (ray_boundaries dicts, e.g. a mesh's) become exact polygon
+    vertices, so mesh points next to a boundary never fall on a chord's gray side.
     """
     rows = common.map_parallel(_row_points, np.geomspace(0.01, T_rows_max, n_rows), workers)
     t = (1 - np.cos(np.pi * np.arange(1, n_rays) / (n_rays - 1))) / 2
     rays = common.map_parallel(_ray_points, np.pi / 2 * t, workers)
+    rays += [(r["x_inner"], r["T_inner"], r["x_outer"], r["T_outer"]) for r in extra_rays]
     curves = {}
     for name, columns in (("inner", (0, 1)), ("outer", (2, 3))):
         points = [(x, T) for T, *roots in rows

@@ -32,6 +32,8 @@ def parser():
     p.add_argument("--smoke", action="store_true", help="three rays (15, 45, 75 deg) into highT/smoke/")
     p.add_argument("--dry-run", action="store_true", help="build the mesh and report counts only")
     p.add_argument("--restart", action="store_true", help="new suffixed payload if the identity changed")
+    p.add_argument("--repair", action="store_true",
+                   help="re-evaluate only unresolved/timeout points in place with the current code")
     return p
 
 
@@ -48,8 +50,12 @@ def main(argv=None):
     methods = ("analytic", "numerical") if args.method == "both" else (args.method,)
     for method in methods:
         started = time.perf_counter()
-        payload = engine.run(mesh, out / f"isothermal-highT-{method}.npy", method, args.workers,
-                             timeout_s=TIMEOUT_S[method], restart=args.restart, progress=True)
+        path = out / f"isothermal-highT-{method}.npy"
+        if args.repair:
+            payload = engine.repair(path, args.workers, timeout_s=TIMEOUT_S[method], progress=True)
+        else:
+            payload = engine.run(mesh, path, method, args.workers, timeout_s=TIMEOUT_S[method],
+                                 restart=args.restart, progress=True)
         statuses = payload["status"].astype(str)
         counts = {s: int(np.sum(statuses == s)) for s in np.unique(statuses)}
         print(f"{method}: {counts}; {payload['new_evaluations']} new evaluations, "

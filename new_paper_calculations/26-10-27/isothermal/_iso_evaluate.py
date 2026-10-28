@@ -15,6 +15,7 @@ ROUNDOFF_STATUSES = ("stable_neutron_matter", "isothermal_coexistence",
                      "composition_ceiling_saturated")
 ROUNDOFF_MESSAGES = ("Automatic interface ceiling is not interior",)
 TABLE_FAILURE = "Slow-front EOS/diffusion table did not converge"
+TABLE_LADDER = (0.5, 0.2, 0.1)   # path_rtol factors, as in the 26-10-24 adiabatic wrapper
 ENDPOINTS = ("P_0minus", "muB_0minus", "nB_0minus", "muB_0plus", "muK_0plus", "nB_0plus",
              "muB_inf", "nB_inf")
 ANALYTIC_FIELDS = ("I2", "lambda_n", "eta", "D_K", "invD_K", "gamma_K", "qD", "delta_muB")
@@ -103,9 +104,9 @@ def _resampled_profile(result):
 def _numerical(x, T):
     record = _base("numerical", x, T)
     settings = dict(common.NUMERICAL)
-    reason = ""
-    for attempt in (1, 2):
-        record["attempts"] = attempt
+    ladder, mesh_retry_used, reason = iter(TABLE_LADDER), False, ""
+    while True:
+        record["attempts"] += 1
         try:
             result = pv.solve_front_isothermal_slow(
                 T, x * common.N0_MEV3, common.PHYSICS["B_one_forth"], return_profile=True, **settings)
@@ -120,11 +121,15 @@ def _numerical(x, T):
         if not reason:
             break
         record["message"] = message
-        if attempt == 1:   # one diagnostic retry, never more
-            if message == TABLE_FAILURE:
-                settings["path_rtol"] = common.NUMERICAL["path_rtol"] * 0.5
-            else:
-                settings["n_mesh"] = 600
+        # The table-refinement failure walks the stricter-tolerance ladder of the
+        # adiabatic contour wrapper; any other failure gets one 600-node retry.
+        factor = next(ladder, None) if message == TABLE_FAILURE else None
+        if factor is not None:
+            settings["path_rtol"] = common.NUMERICAL["path_rtol"] * factor
+        elif message != TABLE_FAILURE and not mesh_retry_used:
+            mesh_retry_used, settings["n_mesh"] = True, 600
+        else:
+            break
     if reason:
         record.update(message=record["message"] or reason, rejection=reason)
         return record, None
