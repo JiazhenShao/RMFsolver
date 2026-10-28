@@ -43,30 +43,51 @@ def retune(cache, xi, check_source=True):
         return common.C_M_S * np.sqrt(2 * cache["I2"] / (cache["lambda_n"]**2 * (1 - a) * (1 + xi * a)))
 
 
+def _same_mesh(cache, numerical_payload):
+    """Refuse numerical data from another mesh when both sides carry a fingerprint."""
+    ours = cache["provenance"].get("mesh_fingerprint")
+    theirs = numerical_payload.get("mesh", {}).get("fingerprint")
+    if ours is not None and theirs is not None and ours != theirs:
+        raise ValueError("the xi cache and the numerical payload were made on different meshes")
+
+
 def effective_xi(cache, numerical_payload):
     """xi at which the analytic speed equals the numerical one, point by point."""
+    _same_mesh(cache, numerical_payload)
     a, v = cache["a_0plus"], numerical_payload["speed_m_s"] / common.C_M_S
     with np.errstate(invalid="ignore", divide="ignore"):
         return (2 * cache["I2"] / (cache["lambda_n"]**2 * (1 - a) * v**2) - 1) / a
 
 
-def _ray_crossings(speeds, rho, fractions, level):
-    """Radius where each ray's monotone accepted speeds cross the level (NaN otherwise)."""
+def _ray_crossings(speeds, coordinate, fractions, level):
+    """Coordinate where each ray or row crosses the level between two adjacent accepted
+    points (log speed linear in f); NaN if no such pair, or several, bracket it, so a
+    crossing is never interpolated across a failed point."""
     out = np.full(speeds.shape[0], np.nan)
     for i, row in enumerate(speeds):
-        ok = np.isfinite(row)
-        if ok.sum() < 2 or not np.all(np.diff(row[ok]) > 0) or not row[ok][0] <= level <= row[ok][-1]:
+        pairs = [j for j in range(row.size - 1) if np.isfinite(row[j]) and np.isfinite(row[j + 1])
+                 and row[j] > 0 and row[j + 1] > 0 and min(row[j], row[j + 1]) <= level <= max(row[j], row[j + 1])]
+        if len(pairs) != 1 or row[pairs[0]] == row[pairs[0] + 1]:
             continue
-        fraction = np.interp(np.log(level), np.log(row[ok]), fractions[ok])
-        out[i] = np.interp(fraction, fractions, rho[i])
+        j = pairs[0]
+        weight = (np.log(level) - np.log(row[j])) / (np.log(row[j + 1]) - np.log(row[j]))
+        out[i] = np.interp(fractions[j] + weight * (fractions[j + 1] - fractions[j]), fractions, coordinate[i])
     return out
 
 
+def _coordinate(cache):
+    """Plot-normalized position along each ray (polar rho) or row ((x - 1)/4.5 at fixed T)."""
+    if cache.get("rho") is not None:
+        return np.asarray(cache["rho"], dtype=float)
+    return (np.asarray(cache["x"], dtype=float) - common.POLAR["x_origin"]) / common.POLAR["x_scale"]
+
+
 def contour_offsets(cache, numerical_payload, xi, levels, check_source=True):
-    """Analytic minus numerical contour radius, per ray and level (plot-normalized rho)."""
-    analytic = retune(cache, xi, check_source)
-    return np.array([_ray_crossings(analytic, cache["rho"], cache["fractions"], L)
-                     - _ray_crossings(numerical_payload["speed_m_s"], cache["rho"], cache["fractions"], L)
+    """Analytic minus numerical contour position, per ray/row and level (plot-normalized)."""
+    _same_mesh(cache, numerical_payload)
+    analytic, coordinate = retune(cache, xi, check_source), _coordinate(cache)
+    return np.array([_ray_crossings(analytic, coordinate, cache["fractions"], L)
+                     - _ray_crossings(numerical_payload["speed_m_s"], coordinate, cache["fractions"], L)
                      for L in levels])
 
 
@@ -74,6 +95,7 @@ def fit_xi(cache, numerical_payload, levels, objective="log_speed", check_source
            bounds=(-0.99, 0.99)):
     """Single xi minimizing the RMS log-speed misfit or the RMS contour radial offset."""
     _check(cache, check_source)
+    _same_mesh(cache, numerical_payload)
     numerical = numerical_payload["speed_m_s"]
     def misfit(xi):
         if objective == "log_speed":

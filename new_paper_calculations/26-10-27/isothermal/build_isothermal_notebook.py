@@ -210,6 +210,100 @@ with plt.rc_context({"font.family": FONT_FAMILY, "mathtext.fontset": MATH_FONT_S
     plt.show()'''
 
 
+XI_FIT_MARKDOWN = r"""## Tuning $\xi$ to the numerical speeds
+
+`xi_fit/fit_xi.py` rescales the saved analytical intermediates exactly, $u(0^-;\xi)=\sqrt{2I_2}/\big(\lambda_n\sqrt{[1-a(0^+)][1+\xi a(0^+)]}\big)$, with no solver calls. It fits one $\xi$ per panel by minimizing the RMS displacement of the plotted contours along rays (high $T$) or rows (low $T$), in units of $n_0$, as for the adiabatic fit. A log-speed fit over all points and a separate anchor fit for every contour level are reported alongside. Near coexistence $a(0^+)\to0$, so $\xi$ barely moves those contours."""
+
+XI_FIT_TABLE = r"""import json
+
+XI_FIT_FILE = WORKFLOW / "xi_fit/xi_fit.json"
+xi_fit = json.loads(XI_FIT_FILE.read_text())
+for name, fit in xi_fit["fits"].items():
+    print(f"{name:6s} contour-fit xi = {fit['contour']['xi']:+.3f}   log-speed-fit xi = {fit['log_speed']['xi']:+.3f}")
+for tag, levels in xi_fit["level_anchors"].items():
+    print(f"{tag} level anchors: " + ", ".join(f"{k}: {v['xi']:+.2f}" for k, v in levels.items()))
+for label, entry in xi_fit["at_candidates"].items():
+    print(f"xi = {entry['xi']:+.3f} ({label})")
+    for tag in ("highT", "lowT"):
+        e = entry[tag]
+        print(f"   {tag}: contour offset RMS {e['rms_offset_n0']:.3f} n0, max {e['max_abs_offset_n0']:.3f} n0; "
+              "analytic/numerical speed p5/50/95 " + ", ".join(f"{r:.2f}" for r in e["speed_ratio_percentiles_5_50_95"]))
+XI_HIGH_T_FIT = round(xi_fit["fits"]["highT"]["contour"]["xi"], 2)
+XI_LOW_T_FIT = round(xi_fit["fits"]["lowT"]["contour"]["xi"], 2)"""
+
+
+def _replace_once(source, pairs):
+    for old, new in pairs:
+        assert source.count(old) == 1, old
+        source = source.replace(old, new)
+    return source
+
+
+XI_FIT_LINEAR = _replace_once(COMPARISON_FIGURE, (
+    ("XI = -0.85", "XI = XI_HIGH_T_FIT   # contour fit on the polar mesh (T >= 10 MeV)\n"
+                   "XI_LOW_T = XI_LOW_T_FIT   # contour fit on the row mesh (T < 10 MeV)"),
+    ("iso_xi.retune(xi_cache_lowT, XI)", "iso_xi.retune(xi_cache_lowT, XI_LOW_T)"),
+    ('rf"Analytical, $\\xi={XI:g}$"', 'rf"Analytical, $\\xi={XI:+g}$" "\\n" rf"(${XI_LOW_T:+g}$ below 10 MeV)"'),
+    ("isothermal-comparison-linear\"", "isothermal-comparison-linear-xi-fit\""),
+))
+
+XI_FIT_LOG = _replace_once(LOG_FIGURE, (
+    ("XI = -0.85", "XI = XI_LOW_T_FIT   # contour fit on the row mesh"),
+    ("EXPORT_STEM = 'isothermal-lowT-logT'", "EXPORT_STEM = 'isothermal-lowT-logT-xi-fit'"),
+))
+
+XI_ANCHOR_FIGURE = r"""# Tunable plotting parameters
+FIGURE_SIZE = (7.2, 5.6)
+FIGURE_DPI = 160
+EXPORT_DPI = 220
+BACKGROUND_COLOR = 'white'
+MATH_FONT_SET = 'cm'
+HIGH_T_COLOR = '#d62728'
+LOW_T_COLOR = '#1f77b4'
+REFERENCE_COLOR = '0.35'
+HIGH_T_MARKER = 'o'
+LOW_T_MARKER = 's'
+MARKER_SIZE = 9
+LINE_WIDTH = 1.8
+FIT_LINE_STYLE = '--'
+REFERENCE_LINE_STYLE = ':'
+X_SCALE = 'log'
+X_LIMITS = (30.0, 2.0e6)
+Y_LIMITS = (-1.0, 2.4)
+TITLE = r'Contour-anchored $\xi$ per speed level'
+TITLE_FONT_SIZE = 20
+X_LABEL = r'Contour level $u(0^-)$ [m s$^{-1}$]'
+Y_LABEL = r'$\xi$'
+AXIS_LABEL_FONT_SIZE = 18
+TICK_LABEL_FONT_SIZE = 16
+LEGEND_FONT_SIZE = 16
+LEGEND_LOCATION = 'upper right'
+TICK_DIRECTION = 'in'
+EXPORT_STEM = 'local_analysis_results/26-10-27/isothermal-xi-anchors'
+
+with plt.rc_context({"mathtext.fontset": MATH_FONT_SET}):
+    figure, axis = plt.subplots(figsize=FIGURE_SIZE, dpi=FIGURE_DPI, constrained_layout=True,
+                                facecolor=BACKGROUND_COLOR)
+    for tag, label, color, marker, fit in (("highT", "8–100 MeV", HIGH_T_COLOR, HIGH_T_MARKER, XI_HIGH_T_FIT),
+                                           ("lowT", "0.01–10 MeV", LOW_T_COLOR, LOW_T_MARKER, XI_LOW_T_FIT)):
+        anchors = xi_fit["level_anchors"][tag]
+        axis.plot([float(k) for k in anchors], [v["xi"] for v in anchors.values()], marker=marker,
+                  color=color, linewidth=LINE_WIDTH, markersize=MARKER_SIZE, label=f"{label} anchors")
+        axis.axhline(fit, color=color, linestyle=FIT_LINE_STYLE, linewidth=LINE_WIDTH,
+                     label=rf"{label} best single $\xi={fit:+g}$")
+    axis.axhline(iso_common.XI, color=REFERENCE_COLOR, linestyle=REFERENCE_LINE_STYLE, linewidth=LINE_WIDTH,
+                 label=rf"previous $\xi={iso_common.XI:g}$")
+    axis.set(xscale=X_SCALE, xlim=X_LIMITS, ylim=Y_LIMITS)
+    axis.set_title(TITLE, fontsize=TITLE_FONT_SIZE)
+    axis.set_xlabel(X_LABEL, fontsize=AXIS_LABEL_FONT_SIZE)
+    axis.set_ylabel(Y_LABEL, fontsize=AXIS_LABEL_FONT_SIZE)
+    axis.tick_params(which="both", direction=TICK_DIRECTION, top=True, right=True, labelsize=TICK_LABEL_FONT_SIZE)
+    axis.legend(fontsize=LEGEND_FONT_SIZE, loc=LEGEND_LOCATION, framealpha=0.94)
+    for extension in ("png", "pdf"):
+        figure.savefig(ROOT / f"{EXPORT_STEM}.{extension}", dpi=EXPORT_DPI, facecolor=BACKGROUND_COLOR)
+    plt.show()"""
+
+
 def main():
     if NOTEBOOK.exists():
         notebook = nbformat.read(NOTEBOOK, as_version=4)
@@ -223,6 +317,10 @@ def main():
                                                           OLD_VS_NEW_FIGURE)]
     if all((HERE / f"lowT/isothermal-lowT-{m}.npy").is_file() for m in ("numerical", "analytic")):
         new += [nbformat.v4.new_markdown_cell(LOW_T_MARKDOWN), nbformat.v4.new_code_cell(LOG_FIGURE)]
+        if (HERE / "xi_fit/xi_fit.json").is_file():
+            new += [nbformat.v4.new_markdown_cell(XI_FIT_MARKDOWN)] + [
+                nbformat.v4.new_code_cell(source) for source in (XI_FIT_TABLE, XI_FIT_LINEAR, XI_FIT_LOG,
+                                                                  XI_ANCHOR_FIGURE)]
     for cell in new:
         cell.metadata["tags"] = [TAG]
     notebook.cells = new + notebook.cells

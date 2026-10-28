@@ -64,6 +64,7 @@ The nuclear→quark combustion front project. **This is the only page loaded by 
 
 ## Methods
 
+- [[isothermal-xi-fit]] — Best single isothermal $\xi$: $-0.56$ below 10 MeV (contours nearly coincide), $+0.74$ at 8–100 MeV (still off at 100–1000 m/s); the $\xi$ each contour needs falls with speed and is panel-independent above ~1000 m/s.
 - [[isothermal-contours-polar-and-row-meshes]] — Isothermal contours recomputed at [v4.9.6]: polar mesh 8–100 MeV (numerical 2282/2291) and log-T row mesh 0.01–10 MeV (1310/1400); verified placement/seam/tolerance, xi cache for retuning, analytic/numerical 1.2–6.7x at high T but 1.0–1.6x at low T; analytic-recipe choice pending.
 - [[nonrelativistic-isothermal-contours]] — Superseded target-search plan; replaced by the polar and row meshes, keeping its method-aware acceptance rules.
 - [[nonrelativistic-adiabatic-contour]] — Fixed 0.1 MeV slow-front workflow: 540 base points plus 209 numerical extensions complete all 30 rays through 5000 m/s; executed styled and historical-relativistic overlay plots in `26-10-26.ipynb`.

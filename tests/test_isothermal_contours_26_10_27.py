@@ -409,6 +409,39 @@ class XiCacheTests(unittest.TestCase):
             with self.subTest(objective=objective):
                 self.assertAlmostEqual(xi_cache.fit_xi(cache, numerical, levels, objective, check_source=False), 0.3, places=4)
 
+    def test_contour_fit_on_row_mesh_recovers_injected_value(self):
+        import _iso_xi as xi_cache
+        cache = synthetic_cache()
+        cache["rho"] = None   # row mesh: offsets along each row in (x - 1)/4.5
+        cache["x"] = 2.9 + cache["fractions"][None, :] * np.array([2.3, 2.35, 2.4])[:, None]
+        numerical = dict(speed_m_s=xi_cache.retune(cache, 0.3, check_source=False))
+        levels = np.geomspace(np.nanmin(numerical["speed_m_s"]) * 1.5,
+                              np.nanmax(numerical["speed_m_s"]) / 1.5, 5)
+        offsets = xi_cache.contour_offsets(cache, numerical, 0.3, levels, check_source=False)
+        self.assertGreater(np.isfinite(offsets).sum(), 10)
+        np.testing.assert_allclose(offsets[np.isfinite(offsets)], 0.0, atol=1e-12)
+        self.assertAlmostEqual(xi_cache.fit_xi(cache, numerical, levels, "contour", check_source=False),
+                               0.3, places=4)
+
+    def test_contour_crossings_never_bridge_failed_points(self):
+        import _iso_xi as xi_cache
+        fractions = np.linspace(0.0, 1.0, 5)
+        speeds = np.array([[10.0, 20.0, np.nan, 80.0, 160.0]])
+        self.assertTrue(np.isnan(xi_cache._ray_crossings(speeds, fractions[None, :], fractions, 40.0)[0]))
+        self.assertAlmostEqual(xi_cache._ray_crossings(speeds, fractions[None, :], fractions,
+                                                       np.sqrt(80.0 * 160.0))[0], 0.875)
+
+    def test_fit_xi_refuses_numerical_data_from_another_mesh(self):
+        import _iso_xi as xi_cache
+        cache = synthetic_cache()
+        cache["provenance"]["mesh_fingerprint"] = "mesh A"
+        numerical = dict(speed_m_s=xi_cache.retune(cache, 0.3, check_source=False),
+                         mesh=dict(fingerprint="mesh B"))
+        with self.assertRaises(ValueError):
+            xi_cache.fit_xi(cache, numerical, (), "log_speed", check_source=False)
+        with self.assertRaises(ValueError):
+            xi_cache.effective_xi(cache, numerical)
+
     def test_xi_module_imports_no_solver(self):
         import subprocess
         code = ("import sys; sys.path.insert(0, %r); import _iso_xi; "
