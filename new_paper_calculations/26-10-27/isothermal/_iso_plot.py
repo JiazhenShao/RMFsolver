@@ -71,11 +71,12 @@ FONT_RULE_KEYS = ("contour_label_font_size",)   # 11 pt in the reference, >= 16 
 
 # 26-10-02.ipynb cell 8 ("Isothermal u(0^-)", log T); overrides are listed below.
 LOG_REFERENCE_STYLE = dict(
-    contour_levels=(1e2, 1e3, 1e4, 1e5, 1e6),
-    contour_colors=('#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd'),
+    contour_levels=(1e2, 3e2, 1e3, 3e3, 1e4, 3e4, 1e5, 3e5, 1e6),
+    contour_colors=('#1f77b4', '#17becf', '#ff7f0e', '#8c6d31', '#2ca02c', '#e377c2', '#d62728',
+                    '#008b8b', '#9467bd'),
     figure_size=(7.2, 7.2), figure_dpi=160, export_dpi=220, constrained_layout=True,
     background_color='white', font_family='DejaVu Sans', math_font_set='cm', use_tex=False,
-    box_aspect=1., x_limits=(1., 5.5), y_limits=(.01, 10.), x_scale='linear', y_scale='log',
+    box_aspect=1., x_limits=(1., 5.8), y_limits=(.01, 10.), x_scale='linear', y_scale='log',
     x_ticks=(1., 2., 3., 4., 5.), y_ticks=(.01, .1, 1., 10.), y_tick_labels=('0.01', '0.1', '1', '10'),
     title=r'Isothermal $u(0^-)$ [$\mathrm{m\,s^{-1}}$]', title_font_size=20, title_pad=8,
     x_label=r'$n_B(0^-)/n_0$', y_label=r'$T(0^-)$ [MeV]', axis_label_font_size=18, tick_label_font_size=18,
@@ -88,11 +89,12 @@ LOG_REFERENCE_STYLE = dict(
     contour_label_inline_spacing=4, contour_label_background_color='white',
     contour_label_background_alpha=.92, contour_label_background_pad=.12,
     contour_label_background_style='round', contour_label_edge_color='none', contour_label_zorder=6,
-    label_temperatures={1e2: 4., 1e3: 1., 1e4: .3, 1e5: .04, 1e6: .013},
+    label_temperatures={1e2: 5., 3e2: 2., 1e3: 1., 3e3: .5, 1e4: .2, 3e4: .1, 1e5: .04, 3e5: .02,
+                        1e6: .016},
     excluded_region_color='0.72', excluded_region_alpha=1., excluded_region_zorder=0,
     inner_region_text='Quark matter\nnot favored', inner_region_position=(1.12, 0.3),
-    outer_region_text='$udd$ quark matter favored', outer_region_position=(5.40, 0.012),
-    outer_region_rotation=90, outer_region_alignment='center',
+    outer_region_text='$udd$ quark matter favored', outer_region_position=(5.55, 0.316),
+    outer_region_rotation=90, outer_region_alignment='center', outer_region_vertical_alignment='center',
     region_text_color='0.12', region_text_font_size=18, region_text_zorder=6,
     legend_location='upper left', legend_font_size=16, legend_handle_length=1.0,
     legend_border_axes_pad=0.25, legend_frame_alpha=.94, legend_face_color='white',
@@ -101,7 +103,7 @@ LOG_REFERENCE_STYLE = dict(
     speed_legend_font_size=16, speed_legend_columns=2, speed_legend_anchor=(.005, .005),
     speed_legend_handle_length=1.3, speed_legend_column_spacing=0.7, speed_legend_handle_text_pad=0.4,
     speed_legend_label_spacing=0.3,
-    speed_labels=('$10^2$', '$10^3$', '$10^4$', '$10^5$', '$10^6$'),
+    speed_labels=('100', '300', '1k', '3k', '10k', '30k', '100k', '300k', '1M'),
     show_grid=False, export_stem='isothermal-lowT-logT',
 )
 # Changed from the reference: the upper T limit is 10 MeV (user), so the y
@@ -110,14 +112,15 @@ LOG_REFERENCE_STYLE = dict(
 # the method legend moved to the upper left so both stay inside the gray region;
 # cold numerics now converge,
 # so numerical results are solid lines everywhere (no T < 20 MeV dots).
-# 2026-10-28 (user): decade levels labelled on the contours instead of a speed
-# legend, and the gray regions named as in the linear figure.
+# 2026-10-28 (user): half-decade levels labelled on the contours instead of a speed
+# legend, the gray regions named as in the linear figure, and the x range widened
+# to 5.8 n_0 so the udd strip holds its label.
 LOG_STYLE_OVERRIDES = ("y_limits", "y_ticks", "y_tick_labels", "outer_region_position",
                        "inner_region_position", "legend_location", "speed_legend_anchor",
                        "contour_label_font_size", "legend_font_size", "speed_legend_font_size",
                        "export_stem", "contour_levels", "contour_colors", "label_curves",
                        "label_temperatures", "inner_region_text", "outer_region_text",
-                       "show_speed_legend", "speed_labels")
+                       "show_speed_legend", "speed_labels", "x_limits")
 
 
 def draw_log_reference(axis, curves, numerical_lines, analytic_lines, xi, style=LOG_REFERENCE_STYLE):
@@ -138,7 +141,7 @@ def draw_log_reference(axis, curves, numerical_lines, analytic_lines, xi, style=
               fontsize=style["region_text_font_size"], zorder=style["region_text_zorder"])
     axis.text(*style["outer_region_position"], style["outer_region_text"], color=style["region_text_color"],
               fontsize=style["region_text_font_size"], zorder=style["region_text_zorder"],
-              rotation=style["outer_region_rotation"], va="bottom",
+              rotation=style["outer_region_rotation"], va=style.get("outer_region_vertical_alignment", "bottom"),
               ha=style.get("outer_region_alignment", "left"))
     axis.set_xlabel(style["x_label"], fontsize=style["axis_label_font_size"])
     axis.set_ylabel(style["y_label"], fontsize=style["axis_label_font_size"])

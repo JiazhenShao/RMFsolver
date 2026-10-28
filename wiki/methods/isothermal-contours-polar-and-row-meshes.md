@@ -90,7 +90,7 @@ Numerical records keep $I_1$, $I_2$ (`I1_num`, `I2_num`) and `xi_profile`, `xi_p
 `local_analysis_results/26-10-27/`, built by `build_isothermal_notebook.py` into `26-10-27-isothermal.ipynb`:
 - `isothermal-numerical-linear` (combined linear panel, reference style of `All_Plots_new` cell 25);
 - `isothermal-comparison-linear` (analytic vs numerical);
-- `isothermal-lowT-logT` (reference style of `26-10-02` cell 8, ylim extended to 10 MeV; per the user, decade levels $10^2$–$10^6$ m/s labelled on the numerical contours instead of a speed legend, and the gray regions named as in the linear figure);
+- `isothermal-lowT-logT` (reference style of `26-10-02` cell 8, ylim extended to 10 MeV; per the user, half-decade levels 100–$10^6$ m/s labelled on the numerical contours instead of a speed legend, the gray regions named as in the linear figure, and $x$ widened to $5.8\,n_0$ for the $udd$ strip label);
 - `isothermal-highT-old-vs-new`.
 All text is at least 16 pt.
 

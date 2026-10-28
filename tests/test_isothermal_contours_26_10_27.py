@@ -601,14 +601,15 @@ class LowTTests(unittest.TestCase):
         for key in ("legend_font_size", "speed_legend_font_size", "contour_label_font_size"):
             self.assertGreaterEqual(style[key], 16)
 
-    def test_log_figure_labels_decade_contours_without_speed_legend(self):
+    def test_log_figure_labels_contours_without_speed_legend(self):
         import matplotlib
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
         import _iso_plot as plot
         style = plot.LOG_REFERENCE_STYLE
-        self.assertEqual(style["contour_levels"], (1e2, 1e3, 1e4, 1e5, 1e6))
-        self.assertEqual(len(style["contour_colors"]), 5)
+        self.assertEqual(style["contour_levels"], (1e2, 3e2, 1e3, 3e3, 1e4, 3e4, 1e5, 3e5, 1e6))
+        self.assertEqual(len(set(style["contour_colors"])), 9)
+        self.assertGreaterEqual(style["x_limits"][1], 5.75)   # room for the udd strip label
         self.assertFalse(style["show_speed_legend"])
         self.assertEqual(style["inner_region_text"], plot.LINEAR_REFERENCE_STYLE["inner_region_text"])
         self.assertIn("$udd$ quark", style["outer_region_text"])
