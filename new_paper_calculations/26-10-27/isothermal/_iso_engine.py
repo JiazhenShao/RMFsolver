@@ -73,15 +73,26 @@ def _restart_path(path):
     raise RuntimeError("No free restart path")
 
 
+SETTINGS = ("physics", "xi", "numerical", "a_ceiling", "polar")
+
+
+def _compatible(old, new, keys=SETTINGS):
+    """Same RMFsolver bytes, libraries, physics and settings: accepted points are identical
+    results; workflow-module edits (engine, acceptance retries) do not change them.
+
+    Payloads made before the EOS modules and library versions were recorded are
+    compared on what they recorded (phase_velocity.py only).
+    """
+    solver = {k: v for k, v in old["sources"].items() if k.startswith("RMFsolver/")}
+    return (all(old.get(k) == new.get(k) for k in keys)
+            and all(new["sources"].get(k) == v for k, v in solver.items())
+            and all(new["versions"].get(k) == v for k, v in old.get("versions", {}).items()))
+
+
 def _seed(payload, seed_path, identity):
     """Copy finished points whose (x, T) match a compatible earlier payload exactly."""
     seed = common.load(seed_path)
-    # Same solver bytes, physics, settings and method: accepted points are identical
-    # results; workflow-module edits (engine, acceptance retries) do not change them.
-    keys = ("physics", "xi", "numerical", "a_ceiling", "polar", "method", "evaluator")
-    solver = "RMFsolver/phase_velocity.py"
-    if (any(seed["identity"].get(k) != identity.get(k) for k in keys)
-            or seed["identity"]["sources"][solver] != identity["sources"][solver]):
+    if not _compatible(seed["identity"], identity, SETTINGS + ("method", "evaluator")):
         raise RuntimeError(f"{seed_path} is not compatible apart from its mesh")
     key = lambda x, T: (round(float(x), 10), round(float(T), 8))
     finished = {key(seed["mesh"]["x"][i, j], seed["mesh"]["T"][i, j]): (i, j)
@@ -123,14 +134,18 @@ def run(mesh, out_path, method, workers, evaluator="_iso_evaluate:evaluate", tim
 
 
 def repair(out_path, workers, evaluator=None, timeout_s=120.0, statuses=("unresolved", "timeout"),
-           progress=False):
+           progress=False, force=False):
     """Re-evaluate only non-accepted points in place with the current code.
 
     The payload identity is kept; each repaired record is marked and the pass is
     logged with the source hashes it ran with, so provenance stays explicit.
+    A payload from another solver, library or physics is refused unless force=True.
     """
     path = Path(out_path)
     payload = common.load(path)
+    if not force and not _compatible(payload["identity"], common.identity()):
+        raise RuntimeError(f"{path} was made with another solver, library or physics; "
+                           "repair would mix versions (force=True overrides)")
     evaluator = evaluator or payload["identity"]["evaluator"]
     tasks = _tasks(payload, statuses)
     payload.update(path=str(path), profiles_dir=str(path.with_name(path.stem + "-profiles")),
@@ -162,7 +177,15 @@ def _schedule(payload, path, tasks, evaluator, workers, timeout_s, progress, mar
             busy = {slot.connection: slot for slot in slots if slot.task}
             for connection in wait(list(busy), timeout=0.5):
                 slot = busy[connection]
-                i, j, record, profile = connection.recv()
+                try:
+                    i, j, record, profile = connection.recv()
+                except (EOFError, OSError):   # the worker died in C code (segfault, OOM kill)
+                    i, j, _, x, T = slot.task
+                    slot.process.join()
+                    record, profile = dict(method=method, x=x, T=T, status="unresolved", accepted=False,
+                                           speed_m_s=np.nan,
+                                           message=f"worker died (exit code {slot.process.exitcode})"), None
+                    slots[slots.index(slot)] = _Slot(context, evaluator)
                 slot.task = None
                 if mark:
                     mark(record)

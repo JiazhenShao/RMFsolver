@@ -19,9 +19,11 @@ export PYTHONPATH=local_analysis_results/26-10-02/runtime/scipy-1.18.1-cpython-3
 ./bin/python3 -B new_paper_calculations/26-10-27/isothermal/build_isothermal_notebook.py
 ```
 
-- **Resume:** rerunning skips finished points. `--restart` writes a suffixed payload after a change to the solver or the physics modules.
-- **Repair:** `--repair` re-evaluates only unresolved or timed-out points, in place, and logs the pass.
-- **Seeding:** `--seed-from 'highT/isothermal-highT-{method}-41rays.npy'` copies finished points with identical $(n_B,T)$ from an earlier mesh.
+- **Resume:** rerunning skips finished points when the payload identity still matches: the hashes of every `RMFsolver/*.py` and of the result modules, the NumPy/SciPy versions, the physics and the settings. Otherwise `--restart` writes a suffixed payload.
+- **Shipped payloads:** they predate two later wrapper fixes (rejecting non-finite validation metrics, recording all `RMFsolver/` hashes and library versions), so a rerun needs `--restart`. Adding `--seed-from` then reuses their points, because the solver bytes, physics and settings match. No shipped accepted point has a non-finite stored metric.
+- **Repair:** `--repair` re-evaluates only unresolved or timed-out points, in place, and logs the pass. It refuses a payload made with another solver, library or physics.
+- **Seeding:** `--seed-from 'highT/isothermal-highT-{method}-41rays.npy'` copies finished points with identical $(n_B,T)$ from a compatible earlier payload.
+- **Worker crash:** a worker that dies (segfault, OOM kill) leaves its point `unresolved` with the exit code, and the run continues.
 
 ## Outputs
 

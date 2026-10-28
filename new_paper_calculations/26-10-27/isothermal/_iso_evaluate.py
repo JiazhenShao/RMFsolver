@@ -62,12 +62,15 @@ def numerical_acceptance(result, tol_bvp):
     speed, a = result.get("u_0minus", np.nan), result.get("a_0plus", np.nan)
     if not (np.isfinite(speed) and speed > 0 and 0 < a < 1):
         return "nonphysical speed or composition"
-    residual = max(result.get(k, np.inf) for k in ("constitutive_residual_norm",
-                   "reaction_residual_norm", "diffusion_integral_residual_norm"))
-    if (result.get("closure_error_max", np.inf) > 1e-8
-            or max(result.get("conservation_errors", {"none": np.inf}).values()) > 1e-8
-            or np.max(np.abs(result.get("boundary_residuals", [np.inf]))) > 1e-7
-            or residual > max(5 * tol_bvp, 1e-7)):
+    # Every metric must be finite and within tolerance: max() and '>' both let NaN through.
+    within = lambda values, tolerance: (len(values) > 0 and bool(np.all(np.isfinite(values)))
+                                        and bool(np.all(values <= tolerance)))
+    residuals = np.array([result.get(k, np.nan) for k in ("constitutive_residual_norm",
+                          "reaction_residual_norm", "diffusion_integral_residual_norm")], dtype=float)
+    if not (within(np.array([result.get("closure_error_max", np.nan)], dtype=float), 1e-8)
+            and within(np.array(list(result.get("conservation_errors", {}).values()), dtype=float), 1e-8)
+            and within(np.abs(np.asarray(result.get("boundary_residuals", []), dtype=float)), 1e-7)
+            and within(residuals, max(5 * tol_bvp, 1e-7))):
         return "direct physical validation"
     if result.get("solution_method") == "shooting":
         change, mismatch = result.get("shooting_flux_change", np.nan), result.get("shooting_mismatch", np.nan)

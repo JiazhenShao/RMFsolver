@@ -17,3 +17,10 @@ def slow(method, x, T):
     if abs(x - 2.0) < 1e-12:
         time.sleep(30)
     return evaluate(method, x, T)
+
+
+def crash(method, x, T):
+    if abs(x - 2.0) < 1e-12:
+        import os
+        os._exit(1)   # a worker dying in C code (segfault, OOM kill)
+    return evaluate(method, x, T)

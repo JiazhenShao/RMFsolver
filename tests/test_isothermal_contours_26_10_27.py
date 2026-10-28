@@ -214,6 +214,18 @@ class EvaluationTests(unittest.TestCase):
         self.assertEqual(len(calls), 2)
         self.assertEqual(record["message"], "singular Jacobian")
 
+    def test_acceptance_rejects_nonfinite_metrics(self):
+        good = self.numerical_once()
+        self.assertEqual(self.evaluation.numerical_acceptance(good, 1e-4), "")
+        conservation = dict(good["conservation_errors"])
+        conservation[sorted(conservation)[-1]] = np.nan
+        broken = (dict(closure_error_max=np.nan), dict(conservation_errors=conservation),
+                  dict(boundary_residuals=[0.0, np.nan]), dict(reaction_residual_norm=np.nan),
+                  dict(diffusion_integral_residual_norm=np.nan))
+        for change in broken:
+            with self.subTest(change=sorted(change)):
+                self.assertNotEqual(self.evaluation.numerical_acceptance(dict(good, **change), 1e-4), "")
+
 
 def synthetic_mesh():
     x = np.array([[1.5, 2.0, 2.5, 3.0], [1.2, 1.4, 1.6, 1.8], [1.0, 1.0, 1.0, 1.0]])
@@ -276,6 +288,38 @@ class EngineTests(unittest.TestCase):
         self.assertEqual(payload["identity"], before["identity"])
         self.assertEqual(payload["repairs"][-1]["points"], [(0, 1)])
         self.assertEqual(payload["new_evaluations"], 1)
+
+    def test_worker_crash_is_recorded_and_run_continues(self):
+        payload = self.run_engine(evaluator="tests._iso_fake_evaluator:crash")
+        self.assertEqual(payload["status"][0, 1], "unresolved")
+        self.assertIn("worker", payload["records"][0, 1]["message"])
+        self.assertEqual(payload["records"][0, 1]["x"], 2.0)
+        self.assertEqual(int(np.sum(payload["status"] == "accepted")), 10)
+
+    def test_repair_refuses_a_payload_from_another_solver(self):
+        self.run_engine(evaluator="tests._iso_fake_evaluator:slow", timeout_s=3.0)
+        payload = self.engine.common.load(self.path)
+        payload["identity"]["sources"]["RMFsolver/phase_velocity.py"] = "another solver"
+        self.engine.common.atomic_save(self.path, payload)
+        with self.assertRaises(RuntimeError):
+            self.engine.repair(self.path, workers=2, evaluator="tests._iso_fake_evaluator:evaluate")
+        repaired = self.engine.repair(self.path, workers=2, evaluator="tests._iso_fake_evaluator:evaluate",
+                                      force=True)
+        self.assertEqual(repaired["status"][0, 1], "accepted")
+
+    def test_identity_covers_eos_modules_and_library_versions(self):
+        identity = self.engine.common.identity()
+        for module in ("Solver.py", "SQMsolver.py", "RMFparameter.py", "constants.py", "phase_velocity.py"):
+            self.assertIn(f"RMFsolver/{module}", identity["sources"])
+        self.assertEqual(sorted(identity["versions"]), ["numpy", "scipy"])
+
+    def test_seed_refuses_a_changed_eos_module(self):
+        first = self.run_engine()
+        seed = self.engine.common.load(first["path"])
+        seed["identity"]["sources"]["RMFsolver/Solver.py"] = "another EOS"
+        self.engine.common.atomic_save(first["path"], seed)
+        with self.assertRaises(RuntimeError):
+            self.run_engine(out_path=self.directory / "second.npy", seed_from=first["path"])
 
     def test_seed_from_previous_payload_reuses_matching_points(self):
         first = self.run_engine()
@@ -485,6 +529,20 @@ class LowTTests(unittest.TestCase):
         self.assertTrue(np.all(mesh["point_status"] == "pending"))
         self.assertTrue(np.all((2.8 < mesh["x_inner"]) & (mesh["x_inner"] < 3.0)))
         self.assertTrue(np.all((5.2 < mesh["x_outer"]) & (mesh["x_outer"] < 5.35)))
+
+    def test_stale_boundary_curves_are_refused(self):
+        import tempfile
+        sys.path.insert(0, str(WORKFLOW / "lowT"))
+        import build_boundary_curves
+        import row_mesh
+        stale = Path(tempfile.mkdtemp()) / "boundary-curves.npz"
+        data = dict(np.load(build_boundary_curves.OUTPUT))
+        np.savez(stale, **dict(data, key="made with other sources"))
+        with patch.object(build_boundary_curves, "OUTPUT", stale):
+            with self.assertRaises(RuntimeError):
+                row_mesh.build_mesh()
+            with self.assertRaises(RuntimeError):
+                build_boundary_curves.load()
 
     def rows_payload(self):
         fractions = np.array([1e-4, 1e-3, 0.1, 0.5, 0.9, 0.999])

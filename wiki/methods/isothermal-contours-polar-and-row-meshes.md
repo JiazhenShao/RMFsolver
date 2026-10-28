@@ -48,8 +48,17 @@ Before that, every evaluation walks a `path_rtol` ladder ×0.5/0.2/0.1 on table 
 | Drawn contour vs direct root | $\Delta x\le2.2\times10^{-4}\,n_0$, $\Delta T\le0.014$ MeV (12 crossings) | $\Delta x\le3.8\times10^{-4}\,n_0$ (8 crossings, up to $10^6$ m/s) |
 | Tighter tolerances at accepted points | relative speed change $\le2.0\times10^{-5}$ | $\le2.4\times10^{-6}$ |
 | Seam at 10 MeV, row vs polar contour | — | $\Delta x\le1.9\times10^{-3}\,n_0$ for 50–5000 m/s |
+| Static boundaries vs the saved 26-09-16 domain | all 24 rays, $|\Delta\rho|\le2.5\times10^{-5}$ (criterion $10^{-3}$) | same boundary code |
 
-Evidence: `highT/verify_highT.json` and `lowT/verify_lowT.json`.
+Evidence: `highT/verify_highT.json`, `lowT/verify_lowT.json` and `highT/verify_saved_domain.json`.
+
+The final code review (2026-10-28) led to four workflow fixes; none changes a shipped point.
+- **Non-finite metrics:** acceptance now rejects any non-finite validation metric. Python's `max()` and `>` had let NaN through, but no shipped accepted point has a non-finite stored metric.
+- **Run identity:** it now records every `RMFsolver/*.py` hash and the NumPy/SciPy versions. Repair and seeding refuse a payload made with another solver, library or physics.
+- **Boundary files:** they are refused under a stale key. The rebuilt files are bit-identical, and the mesh fingerprints match the shipped payloads.
+- **Worker crashes:** a worker that dies leaves its point unresolved instead of aborting the run.
+
+⚠ The shipped payloads predate the wider identity. A rerun therefore needs `--restart`, and `--seed-from` can reuse their points.
 
 ## Analytic vs numerical
 

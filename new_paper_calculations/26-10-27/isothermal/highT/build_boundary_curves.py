@@ -31,9 +31,17 @@ def main(workers=4):
     print(f"wrote {OUTPUT}: inner {len(curves['inner'][0])} and outer {len(curves['outer'][0])} points")
 
 
+def saved():
+    """The saved curves, refused if they were made with other solver or boundary sources."""
+    data = np.load(OUTPUT)
+    if str(data["key"]) != polar_mesh._boundary_key():
+        raise RuntimeError(f"{OUTPUT} was made with other sources; rerun build_boundary_curves.py")
+    return data
+
+
 def load(extra_rays=()):
     """Saved curves, merged with exact boundary points of extra rays (e.g. a payload's mesh)."""
-    data = np.load(OUTPUT)
+    data = saved()
     curves = {}
     for name in ("inner", "outer"):
         points = np.column_stack([data[name + "_x"], data[name + "_T"]])

@@ -25,7 +25,7 @@ T_ROWS = np.geomspace(0.01, 10.0, 40)   # the cached boundary rows
 
 def row_roots(T_rows=T_ROWS):
     """Exact (x_inner, x_outer) of each cached boundary row."""
-    data = np.load(build_boundary_curves.OUTPUT)
+    data = build_boundary_curves.saved()
     roots = []
     for name in ("inner", "outer"):
         x, T = data[name + "_x"], data[name + "_T"]

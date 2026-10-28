@@ -22,10 +22,11 @@ CACHE = Path(__file__).with_name("ray-boundaries.npy")
 
 
 def _boundary_key():
-    """Boundary radii depend only on the solver, the boundary code and these constants."""
+    """Boundary radii depend only on RMFsolver, the boundary code, the libraries and these constants."""
     sources = {k: v for k, v in common.source_hashes().items()
-               if k.endswith(("phase_velocity.py", "_iso_boundaries.py"))}
-    return repr((sorted(sources.items()), common.PHYSICS, common.A_CEILING, common.POLAR, common.N0_MEV3))
+               if k.startswith("RMFsolver/") or k.endswith("_iso_boundaries.py")}
+    return repr((sorted(sources.items()), common.library_versions(), common.PHYSICS, common.A_CEILING,
+                 common.POLAR, common.N0_MEV3))
 
 
 def ray_boundaries_cached(theta, workers):

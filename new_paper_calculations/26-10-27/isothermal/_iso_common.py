@@ -61,15 +61,20 @@ RESULT_SOURCES = ("_iso_common.py", "_iso_boundaries.py", "_iso_evaluate.py")   
 
 
 def source_hashes():
-    """Hashes of every file that can change a computed point (solver + physics modules)."""
-    files = [ROOT / "RMFsolver/phase_velocity.py"] + [HERE / name for name in RESULT_SOURCES]
+    """Hashes of every file that can change a computed point (RMFsolver + physics modules)."""
+    files = sorted((ROOT / "RMFsolver").glob("*.py")) + [HERE / name for name in RESULT_SOURCES]
     return {str(Path(f).relative_to(ROOT)): sha256(f) for f in files}
+
+
+def library_versions():
+    import scipy
+    return dict(numpy=np.__version__, scipy=scipy.__version__)
 
 
 def identity(**extra):
     """Everything that must match for a checkpoint to be resumed."""
-    return dict(sources=source_hashes(), physics=PHYSICS, xi=XI, numerical=NUMERICAL,
-                a_ceiling=A_CEILING, polar=POLAR, **extra)
+    return dict(sources=source_hashes(), versions=library_versions(), physics=PHYSICS, xi=XI,
+                numerical=NUMERICAL, a_ceiling=A_CEILING, polar=POLAR, **extra)
 
 
 def _single_thread():
