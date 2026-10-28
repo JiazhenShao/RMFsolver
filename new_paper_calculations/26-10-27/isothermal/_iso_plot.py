@@ -71,10 +71,8 @@ FONT_RULE_KEYS = ("contour_label_font_size",)   # 11 pt in the reference, >= 16 
 
 # 26-10-02.ipynb cell 8 ("Isothermal u(0^-)", log T); overrides are listed below.
 LOG_REFERENCE_STYLE = dict(
-    contour_levels=(50., 100., 200., 500., 1000., 2000., 5000., 10000., 20000., 50000., 100000.,
-                    200000., 500000., 1000000.),
-    contour_colors=('#1f77b4', '#17becf', '#ff7f0e', '#8c6d31', '#2ca02c', '#d62728', '#9467bd',
-                    '#e377c2', '#008b8b', '#7a8800', '#252525', '#aa3377', '#5c7291', '#1b5e20'),
+    contour_levels=(1e2, 1e3, 1e4, 1e5, 1e6),
+    contour_colors=('#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd'),
     figure_size=(7.2, 7.2), figure_dpi=160, export_dpi=220, constrained_layout=True,
     background_color='white', font_family='DejaVu Sans', math_font_set='cm', use_tex=False,
     box_aspect=1., x_limits=(1., 5.5), y_limits=(.01, 10.), x_scale='linear', y_scale='log',
@@ -85,24 +83,25 @@ LOG_REFERENCE_STYLE = dict(
     spine_line_width=.8, analytical_line_style='--', numerical_line_style='-', line_width=1.8,
     analytical_zorder=4, numerical_zorder=3, numerical_split_temperature=20., numerical_marker='o',
     marker_size=19., marker_edge_color='white', marker_edge_width=.35, marker_alpha=1., marker_zorder=5,
-    isolated_analytical_marker='x', isolated_analytical_size=15., label_curves=False,
+    isolated_analytical_marker='x', isolated_analytical_size=15., label_curves=True,
     contour_label_font_size=16, contour_label_format='%g', contour_label_inline=True,
     contour_label_inline_spacing=4, contour_label_background_color='white',
     contour_label_background_alpha=.92, contour_label_background_pad=.12,
     contour_label_background_style='round', contour_label_edge_color='none', contour_label_zorder=6,
-    label_temperatures={50.: 44., 100.: 50., 200.: 57., 500.: 53., 1000.: 43., 2000.: 31., 5000.: 25.},
+    label_temperatures={1e2: 4., 1e3: 1., 1e4: .3, 1e5: .04, 1e6: .013},
     excluded_region_color='0.72', excluded_region_alpha=1., excluded_region_zorder=0,
-    inner_region_text='Stable Neutron\nMatter', inner_region_position=(1.12, 0.3),
-    outer_region_text=r'$a(0^+)\geq1$', outer_region_position=(5.345, 0.012), outer_region_rotation=90,
+    inner_region_text='Quark matter\nnot favored', inner_region_position=(1.12, 0.3),
+    outer_region_text='$udd$ quark matter favored', outer_region_position=(5.40, 0.012),
+    outer_region_rotation=90, outer_region_alignment='center',
     region_text_color='0.12', region_text_font_size=18, region_text_zorder=6,
     legend_location='upper left', legend_font_size=16, legend_handle_length=1.0,
     legend_border_axes_pad=0.25, legend_frame_alpha=.94, legend_face_color='white',
     legend_edge_color='0.8', legend_handle_color='0.15', legend_marker_size=5.,
-    show_speed_legend=True, speed_legend_location='lower left', speed_legend_title=r'$u(0^-)$ [m s$^{-1}$]',
+    show_speed_legend=False, speed_legend_location='lower left', speed_legend_title=r'$u(0^-)$ [m s$^{-1}$]',
     speed_legend_font_size=16, speed_legend_columns=2, speed_legend_anchor=(.005, .005),
     speed_legend_handle_length=1.3, speed_legend_column_spacing=0.7, speed_legend_handle_text_pad=0.4,
     speed_legend_label_spacing=0.3,
-    speed_labels=('50', '100', '200', '500', '1k', '2k', '5k', '10k', '20k', '50k', '100k', '200k', '500k', '1M'),
+    speed_labels=('$10^2$', '$10^3$', '$10^4$', '$10^5$', '$10^6$'),
     show_grid=False, export_stem='isothermal-lowT-logT',
 )
 # Changed from the reference: the upper T limit is 10 MeV (user), so the y
@@ -111,14 +110,19 @@ LOG_REFERENCE_STYLE = dict(
 # the method legend moved to the upper left so both stay inside the gray region;
 # cold numerics now converge,
 # so numerical results are solid lines everywhere (no T < 20 MeV dots).
+# 2026-10-28 (user): decade levels labelled on the contours instead of a speed
+# legend, and the gray regions named as in the linear figure.
 LOG_STYLE_OVERRIDES = ("y_limits", "y_ticks", "y_tick_labels", "outer_region_position",
                        "inner_region_position", "legend_location", "speed_legend_anchor",
                        "contour_label_font_size", "legend_font_size", "speed_legend_font_size",
-                       "export_stem")
+                       "export_stem", "contour_levels", "contour_colors", "label_curves",
+                       "label_temperatures", "inner_region_text", "outer_region_text",
+                       "show_speed_legend", "speed_labels")
 
 
 def draw_log_reference(axis, curves, numerical_lines, analytic_lines, xi, style=LOG_REFERENCE_STYLE):
-    """Log-T comparison in the 26-10-02 cell 8 style: numerical solid, analytic dashed, two legends."""
+    """Log-T comparison in the 26-10-02 cell 8 style: numerical solid, analytic dashed, a method
+    legend, and either inline speed labels (label_curves) or a speed legend."""
     for polygon in gray_polygons(curves, style["x_limits"], style["y_limits"]).values():
         axis.fill(polygon[:, 0], polygon[:, 1], color=style["excluded_region_color"],
                   alpha=style["excluded_region_alpha"], zorder=style["excluded_region_zorder"])
@@ -134,7 +138,8 @@ def draw_log_reference(axis, curves, numerical_lines, analytic_lines, xi, style=
               fontsize=style["region_text_font_size"], zorder=style["region_text_zorder"])
     axis.text(*style["outer_region_position"], style["outer_region_text"], color=style["region_text_color"],
               fontsize=style["region_text_font_size"], zorder=style["region_text_zorder"],
-              rotation=style["outer_region_rotation"], va="bottom")
+              rotation=style["outer_region_rotation"], va="bottom",
+              ha=style.get("outer_region_alignment", "left"))
     axis.set_xlabel(style["x_label"], fontsize=style["axis_label_font_size"])
     axis.set_ylabel(style["y_label"], fontsize=style["axis_label_font_size"])
     axis.set_title(style["title"], fontsize=style["title_font_size"], pad=style["title_pad"])
@@ -144,6 +149,8 @@ def draw_log_reference(axis, curves, numerical_lines, analytic_lines, xi, style=
     for spine in axis.spines.values():
         spine.set_linewidth(style["spine_line_width"])
     axis.grid(style["show_grid"])
+    if style["label_curves"]:
+        _label_log_contours(axis, numerical_lines, analytic_lines, colors, style)
     method = axis.legend(handles=[
         Line2D([], [], color=style["legend_handle_color"], linestyle=style["analytical_line_style"],
                linewidth=style["line_width"], label=rf"Analytical, $\xi={xi:g}$"),
@@ -166,6 +173,34 @@ def draw_log_reference(axis, curves, numerical_lines, analytic_lines, xi, style=
                     labelspacing=style["speed_legend_label_spacing"],
                     framealpha=style["legend_frame_alpha"], facecolor=style["legend_face_color"],
                     edgecolor=style["legend_edge_color"])
+
+
+def _label_log_contours(axis, numerical_lines, analytic_lines, colors, style):
+    """One label per level at its label temperature, on the numerical line (the analytic one if
+    no numerical segment reaches it), rotated along the line; the white box hides the line beneath."""
+    (x0, x1), (y0, y1) = style["x_limits"], np.log10(style["y_limits"])
+    for level, label in zip(style["contour_levels"], style["speed_labels"]):
+        target = np.log10(style["label_temperatures"][level])
+        for lines in (numerical_lines, analytic_lines):
+            covering = [s for s in lines.get(float(level), [])
+                        if np.log10(s[:, 1].min()) <= target - 0.02 and target + 0.02 <= np.log10(s[:, 1].max())]
+            if covering:
+                break
+        else:
+            continue
+        segment = max(covering, key=len)
+        order = np.argsort(segment[:, 1])
+        x_at = lambda logT: np.interp(logT, np.log10(segment[order, 1]), segment[order, 0])
+        slope = (x_at(target + 0.02) - x_at(target - 0.02)) / 0.04          # dx / dlog10 T
+        angle = np.degrees(np.arctan2(1 / (y1 - y0), slope / (x1 - x0)))     # axes fractions, box aspect 1
+        axis.text(float(x_at(target)), 10 ** target, label, rotation=angle - 180 if angle > 90 else angle,
+                  rotation_mode="anchor", ha="center", va="center", color=colors[level],
+                  fontsize=style["contour_label_font_size"], zorder=style["contour_label_zorder"],
+                  bbox=dict(boxstyle=f"{style['contour_label_background_style']},"
+                                     f"pad={style['contour_label_background_pad']}",
+                            facecolor=style["contour_label_background_color"],
+                            alpha=style["contour_label_background_alpha"],
+                            edgecolor=style["contour_label_edge_color"]))
 
 
 RADIAL_VARIABLES = {   # u(f) and its inverse for display refinement along a ray or row

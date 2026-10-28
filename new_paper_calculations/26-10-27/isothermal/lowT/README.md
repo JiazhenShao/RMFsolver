@@ -6,7 +6,7 @@ Same solvers, physics and saved intermediates as `../highT/README.md`.
 
 - **Rows:** 40 temperatures `np.geomspace(0.01, 10, 40)`, the rows of the cached boundary curves.
 - **Points:** 35 fractions from $10^{-5}$ to 0.9999 between the PNM–uds inner boundary and the PNM–udd outer boundary of each row, $x=x_{\rm in}+f\,(x_{\rm out}-x_{\rm in})$. Nothing is evaluated inside a gray region.
-- **Contours:** computed in $(n_B/n_0,\log_{10}T)$, with display-only PCHIP refinement along rows in ${\rm logit}\,f$. Levels run from 50 to $10^6$ m/s.
+- **Contours:** computed in $(n_B/n_0,\log_{10}T)$, with display-only PCHIP refinement along rows in ${\rm logit}\,f$. Points are verified against levels from 50 to $10^6$ m/s; the figure draws the decades $10^2$–$10^6$ m/s, labelled on the contours (`CONTOUR_LEVELS` and `LABEL_TEMPERATURES` in the notebook's tuning block).
 
 ## Commands (from the repository root)
 

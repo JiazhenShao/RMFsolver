@@ -598,8 +598,38 @@ class LowTTests(unittest.TestCase):
                 self.assertEqual(style[key], value)
         self.assertGreaterEqual(compared, 40)
         self.assertEqual(style["y_limits"], (0.01, 10.0))
-        for key in ("legend_font_size", "speed_legend_font_size"):
+        for key in ("legend_font_size", "speed_legend_font_size", "contour_label_font_size"):
             self.assertGreaterEqual(style[key], 16)
+
+    def test_log_figure_labels_decade_contours_without_speed_legend(self):
+        import matplotlib
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+        import _iso_plot as plot
+        style = plot.LOG_REFERENCE_STYLE
+        self.assertEqual(style["contour_levels"], (1e2, 1e3, 1e4, 1e5, 1e6))
+        self.assertEqual(len(style["contour_colors"]), 5)
+        self.assertFalse(style["show_speed_legend"])
+        self.assertEqual(style["inner_region_text"], plot.LINEAR_REFERENCE_STYLE["inner_region_text"])
+        self.assertIn("$udd$ quark", style["outer_region_text"])
+        self.assertIn("favored", style["outer_region_text"])
+        logT = np.linspace(-2, 1, 50)
+        lines = {level: [np.column_stack([3.0 + 0.5 * k - 0.1 * logT, 10 ** logT])]
+                 for k, level in enumerate(style["contour_levels"])}
+        curves = dict(inner=(np.full(50, 2.95), 10 ** logT), outer=(np.full(50, 5.3), 10 ** logT))
+        figure, axis = plt.subplots()
+        plot.draw_log_reference(axis, curves, lines, lines, -0.85, style)
+        texts = {t.get_text(): t for t in axis.texts}
+        for level, label in zip(style["contour_levels"], style["speed_labels"]):
+            with self.subTest(level=level):
+                self.assertIn(label, texts)
+                x, T = texts[label].get_position()
+                self.assertAlmostEqual(T, style["label_temperatures"][level])
+                self.assertAlmostEqual(x, 3.0 + 0.5 * style["contour_levels"].index(level) - 0.1 * np.log10(T))
+                self.assertLess(abs(texts[label].get_rotation() - 90) % 180, 30)   # along a near-vertical line
+        legends = [child for child in axis.get_children() if isinstance(child, matplotlib.legend.Legend)]
+        self.assertEqual(len(legends), 1)   # the method legend only
+        plt.close(figure)
 
 
 if __name__ == "__main__":
