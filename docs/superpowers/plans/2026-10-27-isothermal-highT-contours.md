@@ -316,3 +316,61 @@ Acceptance rules:
 - Placement and resolution checks as in Task 7.
 
 **Entry point:** `lowT/run_lowT.py`, with the same flags as `run_highT.py`.
+
+---
+
+## Execution record (2026-10-28)
+
+Copied verbatim from the execution ledger before its deletion. Commits 0e557b89..35a5a1d2 on `codex/slow-front-bvp`; final review by a fresh reviewer, four Important findings fixed (full module 46/46).
+
+### Rulings
+
+- Setup: Ruling: no git worktree; work in the main workspace on feature branch codex/slow-front-bvp — the workspace root is the venv and holds the data/notebooks the run reads and writes — cost if wrong: concurrent sessions' edits could collide; mitigated by staging only own paths.
+- Setup: Ruling: contour-label and legend fonts >= 16 pt (user instruction 2026-10-27) — overrides reference 11-12 pt — cost: small visual difference from references.
+- Setup: Ruling: analytic prescription pending user (A keep code + manuscript sentences / B reader recipe); implement with current code (A), rerun analytic (~3 min) if user picks B — cost: one rerun.
+- Task 1: Ruling: saved-domain cross-check test uses 6 of the 24 rays (indices 3,8,12,16,20,23; theta=0 excluded since T=0 is not a valid state); full 24-ray comparison moves to Task 7 verification on cached boundaries — each root costs ~15 s of PNM solves — cost if wrong: a mismatch on an untested ray surfaces later, at Task 7.
+- Task 1: Ruling: udd_residual = -(gibbs residual of _solve_a_0plus_max at a=1-1e-9), coexistence_residual = muB_eq(P,T,muK=0) - muB(0-); both reuse one cached PNM state per (x,T) — same equations the solvers use for their statuses.
+- Task 1: Ruling: boundary_curves signature is (n_rows, n_rays, T_rows_max, workers) instead of (T_min, T_max, n) — rows below 10 MeV and rays above need separate counts — cost: none (plan internal).
+- Task 2: Ruling: theta_8 from the fixed-T udd root at 8 MeV (exact angle of that boundary point) instead of a root search over theta; ray boundaries cached in highT/ray-boundaries.npy keyed by solver/boundary source hashes and angles — saves ~2.5 min per mesh build — cost if wrong: none (cache invalidates on source change).
+- Task 3: Ruling: any non-accepted, non-roundoff first numerical attempt gets exactly one retry (path_rtol x0.5 for the table message, else n_mesh=600); exceptions become 'unresolved' (no separate 'error' status) — matches the two-attempt cap — cost if wrong: one extra solve per failing point.
+- Task 3: Ruling: numerical roundoff is detected by the solver message "Automatic interface ceiling is not interior" — the slow numerical API's only thermodynamic gray signal — cost if wrong: a near-boundary failure with another message counts as unresolved instead of masked.
+- Task 3: Ruling: profile I1/I2 use D_K a' = (jB a - J_K)/n_B (manuscript a' = n_K'/n_B), avoiding numerical differentiation; xi_profile reported for both n_B(0+) and n_B(inf) — cost: none.
+- Task 4: Ruling: removed the Task 2 single-key boundary cache file (format changed to a dict keyed by angle set); the next mesh build recomputes the 41 rays once (~4 min) — cost: one recomputation.
+- Task 4: Ruling: numerical profiles saved as one small .npz per point in <payload>-profiles/ (atomic per file) instead of one aggregate npz rewritten after every point — avoids rewriting ~20 MB per point — cost: a folder of ~1000 small files.
+- Task 4: Ruling: --plot-only dropped from run_highT.py; plotting lives in _iso_plot/notebook (Task 6) — the CLI stays solver-only — cost: none.
+- Task 4: Ruling: Tasks 4 and 5 committed together (shared test file) — cost: coarser history.
+- Task 4: Ruling: solver fix in RMFsolver/phase_velocity.py ([v4.9.6]): shooting centre and auto layer prediction use jB_estimate = current_scale/sqrt((a0- - a0+)(a0- - a_inf)); SciPy event-root ValueError inside a shot counts as a missing value; the tight self-check retries at 1e-11 and is non-fatal (NaN flux change, which the fallback now rejects — previously NaN > 1e-6 would have passed). Tests: test_shooting_brackets_flux_next_to_udd_boundary, test_failed_tight_check_never_validates_a_shooting_fallback (RED->GREEN). Cost if wrong: default mode untouched; only auto/shooting paths change.
+- Task 5: Ruling: retune/fit_xi default check_source=True (refuse a cache made with a different phase_velocity.py); synthetic-cache tests opt out explicitly — cost: callers must pass check_source=False knowingly.
+- Task 6: Ruling: the exact table-refinement message walks the adiabatic wrapper's path_rtol ladder (x0.5, 0.2, 0.1) instead of a single retry; all other failures keep the two-attempt cap — the 5 interior table failures converge at x0.2/x0.1 in 0.2 s — cost if wrong: up to 3 extra fast attempts on table failures.
+- Task 6: Ruling: added _iso_engine.repair (re-evaluate unresolved/timeout points in place, records marked repaired=True, pass logged with source hashes) instead of a full --restart rerun — cost: payload mixes two evaluator versions for 9 points, logged explicitly.
+- Task 6: Ruling: boundary_curves(extra_rays=mesh boundaries) so polygons have exact vertices on every mesh ray — chords of a coarse curve put f=0.99999 points on the gray side — cost: none.
+- Task 7: Ruling: angular refinement 41 -> 81 rays after the first figures (kinks); seeded the 81-ray run from the 41-ray payloads (engine.run seed_from; identical (x,T) points copied with records/profiles) — 1146 numerical / 1150 analytic points reused — cost: none.
+- Task 7: Ruling: run identity narrowed to result-affecting sources (phase_velocity.py, _iso_common, _iso_boundaries, _iso_evaluate); seeding requires matching solver hash + physics/settings/method — engine/plot edits no longer invalidate data — cost if wrong: an unlisted module that changes results would not force a rerun.
+- Task 7: Ruling: ray-boundary cache per angle, keyed on phase_velocity.py + _iso_boundaries.py hashes and physical constants — cost: none.
+- Task 6: Ruling: kinks persisted at 81 rays => radial, not angular; added display-only radial refinement (PCHIP of log10 v in u=-ln(1-f) within runs of accepted points, upsample 8) — failures stay holes, nothing extrapolated; placement checked against direct roots in verify_highT.py — cost if wrong: interpolation error in drawn contours, bounded by the verification.
+- Task 6: Ruling: method legends moved to 'upper left' (empty udd-favored strip above ~95 MeV) — lower-left would cover the low-T contours in phase 2 — cost: none. Inline contour labels 16 pt (user instruction).
+- Task 6: Ruling: draw_contours clip box limited to the axis limits — an unbounded clip box made the inline (tight bbox) renderer request a 7.7e9-pixel canvas.
+- Phase 2: Ruling: low-T rows = the 40 cached boundary rows geomspace(0.01,10,40) instead of 31 — their exact coexistence/udd roots already exist (no new boundary solves) and the T resolution is finer — cost: ~30% more points.
+- Phase 2: Ruling: per-row fraction columns (Cartesian in (f, log10 T)) with inner decades down to 1e-5 and outer to 1-1e-4 — boundaries move with T, fixed n_B columns would land in the gray region on some rows — cost: x columns not shared between rows (contouring handles a curvilinear grid).
+- Phase 2: Ruling: the 2 interior holes stay holes (no relaxed acceptance, no unapproved solver change) — they may interrupt the 5e5/1e6 m/s numerical contours on a few rows — cost if wrong: two missing points at the top levels.
+- Final: Ruling: boundary cache key widened to all RMFsolver/*.py + library versions (consistency with identity) — forces a deterministic rebuild of ray-boundaries.npy/boundary-curves.npz (old copies in session scratchpad) — cost if wrong: ~10 min recompute.
+- Final: Ruling: reviewer #5 (solver edit [v4.9.6] contradicts plan constraint 'No RMFsolver/ edits'; jB_estimate also moves the auto-mode shoot-first decision) — not reverted; needs explicit user sign-off — cost if wrong: revert 5b5ae549 and rerun near-udd points.
+- Final: Ruling: reviewer 'Ruling 7 not done' — added highT/verify_saved_domain.py (all 24 saved rays, criterion 1e-3): worst |drho| 2.5e-5, passed.
+
+### Deferred minors (final review)
+
+- two-attempt cap wording — one 600-node retry then table failures allows up to 5 attempts.
+- verify_highT/verify_lowT 'worst' uses max/nanmax, hiding NaN entries.
+- coverage() reports above_outer_column when outer columns are unresolved holes.
+- timeout records drop x/T/method and earlier diagnostics; not marked repaired.
+- no payload lock against concurrent run + repair.
+- polar mesh fingerprint omits T_max.
+- _iso_xi effective_xi/fit_xi skip mesh-fingerprint check; _ray_crossings compresses holes; contour objective needs mesh['rho'] (fails on row mesh).
+- notebook builder checks identity only for high T, ignores -restartN payloads, COMPARISON cell crashes with numerical-only low-T.
+
+### Fixed after the final review
+
+- NaN acceptance hole (max()/'>' let NaN through) — test_acceptance_rejects_nonfinite_metrics RED→GREEN; shipped payloads: 0 accepted points with non-finite stored metrics.
+- stale boundary-curves.npz read without key check (row mesh, gray polygons) — test_stale_boundary_curves_are_refused RED→GREEN.
+- repair mixing solver versions + identity too narrow — engine._compatible (all RMFsolver/*.py recorded in identity, numpy/scipy versions; legacy payloads compared on what they recorded), repair(force=False) refuses — tests test_repair_refuses_a_payload_from_another_solver, test_identity_covers_eos_modules_and_library_versions, test_seed_refuses_a_changed_eos_module RED→GREEN.
+- worker crash aborting the run (EOFError on recv) — dead worker's point recorded unresolved with exit code, slot respawned — test_worker_crash_is_recorded_and_run_continues RED→GREEN. Full module 46/46.
