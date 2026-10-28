@@ -38,4 +38,4 @@ export PYTHONPATH=local_analysis_results/26-10-02/runtime/scipy-1.18.1-cpython-3
 
 ## Results
 
-Filled in after production; see the wiki page `methods/isothermal-highT-polar-contours`.
+Numerical 2282/2291 accepted (9 unresolved, all at $f\ge0.9999$); analytical 2291/2291. Verification in `verify_highT.json`. Details: wiki page `methods/isothermal-contours-polar-and-row-meshes`.

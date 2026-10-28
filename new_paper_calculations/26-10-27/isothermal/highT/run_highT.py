@@ -33,7 +33,7 @@ def parser():
     p.add_argument("--dry-run", action="store_true", help="build the mesh and report counts only")
     p.add_argument("--restart", action="store_true", help="new suffixed payload if the identity changed")
     p.add_argument("--repair", action="store_true",
-                   help="re-evaluate only unresolved/timeout points in place with the current code")
+                   help="re-evaluate unresolved/timeout points in place (standard attempts + documented variants)")
     p.add_argument("--seed-from", metavar="PATTERN",
                    help="copy finished points with identical (x, T) from earlier payloads, e.g. "
                         "'highT/isothermal-highT-{method}-41rays.npy' (relative to this folder)")
@@ -55,7 +55,8 @@ def main(argv=None):
         started = time.perf_counter()
         path = out / f"isothermal-highT-{method}.npy"
         if args.repair:
-            payload = engine.repair(path, args.workers, timeout_s=TIMEOUT_S[method], progress=True)
+            payload = engine.repair(path, args.workers, evaluator="_iso_evaluate:evaluate_repair",
+                                   timeout_s=TIMEOUT_S[method], progress=True)
         else:
             seed = HERE.parent / args.seed_from.format(method=method) if args.seed_from else None
             payload = engine.run(mesh, path, method, args.workers, timeout_s=TIMEOUT_S[method],

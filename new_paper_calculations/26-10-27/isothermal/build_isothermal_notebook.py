@@ -63,7 +63,16 @@ for level, entry in iso_plot.coverage(numerical_highT, iso_common.LEVELS_HIGH).i
     missing = {}
     for reason in entry["missing"].values():
         missing[reason] = missing.get(reason, 0) + 1
-    print(f"  numerical {level:6g} m/s: bracketed on {len(entry['bracketed'])} rays; missing {missing}")'''
+    print(f"  numerical {level:6g} m/s: bracketed on {len(entry['bracketed'])} rays; missing {missing}")
+
+# Low-temperature row mesh (0.01-10 MeV), drawn below 10 MeV when present.
+low_T_paths = {m: WORKFLOW / f"lowT/isothermal-lowT-{m}.npy" for m in ("numerical", "analytic")}
+numerical_lowT, analytic_lowT = (iso_common.load(p) if p.is_file() else None for p in low_T_paths.values())
+xi_cache_lowT = iso_xi.build_cache(analytic_lowT) if analytic_lowT is not None else None
+for name, payload in (("numerical low T", numerical_lowT), ("analytic low T", analytic_lowT)):
+    if payload is not None:
+        statuses = payload["status"].astype(str)
+        print(f"{name}: { {s: int(np.sum(statuses == s)) for s in np.unique(statuses)} }")'''
 
 
 def style_block(extra):
@@ -79,9 +88,10 @@ STYLE_FROM_GLOBALS = ("style = dict(iso_plot.LINEAR_REFERENCE_STYLE)\n"
                       "              if key.isupper() and key.lower() in style})")
 
 NUMERICAL_FIGURE = style_block([
-    "HIGH_T_CLIP_MEV = 10.0",
+    "HIGH_T_CLIP_MEV = 10.0   # polar mesh above, row mesh below",
     "RADIAL_UPSAMPLE = 8   # display-only PCHIP refinement along rays in -ln(1-f)",
-    'OUTPUT_STEM = "local_analysis_results/26-10-27/isothermal-highT-numerical"',
+    "LOW_T_UPSAMPLE = 8    # display-only PCHIP refinement along rows in logit(f)",
+    'OUTPUT_STEM = "local_analysis_results/26-10-27/isothermal-numerical-linear"',
 ]) + "\n\n" + STYLE_FROM_GLOBALS + r'''
 
 figure, axis, rc = iso_plot.new_axes(style)
@@ -89,6 +99,11 @@ with mpl.rc_context(rc):
     iso_plot.draw_background(axis, boundary_curves, style)
     iso_plot.draw_contours(axis, numerical_highT, T_range=(HIGH_T_CLIP_MEV, np.inf), style=style,
                            radial_upsample=RADIAL_UPSAMPLE)
+    if numerical_lowT is not None:
+        iso_plot.draw_row_contours(axis, numerical_lowT, VELOCITY_CONTOUR_LEVELS_M_S, VELOCITY_CONTOUR_COLORS,
+                                   VELOCITY_CONTOUR_LINE_STYLE, VELOCITY_CONTOUR_LINE_WIDTH, CONTOUR_ZORDER,
+                                   T_range=(Y_LIMITS_MEV[0], HIGH_T_CLIP_MEV), x_limits=X_LIMITS,
+                                   radial_upsample=LOW_T_UPSAMPLE)
     iso_plot.finish_axes(axis, style)
     iso_plot.export(figure, ROOT / OUTPUT_STEM, style)
     plt.show()'''
@@ -103,7 +118,8 @@ COMPARISON_FIGURE = style_block([
     "LEGEND_LOCATION = 'upper left'",   # empty udd-favored strip above ~95 MeV
     "LEGEND_FONT_SIZE = 16",
     "LEGEND_HANDLE_COLOR = '0.15'",
-    'OUTPUT_STEM = "local_analysis_results/26-10-27/isothermal-highT-comparison"',
+    "LOW_T_UPSAMPLE = 8    # display-only PCHIP refinement along rows in logit(f)",
+    'OUTPUT_STEM = "local_analysis_results/26-10-27/isothermal-comparison-linear"',
 ]) + "\n\n" + STYLE_FROM_GLOBALS + r'''
 analytic_retuned = dict(analytic_highT, speed_m_s=iso_xi.retune(xi_cache_highT, XI))
 
@@ -115,6 +131,13 @@ with mpl.rc_context(rc):
     iso_plot.draw_contours(axis, analytic_retuned, T_range=(HIGH_T_CLIP_MEV, np.inf), style=style,
                            line_style=ANALYTICAL_LINE_STYLE, label=False,
                            radial_upsample=RADIAL_UPSAMPLE)
+    if numerical_lowT is not None:
+        analytic_lowT_retuned = dict(analytic_lowT, speed_m_s=iso_xi.retune(xi_cache_lowT, XI))
+        for payload, line_style in ((numerical_lowT, NUMERICAL_LINE_STYLE), (analytic_lowT_retuned, ANALYTICAL_LINE_STYLE)):
+            iso_plot.draw_row_contours(axis, payload, VELOCITY_CONTOUR_LEVELS_M_S, VELOCITY_CONTOUR_COLORS,
+                                       line_style, VELOCITY_CONTOUR_LINE_WIDTH, CONTOUR_ZORDER,
+                                       T_range=(Y_LIMITS_MEV[0], HIGH_T_CLIP_MEV), x_limits=X_LIMITS,
+                                       radial_upsample=LOW_T_UPSAMPLE)
     iso_plot.method_legend(axis, [("Numerical", NUMERICAL_LINE_STYLE),
                                   (rf"Analytical, $\xi={XI:g}$", ANALYTICAL_LINE_STYLE)],
                            font_size=LEGEND_FONT_SIZE, location=LEGEND_LOCATION, color=LEGEND_HANDLE_COLOR,
@@ -156,6 +179,37 @@ with mpl.rc_context(rc):
     plt.show()'''
 
 
+LOW_T_MARKDOWN = r"""## Low temperature (0.01–10 MeV), logarithmic axis
+
+Row mesh: on each of the 40 logarithmic rows, $n_B=x_{\rm in}(T)+f\,[x_{\rm out}(T)-x_{\rm in}(T)]$ strictly between that row's coexistence and udd roots, with $f$ from $10^{-5}$ to $1-10^{-4}$. Contours are computed in $(n_B,\log_{10}T)$, numerical solid and analytical dashed. The styling follows `26-10-02.ipynb` cell 8; the upper limit is now 10 MeV."""
+
+LOG_FIGURE = "\n".join(["# Tunable plotting parameters"] + [
+    f"{key.upper()} = {value!r}" for key, value in _iso_plot.LOG_REFERENCE_STYLE.items()] + [
+    "XI = -0.85",
+    "LOW_T_UPSAMPLE = 8    # display-only PCHIP refinement along rows in logit(f)",
+    'OUTPUT_DIRECTORY = "local_analysis_results/26-10-27"',
+]) + r'''
+
+log_style = dict(iso_plot.LOG_REFERENCE_STYLE)
+log_style.update({key.lower(): value for key, value in list(globals().items())
+                  if key.isupper() and key.lower() in log_style})
+analytic_lowT_retuned = dict(analytic_lowT, speed_m_s=iso_xi.retune(xi_cache_lowT, XI))
+lines = {}
+for name, payload in (("numerical", numerical_lowT), ("analytic", analytic_lowT_retuned)):
+    x, T, logv = iso_plot.contour_arrays(payload, LOW_T_UPSAMPLE, "logit")
+    lines[name] = iso_plot.contour_lines(x, T, logv, CONTOUR_LEVELS, log_T=True)
+
+with plt.rc_context({"font.family": FONT_FAMILY, "mathtext.fontset": MATH_FONT_SET, "text.usetex": USE_TEX}):
+    figure, axis = plt.subplots(figsize=FIGURE_SIZE, dpi=FIGURE_DPI, constrained_layout=CONSTRAINED_LAYOUT,
+                                facecolor=BACKGROUND_COLOR)
+    axis.set_facecolor(BACKGROUND_COLOR)
+    iso_plot.draw_log_reference(axis, boundary_curves, lines["numerical"], lines["analytic"], XI, log_style)
+    for extension in ("png", "pdf"):
+        figure.savefig(ROOT / OUTPUT_DIRECTORY / f"{EXPORT_STEM}.{extension}", dpi=EXPORT_DPI,
+                       facecolor=BACKGROUND_COLOR)
+    plt.show()'''
+
+
 def main():
     if NOTEBOOK.exists():
         notebook = nbformat.read(NOTEBOOK, as_version=4)
@@ -167,6 +221,8 @@ def main():
     new = [nbformat.v4.new_markdown_cell(MARKDOWN)] + [
         nbformat.v4.new_code_cell(source) for source in (LOAD, NUMERICAL_FIGURE, COMPARISON_FIGURE,
                                                           OLD_VS_NEW_FIGURE)]
+    if all((HERE / f"lowT/isothermal-lowT-{m}.npy").is_file() for m in ("numerical", "analytic")):
+        new += [nbformat.v4.new_markdown_cell(LOW_T_MARKDOWN), nbformat.v4.new_code_cell(LOG_FIGURE)]
     for cell in new:
         cell.metadata["tags"] = [TAG]
     notebook.cells = new + notebook.cells

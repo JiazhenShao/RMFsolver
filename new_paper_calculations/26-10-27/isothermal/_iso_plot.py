@@ -7,6 +7,7 @@ wherever a point is not accepted, so no curve is drawn through a failure.
 """
 from pathlib import Path
 
+import contourpy
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
@@ -68,14 +69,118 @@ LINEAR_REFERENCE_STYLE = dict(
 )
 FONT_RULE_KEYS = ("contour_label_font_size",)   # 11 pt in the reference, >= 16 pt here
 
+# 26-10-02.ipynb cell 8 ("Isothermal u(0^-)", log T); overrides are listed below.
+LOG_REFERENCE_STYLE = dict(
+    contour_levels=(50., 100., 200., 500., 1000., 2000., 5000., 10000., 20000., 50000., 100000.,
+                    200000., 500000., 1000000.),
+    contour_colors=('#1f77b4', '#17becf', '#ff7f0e', '#8c6d31', '#2ca02c', '#d62728', '#9467bd',
+                    '#e377c2', '#008b8b', '#7a8800', '#252525', '#aa3377', '#5c7291', '#1b5e20'),
+    figure_size=(7.2, 7.2), figure_dpi=160, export_dpi=220, constrained_layout=True,
+    background_color='white', font_family='DejaVu Sans', math_font_set='cm', use_tex=False,
+    box_aspect=1., x_limits=(1., 5.5), y_limits=(.01, 10.), x_scale='linear', y_scale='log',
+    x_ticks=(1., 2., 3., 4., 5.), y_ticks=(.01, .1, 1., 10.), y_tick_labels=('0.01', '0.1', '1', '10'),
+    title=r'Isothermal $u(0^-)$ [$\mathrm{m\,s^{-1}}$]', title_font_size=20, title_pad=8,
+    x_label=r'$n_B(0^-)/n_0$', y_label=r'$T(0^-)$ [MeV]', axis_label_font_size=18, tick_label_font_size=18,
+    tick_direction='in', ticks_top=True, ticks_right=True, tick_length=4, tick_width=.9,
+    spine_line_width=.8, analytical_line_style='--', numerical_line_style='-', line_width=1.8,
+    analytical_zorder=4, numerical_zorder=3, numerical_split_temperature=20., numerical_marker='o',
+    marker_size=19., marker_edge_color='white', marker_edge_width=.35, marker_alpha=1., marker_zorder=5,
+    isolated_analytical_marker='x', isolated_analytical_size=15., label_curves=False,
+    contour_label_font_size=16, contour_label_format='%g', contour_label_inline=True,
+    contour_label_inline_spacing=4, contour_label_background_color='white',
+    contour_label_background_alpha=.92, contour_label_background_pad=.12,
+    contour_label_background_style='round', contour_label_edge_color='none', contour_label_zorder=6,
+    label_temperatures={50.: 44., 100.: 50., 200.: 57., 500.: 53., 1000.: 43., 2000.: 31., 5000.: 25.},
+    excluded_region_color='0.72', excluded_region_alpha=1., excluded_region_zorder=0,
+    inner_region_text='Stable Neutron\nMatter', inner_region_position=(1.12, 0.3),
+    outer_region_text=r'$a(0^+)\geq1$', outer_region_position=(5.345, 0.012), outer_region_rotation=90,
+    region_text_color='0.12', region_text_font_size=18, region_text_zorder=6,
+    legend_location='upper left', legend_font_size=16, legend_handle_length=1.0,
+    legend_border_axes_pad=0.25, legend_frame_alpha=.94, legend_face_color='white',
+    legend_edge_color='0.8', legend_handle_color='0.15', legend_marker_size=5.,
+    show_speed_legend=True, speed_legend_location='lower left', speed_legend_title=r'$u(0^-)$ [m s$^{-1}$]',
+    speed_legend_font_size=16, speed_legend_columns=2, speed_legend_anchor=(.005, .005),
+    speed_legend_handle_length=1.3, speed_legend_column_spacing=0.7, speed_legend_handle_text_pad=0.4,
+    speed_legend_label_spacing=0.3,
+    speed_labels=('50', '100', '200', '500', '1k', '2k', '5k', '10k', '20k', '50k', '100k', '200k', '500k', '1M'),
+    show_grid=False, export_stem='isothermal-lowT-logT',
+)
+# Changed from the reference: the upper T limit is 10 MeV (user), so the y
+# ticks/labels follow and the a(0+)>=1 label moves into the narrow udd strip;
+# legend and label fonts follow the >= 16 pt rule, with compact legend spacing and
+# the method legend moved to the upper left so both stay inside the gray region;
+# cold numerics now converge,
+# so numerical results are solid lines everywhere (no T < 20 MeV dots).
+LOG_STYLE_OVERRIDES = ("y_limits", "y_ticks", "y_tick_labels", "outer_region_position",
+                       "inner_region_position", "legend_location", "speed_legend_anchor",
+                       "contour_label_font_size", "legend_font_size", "speed_legend_font_size",
+                       "export_stem")
 
-def contour_arrays(payload, radial_upsample=1):
+
+def draw_log_reference(axis, curves, numerical_lines, analytic_lines, xi, style=LOG_REFERENCE_STYLE):
+    """Log-T comparison in the 26-10-02 cell 8 style: numerical solid, analytic dashed, two legends."""
+    for polygon in gray_polygons(curves, style["x_limits"], style["y_limits"]).values():
+        axis.fill(polygon[:, 0], polygon[:, 1], color=style["excluded_region_color"],
+                  alpha=style["excluded_region_alpha"], zorder=style["excluded_region_zorder"])
+    colors = dict(zip(style["contour_levels"], style["contour_colors"]))
+    for lines, line_style, zorder in ((analytic_lines, style["analytical_line_style"], style["analytical_zorder"]),
+                                      (numerical_lines, style["numerical_line_style"], style["numerical_zorder"])):
+        draw_lines(axis, lines, [colors[level] for level in lines], line_style, style["line_width"], zorder)
+    axis.set(xlim=style["x_limits"], ylim=style["y_limits"], xscale=style["x_scale"], yscale=style["y_scale"])
+    axis.set_xticks(style["x_ticks"])
+    axis.set_yticks(style["y_ticks"], labels=style["y_tick_labels"])
+    axis.set_box_aspect(style["box_aspect"])
+    axis.text(*style["inner_region_position"], style["inner_region_text"], color=style["region_text_color"],
+              fontsize=style["region_text_font_size"], zorder=style["region_text_zorder"])
+    axis.text(*style["outer_region_position"], style["outer_region_text"], color=style["region_text_color"],
+              fontsize=style["region_text_font_size"], zorder=style["region_text_zorder"],
+              rotation=style["outer_region_rotation"], va="bottom")
+    axis.set_xlabel(style["x_label"], fontsize=style["axis_label_font_size"])
+    axis.set_ylabel(style["y_label"], fontsize=style["axis_label_font_size"])
+    axis.set_title(style["title"], fontsize=style["title_font_size"], pad=style["title_pad"])
+    axis.tick_params(direction=style["tick_direction"], top=style["ticks_top"], right=style["ticks_right"],
+                     length=style["tick_length"], width=style["tick_width"],
+                     labelsize=style["tick_label_font_size"])
+    for spine in axis.spines.values():
+        spine.set_linewidth(style["spine_line_width"])
+    axis.grid(style["show_grid"])
+    method = axis.legend(handles=[
+        Line2D([], [], color=style["legend_handle_color"], linestyle=style["analytical_line_style"],
+               linewidth=style["line_width"], label=rf"Analytical, $\xi={xi:g}$"),
+        Line2D([], [], color=style["legend_handle_color"], linestyle=style["numerical_line_style"],
+               linewidth=style["line_width"], label="Numerical")],
+        loc=style["legend_location"], fontsize=style["legend_font_size"], framealpha=style["legend_frame_alpha"],
+        handlelength=style["legend_handle_length"], borderaxespad=style["legend_border_axes_pad"],
+        facecolor=style["legend_face_color"], edgecolor=style["legend_edge_color"])
+    if style["show_speed_legend"]:
+        axis.add_artist(method)
+        axis.legend(handles=[Line2D([], [], color=color, linestyle=style["analytical_line_style"],
+                                    linewidth=style["line_width"], label=label)
+                             for label, color in zip(style["speed_labels"], style["contour_colors"])],
+                    loc=style["speed_legend_location"], title=style["speed_legend_title"],
+                    ncols=style["speed_legend_columns"], bbox_to_anchor=style["speed_legend_anchor"],
+                    fontsize=style["speed_legend_font_size"], title_fontsize=style["speed_legend_font_size"],
+                    handlelength=style["speed_legend_handle_length"],
+                    columnspacing=style["speed_legend_column_spacing"],
+                    handletextpad=style["speed_legend_handle_text_pad"],
+                    labelspacing=style["speed_legend_label_spacing"],
+                    framealpha=style["legend_frame_alpha"], facecolor=style["legend_face_color"],
+                    edgecolor=style["legend_edge_color"])
+
+
+RADIAL_VARIABLES = {   # u(f) and its inverse for display refinement along a ray or row
+    "log1m": (lambda f: -np.log1p(-f), lambda u: -np.expm1(-u)),          # udd end: v ~ (1-f)^(-1/2)
+    "logit": (lambda f: np.log(f / (1 - f)), lambda u: 1 / (1 + np.exp(-u))),   # both ends
+}
+
+
+def contour_arrays(payload, radial_upsample=1, radial_variable="log1m"):
     """(x, T, log10 v) on the mesh; v masked wherever the point is not accepted.
 
-    radial_upsample > 1 refines each ray for display: log10 v is interpolated
-    monotonically (PCHIP) in u = -ln(1 - f), in which it is nearly linear next
-    to the udd boundary (v ~ (1-A)^(-1/2)), only within runs of consecutive
-    accepted points, so failures stay holes and nothing is extrapolated.
+    radial_upsample > 1 refines each ray (polar mesh) or row (row mesh) for
+    display: log10 v is interpolated monotonically (PCHIP) in u(f), in which it
+    is nearly linear at the boundaries, only within runs of consecutive accepted
+    points, so failures stay holes and nothing is extrapolated.
     """
     mesh = payload["mesh"]
     speed = np.asarray(payload["speed_m_s"], dtype=float)
@@ -84,15 +189,21 @@ def contour_arrays(payload, radial_upsample=1):
     if radial_upsample <= 1:
         return (np.asarray(mesh["x"], dtype=float), np.asarray(mesh["T"], dtype=float),
                 np.ma.masked_invalid(logv))
-    u = -np.log1p(-np.asarray(mesh["fractions"], dtype=float))
+    forward, inverse = RADIAL_VARIABLES[radial_variable]
+    u = forward(np.asarray(mesh["fractions"], dtype=float))
     fine_u = np.concatenate([np.linspace(u[k], u[k + 1], radial_upsample + 1)[:-1]
                              for k in range(len(u) - 1)] + [u[-1:]])
-    fine_f = -np.expm1(-fine_u)
-    inner = np.array([b["rho_inner"] for b in mesh["boundaries"]])[:, None]
-    outer = np.array([b["rho_outer"] for b in mesh["boundaries"]])[:, None]
-    rho = inner + fine_f[None, :] * (outer - inner)
-    x, T = common.to_physical(rho, np.broadcast_to(np.asarray(mesh["theta"])[:, None], rho.shape))
-    fine = np.full(rho.shape, np.nan)
+    fine_f = inverse(fine_u)
+    if mesh.get("kind") == "rows":
+        inner, outer = mesh["x_inner"][:, None], mesh["x_outer"][:, None]
+        x = inner + fine_f[None, :] * (outer - inner)
+        T = np.broadcast_to(mesh["T_rows"][:, None], x.shape)
+    else:
+        inner = np.array([b["rho_inner"] for b in mesh["boundaries"]])[:, None]
+        outer = np.array([b["rho_outer"] for b in mesh["boundaries"]])[:, None]
+        rho = inner + fine_f[None, :] * (outer - inner)
+        x, T = common.to_physical(rho, np.broadcast_to(np.asarray(mesh["theta"])[:, None], rho.shape))
+    fine = np.full(np.shape(x), np.nan)
     for i, row in enumerate(logv):
         good = np.flatnonzero(np.isfinite(row))
         for run in np.split(good, np.flatnonzero(np.diff(good) > 1) + 1):
@@ -101,6 +212,39 @@ def contour_arrays(payload, radial_upsample=1):
             inside = (fine_u >= u[run[0]]) & (fine_u <= u[run[-1]])
             fine[i, inside] = PchipInterpolator(u[run], row[run])(fine_u[inside])
     return np.asarray(x), np.asarray(T), np.ma.masked_invalid(fine)
+
+
+def contour_lines(x, T, logv, levels, log_T=False):
+    """{level: [N x 2 (x, T) arrays]} from the masked grid; log_T contours in log10 T."""
+    y = np.log10(T) if log_T else np.asarray(T, dtype=float)
+    generator = contourpy.contour_generator(np.asarray(x, dtype=float), y, np.ma.masked_invalid(logv),
+                                            line_type=contourpy.LineType.Separate)
+    lines = {}
+    for level in levels:
+        segments = [s for s in generator.lines(np.log10(level)) if len(s) > 1]
+        lines[float(level)] = [np.column_stack([s[:, 0], 10 ** s[:, 1]]) if log_T else s
+                               for s in segments]
+    return lines
+
+
+def draw_lines(axis, lines, colors, line_style, line_width, zorder, T_range=None, x_limits=None):
+    """Plot contour_lines output, clipped to T_range inside the axes."""
+    for (level, segments), color in zip(lines.items(), colors):
+        for segment in segments:
+            (artist,) = axis.plot(segment[:, 0], segment[:, 1], color=color, linestyle=line_style,
+                                  linewidth=line_width, zorder=zorder)
+            if T_range is not None:
+                x0, x1 = x_limits
+                artist.set_clip_path(Rectangle((x0, T_range[0]), x1 - x0, T_range[1] - T_range[0],
+                                               transform=axis.transData))
+
+
+def draw_row_contours(axis, payload, levels, colors, line_style, line_width, zorder, T_range, x_limits,
+                      radial_upsample=8):
+    """Row-mesh contours computed in log10 T (logit-f refinement), clipped to T_range."""
+    x, T, logv = contour_arrays(payload, radial_upsample, "logit")
+    draw_lines(axis, contour_lines(x, T, logv, levels, log_T=True), colors, line_style, line_width,
+               zorder, T_range, x_limits)
 
 
 def coverage(payload, levels):

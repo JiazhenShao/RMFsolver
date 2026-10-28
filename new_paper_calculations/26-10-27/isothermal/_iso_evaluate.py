@@ -101,9 +101,10 @@ def _resampled_profile(result):
     return {key: np.interp(grid, s, np.asarray(result[key], dtype=float)) for key in PROFILE_FIELDS}
 
 
-def _numerical(x, T):
+def _numerical(x, T, overrides=None):
     record = _base("numerical", x, T)
-    settings = dict(common.NUMERICAL)
+    settings = dict(common.NUMERICAL, **(overrides or {}))
+    base_path_rtol = settings["path_rtol"]
     ladder, mesh_retry_used, reason = iter(TABLE_LADDER), False, ""
     while True:
         record["attempts"] += 1
@@ -125,7 +126,7 @@ def _numerical(x, T):
         # adiabatic contour wrapper; any other failure gets one 600-node retry.
         factor = next(ladder, None) if message == TABLE_FAILURE else None
         if factor is not None:
-            settings["path_rtol"] = common.NUMERICAL["path_rtol"] * factor
+            settings["path_rtol"] = base_path_rtol * factor
         elif message != TABLE_FAILURE and not mesh_retry_used:
             mesh_retry_used, settings["n_mesh"] = True, 600
         else:
@@ -140,6 +141,26 @@ def _numerical(x, T):
                   n_mesh_used=settings["n_mesh"], path_rtol_used=settings["path_rtol"])
     _profile_integrals(record, result)
     return record, _resampled_profile(result)
+
+
+REPAIR_VARIANTS = (dict(initial_guess_mode="shooting", path_rtol=2e-7), dict(tol_bvp=2e-5), dict(n_mesh=1200))
+
+
+def evaluate_repair(method, x, T):
+    """Repair passes only: the standard attempts, then documented solver variants in order.
+
+    Same acceptance rules; the record names the variant that succeeded.
+    """
+    record, profile = evaluate(method, x, T)
+    if record["accepted"] or method != "numerical" or record["status"] == "boundary_roundoff":
+        return record, profile
+    attempts = record["attempts"]
+    for variant in REPAIR_VARIANTS:
+        trial, trial_profile = _numerical(float(x), float(T), variant)
+        attempts += trial["attempts"]
+        if trial["accepted"]:
+            return dict(trial, attempts=attempts, repair_variant=variant), trial_profile
+    return dict(record, attempts=attempts, repair_variants_tried=list(REPAIR_VARIANTS)), None
 
 
 def evaluate(method, x, T):

@@ -1,7 +1,7 @@
 ---
 summary: Catalog of every wiki page. Read this first; drill down from here.
 status: current
-updated: 2026-10-26
+updated: 2026-10-28
 tags: [meta, index]
 ---
 
@@ -64,6 +64,8 @@ The nuclear→quark combustion front project. **This is the only page loaded by 
 
 ## Methods
 
+- [[isothermal-contours-polar-and-row-meshes]] — Isothermal contours recomputed at [v4.9.6]: polar mesh 8–100 MeV (numerical 2282/2291) and log-T row mesh 0.01–10 MeV (1310/1400); verified placement/seam/tolerance, xi cache for retuning, analytic/numerical 1.2–6.7x at high T but 1.0–1.6x at low T; analytic-recipe choice pending.
+- [[nonrelativistic-isothermal-contours]] — Superseded target-search plan; replaced by the polar and row meshes, keeping its method-aware acceptance rules.
 - [[nonrelativistic-adiabatic-contour]] — Fixed 0.1 MeV slow-front workflow: 540 base points plus 209 numerical extensions complete all 30 rays through 5000 m/s; executed styled and historical-relativistic overlay plots in `26-10-26.ipynb`.
 - [[cold-adiabatic-analytical-contours]] — Corrected exact-cold analytical scan: 61 rays and all seven levels through 5000 m/s; notebook and combined plotting data refreshed with method-specific provenance, preserving semi-analytical and numerical results.
 - [[notebook-trajectory-figures]] — Matched trajectories and the four-panel `boundary_schematic_real.pdf` export with a 40:60 phase split, negative-position ticks, and body-text-sized fonts.

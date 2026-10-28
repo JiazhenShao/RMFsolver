@@ -189,6 +189,20 @@ class EvaluationTests(unittest.TestCase):
         np.testing.assert_allclose(calls, [1e-6, 5e-7, 2e-7, 1e-7])
         self.assertEqual(record["path_rtol_used"], 1e-7)
 
+    def test_repair_variants_follow_the_standard_attempts(self):
+        good = self.numerical_once()
+        calls = []
+        def picky(*args, **kwargs):
+            calls.append(kwargs)
+            if kwargs.get("initial_guess_mode") == "shooting" and kwargs["path_rtol"] == 2e-7:
+                return good
+            return dict(success=False, status="profile_rejected", message="BVP left the physical monotone path")
+        with patch.object(pv, "solve_front_isothermal_slow", side_effect=picky):
+            record, _ = self.evaluation.evaluate_repair("numerical", 3.5, 10.0)
+        self.assertEqual(record["status"], "accepted")
+        self.assertEqual(record["repair_variant"], dict(initial_guess_mode="shooting", path_rtol=2e-7))
+        self.assertEqual(len(calls), 3)   # standard attempt, 600-node retry, first variant
+
     def test_two_attempt_cap(self):
         calls = []
         def failing(*args, **kwargs):
@@ -456,6 +470,78 @@ class PlotTests(unittest.TestCase):
                     self.assertEqual(style[key], value)
         self.assertGreaterEqual(compared, 30)
         self.assertGreaterEqual(style["contour_label_font_size"], 16)
+
+
+class LowTTests(unittest.TestCase):
+    def test_row_mesh_is_strictly_inside_each_row_window(self):
+        sys.path.insert(0, str(WORKFLOW / "lowT"))
+        import row_mesh
+        mesh = row_mesh.build_mesh()
+        self.assertEqual(mesh["kind"], "rows")
+        self.assertEqual(mesh["x"].shape, (40, len(row_mesh.FRACTIONS)))
+        np.testing.assert_allclose(mesh["T_rows"], np.geomspace(0.01, 10.0, 40))
+        self.assertTrue(np.all(mesh["x"] > mesh["x_inner"][:, None]))
+        self.assertTrue(np.all(mesh["x"] < mesh["x_outer"][:, None]))
+        self.assertTrue(np.all(mesh["point_status"] == "pending"))
+        self.assertTrue(np.all((2.8 < mesh["x_inner"]) & (mesh["x_inner"] < 3.0)))
+        self.assertTrue(np.all((5.2 < mesh["x_outer"]) & (mesh["x_outer"] < 5.35)))
+
+    def rows_payload(self):
+        fractions = np.array([1e-4, 1e-3, 0.1, 0.5, 0.9, 0.999])
+        T_rows = np.array([0.01, 0.1, 1.0])
+        inner, outer = np.array([2.99, 2.98, 2.95]), np.array([5.30, 5.29, 5.27])
+        x = inner[:, None] + fractions[None, :] * (outer - inner)[:, None]
+        logit = np.log(fractions / (1 - fractions))
+        speed = np.broadcast_to(10 ** (3 + 0.25 * logit), x.shape).copy()
+        mesh = dict(kind="rows", T_rows=T_rows, x_inner=inner, x_outer=outer, fractions=fractions, x=x,
+                    T=np.broadcast_to(T_rows[:, None], x.shape).copy(), point_status=np.full(x.shape, "pending", dtype=object),
+                    fingerprint="rows")
+        return dict(mesh=mesh, status=np.full(x.shape, "accepted", dtype=object), speed_m_s=speed)
+
+    def test_logit_upsampling_is_exact_for_linear_logv_in_logit(self):
+        import _iso_plot as plot
+        payload = self.rows_payload()
+        x, T, logv = plot.contour_arrays(payload, radial_upsample=4, radial_variable="logit")
+        f = (x - payload["mesh"]["x_inner"][:, None]) / (payload["mesh"]["x_outer"] - payload["mesh"]["x_inner"])[:, None]
+        np.testing.assert_allclose(logv, 3 + 0.25 * np.log(f / (1 - f)), atol=1e-10)
+        np.testing.assert_array_equal(T[:, 0], payload["mesh"]["T_rows"])
+
+    def test_contour_lines_in_log_T_follow_the_level(self):
+        import _iso_plot as plot
+        x, T, logv = plot.contour_arrays(self.rows_payload(), radial_upsample=4, radial_variable="logit")
+        lines = plot.contour_lines(x, T, logv, levels=(1000.0,), log_T=True)
+        vertices = np.vstack(lines[1000.0])
+        self.assertTrue(np.all((vertices[:, 1] >= 0.01 - 1e-12) & (vertices[:, 1] <= 1.0 + 1e-12)))
+        expected = np.interp(vertices[:, 1], [0.01, 0.1, 1.0], [2.99 + 0.5 * 2.31, 2.98 + 0.5 * 2.31, 2.95 + 0.5 * 2.32])
+        np.testing.assert_allclose(vertices[:, 0], expected, atol=0.02)
+
+    def test_log_style_matches_reference_values(self):
+        import ast
+        import subprocess
+        import _iso_plot as plot
+        source = subprocess.run([sys.executable, str(ROOT / ".claude/tools/nbsrc.py"),
+                                 str(ROOT / "26-10-02.ipynb"), "-c", "8"],
+                                capture_output=True, text=True, check=True).stdout
+        reference = {}
+        for line in source.splitlines():
+            if " = " in line and line.split(" = ")[0].isupper():
+                name, value = line.split(" = ", 1)
+                try:
+                    reference[name.lower()] = ast.literal_eval(value)
+                except (ValueError, SyntaxError):
+                    pass
+        style = plot.LOG_REFERENCE_STYLE
+        compared = 0
+        for key, value in reference.items():
+            if key in plot.LOG_STYLE_OVERRIDES or key not in style:
+                continue
+            compared += 1
+            with self.subTest(key=key):
+                self.assertEqual(style[key], value)
+        self.assertGreaterEqual(compared, 40)
+        self.assertEqual(style["y_limits"], (0.01, 10.0))
+        for key in ("legend_font_size", "speed_legend_font_size"):
+            self.assertGreaterEqual(style[key], 16)
 
 
 if __name__ == "__main__":
