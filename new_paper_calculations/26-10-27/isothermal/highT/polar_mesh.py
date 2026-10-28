@@ -29,14 +29,12 @@ def _boundary_key(theta):
 
 def ray_boundaries_cached(theta, workers):
     """Solve (or reuse) both boundary radii on every ray; keyed by sources and angles."""
-    key = _boundary_key(theta)
-    if CACHE.is_file():
-        cached = common.load(CACHE)
-        if cached["key"] == key:
-            return cached["rays"]
-    rays = common.map_parallel(boundaries.ray_boundaries, theta, workers)
-    common.atomic_save(CACHE, dict(key=key, rays=rays))
-    return rays
+    key = repr(sorted(_boundary_key(theta).items()))
+    cache = common.load(CACHE) if CACHE.is_file() else {}
+    if key not in cache:
+        cache[key] = common.map_parallel(boundaries.ray_boundaries, theta, workers)
+        common.atomic_save(CACHE, cache)
+    return cache[key]
 
 
 def lowest_angle(T_min):
@@ -45,9 +43,11 @@ def lowest_angle(T_min):
     return float(common.to_polar(window["outer_root"], T_min)[1])
 
 
-def build_mesh(n_rays=41, fractions=FRACTIONS, T_min=8.0, T_max=100.0, workers=4):
-    theta = np.linspace(lowest_angle(T_min), np.pi / 2, n_rays)
-    theta[-1] = np.pi / 2
+def build_mesh(n_rays=41, fractions=FRACTIONS, T_min=8.0, T_max=100.0, workers=4, theta=None):
+    if theta is None:
+        theta = np.linspace(lowest_angle(T_min), np.pi / 2, n_rays)
+        theta[-1] = np.pi / 2
+    theta = np.asarray(theta, dtype=float)
     rays = ray_boundaries_cached(theta, workers)
     fractions = np.asarray(fractions, dtype=float)
     inner = np.array([r["rho_inner"] for r in rays])[:, None]

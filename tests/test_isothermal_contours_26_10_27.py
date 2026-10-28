@@ -186,5 +186,138 @@ class EvaluationTests(unittest.TestCase):
         self.assertEqual(record["message"], "singular Jacobian")
 
 
+def synthetic_mesh():
+    x = np.array([[1.5, 2.0, 2.5, 3.0], [1.2, 1.4, 1.6, 1.8], [1.0, 1.0, 1.0, 1.0]])
+    T = np.array([[5.0, 9.0, 12.0, 15.0], [30.0, 35.0, 40.0, 45.0], [70.0, 75.0, 80.0, 85.0]])
+    status = np.where(T >= 8.0, "pending", "outside_panel").astype(object)
+    return dict(theta=np.array([0.1, 0.8, np.pi / 2]), fractions=np.array([.1, .4, .7, .9]),
+                x=x, T=T, rho=np.zeros_like(x), point_status=status, boundaries=[],
+                fingerprint="synthetic-test-mesh")
+
+
+class EngineTests(unittest.TestCase):
+    def setUp(self):
+        import tempfile
+        import _iso_engine as engine
+        self.engine = engine
+        self.directory = Path(tempfile.mkdtemp())
+        self.path = self.directory / "payload.npy"
+
+    def run_engine(self, **kwargs):
+        options = dict(mesh=synthetic_mesh(), out_path=self.path, method="numerical", workers=2,
+                       evaluator="tests._iso_fake_evaluator:evaluate", timeout_s=10.0)
+        options.update(kwargs)
+        return self.engine.run(**options)
+
+    def test_run_fills_only_pending_points(self):
+        payload = self.run_engine()
+        pending = synthetic_mesh()["point_status"] == "pending"
+        self.assertTrue(np.all(np.isfinite(payload["speed_m_s"][pending])))
+        self.assertTrue(np.all(np.isnan(payload["speed_m_s"][~pending])))
+        self.assertEqual(payload["new_evaluations"], int(pending.sum()))
+
+    def test_resume_skips_completed_points(self):
+        self.run_engine()
+        self.assertEqual(self.run_engine()["new_evaluations"], 0)
+
+    def test_resume_rejects_changed_identity(self):
+        self.run_engine()
+        with self.assertRaises(RuntimeError):
+            self.run_engine(evaluator="tests._iso_fake_evaluator:slow")
+        payload = self.run_engine(evaluator="tests._iso_fake_evaluator:slow", restart=True,
+                                  timeout_s=3.0)
+        self.assertNotEqual(Path(payload["path"]), self.path)
+        self.assertTrue(Path(payload["path"]).is_file())
+
+    def test_point_timeout_is_recorded_and_others_finish(self):
+        import time
+        started = time.perf_counter()
+        payload = self.run_engine(evaluator="tests._iso_fake_evaluator:slow", timeout_s=3.0)
+        self.assertLess(time.perf_counter() - started, 25.0)
+        self.assertEqual(payload["status"][0, 1], "timeout")
+        self.assertEqual(int(np.sum(payload["status"] == "accepted")), 10)
+
+    def test_profiles_sidecar_matches_accepted_points(self):
+        payload = self.run_engine()
+        files = sorted(p.name for p in Path(payload["profiles_dir"]).glob("*.npz"))
+        accepted = np.argwhere(payload["status"] == "accepted")
+        self.assertEqual(files, sorted(f"{i}_{j}.npz" for i, j in accepted))
+
+
+def small_analytic_payload():
+    """Five real analytic records on a 1x5 'mesh' (no engine needed)."""
+    import _iso_common as common
+    import _iso_evaluate as evaluation
+    points = [(3.2, 10.0), (4.0, 10.0), (2.5, 55.0), (3.8, 40.0), (1.5, 80.0)]
+    records = np.empty((1, len(points)), dtype=object)
+    for j, (x, T) in enumerate(points):
+        records[0, j] = evaluation.evaluate("analytic", x, T)[0]
+    x = np.array([[p[0] for p in points]])
+    T = np.array([[p[1] for p in points]])
+    mesh = dict(x=x, T=T, rho=np.linspace(0.3, 0.7, 5)[None, :], fractions=np.linspace(.1, .9, 5),
+                fingerprint="five-points")
+    status = np.array([[r["status"] for r in records[0]]], dtype=object)
+    return dict(identity=common.identity(method="analytic", mesh="five-points", evaluator="test"),
+                mesh=mesh, records=records, status=status,
+                speed_m_s=np.array([[r["speed_m_s"] for r in records[0]]]))
+
+
+def synthetic_cache(xi_true=0.3):
+    fractions = np.linspace(0.05, 0.95, 19)
+    a = np.tile(0.1 + 0.85 * fractions, (3, 1))
+    I2 = np.full_like(a, 1e-14) * (1 + np.arange(3))[:, None]
+    lam = np.full_like(a, 0.6)
+    rho_in, rho_out = np.array([0.3, 0.35, 0.4])[:, None], np.array([0.9, 0.85, 0.8])[:, None]
+    rho = rho_in + fractions[None, :] * (rho_out - rho_in)
+    return dict(I2=I2, lambda_n=lam, a_0plus=a, accepted=np.ones_like(a, dtype=bool), rho=rho,
+                fractions=fractions, x=1 + rho, T=60 * rho, provenance=dict(phase_velocity_sha256="any"))
+
+
+class XiCacheTests(unittest.TestCase):
+    def test_retuned_grid_matches_direct_analytic(self):
+        import _iso_common as common
+        import _iso_xi as xi_cache
+        payload = small_analytic_payload()
+        cache = xi_cache.build_cache(payload)
+        for xi in (-0.85, -0.4, 0.0, 0.5):
+            speeds = xi_cache.retune(cache, xi)
+            for j in range(5):
+                direct = pv.analytic_velocity_isothermal_slow(
+                    payload["mesh"]["T"][0, j], payload["mesh"]["x"][0, j] * common.N0_MEV3,
+                    common.PHYSICS["B_one_forth"], xi=xi)["velocity_m_s"]
+                with self.subTest(xi=xi, j=j):
+                    self.assertLess(abs(speeds[0, j] / direct - 1), 1e-12)
+
+    def test_retune_rejects_changed_source(self):
+        import _iso_xi as xi_cache
+        cache = synthetic_cache()
+        cache["provenance"]["phase_velocity_sha256"] = "stale"
+        with self.assertRaises(RuntimeError):
+            xi_cache.retune(cache, 0.0, check_source=True)
+        self.assertTrue(np.all(np.isfinite(xi_cache.retune(cache, 0.0, check_source=False))))
+
+    def test_effective_xi_recovers_injected_value(self):
+        import _iso_xi as xi_cache
+        cache = synthetic_cache()
+        numerical = dict(speed_m_s=xi_cache.retune(cache, 0.3, check_source=False))
+        np.testing.assert_allclose(xi_cache.effective_xi(cache, numerical), 0.3, atol=1e-10)
+
+    def test_fit_xi_recovers_injected_value(self):
+        import _iso_xi as xi_cache
+        cache = synthetic_cache()
+        numerical = dict(speed_m_s=xi_cache.retune(cache, 0.3, check_source=False))
+        levels = np.geomspace(np.nanmin(numerical["speed_m_s"]) * 1.5,
+                              np.nanmax(numerical["speed_m_s"]) / 1.5, 5)
+        for objective in ("log_speed", "contour"):
+            with self.subTest(objective=objective):
+                self.assertAlmostEqual(xi_cache.fit_xi(cache, numerical, levels, objective, check_source=False), 0.3, places=4)
+
+    def test_xi_module_imports_no_solver(self):
+        import subprocess
+        code = ("import sys; sys.path.insert(0, %r); import _iso_xi; "
+                "assert 'RMFsolver.phase_velocity' not in sys.modules") % str(WORKFLOW)
+        subprocess.run([sys.executable, "-c", code], check=True)
+
+
 if __name__ == "__main__":
     unittest.main()
