@@ -2,6 +2,7 @@
 import sys
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import numpy as np
 
@@ -100,6 +101,89 @@ class PolarMeshTests(unittest.TestCase):
     def test_ninety_degree_ray_is_n0_edge(self):
         self.assertEqual(self.mesh["theta"][-1], np.pi / 2)
         np.testing.assert_array_equal(self.mesh["x"][-1], 1.0)
+
+
+class EvaluationTests(unittest.TestCase):
+    def setUp(self):
+        import _iso_evaluate as evaluation
+        self.evaluation = evaluation
+
+    def numerical_once(self):
+        if not hasattr(EvaluationTests, "_numerical"):
+            import _iso_common as common
+            EvaluationTests._numerical = pv.solve_front_isothermal_slow(
+                10.0, 3.5 * common.N0_MEV3, common.PHYSICS["B_one_forth"], return_profile=True,
+                **common.NUMERICAL)
+        return dict(EvaluationTests._numerical)
+
+    def test_reference_points(self):
+        for method, speed in (("analytic", 221.7), ("numerical", 154.5)):
+            record, profile = self.evaluation.evaluate(method, 3.5, 10.0)
+            with self.subTest(method=method):
+                self.assertEqual(record["status"], "accepted", record["message"])
+                self.assertAlmostEqual(record["speed_m_s"], speed, delta=0.1)
+                self.assertEqual(profile is None, method == "analytic")
+
+    def test_analytic_intermediates_reproduce_speed(self):
+        import _iso_common as common
+        record, _ = self.evaluation.evaluate("analytic", 4.0, 30.0)
+        a = record["a_0plus"]
+        speed = common.C_M_S * np.sqrt(2 * record["I2"] / (record["lambda_n"]**2 * (1 - a)
+                                                           * (1 + record["xi_used"] * a)))
+        self.assertLess(abs(speed / record["speed_m_s"] - 1), 1e-12)
+
+    def test_numerical_profile_integrals(self):
+        numerical, profile = self.evaluation.evaluate("numerical", 3.5, 10.0)
+        analytic, _ = self.evaluation.evaluate("analytic", 3.5, 10.0)
+        self.assertLess(abs(numerical["I2_num"] / analytic["I2"] - 1), 0.3)
+        self.assertTrue(-1 < numerical["xi_profile"] < 1, numerical["xi_profile"])
+        self.assertEqual(len(profile["x"]), 256)
+
+    def test_roundoff_inside_mesh_is_masked_not_failed(self):
+        with patch.object(pv, "analytic_velocity_isothermal_slow",
+                          return_value=dict(success=True, front_exists=False, message="",
+                                            status="composition_ceiling_saturated")):
+            record, _ = self.evaluation.evaluate("analytic", 5.2, 10.0)
+        self.assertEqual(record["status"], "boundary_roundoff")
+        with patch.object(pv, "solve_front_isothermal_slow",
+                          return_value=dict(success=False, status="thermodynamic_path_failed",
+                                            message="Automatic interface ceiling is not interior")):
+            record, _ = self.evaluation.evaluate("numerical", 5.2, 10.0)
+        self.assertEqual(record["status"], "boundary_roundoff")
+        self.assertEqual(record["attempts"], 1)
+
+    def test_nan_rms_collocation_retries_then_accepts(self):
+        good = self.numerical_once()
+        calls = []
+        def fake(*args, **kwargs):
+            calls.append(kwargs)
+            return dict(good, bvp_max_rms_residual=np.nan) if len(calls) == 1 else good
+        with patch.object(pv, "solve_front_isothermal_slow", side_effect=fake):
+            record, _ = self.evaluation.evaluate("numerical", 3.5, 10.0)
+        self.assertEqual(record["status"], "accepted")
+        self.assertEqual(record["attempts"], 2)
+        self.assertEqual(calls[1]["n_mesh"], 600)
+
+    def test_shooting_branch_requires_flux_change_and_mismatch(self):
+        good = self.numerical_once()
+        for change, expected in ((2e-6, "unresolved"), (1e-9, "accepted")):
+            shot = dict(good, solution_method="shooting", bvp_max_rms_residual=np.nan,
+                        shooting_flux_change=change, shooting_mismatch=1e-10)
+            with patch.object(pv, "solve_front_isothermal_slow", return_value=shot):
+                record, _ = self.evaluation.evaluate("numerical", 3.5, 10.0)
+            with self.subTest(change=change):
+                self.assertEqual(record["status"], expected)
+
+    def test_two_attempt_cap(self):
+        calls = []
+        def failing(*args, **kwargs):
+            calls.append(kwargs)
+            return dict(success=False, status="bvp_failed", message="singular Jacobian")
+        with patch.object(pv, "solve_front_isothermal_slow", side_effect=failing):
+            record, _ = self.evaluation.evaluate("numerical", 3.5, 10.0)
+        self.assertEqual(record["status"], "unresolved")
+        self.assertEqual(len(calls), 2)
+        self.assertEqual(record["message"], "singular Jacobian")
 
 
 if __name__ == "__main__":
