@@ -521,32 +521,50 @@ class PlotTests(unittest.TestCase):
             with self.subTest(name=name):
                 self.assertFalse(np.any(MplPath(polygon).contains_points(points)))
 
-    def test_linear_style_matches_reference_values(self):
+    def test_all_plots_new_isothermal_section_uses_the_reference_styles(self):
         import ast
-        import subprocess
+        import nbformat
         import _iso_plot as plot
-        source = subprocess.run([sys.executable, str(ROOT / ".claude/tools/nbsrc.py"),
-                                 str(ROOT / "All_Plots_new.ipynb"), "-c", "25"],
-                                capture_output=True, text=True, check=True).stdout
-        reference = {}
-        for line in source.splitlines():
-            if line.startswith("NUMERICAL_") and " = " in line:
-                name, value = line.split(" = ", 1)
-                try:
-                    reference[name[len("NUMERICAL_"):].lower()] = ast.literal_eval(value)
-                except (ValueError, SyntaxError):
-                    pass
-        style = plot.LINEAR_REFERENCE_STYLE
-        compared = 0
-        for key, value in reference.items():
-            if key in plot.FONT_RULE_KEYS or key.startswith("output"):
+        cells = [c for c in nbformat.read(ROOT / "All_Plots_new.ipynb", as_version=4).cells
+                 if "isothermal-contours-26-10-27" in c.metadata.get("tags", [])]
+        constants = {}
+        for cell in cells:
+            if cell.cell_type == "code":
+                for node in ast.parse(cell.source).body:
+                    if isinstance(node, ast.Assign) and isinstance(node.targets[0], ast.Name):
+                        try:
+                            constants[node.targets[0].id] = ast.literal_eval(node.value)
+                        except ValueError:
+                            pass
+        for key, value in plot.LINEAR_REFERENCE_STYLE.items():
+            with self.subTest(key=key):
+                self.assertEqual(constants["ISO_LIN_" + key.upper()], value)
+        self.assertGreaterEqual(plot.LINEAR_REFERENCE_STYLE["contour_label_font_size"], 16)
+        latex = "Latex_writting/Hydrodynamical combustion/Plots/"
+        self.assertEqual(constants["ISO_LIN_OUTPUT_LATEX_PDF"], latex + "isothermal-numerical-contour.pdf")
+        self.assertEqual(constants["ISO_LOGN_OUTPUT_LATEX_PDF"], latex + "isothermal-numerical-contour-logT.pdf")
+        self.assertEqual(constants["ISO_CMP_OUTPUT_LATEX_PDF"], latex + "isothermal-analytic-numerical-logT.pdf")
+        self.assertFalse(constants["ISO_LOGN_SHOW_METHOD_LEGEND"])
+        numerical_log = next(c.source for c in cells if "ISO_LOGN_TITLE" in c.source)
+        self.assertNotIn("retune", numerical_log)   # numerical only
+
+    def test_no_contour_title_in_all_plots_new_uses_u_0minus(self):
+        import ast
+        import nbformat
+        titles = {}
+        for index, cell in enumerate(nbformat.read(ROOT / "All_Plots_new.ipynb", as_version=4).cells):
+            if cell.cell_type != "code":
                 continue
-            if key in style:
-                compared += 1
-                with self.subTest(key=key):
-                    self.assertEqual(style[key], value)
-        self.assertGreaterEqual(compared, 30)
-        self.assertGreaterEqual(style["contour_label_font_size"], 16)
+            for node in ast.parse(cell.source).body:
+                if (isinstance(node, ast.Assign) and isinstance(node.targets[0], ast.Name)
+                        and node.targets[0].id.endswith("TITLE") and "LEGEND" not in node.targets[0].id):
+                    titles[(index, node.targets[0].id)] = ast.literal_eval(node.value)
+        contour_titles = {k: v for k, v in titles.items() if "[" in v and "m" in v and "s^{-1}" in v}
+        self.assertGreaterEqual(len(contour_titles), 5)
+        for key, title in contour_titles.items():
+            with self.subTest(cell=key):
+                self.assertNotIn("u(0^-)", title)
+                self.assertIn("speed", title)
 
 
 class LowTTests(unittest.TestCase):
@@ -633,6 +651,23 @@ class LowTTests(unittest.TestCase):
         self.assertEqual(style["y_limits"], (0.01, 10.0))
         for key in ("legend_font_size", "speed_legend_font_size", "contour_label_font_size"):
             self.assertGreaterEqual(style[key], 16)
+
+    def test_log_figure_numerical_only_has_no_dashes_or_method_legend(self):
+        import matplotlib
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+        import _iso_plot as plot
+        style = dict(plot.LOG_REFERENCE_STYLE, show_method_legend=False)
+        logT = np.linspace(-2, 1, 50)
+        lines = {level: [np.column_stack([3.0 + 0.25 * k - 0.1 * logT, 10 ** logT])]
+                 for k, level in enumerate(style["contour_levels"])}
+        curves = dict(inner=(np.full(50, 2.95), 10 ** logT), outer=(np.full(50, 5.3), 10 ** logT))
+        figure, axis = plt.subplots()
+        plot.draw_log_reference(axis, curves, lines, {}, None, style)
+        self.assertEqual({line.get_linestyle() for line in axis.get_lines()}, {"-"})
+        self.assertEqual([c for c in axis.get_children() if isinstance(c, matplotlib.legend.Legend)], [])
+        self.assertTrue(set(style["speed_labels"]) <= {t.get_text() for t in axis.texts})
+        plt.close(figure)
 
     def test_log_figure_labels_contours_without_speed_legend(self):
         import matplotlib

@@ -112,7 +112,7 @@ COMPARISON_FIGURE = style_block([
     "XI = -0.85",
     "HIGH_T_CLIP_MEV = 10.0",
     "RADIAL_UPSAMPLE = 8   # display-only PCHIP refinement along rays in -ln(1-f)",
-    "TITLE = 'Isothermal $u(0^-)$ [$\\\\mathrm{m\\\\,s^{-1}}$]'",
+    "TITLE = 'Isothermal speed [$\\\\mathrm{m\\\\,s^{-1}}$]'",
     "ANALYTICAL_LINE_STYLE = '--'",
     "NUMERICAL_LINE_STYLE = '-'",
     "LEGEND_LOCATION = 'upper left'",   # empty udd-favored strip above ~95 MeV
@@ -149,7 +149,7 @@ with mpl.rc_context(rc):
 OLD_VS_NEW_FIGURE = style_block([
     "HIGH_T_CLIP_MEV = 10.0",
     "RADIAL_UPSAMPLE = 8   # display-only PCHIP refinement along rays in -ln(1-f)",
-    "TITLE = 'Previous vs current $u(0^-)$ [$\\\\mathrm{m\\\\,s^{-1}}$]'",
+    "TITLE = 'Previous vs current speed [$\\\\mathrm{m\\\\,s^{-1}}$]'",
     "PREVIOUS_LINE_STYLE = ':'",
     "PREVIOUS_LINE_WIDTH = 2.2",
     'PREVIOUS_ARCHIVE = "local_analysis_results/All_Plots_new/isothermal_contour_data/isothermal-numerical-contour.npz"',

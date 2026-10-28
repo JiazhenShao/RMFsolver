@@ -225,6 +225,8 @@ class LogTPlotTests(unittest.TestCase):
         self.assertNotIn("from RMFsolver", source)
         self.assertNotIn("solve_front_isothermal(", source)
 
+    @unittest.skip("superseded 2026-10-28: All_Plots_new draws the isothermal contours from the 26-10-27 "
+                   "production (tag isothermal-contours-26-10-27); see tests/test_isothermal_contours_26_10_27.py")
     def test_notebook_has_independent_saved_data_section_before_gw(self):
         with (ROOT / "All_Plots_new.ipynb").open() as stream:
             notebook = json.load(stream)

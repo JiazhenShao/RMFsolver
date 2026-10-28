@@ -120,43 +120,60 @@ with mpl.rc_context(iso_lin_rc):
         print(f"Saved {iso_output}")
     plt.show()'''
 
-LOG_MARKDOWN = r"""# Isothermal contours: logarithmic temperature, analytical versus numerical
+LOG_NUMERICAL_MARKDOWN = r"""# Isothermal numerical contour: logarithmic temperature
 
-Row mesh only (0.01–10 MeV): numerical solid, analytical dashed, the same half-decade levels labelled on the numerical lines.
-The analytical speed is rescaled exactly from the saved intermediates at `ISO_LOG_XI`; the manuscript value is $\xi=-0.85$, and the contour fit in `wiki/methods/isothermal-xi-fit.md` gives $\xi=-0.56$ for this panel."""
+Row mesh only (0.01–10 MeV), full numerical speeds, half-decade levels labelled on the lines."""
 
-LOG_FIGURE = tuning_block("ISO_LOG_", _iso_plot.LOG_REFERENCE_STYLE, used_log_keys(), [
-    "ISO_LOG_XI = -0.85   # manuscript value; the contour fit for 0.01-10 MeV gives -0.56",
-    "ISO_LOG_UPSAMPLE = 8    # display-only PCHIP refinement along rows in logit(f)",
-    'ISO_LOG_OUTPUT_PNG = "local_analysis_results/All_Plots_new/isothermal-analytic-numerical-logT.png"',
-    'ISO_LOG_OUTPUT_PDF = "local_analysis_results/All_Plots_new/isothermal-analytic-numerical-logT.pdf"',
-    f'ISO_LOG_OUTPUT_LATEX_PDF = "{LATEX_PLOTS}/isothermal-analytic-numerical-logT.pdf"   # Fig. speed-isothermal-log',
-]) + r'''
+COMPARISON_MARKDOWN = r"""# Isothermal contour: analytical versus numerical, logarithmic temperature
+
+Numerical solid, analytical dashed, same levels and labels as above.
+The analytical speed is rescaled exactly from the saved intermediates at `ISO_CMP_XI`; the manuscript value is $\xi=-0.85$, and the contour fit in `wiki/methods/isothermal-xi-fit.md` gives $\xi=-0.56$ for this panel."""
+
+
+def log_cell(prefix, stem, latex_note, numerical_only):
+    """Log-T figure cell: numerical only, or analytical (dashed) versus numerical (solid)."""
+    style = dict(_iso_plot.LOG_REFERENCE_STYLE)
+    extra = [f"{prefix}UPSAMPLE = 8    # display-only PCHIP refinement along rows in logit(f)"]
+    if numerical_only:
+        style.update(title=_iso_plot.LINEAR_REFERENCE_STYLE["title"], show_method_legend=False)
+    else:
+        extra.insert(0, f"{prefix}XI = -0.85   # manuscript value; the contour fit for 0.01-10 MeV gives -0.56")
+    extra += [f'{prefix}OUTPUT_PNG = "local_analysis_results/All_Plots_new/{stem}.png"',
+              f'{prefix}OUTPUT_PDF = "local_analysis_results/All_Plots_new/{stem}.pdf"',
+              f'{prefix}OUTPUT_LATEX_PDF = "{LATEX_PLOTS}/{stem}.pdf"   # {latex_note}']
+    keys = used_log_keys() + ["show_method_legend"]
+    body = r"""
 
 import matplotlib.pyplot as plt
 
-iso_log_style = {name[len("ISO_LOG_"):].lower(): value for name, value in list(globals().items())
-                 if name.startswith("ISO_LOG_")}
-iso_log_lines = {}
-iso_analytic_lowT = dict(iso_payloads["analytic_lowT"], speed_m_s=iso_xi.retune(iso_xi_cache_lowT, ISO_LOG_XI))
-for iso_name, iso_payload in (("numerical", iso_payloads["numerical_lowT"]), ("analytic", iso_analytic_lowT)):
-    iso_x, iso_T, iso_logv = iso_plot.contour_arrays(iso_payload, ISO_LOG_UPSAMPLE, "logit")
-    iso_log_lines[iso_name] = iso_plot.contour_lines(iso_x, iso_T, iso_logv, ISO_LOG_CONTOUR_LEVELS, log_T=True)
-
-with plt.rc_context({"font.family": ISO_LOG_FONT_FAMILY, "mathtext.fontset": ISO_LOG_MATH_FONT_SET,
-                     "text.usetex": ISO_LOG_USE_TEX}):
-    iso_log_figure, iso_log_axis = plt.subplots(figsize=ISO_LOG_FIGURE_SIZE, dpi=ISO_LOG_FIGURE_DPI,
-                                                constrained_layout=ISO_LOG_CONSTRAINED_LAYOUT,
-                                                facecolor=ISO_LOG_BACKGROUND_COLOR)
-    iso_log_axis.set_facecolor(ISO_LOG_BACKGROUND_COLOR)
-    iso_plot.draw_log_reference(iso_log_axis, iso_boundaries, iso_log_lines["numerical"], iso_log_lines["analytic"],
-                                ISO_LOG_XI, iso_log_style)
-    for iso_output, iso_dpi in ((ISO_LOG_OUTPUT_PNG, ISO_LOG_EXPORT_DPI), (ISO_LOG_OUTPUT_PDF, None),
-                                (ISO_LOG_OUTPUT_LATEX_PDF, None)):
+pfx_style = {name[len("PFX_"):].lower(): value for name, value in list(globals().items()) if name.startswith("PFX_")}
+pfx_lines = {"numerical": iso_plot.contour_lines(*iso_plot.contour_arrays(iso_payloads["numerical_lowT"], PFX_UPSAMPLE,
+                                                                           "logit"), PFX_CONTOUR_LEVELS, log_T=True)}
+""" + ('pfx_lines["analytic"] = {}\npfx_xi = None\n' if numerical_only else
+       """pfx_analytic = dict(iso_payloads["analytic_lowT"], speed_m_s=iso_xi.retune(iso_xi_cache_lowT, PFX_XI))
+pfx_lines["analytic"] = iso_plot.contour_lines(*iso_plot.contour_arrays(pfx_analytic, PFX_UPSAMPLE, "logit"),
+                                               PFX_CONTOUR_LEVELS, log_T=True)
+pfx_xi = PFX_XI
+""") + r"""
+with plt.rc_context({"font.family": PFX_FONT_FAMILY, "mathtext.fontset": PFX_MATH_FONT_SET, "text.usetex": PFX_USE_TEX}):
+    pfx_figure, pfx_axis = plt.subplots(figsize=PFX_FIGURE_SIZE, dpi=PFX_FIGURE_DPI,
+                                        constrained_layout=PFX_CONSTRAINED_LAYOUT, facecolor=PFX_BACKGROUND_COLOR)
+    pfx_axis.set_facecolor(PFX_BACKGROUND_COLOR)
+    iso_plot.draw_log_reference(pfx_axis, iso_boundaries, pfx_lines["numerical"], pfx_lines["analytic"], pfx_xi,
+                                pfx_style)
+    for iso_output, iso_dpi in ((PFX_OUTPUT_PNG, PFX_EXPORT_DPI), (PFX_OUTPUT_PDF, None), (PFX_OUTPUT_LATEX_PDF, None)):
         (ISO_ROOT / iso_output).parent.mkdir(parents=True, exist_ok=True)
-        iso_log_figure.savefig(ISO_ROOT / iso_output, dpi=iso_dpi or "figure", facecolor=ISO_LOG_BACKGROUND_COLOR)
+        pfx_figure.savefig(ISO_ROOT / iso_output, dpi=iso_dpi or "figure", facecolor=PFX_BACKGROUND_COLOR)
         print(f"Saved {iso_output}")
-    plt.show()'''
+    plt.show()"""
+    body = body.replace("PFX_", prefix).replace("pfx_", prefix.lower())   # tokens absent from the prefixes
+    return tuning_block(prefix, style, keys, extra) + body
+
+
+LOG_NUMERICAL_FIGURE = log_cell("ISO_LOGN_", "isothermal-numerical-contour-logT",
+                                "numerical-only log-T panel", numerical_only=True)
+COMPARISON_FIGURE = log_cell("ISO_CMP_", "isothermal-analytic-numerical-logT",
+                             "Fig. speed-isothermal-log", numerical_only=False)
 
 
 def section_bounds(cells):
@@ -194,8 +211,9 @@ def main():
     notebook = nbformat.read(NOTEBOOK, as_version=4)
     start, stop = section_bounds(notebook.cells)
     new = [nbformat.v4.new_markdown_cell(MARKDOWN), nbformat.v4.new_code_cell(LOAD),
-           nbformat.v4.new_code_cell(LINEAR_FIGURE), nbformat.v4.new_markdown_cell(LOG_MARKDOWN),
-           nbformat.v4.new_code_cell(LOG_FIGURE)]
+           nbformat.v4.new_code_cell(LINEAR_FIGURE), nbformat.v4.new_markdown_cell(LOG_NUMERICAL_MARKDOWN),
+           nbformat.v4.new_code_cell(LOG_NUMERICAL_FIGURE), nbformat.v4.new_markdown_cell(COMPARISON_MARKDOWN),
+           nbformat.v4.new_code_cell(COMPARISON_FIGURE)]
     for cell in new:
         cell.metadata["tags"] = [TAG]
     execute(new)

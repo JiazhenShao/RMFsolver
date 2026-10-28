@@ -53,7 +53,7 @@ LINEAR_REFERENCE_STYLE = dict(
     x_scale="linear",
     y_scale="linear",
     box_aspect=1.0,
-    title="Isothermal numerical $u(0^-)$ [$\\mathrm{m\\,s^{-1}}$]",
+    title="Isothermal numerical speed [$\\mathrm{m\\,s^{-1}}$]",
     title_font_size=20,
     title_pad=8,
     x_label=r"$n_B(0^-)/n_0$",
@@ -78,7 +78,7 @@ LOG_REFERENCE_STYLE = dict(
     background_color='white', font_family='DejaVu Sans', math_font_set='cm', use_tex=False,
     box_aspect=1., x_limits=(1., 5.8), y_limits=(.01, 10.), x_scale='linear', y_scale='log',
     x_ticks=(1., 2., 3., 4., 5.), y_ticks=(.01, .1, 1., 10.), y_tick_labels=('0.01', '0.1', '1', '10'),
-    title=r'Isothermal $u(0^-)$ [$\mathrm{m\,s^{-1}}$]', title_font_size=20, title_pad=8,
+    title=r'Isothermal speed [$\mathrm{m\,s^{-1}}$]', title_font_size=20, title_pad=8,
     x_label=r'$n_B(0^-)/n_0$', y_label=r'$T(0^-)$ [MeV]', axis_label_font_size=18, tick_label_font_size=18,
     tick_direction='in', ticks_top=True, ticks_right=True, tick_length=4, tick_width=.9,
     spine_line_width=.8, analytical_line_style='--', numerical_line_style='-', line_width=1.8,
@@ -98,7 +98,7 @@ LOG_REFERENCE_STYLE = dict(
     region_text_color='0.12', region_text_font_size=18, region_text_zorder=6,
     legend_location='upper left', legend_font_size=16, legend_handle_length=1.0,
     legend_border_axes_pad=0.25, legend_frame_alpha=.94, legend_face_color='white',
-    legend_edge_color='0.8', legend_handle_color='0.15', legend_marker_size=5.,
+    legend_edge_color='0.8', legend_handle_color='0.15', legend_marker_size=5., show_method_legend=True,
     show_speed_legend=False, speed_legend_location='lower left', speed_legend_title=r'$u(0^-)$ [m s$^{-1}$]',
     speed_legend_font_size=16, speed_legend_columns=2, speed_legend_anchor=(.005, .005),
     speed_legend_handle_length=1.3, speed_legend_column_spacing=0.7, speed_legend_handle_text_pad=0.4,
@@ -113,19 +113,20 @@ LOG_REFERENCE_STYLE = dict(
 # cold numerics now converge,
 # so numerical results are solid lines everywhere (no T < 20 MeV dots).
 # 2026-10-28 (user): half-decade levels labelled on the contours instead of a speed
-# legend, the gray regions named as in the linear figure, and the x range widened
-# to 5.8 n_0 so the udd strip holds its label.
+# legend, the gray regions named as in the linear figure, the x range widened
+# to 5.8 n_0 so the udd strip holds its label, and 'speed' in the title.
 LOG_STYLE_OVERRIDES = ("y_limits", "y_ticks", "y_tick_labels", "outer_region_position",
                        "inner_region_position", "legend_location", "speed_legend_anchor",
                        "contour_label_font_size", "legend_font_size", "speed_legend_font_size",
                        "export_stem", "contour_levels", "contour_colors", "label_curves",
                        "label_temperatures", "inner_region_text", "outer_region_text",
-                       "show_speed_legend", "speed_labels", "x_limits")
+                       "show_speed_legend", "speed_labels", "x_limits", "title")
 
 
 def draw_log_reference(axis, curves, numerical_lines, analytic_lines, xi, style=LOG_REFERENCE_STYLE):
-    """Log-T comparison in the 26-10-02 cell 8 style: numerical solid, analytic dashed, a method
-    legend, and either inline speed labels (label_curves) or a speed legend."""
+    """Log-T contours in the 26-10-02 cell 8 style: numerical solid, analytic dashed (none if
+    analytic_lines is empty), an optional method legend, and inline speed labels (label_curves)
+    and/or a speed legend."""
     for polygon in gray_polygons(curves, style["x_limits"], style["y_limits"]).values():
         axis.fill(polygon[:, 0], polygon[:, 1], color=style["excluded_region_color"],
                   alpha=style["excluded_region_alpha"], zorder=style["excluded_region_zorder"])
@@ -154,16 +155,20 @@ def draw_log_reference(axis, curves, numerical_lines, analytic_lines, xi, style=
     axis.grid(style["show_grid"])
     if style["label_curves"]:
         _label_log_contours(axis, numerical_lines, analytic_lines, colors, style)
-    method = axis.legend(handles=[
-        Line2D([], [], color=style["legend_handle_color"], linestyle=style["analytical_line_style"],
-               linewidth=style["line_width"], label=rf"Analytical, $\xi={xi:g}$"),
-        Line2D([], [], color=style["legend_handle_color"], linestyle=style["numerical_line_style"],
-               linewidth=style["line_width"], label="Numerical")],
-        loc=style["legend_location"], fontsize=style["legend_font_size"], framealpha=style["legend_frame_alpha"],
-        handlelength=style["legend_handle_length"], borderaxespad=style["legend_border_axes_pad"],
-        facecolor=style["legend_face_color"], edgecolor=style["legend_edge_color"])
+    method = None
+    if style.get("show_method_legend", True):
+        method = axis.legend(handles=[
+            Line2D([], [], color=style["legend_handle_color"], linestyle=style["analytical_line_style"],
+                   linewidth=style["line_width"], label=rf"Analytical, $\xi={xi:g}$"),
+            Line2D([], [], color=style["legend_handle_color"], linestyle=style["numerical_line_style"],
+                   linewidth=style["line_width"], label="Numerical")],
+            loc=style["legend_location"], fontsize=style["legend_font_size"],
+            framealpha=style["legend_frame_alpha"], handlelength=style["legend_handle_length"],
+            borderaxespad=style["legend_border_axes_pad"], facecolor=style["legend_face_color"],
+            edgecolor=style["legend_edge_color"])
     if style["show_speed_legend"]:
-        axis.add_artist(method)
+        if method is not None:
+            axis.add_artist(method)
         axis.legend(handles=[Line2D([], [], color=color, linestyle=style["analytical_line_style"],
                                     linewidth=style["line_width"], label=label)
                              for label, color in zip(style["speed_labels"], style["contour_colors"])],

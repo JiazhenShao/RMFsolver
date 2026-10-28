@@ -1097,3 +1097,7 @@ Fitted the analytical isothermal $\xi$ to the numerical contours without solver 
 ## [2026-10-28] update | Manuscript isothermal figures from the 26-10-27 production
 
 `All_Plots_new.ipynb` cells 19–23 replace the archived 26-09-16/26-10-01 isothermal section: the linear numerical contour (polar mesh above, rows below 10 MeV) and the log-$T$ analytical-versus-numerical figure. Both write their PDFs straight into `Latex_writting/Hydrodynamical combustion/Plots/`, so recompiling `Main.tex` shows them. The analytic default stays at the manuscript's $\xi=-0.85$; see [[isothermal-contours-polar-and-row-meshes]].
+
+## [2026-10-28] update | Isothermal figures: speed titles, numerical-only log panel, separate comparison
+
+Contour titles now say "speed" instead of $u(0^-)$. The `All_Plots_new` log-$T$ panel is numerical only (`isothermal-numerical-contour-logT.pdf`). A separate cell draws the analytic-versus-numerical comparison into the manuscript's `isothermal-analytic-numerical-logT.pdf`; see [[isothermal-contours-polar-and-row-meshes]].
