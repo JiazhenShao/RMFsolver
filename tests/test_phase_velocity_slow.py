@@ -296,6 +296,25 @@ class ColdIsothermalSlowTests(unittest.TestCase):
         result = pv.solve_front_isothermal_slow(10.0, 3 * N0, 180.0, a_0plus=0.6, n_mesh=120)
         self.assertEqual(result["jB"], 2.0174252130852697)   # pre-fix value, same machine
 
+    def test_failed_tight_check_never_validates_a_shooting_fallback(self):
+        original = pv._slow_front_shooting_flux
+        def tight_fails(*args, **kwargs):   # both tight self-check settings fail
+            if kwargs.get("bracket") is not None:
+                raise RuntimeError("Backward shooting found no interface flux")
+            return original(*args, **kwargs)
+        with patch.object(pv, "_slow_front_shooting_flux", side_effect=tight_fails), \
+                patch.object(pv, "solve_bvp", side_effect=ValueError("singular Jacobian")):
+            result = self.cold(3.05, "shooting")
+        self.assertFalse(result["success"])
+        self.assertTrue(np.isnan(result["shooting_flux_change"]))
+
+    def test_shooting_brackets_flux_next_to_udd_boundary(self):
+        # a(0+) = 0.99997: the flux scales as (1-a)^(-1/2), far below an advection-free (1-a)^(-1) centre.
+        result = pv.solve_front_isothermal_slow(29.07, 5.0686 * N0, self.B14, initial_guess_mode="auto")
+        self.assertGreater(result["a_0plus"], 0.9999)
+        self.check_accepted(result)
+        self.assertEqual(result["initial_guess_used"], "shooting")
+
     def test_invalid_initial_guess_mode(self):
         with self.assertRaises(ValueError):
             pv.solve_front_isothermal_slow(10, 3 * N0, 180, a_0plus=.6, initial_guess_mode="layer")

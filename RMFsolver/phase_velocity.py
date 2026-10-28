@@ -10087,8 +10087,11 @@ def _slow_front_shoot(path, jB, a_0minus, rate_slope, z_start, rtol, dense=False
     interface.terminal, interface.direction = True, 1
     fell_back.terminal, fell_back.direction = True, -1
     start = [z_start, (jB * path.da_dr + lam) * z_start * r_scale / scale]
-    sol = solve_ivp(rhs, (0.0, 200.0 / lam), start, method="LSODA", events=(interface, fell_back),
-                    rtol=rtol, atol=1e-4 * z_start, dense_output=dense)
+    try:
+        sol = solve_ivp(rhs, (0.0, 200.0 / lam), start, method="LSODA", events=(interface, fell_back),
+                        rtol=rtol, atol=1e-4 * z_start, dense_output=dense)
+    except ValueError:   # SciPy's event-root search can fail at tight tolerances
+        return np.nan, None, lam
     if sol.t_events[0].size:
         return float(sol.y_events[0][0][1] - 1.0), sol, lam
     return (np.inf if sol.t_events[1].size else -np.inf), sol, lam
@@ -10110,8 +10113,11 @@ def _slow_front_shooting_flux(path, a_0minus, rate_slope, center, z_start=1e-10,
                 return float(np.exp(grid[k]))
             if values[k] * values[k + 1] < 0:
                 # A bracket across the +-inf branches is a jump, not a root.
-                root_found = root_scalar(mismatch, bracket=(grid[k], grid[k + 1]),
-                                         method="brentq", xtol=1e-13)
+                try:
+                    root_found = root_scalar(mismatch, bracket=(grid[k], grid[k + 1]),
+                                             method="brentq", xtol=1e-13)
+                except ValueError:   # a failed shot inside the bracket
+                    continue
                 if root_found.converged and abs(mismatch(root_found.root)) <= 1e-8:
                     return float(np.exp(root_found.root))
     raise RuntimeError("Backward shooting found no interface flux")
@@ -10428,11 +10434,13 @@ def _solve_front_slow(closure, T, nB_0minus, B_one_forth, a_0plus, T_0plus,
             return out
         return finish(out, sol, "collocation")
 
+    # Integrated-speed estimate jB^2 ~ current_scale^2/[(a(0-)-a(0+))(a(0-)-a_inf)] (xi = 0):
+    # it scales as (1-a)^(-1/2) next to the udd boundary, unlike (1-a)^(-1).
+    jB_estimate = current_scale / np.sqrt((a_0minus - path.interface["a"]) * (a_0minus - a_inf))
     use_shooting = initial_guess_mode == "shooting" and continuation_guess is None
     if initial_guess_mode == "auto" and continuation_guess is None:
         # Shoot when the layer would sit within ten first-mesh intervals.
-        jB_free = current_scale / (a_0minus - path.interface["a"])
-        use_shooting = (_slow_layer_half_point(path, rate_primitive, jB_free, rate_slope,
+        use_shooting = (_slow_layer_half_point(path, rate_primitive, jB_estimate, rate_slope,
                                                kappa_factor) < 10 * mesh[1])
     first = None
     if not use_shooting:
@@ -10442,10 +10450,17 @@ def _solve_front_slow(closure, T, nB_0minus, B_one_forth, a_0plus, T_0plus,
             return first
     started = time.perf_counter()
     try:
-        center = current_scale / (a_0minus - path.interface["a"])   # advection-free flux
-        jB_shot = _slow_front_shooting_flux(path, a_0minus, rate_slope, center)
-        tighter = _slow_front_shooting_flux(path, a_0minus, rate_slope, jB_shot, z_start=1e-12,
-                                            rtol=1e-12, bracket=(0.99, 1.01, 3))
+        jB_shot = _slow_front_shooting_flux(path, a_0minus, rate_slope, jB_estimate)
+        # Self-check only: if both tight shots fail, the flux change stays NaN and the
+        # shooting fallback rejects it; collocation does not depend on it.
+        tighter = np.nan
+        for depth in (1e-12, 1e-11):   # SciPy's event search can fail at one setting
+            try:
+                tighter = _slow_front_shooting_flux(path, a_0minus, rate_slope, jB_shot, z_start=depth,
+                                                    rtol=depth, bracket=(0.99, 1.01, 3))
+                break
+            except RuntimeError:
+                continue
         s_shot, y_shot, mismatch = _slow_front_shooting_profile(
             path, jB_shot, a_0minus, rate_slope, current_scale, kappa_factor, tail_eps)
         layer_mesh, s_half = _slow_layer_mesh(_thermal_compact_mesh(n_mesh, tail_eps),
@@ -10471,7 +10486,7 @@ def _solve_front_slow(closure, T, nB_0minus, B_one_forth, a_0plus, T_0plus,
         sol=CubicHermiteSpline(s_shot, y_shot, rhs(s_shot, y_shot, p_shot), axis=1))
     out = dict(base, initial_guess_used="shooting", collocation_message=second["message"], **shooting)
     out = finish(out, trajectory, "shooting")
-    if out["success"] and shooting["shooting_flux_change"] > 1e-6:
+    if out["success"] and not shooting["shooting_flux_change"] <= 1e-6:   # NaN: unverified
         out.update(success=False, status="profile_rejected",
                    message="Backward-shooting flux is not converged in its tolerances")
     return out
