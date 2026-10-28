@@ -2,9 +2,10 @@ import numpy as np
 import time
 import warnings
 from functools import lru_cache
+from types import SimpleNamespace
 from scipy.integrate import solve_bvp, solve_ivp
 from scipy.optimize import fsolve, root_scalar, root, minimize_scalar
-from scipy.interpolate import BPoly, CubicSpline, PchipInterpolator
+from scipy.interpolate import BPoly, CubicHermiteSpline, CubicSpline, PchipInterpolator
 from scipy.special import gamma as gamma_function, zeta as riemann_zeta
 import RMFsolver.constants as const
 import RMFsolver.RMFparameter as para
@@ -9997,6 +9998,28 @@ class _SlowFrontPath:
         if self.drate_dr <= 0:
             raise RuntimeError("Equilibrium has no exponentially decaying K tail")
 
+    def equilibrium_rate_slope(self):
+        """Direct dGamma_K/dr at isothermal equilibrium, Richardson-extrapolated.
+
+        Table nodes never reach muK < 2*pi*T at low temperature, where the
+        spline slope can be wrong by order one. Two tiny imbalances lie in the
+        linear-rate regime; r uses the same primitive as the collocation.
+        """
+        if self.closure != "isothermal":
+            raise RuntimeError("Direct equilibrium rate slope is implemented for isothermal paths")
+        if getattr(self, "_rate_slope", None) is None:
+            slopes = []
+            for w in (1e-7, 2e-7):
+                state = self.isobar(w * self.interface["muK"], self.inf["T"], self.inf["muB"])
+                rate = _exact_kaon_transport_rate(state["muB"], state["muK"], state["T"],
+                                                  ms=self.ms)["Gamma_K"]
+                slopes.append(rate / (self.primitive(w) - self.primitive(0)))
+            slope = float(2 * slopes[0] - slopes[1])
+            if not np.isfinite(slope) or slope <= 0:
+                raise RuntimeError("Equilibrium has no exponentially decaying K tail")
+            self._rate_slope = slope
+        return self._rate_slope
+
     def coordinate(self, z):
         """Invert the stored integral, without an EOS root or derivative loss."""
         w = self.w_from_r(z)
@@ -10027,10 +10050,138 @@ def _slow_front_path(closure, pressure, h_over_nB, T, bag, ms,
                           a_0plus, T_0plus, path_rtol)
 
 
+def _slow_tail_decay(A, B):
+    """Positive root of lambda**2 + A*lambda - B = 0 and dlog(lambda)/dlog(jB)."""
+    discriminant = np.hypot(A, 2 * np.sqrt(B))
+    lam = 2 * B / (discriminant + A) if A >= 0 else (discriminant - A) / 2
+    return lam, -A / (2 * lam + A)
+
+
+# Cold isothermal fronts have a conversion layer up to ~1e7 times thinner than
+# the equilibrium tail that sets the compact coordinate. Backward shooting from
+# the tail resolves it adaptively and seeds (or replaces) the collocation.
+def _slow_front_shoot(path, jB, a_0minus, rate_slope, z_start, rtol, dense=False):
+    """Integrate a fixed-flux front from the equilibrium tail toward the interface.
+
+    The start lies on the decaying eigenvector at r = z_start*r_scale; in this
+    direction components off that solution decay. Returns the mismatch
+    (J_K(0+) - jB*a_inf)/(jB*(a(0-) - a_inf)) - 1, the solution in
+    y = x_start - x, and lambda_inf. +inf: the trajectory fell back to
+    equilibrium; -inf: it never reached the interface.
+    """
+    a_inf, r_scale = path.inf["a"], path.r_scale
+    lam, _ = _slow_tail_decay(jB * path.da_dr, rate_slope)
+    scale = jB * (a_0minus - a_inf)
+
+    def rhs(y, v):
+        z = min(max(v[0], 0.0), 1.0)
+        return [-(jB * (float(path.fraction(z)) - a_inf) - v[1] * scale) / r_scale,
+                float(path.rate(z)) / scale]
+
+    def interface(y, v):
+        return v[0] - 1.0
+
+    def fell_back(y, v):
+        return v[0] - 0.5 * z_start
+
+    interface.terminal, interface.direction = True, 1
+    fell_back.terminal, fell_back.direction = True, -1
+    start = [z_start, (jB * path.da_dr + lam) * z_start * r_scale / scale]
+    sol = solve_ivp(rhs, (0.0, 200.0 / lam), start, method="LSODA", events=(interface, fell_back),
+                    rtol=rtol, atol=1e-4 * z_start, dense_output=dense)
+    if sol.t_events[0].size:
+        return float(sol.y_events[0][0][1] - 1.0), sol, lam
+    return (np.inf if sol.t_events[1].size else -np.inf), sol, lam
+
+
+def _slow_front_shooting_flux(path, a_0minus, rate_slope, center, z_start=1e-10,
+                              rtol=1e-10, bracket=None):
+    """Flux whose backward-shot trajectory satisfies J_K(0+) = jB*a(0-)."""
+    def mismatch(log_jB):
+        value = _slow_front_shoot(path, np.exp(log_jB), a_0minus, rate_slope, z_start, rtol)[0]
+        return float(np.clip(value, -1e3, 1e3))
+
+    windows = [bracket] if bracket is not None else [(0.2, 3.0, 13), (0.01, 100.0, 41)]
+    for low, high, count in windows:
+        grid = np.log(center) + np.linspace(np.log(low), np.log(high), count)
+        values = [mismatch(g) for g in grid]
+        for k in range(count - 1):
+            if values[k] == 0:
+                return float(np.exp(grid[k]))
+            if values[k] * values[k + 1] < 0:
+                # A bracket across the +-inf branches is a jump, not a root.
+                root_found = root_scalar(mismatch, bracket=(grid[k], grid[k + 1]),
+                                         method="brentq", xtol=1e-13)
+                if root_found.converged and abs(mismatch(root_found.root)) <= 1e-8:
+                    return float(np.exp(root_found.root))
+    raise RuntimeError("Backward shooting found no interface flux")
+
+
+def _slow_front_shooting_profile(path, jB, a_0minus, rate_slope, current_scale,
+                                 kappa_factor, tail_eps, z_start=1e-10, rtol=1e-10):
+    """Shot trajectory on the solver's compact coordinate, s in [0, 1 - tail_eps].
+
+    Rows are r/r_scale and (J_K - jB*a_inf)/current_scale. LSODA steps
+    cluster at the layer; a logarithmic x grid adds coverage, and the exact
+    decaying eigen-solution continues the tail beyond the shot start.
+    """
+    mismatch, sol, lam = _slow_front_shoot(path, jB, a_0minus, rate_slope, z_start, rtol,
+                                           dense=True)
+    if not np.isfinite(mismatch):
+        raise RuntimeError("Backward shooting did not reach the interface")
+    reach = float(sol.t_events[0][0])
+    # Four dense-output points per LSODA step keep the Hermite cubic used for
+    # validation accurate between steps. Nodes closer than 1e-4 of the layer
+    # half-width would let dense-output roundoff dominate its derivative.
+    x_half = reach - float(np.interp(0.5, sol.y[0], sol.t))
+    steps = (sol.t[:-1, None] + np.diff(sol.t)[:, None] * np.linspace(0, 1, 5)[None, :-1]).ravel()
+    candidates = np.unique(np.concatenate([np.geomspace(1e-4 * x_half, reach, 2001),
+                                           reach - steps]))
+    x = [0.0]
+    for value in candidates[(candidates > 0) & (candidates < reach)]:
+        if value - x[-1] >= 1e-4 * x_half:
+            x.append(value)
+    x = np.array(x[:-1] + [reach] if reach - x[-1] < 1e-4 * x_half else x + [reach])
+    v = sol.sol(reach - x)
+    x_end = -kappa_factor / lam * np.log(tail_eps)
+    if x[-1] < x_end:
+        s_tail = np.linspace(-np.expm1(-lam * x[-1] / kappa_factor), 1 - tail_eps, 201)[1:]
+        x_tail = -kappa_factor / lam * np.log1p(-s_tail)
+        x, v = (np.concatenate([x, x_tail]),
+                np.hstack([v, v[:, -1:] * np.exp(-lam * (x_tail - x[-1]))]))
+    else:
+        keep = x < x_end
+        x, v = (np.append(x[keep], x_end),
+                np.hstack([v[:, keep], sol.sol(reach - x_end)[:, None]]))
+    s = -np.expm1(-lam * x / kappa_factor)
+    s[-1] = 1 - tail_eps
+    keep = np.concatenate([[True], np.diff(s) > 0])
+    scale = jB * (a_0minus - path.inf["a"])
+    return s[keep], np.vstack((v[0, keep], v[1, keep] * scale / current_scale)), mismatch
+
+
+def _slow_layer_half_point(path, rate_primitive, jB, rate_slope, kappa_factor):
+    """Advection-free estimate of the layer half-point in s; no EOS calls."""
+    z = np.linspace(0.5, 1.0, 201)
+    width = path.r_scale / np.sqrt(2 * path.r_scale * (rate_primitive(z) - rate_primitive(0)))
+    lam, _ = _slow_tail_decay(jB * path.da_dr, rate_slope)
+    return float(-np.expm1(-lam * np.sum(0.5 * (width[1:] + width[:-1]) * np.diff(z))
+                           / kappa_factor))
+
+
+def _slow_layer_mesh(base, s, z):
+    """Compact mesh plus 40 logarithmic nodes per decade around the layer half-point."""
+    s_half = float(np.interp(0.5, z[::-1], s[::-1]))
+    low, high = 1e-3 * s_half, max(30 * s_half, 1e-2)
+    extra = np.geomspace(low, high, int(40 * np.log10(high / low)) + 1)
+    return np.unique(np.concatenate([base, extra[extra < base[-1]]])), s_half
+
+
 def _solve_front_slow(closure, T, nB_0minus, B_one_forth, a_0plus, T_0plus,
                       ms, param, NM_type, tail_eps, n_mesh, tol_bvp, max_nodes,
                       jB_guess, kappa_factor, return_profile, verb,
-                      continuation_guess, return_continuation, path_rtol):
+                      continuation_guess, return_continuation, path_rtol,
+                      initial_guess_mode="default"):
     for name, value in (("nB_0minus", nB_0minus), ("B_one_forth", B_one_forth),
                         ("tol_bvp", tol_bvp), ("kappa_factor", kappa_factor),
                         ("path_rtol", path_rtol)):
@@ -10045,6 +10196,10 @@ def _solve_front_slow(closure, T, nB_0minus, B_one_forth, a_0plus, T_0plus,
         raise ValueError("Invalid tail truncation or BVP mesh controls")
     if jB_guess is not None and (not np.isfinite(jB_guess) or jB_guess <= 0):
         raise ValueError("jB_guess must be positive and finite")
+    if initial_guess_mode not in ("default", "shooting", "auto"):
+        raise ValueError("initial_guess_mode must be 'default', 'shooting' or 'auto'")
+    if initial_guess_mode != "default" and closure != "isothermal":
+        raise ValueError("Shooting initialization is implemented for the isothermal closure")
     auto = closure == "isothermal" and np.isnan(a_0plus)
     if not auto and a_0plus is not None and (not np.isfinite(a_0plus) or not 0 < a_0plus < 1):
         raise ValueError("a_0plus must lie strictly between zero and one")
@@ -10063,6 +10218,8 @@ def _solve_front_slow(closure, T, nB_0minus, B_one_forth, a_0plus, T_0plus,
         "tol_bvp": float(tol_bvp), "path_rtol": float(path_rtol),
         "bvp_max_rms_residual": np.nan,
         "massive_low_temperature_eos": "existing_SQMsolver_cutoff" if ms else None,
+        "initial_guess_mode": initial_guess_mode, "solution_method": None,
+        "tail_rate_slope": "table" if initial_guess_mode == "default" else "direct",
     }
     try:
         upstream = _isothermal_upstream_nuclear_state(T, nB_0minus, param, NM_type)
@@ -10085,6 +10242,8 @@ def _solve_front_slow(closure, T, nB_0minus, B_one_forth, a_0plus, T_0plus,
                                 float(path_rtol))
         if not path.interface["a"] < upstream["a_0minus"]:
             raise RuntimeError("Interface fraction must be below the upstream K fraction")
+        rate_slope = (path.drate_dr if initial_guess_mode == "default"
+                      else path.equilibrium_rate_slope())
     except (RuntimeError, ValueError, FloatingPointError) as exc:
         result["message"] = str(exc)
         return result
@@ -10102,11 +10261,7 @@ def _solve_front_slow(closure, T, nB_0minus, B_one_forth, a_0plus, T_0plus,
     jB_initial = jB_scale if jB_guess is None else float(jB_guess)
 
     def tail(jB):
-        A, B = jB * path.da_dr, path.drate_dr
-        discriminant = np.hypot(A, 2 * np.sqrt(B))
-        lam = 2 * B / (discriminant + A) if A >= 0 else (discriminant - A) / 2
-        dlog_lam = -A / (2 * lam + A)
-        return lam, dlog_lam
+        return _slow_tail_decay(jB * path.da_dr, rate_slope)
 
     def flux(p):
         # Limit trial iterates to finite arithmetic, never an accepted speed.
@@ -10162,6 +10317,10 @@ def _solve_front_slow(closure, T, nB_0minus, B_one_forth, a_0plus, T_0plus,
         jB_initial = float(continuation_guess["jB"])
         if not np.isfinite(jB_initial) or jB_initial <= 0:
             raise ValueError("Invalid continuation baryon flux")
+        if initial_guess_mode != "default":
+            # Keep the continuation's adapted resolution instead of interpolating it away.
+            mesh = np.union1d(mesh, old_s[old_s < mesh[-1]])
+            guess = np.empty((2, len(mesh)))
         for row, key in enumerate(("r_fraction", "current_excess_fraction")):
             values = np.asarray(continuation_guess[key], dtype=float)
             if values.shape != old_s.shape or not np.all(np.isfinite(values)):
@@ -10171,93 +10330,151 @@ def _solve_front_slow(closure, T, nB_0minus, B_one_forth, a_0plus, T_0plus,
             guess[row, beyond] = values[-1] * ((1 - mesh[beyond]) / (1 - old_s[-1]))**kappa_factor
         guess[1] *= jB_initial * (a_0minus - a_inf) / current_scale
     result["status"] = "bvp_failed"
+    base = dict(result)
+
+    def finish(out, sol, method):
+        """Shared acceptance: direct EOS states and physical ODE residuals on sol."""
+        jB = float(flux(sol.p))
+        lam, _ = tail(jB)
+        out.update(message=sol.message, bvp_status=int(sol.status), bvp_nodes=len(sol.x),
+                   bvp_max_rms_residual=float(np.max(sol.rms_residuals)), jB=jB,
+                   u_0minus=jB / nB_0minus, u_0plus=jB / path.interface["nB"],
+                   u_inf=jB / path.inf["nB"], jK_inf=jB * a_inf,
+                   lambda_inf=float(lam), compact_scale=float(kappa_factor / lam),
+                   boundary_residuals=boundary(sol.y[:, 0], sol.y[:, -1], sol.p),
+                   solution_method=method)
+        if not sol.success:
+            return out
+        try:
+            s = np.unique(np.concatenate([sol.x, (sol.x[:-1] + sol.x[1:]) / 2]))
+            y = sol.sol(s)
+            if (np.min(y[0]) < -1e-9 or np.max(y[0]) > 1 + 1e-9 or
+                    np.max(np.diff(y[0])) > 1e-8 or abs(sol.p[0]) >= 39):
+                out.update(status="profile_rejected", message="BVP left the physical monotone path")
+                return out
+            z = np.clip(y[0], 0, 1)  # Only roundoff excursions survived the check above.
+            chemical_fields = path.fields(z)
+            chemical_fields[:, 0] = [path.interface[k] for k in ("muB", "muK", "T")]
+            # Direct EOS validation includes all adapted nodes and midpoints, even if
+            # the caller does not request the (larger) profile payload.
+            states = [path.state(*values) for values in chemical_fields.T]
+            closure_errors = [abs(path.pressure_error(st)) for st in states]
+            if closure == "adiabatic":
+                closure_errors += [abs(path.energy_error(st)) for st in states]
+            else:
+                closure_errors += [abs(st["T"] / T - 1) for st in states]
+            profile = {key: np.array([st[key] for st in states]) for key in states[0]}
+            profile["Gamma_K"] = np.array([_exact_kaon_transport_rate(st["muB"], st["muK"],
+                                            st["T"], ms=ms)["Gamma_K"] for st in states])
+            profile["invD_K"] = np.array([_microphysics_from_quark_state_energy(st["muB"], st["T"],
+                                          allow_zero_temperature=True)["invD"] for st in states])
+            profile.update(s_coord=s, x=-kappa_factor / lam * np.log1p(-s), r=z * path.r_scale,
+                           jK=jB * a_inf + current_scale * y[1], u=jB / profile["nB"])
+            conservation_errors = {
+                "baryon_flux": float(np.max(np.abs(profile["nB"] * profile["u"] / jB - 1))),
+                "pressure": float(np.max(np.abs(profile["P"] - upstream["P_0minus"])) /
+                                  max(abs(upstream["P_0minus"]), 1.0)),
+            }
+            if closure == "adiabatic":
+                conservation_errors["enthalpy_flux"] = float(np.max(np.abs(
+                    profile["h"] * profile["u"] / (upstream["h_0minus"] * jB / nB_0minus) - 1)))
+            else:
+                conservation_errors["temperature"] = float(np.max(np.abs(profile["T"] / T - 1)))
+            out["conservation_errors"] = conservation_errors
+            with np.errstate(divide="ignore"):
+                profile["D_K"] = 1 / profile["invD_K"]
+            # Derivatives of the interpolant (collocation polynomial or shot
+            # Hermite cubic), not re-evaluation of the RHS at the checked nodes.
+            dydx = sol.sol(s, 1) * (lam * (1 - s) / kappa_factor)
+            integral_residual = dydx[0] * path.r_scale - jB * profile["a"] + profile["jK"]
+            w = path.coordinate(z)
+            dnK_dx = path.thermo(w, 1)[4] * path.r_scale / path.primitive(w, 1) * dydx[0]
+            density_rhs = profile["invD_K"] * (jB * profile["a"] - profile["jK"])
+            constitutive = dnK_dx - density_rhs
+            profile["dnK_dx"] = dnK_dx
+            reaction = dydx[1] * current_scale + profile["Gamma_K"]
+            out.update(closure_error_max=float(max(closure_errors)),
+                       diffusion_integral_residual_norm=float(np.max(np.abs(integral_residual)) / current_scale),
+                       constitutive_residual_norm=float(np.max(np.abs(constitutive)) / max(np.max(np.abs(density_rhs)), _FLOAT_TINY)),
+                       reaction_residual_norm=float(np.max(np.abs(reaction)) / np.max(profile["Gamma_K"])),
+                       a_monotone_nonincreasing=bool(np.max(np.diff(profile["a"])) <= 1e-8))
+            accepted = (out["closure_error_max"] <= 1e-8 and
+                        max(conservation_errors.values()) <= 1e-8 and
+                        max(out["constitutive_residual_norm"], out["reaction_residual_norm"],
+                            out["diffusion_integral_residual_norm"]) <= max(5 * tol_bvp, 1e-7)
+                        and np.max(np.abs(out["boundary_residuals"])) <= 1e-7)
+            out.update(success=bool(accepted), status="converged" if accepted else "profile_rejected")
+            if not accepted:
+                out["message"] = "Direct EOS or physical ODE residual validation failed"
+            if return_profile:
+                out.update(profile)
+            if return_continuation and accepted:
+                out["continuation_state"] = dict(model="slow_front_v1", closure=closure, ms=float(ms),
+                    s=sol.x.copy(), r_fraction=sol.y[0].copy(), jB=jB,
+                    current_excess_fraction=sol.y[1] * current_scale / (jB * (a_0minus - a_inf)))
+            return out
+        except (RuntimeError, ValueError, FloatingPointError) as exc:
+            out.update(success=False, status="profile_rejected", message=str(exc))
+            return out
+
+    def collocate(mesh, guess, jB_start, used):
+        out = dict(base, initial_guess_used=used)
+        try:
+            sol = solve_bvp(rhs, boundary, mesh, guess, p=[np.log(jB_start / jB_scale)],
+                            tol=tol_bvp, bc_tol=min(1e-8, tol_bvp * 0.01),
+                            max_nodes=max_nodes, fun_jac=jacobian, verbose=2 if verb else 0)
+        except (ValueError, RuntimeError, FloatingPointError) as exc:
+            out["message"] = str(exc)
+            return out
+        return finish(out, sol, "collocation")
+
+    use_shooting = initial_guess_mode == "shooting" and continuation_guess is None
+    if initial_guess_mode == "auto" and continuation_guess is None:
+        # Shoot when the layer would sit within ten first-mesh intervals.
+        jB_free = current_scale / (a_0minus - path.interface["a"])
+        use_shooting = (_slow_layer_half_point(path, rate_primitive, jB_free, rate_slope,
+                                               kappa_factor) < 10 * mesh[1])
+    first = None
+    if not use_shooting:
+        first = collocate(mesh, guess, jB_initial,
+                          "default" if continuation_guess is None else "continuation")
+        if first["success"] or initial_guess_mode == "default":
+            return first
+    started = time.perf_counter()
     try:
-        sol = solve_bvp(rhs, boundary, mesh, guess, p=[np.log(jB_initial / jB_scale)],
-                        tol=tol_bvp, bc_tol=min(1e-8, tol_bvp * 0.01),
-                        max_nodes=max_nodes, fun_jac=jacobian, verbose=2 if verb else 0)
-    except (ValueError, RuntimeError, FloatingPointError) as exc:
-        result["message"] = str(exc)
-        return result
-    jB = float(flux(sol.p))
-    lam, _ = tail(jB)
-    result.update(message=sol.message, bvp_status=int(sol.status), bvp_nodes=len(sol.x),
-                  bvp_max_rms_residual=float(np.max(sol.rms_residuals)), jB=jB,
-                  u_0minus=jB / nB_0minus, u_0plus=jB / path.interface["nB"],
-                  u_inf=jB / path.inf["nB"], jK_inf=jB * a_inf,
-                  lambda_inf=float(lam), compact_scale=float(kappa_factor / lam),
-                  boundary_residuals=boundary(sol.y[:, 0], sol.y[:, -1], sol.p))
-    if not sol.success:
-        return result
-    try:
-        s = np.unique(np.concatenate([sol.x, (sol.x[:-1] + sol.x[1:]) / 2]))
-        y = sol.sol(s)
-        if (np.min(y[0]) < -1e-9 or np.max(y[0]) > 1 + 1e-9 or
-                np.max(np.diff(y[0])) > 1e-8 or abs(sol.p[0]) >= 39):
-            result.update(status="profile_rejected", message="BVP left the physical monotone path")
-            return result
-        z = np.clip(y[0], 0, 1)  # Only roundoff excursions survived the check above.
-        chemical_fields = path.fields(z)
-        chemical_fields[:, 0] = [path.interface[k] for k in ("muB", "muK", "T")]
-        # Direct EOS validation includes all adapted nodes and midpoints, even if
-        # the caller does not request the (larger) profile payload.
-        states = [path.state(*values) for values in chemical_fields.T]
-        closure_errors = [abs(path.pressure_error(st)) for st in states]
-        if closure == "adiabatic":
-            closure_errors += [abs(path.energy_error(st)) for st in states]
-        else:
-            closure_errors += [abs(st["T"] / T - 1) for st in states]
-        profile = {key: np.array([st[key] for st in states]) for key in states[0]}
-        profile["Gamma_K"] = np.array([_exact_kaon_transport_rate(st["muB"], st["muK"],
-                                        st["T"], ms=ms)["Gamma_K"] for st in states])
-        profile["invD_K"] = np.array([_microphysics_from_quark_state_energy(st["muB"], st["T"],
-                                      allow_zero_temperature=True)["invD"] for st in states])
-        profile.update(s_coord=s, x=-kappa_factor / lam * np.log1p(-s), r=z * path.r_scale,
-                       jK=jB * a_inf + current_scale * y[1], u=jB / profile["nB"])
-        conservation_errors = {
-            "baryon_flux": float(np.max(np.abs(profile["nB"] * profile["u"] / jB - 1))),
-            "pressure": float(np.max(np.abs(profile["P"] - upstream["P_0minus"])) /
-                              max(abs(upstream["P_0minus"]), 1.0)),
-        }
-        if closure == "adiabatic":
-            conservation_errors["enthalpy_flux"] = float(np.max(np.abs(
-                profile["h"] * profile["u"] / (upstream["h_0minus"] * jB / nB_0minus) - 1)))
-        else:
-            conservation_errors["temperature"] = float(np.max(np.abs(profile["T"] / T - 1)))
-        result["conservation_errors"] = conservation_errors
-        with np.errstate(divide="ignore"):
-            profile["D_K"] = 1 / profile["invD_K"]
-        # Derivatives of the collocation polynomial, not re-evaluation of its RHS.
-        dydx = sol.sol(s, 1) * (lam * (1 - s) / kappa_factor)
-        integral_residual = dydx[0] * path.r_scale - jB * profile["a"] + profile["jK"]
-        w = path.coordinate(z)
-        dnK_dx = path.thermo(w, 1)[4] * path.r_scale / path.primitive(w, 1) * dydx[0]
-        density_rhs = profile["invD_K"] * (jB * profile["a"] - profile["jK"])
-        constitutive = dnK_dx - density_rhs
-        profile["dnK_dx"] = dnK_dx
-        reaction = dydx[1] * current_scale + profile["Gamma_K"]
-        result.update(closure_error_max=float(max(closure_errors)),
-                      diffusion_integral_residual_norm=float(np.max(np.abs(integral_residual)) / current_scale),
-                      constitutive_residual_norm=float(np.max(np.abs(constitutive)) / max(np.max(np.abs(density_rhs)), _FLOAT_TINY)),
-                      reaction_residual_norm=float(np.max(np.abs(reaction)) / np.max(profile["Gamma_K"])),
-                      a_monotone_nonincreasing=bool(np.max(np.diff(profile["a"])) <= 1e-8))
-        accepted = (result["closure_error_max"] <= 1e-8 and
-                    max(conservation_errors.values()) <= 1e-8 and
-                    max(result["constitutive_residual_norm"], result["reaction_residual_norm"],
-                        result["diffusion_integral_residual_norm"]) <= max(5 * tol_bvp, 1e-7)
-                    and np.max(np.abs(result["boundary_residuals"])) <= 1e-7)
-        result.update(success=bool(accepted), status="converged" if accepted else "profile_rejected")
-        if not accepted:
-            result["message"] = "Direct EOS or physical ODE residual validation failed"
-        if return_profile:
-            result.update(profile)
-        if return_continuation and accepted:
-            result["continuation_state"] = dict(model="slow_front_v1", closure=closure, ms=float(ms),
-                s=sol.x.copy(), r_fraction=sol.y[0].copy(), jB=jB,
-                current_excess_fraction=sol.y[1] * current_scale / (jB * (a_0minus - a_inf)))
-        return result
+        center = current_scale / (a_0minus - path.interface["a"])   # advection-free flux
+        jB_shot = _slow_front_shooting_flux(path, a_0minus, rate_slope, center)
+        tighter = _slow_front_shooting_flux(path, a_0minus, rate_slope, jB_shot, z_start=1e-12,
+                                            rtol=1e-12, bracket=(0.99, 1.01, 3))
+        s_shot, y_shot, mismatch = _slow_front_shooting_profile(
+            path, jB_shot, a_0minus, rate_slope, current_scale, kappa_factor, tail_eps)
+        layer_mesh, s_half = _slow_layer_mesh(_thermal_compact_mesh(n_mesh, tail_eps),
+                                              s_shot, y_shot[0])
     except (RuntimeError, ValueError, FloatingPointError) as exc:
-        result.update(success=False, status="profile_rejected", message=str(exc))
-        return result
+        out = dict(first if first is not None else base, shooting_message=str(exc))
+        if first is None:
+            out["message"] = "Backward shooting failed: " + str(exc)
+        return out
+    shooting = dict(shooting_flux_change=abs(tighter / jB_shot - 1), shooting_mismatch=mismatch,
+                    shooting_time_s=time.perf_counter() - started, shooting_layer_s_half=s_half)
+    layer_guess = np.vstack([np.interp(layer_mesh, s_shot, row) for row in y_shot])
+    second = collocate(layer_mesh, layer_guess, jB_shot, "shooting")
+    second.update(shooting)
+    if second["success"]:
+        return second
+    # Collocation can stay singular at scale ratios >~1e6; the shot trajectory
+    # solves the same ODEs on the same tables and passes the same acceptance.
+    p_shot = np.array([np.log(jB_shot / jB_scale)])
+    trajectory = SimpleNamespace(
+        x=s_shot, y=y_shot, p=p_shot, success=True, status=0,
+        message="Backward shooting from the equilibrium tail", rms_residuals=np.array([np.nan]),
+        sol=CubicHermiteSpline(s_shot, y_shot, rhs(s_shot, y_shot, p_shot), axis=1))
+    out = dict(base, initial_guess_used="shooting", collocation_message=second["message"], **shooting)
+    out = finish(out, trajectory, "shooting")
+    if out["success"] and shooting["shooting_flux_change"] > 1e-6:
+        out.update(success=False, status="profile_rejected",
+                   message="Backward-shooting flux is not converged in its tolerances")
+    return out
 
 
 def solve_front_isothermal_slow(
@@ -10265,7 +10482,7 @@ def solve_front_isothermal_slow(
     param=para.paraQMCRMF3, NM_type="PNM", tail_eps=1e-8, n_mesh=300,
     tol_bvp=1e-4, max_nodes=50000, jB_guess=None, kappa_factor=1.0,
     return_profile=False, verb=False, continuation_guess=None,
-    return_continuation=False, path_rtol=1e-6,
+    return_continuation=False, path_rtol=1e-6, initial_guess_mode="default",
 ):
     """Numerical isobaric fixed-T front, with massless or massive quark EOS.
 
@@ -10273,11 +10490,18 @@ def solve_front_isothermal_slow(
     solve_bvp. a_0plus is nK(0+)/nB(0+); NaN selects the existing PNM interface
     ceiling. u is the nonrelativistic velocity in natural units. Old solver
     APIs remain separate. path_rtol controls EOS/integral table refinement.
+
+    initial_guess_mode="default" keeps the tail-shaped guess. "shooting"
+    shoots from the equilibrium tail to seed a layer-clustered mesh, and
+    accepts the validated shot itself if collocation still fails; "auto"
+    shoots when the predicted cold layer is unresolved or the default fails.
+    Both use the direct equilibrium rate slope in the tail condition.
     """
     return _solve_front_slow("isothermal", float(T), float(nB_0minus), float(B_one_forth),
         float(a_0plus), None, float(ms), param, NM_type, float(tail_eps), int(n_mesh),
         float(tol_bvp), int(max_nodes), jB_guess, float(kappa_factor), return_profile,
-        verb, continuation_guess, return_continuation, float(path_rtol))
+        verb, continuation_guess, return_continuation, float(path_rtol),
+        str(initial_guess_mode))
 
 
 def solve_front_adiabatic_slow(

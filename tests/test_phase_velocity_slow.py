@@ -225,5 +225,81 @@ class SlowFrontTests(unittest.TestCase):
         self.assertLess(abs(old_adia["jB"] / adia["jB"] - 1), 2e-4)
 
 
+class ColdIsothermalSlowTests(unittest.TestCase):
+    """At 0.01 MeV the conversion layer is 1e4-1e7 times thinner than the equilibrium tail."""
+    B14 = 189.1565957288247
+    SPEED = const.c_km * 1e3
+
+    def cold(self, nB_ratio, mode, **kwargs):
+        return pv.solve_front_isothermal_slow(0.01, nB_ratio * N0, self.B14,
+                                              initial_guess_mode=mode, **kwargs)
+
+    def check_accepted(self, result):
+        self.assertTrue(result["success"], result.get("message"))
+        self.assertLessEqual(result["closure_error_max"], 1e-8)
+        self.assertLessEqual(max(result["conservation_errors"].values()), 1e-8)
+
+    def test_default_initialization_still_fails_cold(self):
+        result = self.cold(3.05, "default")
+        self.assertFalse(result["success"])
+        self.assertEqual(result["initial_guess_mode"], "default")
+
+    def test_shooting_seed_resolves_the_layer_by_collocation(self):
+        result = self.cold(3.05, "shooting")
+        self.check_accepted(result)
+        self.assertEqual(result["solution_method"], "collocation")
+        # Brute-force default guess with n_mesh=3000 gave 3249.94 m/s on 201,775 nodes.
+        self.assertAlmostEqual(result["u_0minus"] * self.SPEED, 3249.93, delta=0.02)
+        self.assertLess(result["bvp_nodes"], 20000)
+
+    def test_auto_shoots_dense_cold_states(self):
+        # Layer half-points at s = 6.6e-7 and 2.4e-8; the default first interval is 3.4e-4.
+        for nB_ratio, speed in ((3.5, 46578.8), (4.8, 520113.0)):
+            with self.subTest(nB_ratio=nB_ratio):
+                result = self.cold(nB_ratio, "auto")
+                self.check_accepted(result)
+                self.assertEqual(result["initial_guess_used"], "shooting")
+                self.assertLess(abs(result["u_0minus"] * self.SPEED / speed - 1), 1e-4)
+                self.assertLess(result["shooting_flux_change"], 1e-6)
+
+    def test_validated_shooting_fallback_when_collocation_fails(self):
+        with patch.object(pv, "solve_bvp", side_effect=ValueError("singular Jacobian")):
+            result = self.cold(3.05, "shooting", return_profile=True)
+        self.check_accepted(result)
+        self.assertEqual(result["solution_method"], "shooting")
+        self.assertEqual(result["collocation_message"], "singular Jacobian")
+        self.assertAlmostEqual(result["u_0minus"] * self.SPEED, 3249.93, delta=0.02)
+        self.assertLessEqual(np.max(np.diff(result["a"])), 1e-8)
+        self.assertAlmostEqual(result["jK"][0] / result["jB"], result["a_0minus"], places=7)
+
+    def test_auto_keeps_default_initialization_when_layer_is_resolved(self):
+        default = pv.solve_front_isothermal_slow(10.0, 3.5 * N0, self.B14)
+        auto = pv.solve_front_isothermal_slow(10.0, 3.5 * N0, self.B14, initial_guess_mode="auto")
+        self.assertTrue(auto["success"], auto.get("message"))
+        self.assertEqual(auto["initial_guess_used"], "default")
+        # Only the tail condition differs: direct instead of tabulated rate slope.
+        self.assertLess(abs(auto["jB"] / default["jB"] - 1), 1e-10)
+
+    def test_exact_equilibrium_rate_slope(self):
+        failed = self.cold(3.5, "default")
+        path = pv._slow_front_path("isothermal", failed["P_0minus"],
+                                   failed["h_0minus"] / failed["nB_0minus"], 0.01, self.B14,
+                                   0.0, failed["a_0plus"], None, 1e-6)
+        w = 1e-6   # muK = 1.5e-4 MeV, deep in the linear regime muK << 2*pi*T
+        state = path.isobar(w * path.interface["muK"], 0.01, path.inf["muB"])
+        rate = pv._exact_kaon_transport_rate(state["muB"], state["muK"], 0.01)["Gamma_K"]
+        independent = rate / (path.primitive(w) - path.primitive(0))
+        self.assertLess(abs(path.equilibrium_rate_slope() / independent - 1), 1e-4)
+        self.assertGreater(path.drate_dr / independent - 1, 0.1)   # tabulated slope misses muK < 2 pi T
+
+    def test_default_mode_is_unchanged(self):
+        result = pv.solve_front_isothermal_slow(10.0, 3 * N0, 180.0, a_0plus=0.6, n_mesh=120)
+        self.assertEqual(result["jB"], 2.0174252130852697)   # pre-fix value, same machine
+
+    def test_invalid_initial_guess_mode(self):
+        with self.assertRaises(ValueError):
+            pv.solve_front_isothermal_slow(10, 3 * N0, 180, a_0plus=.6, initial_guess_mode="layer")
+
+
 if __name__ == "__main__":
     unittest.main()

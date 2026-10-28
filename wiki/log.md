@@ -1077,3 +1077,9 @@ The quark mean free path $3D_K$ is at most $7.7\times10^{-4}$ of the conversion-
 Without editing the solver, a layer-clustered mesh plus advection-free guess converged at 3.05 n0/0.01 MeV and 4.8 n0/3 MeV but failed above about 7000 m/s.
 Backward shooting from the decaying equilibrium eigenvector found the flux at all six tested cold states in about 2 s and matched polished collocation to six digits at three; collocation remains singular at 0.01 MeV for 3.5-4.8 n0.
 Recorded the implementation and verification plan in [[isothermal-slow-cold-fix-plan]].
+
+## [2026-10-27] implement | Cold slow isothermal shooting initializer ([v4.9.5])
+
+Added `initial_guess_mode="default" | "shooting" | "auto"` to `solve_front_isothermal_slow`: backward shooting from the decaying equilibrium eigenvector seeds a layer-clustered collocation mesh, with the validated shot as fallback, and the direct equilibrium rate slope enters the tail condition in the new modes.
+`"auto"` converges on all 35 mapped states (16 previously failing; one via the fallback) and agrees with the default to 8.1e-7 where both work; mesh/tolerance/tail changes move speeds by at most 1.8e-9.
+Default outputs are bit-identical at five reference states; the slow and analytic-slow suites pass 38/38, and the legacy `test_phase_velocity.py` failures are unchanged. See [[isothermal-slow-shooting-initializer]].

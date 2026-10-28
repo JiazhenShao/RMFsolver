@@ -1,11 +1,15 @@
 ---
-summary: Planned cold fix for solve_front_isothermal_slow — backward shooting from the equilibrium tail gives the flux in ~2 s and matches the BVP to 6 digits; it seeds a layer-clustered collocation mesh, and shooting itself is the fallback where collocation stays singular (0.01 MeV, >=3.5 n0).
-status: current
+summary: Superseded by the implementation — backward shooting from the equilibrium tail seeds a layer-clustered collocation mesh, with the validated shot as fallback; implemented as initial_guess_mode in solve_front_isothermal_slow on 2026-10-27.
+status: superseded
 updated: 2026-10-27
 tags: [solver, isothermal, numerical, low-temperature, plan, slow-front]
 ---
 
 # Fix plan for the cold slow isothermal BVP
+
+⚠ Superseded 2026-10-27: implemented as [[isothermal-slow-shooting-initializer]]. It differs from this plan in two ways.
+The direct tail slope is used only in the new modes, so `"default"` stays bit-identical.
+Once that slope was in the tail condition, collocation from the shot converged at 34 of 35 map states, including the 0.01 MeV, $3.5$–$4.8n_0$ cases that were singular in the prototype; the fallback is needed only at $4.8n_0$, 0.03 MeV.
 
 The failure mechanism is in [[isothermal-slow-cold-failure]]: the tail-scaled coordinate hides a conversion layer $10^3$–$10^7$ times thinner than the tail.
 The plan is not implemented. It is backed by prototypes that change only arrays passed to the unchanged solver, not its source.

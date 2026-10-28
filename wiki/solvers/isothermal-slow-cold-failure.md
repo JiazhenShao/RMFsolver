@@ -7,6 +7,8 @@ tags: [solver, isothermal, numerical, low-temperature, diagnosis, slow-front]
 
 # Cold failure of the slow isothermal BVP
 
+Fixed for new runs on 2026-10-27 by `initial_guess_mode="auto"`; see [[isothermal-slow-shooting-initializer]]. The diagnosis below describes the unchanged default mode.
+
 At low temperature `solve_front_isothermal_slow` fails because of how it represents the profile, not because of its equations or microphysics.
 Its compact coordinate is scaled by the downstream tail length $1/\lambda_\infty$, while nearly all K conversion happens in a layer $10^3$–$10^7$ times thinner.
 The layer then sits inside the first interval of the default mesh, the default guess has the shape of the tail, and `solve_bvp` diverges.

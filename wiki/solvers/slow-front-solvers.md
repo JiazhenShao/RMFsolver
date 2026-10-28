@@ -108,6 +108,7 @@ solve_front_adiabatic_slow(T_0minus, nB_0minus, B_one_forth,
 - Defaults shared by both APIs are `tail_eps=1e-8`, `n_mesh=300`, `tol_bvp=1e-4`, `max_nodes=50000`, `kappa_factor=1.0`, and `path_rtol=1e-6`. Upstream defaults remain `NM_type="PNM"` and `paraQMCRMF3`.
 - Mesh controls require `n_mesh>=13` and `max_nodes>=n_mesh`. Both `tail_eps` and the floating-point endpoint `1-tail_eps` must lie strictly between zero and one.
 - Neither new numerical API applies the analytical stable-phase mask. An automatic ceiling must be interior; a saturated ceiling returns a thermodynamic-path failure.
+- `solve_front_isothermal_slow` also takes `initial_guess_mode="default" | "shooting" | "auto"` (default unchanged). Use `"auto"` below about 10 MeV, where the default fails; see [[isothermal-slow-shooting-initializer]].
 
 For the automatic isothermal ceiling, the new caller first finds the pressure-matched $\mu_K=0$ state and supplies `a_floor=max(1e-8, a_inf*(1+1e-6))` to the unchanged `_solve_a_0plus_max` helper.
 This avoids a bracket below massive equilibrium while preserving the pressure match, local fraction, and ceiling condition $\mu_B(0^-)=\mu_B(0^+)+a(0^+)\mu_K(0^+)$.
