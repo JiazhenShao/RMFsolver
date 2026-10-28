@@ -1093,3 +1093,7 @@ A fresh final review found no critical defect. Four workflow fixes followed: rej
 ## [2026-10-28] analyze | Isothermal $\xi$ fit from saved intermediates
 
 Fitted the analytical isothermal $\xi$ to the numerical contours without solver calls. The contour-displacement fit gives $\xi=-0.56$ below 10 MeV (RMS offset $0.03\,n_0$, contours nearly coincide) and $+0.74$ at 8–100 MeV (RMS $0.08\,n_0$); $\xi=-0.85$ gave $0.09$ and $0.29\,n_0$. Per-level anchors fall from $+2.0$ at 50 m/s to $-0.74$ at $10^6$ m/s and agree between panels above ~1000 m/s, so the residual high-$T$ mismatch is a speed-dependent $\xi$, not a temperature effect. Filed [[isothermal-xi-fit]].
+
+## [2026-10-28] update | Manuscript isothermal figures from the 26-10-27 production
+
+`All_Plots_new.ipynb` cells 19–23 replace the archived 26-09-16/26-10-01 isothermal section: the linear numerical contour (polar mesh above, rows below 10 MeV) and the log-$T$ analytical-versus-numerical figure. Both write their PDFs straight into `Latex_writting/Hydrodynamical combustion/Plots/`, so recompiling `Main.tex` shows them. The analytic default stays at the manuscript's $\xi=-0.85$; see [[isothermal-contours-polar-and-row-meshes]].

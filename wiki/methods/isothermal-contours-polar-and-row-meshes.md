@@ -94,6 +94,10 @@ Numerical records keep $I_1$, $I_2$ (`I1_num`, `I2_num`) and `xi_profile`, `xi_p
 - `isothermal-highT-old-vs-new`.
 All text is at least 16 pt.
 
+The manuscript figures come from `All_Plots_new.ipynb` cells 19–23 (tag `isothermal-contours-26-10-27`, rebuilt by `update_all_plots_new.py`).
+They write `Latex_writting/Hydrodynamical combustion/Plots/isothermal-numerical-contour.pdf` (Fig. `speed-isothermal-linear`) and `isothermal-analytic-numerical-logT.pdf` (Fig. `speed-isothermal-log`, analytic at `ISO_LOG_XI`, default $-0.85$), so rerunning a cell and recompiling updates the manuscript.
+⚠ The `speed-isothermal-log` caption still mentions numerical dots; the new figure has none.
+
 ## Open
 
 - **Analytic recipe vs manuscript (user decision pending).** The code evaluates the transport at $\mu_B(0^+)$, the density at $n_B(\infty)$ and the exact $A_{\rm iso}$.
