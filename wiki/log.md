@@ -1067,3 +1067,7 @@ Mapped default `solve_front_isothermal_slow` over 35 states (0.01-10 MeV, 3.05-4
 The tail-scaled compact coordinate places the conversion layer at $s\sim10^{-5}$-$10^{-8}$, inside the first default mesh interval; this layer position predicts 34/35 outcomes.
 A layer-shaped guess converges at 3.05 n0, 0.01 MeV (3249.94 m/s, 8.9 s), but `continuation_guess` cannot carry a resolved layer onto the fixed mesh at higher density; the 55-99% tail-derivative error changes no speed.
 No solver source changed. See [[isothermal-slow-cold-failure]].
+
+## [2026-10-27] verify | Cold isothermal layers remain in local equilibrium
+
+The quark mean free path $3D_K$ is at most $7.7\times10^{-4}$ of the conversion-layer half-width over the same 35 states (27 nm against 36 um to 0.26 mm at 0.01 MeV); the km-scale $1/\lambda_\infty$ is chemical relaxation, not a mean free path. See [[isothermal-slow-cold-failure]].

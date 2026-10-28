@@ -53,6 +53,15 @@ The next step would exceed `max_nodes=50000`, so every failure returns "maximum 
 - At $3.5n_0$ and $4.8n_0$ the layer half-point is at $s=6.6\times10^{-7}$ and $2.4\times10^{-8}$. ⚠ `continuation_guess` is interpolated onto the fixed `_thermal_compact_mesh(n_mesh)`, so even a perfect guess loses the layer. The public API cannot rescue these states without a source change.
 - The table's equilibrium rate slope `drate_dr` is too large by $+0.5\%$, $+55\%$, $+99\%$ at $3.05$, $3.5$, $4.8n_0$, because its $\mu_K$ nodes never reach $\mu_K<2\pi T$. `da_dr` is exact to $10^{-9}$. Substituting the exact slope rescues none of the failures, and in the converged $3.05n_0$ solve the exact or doubled slope leaves 3249.94 m/s unchanged to six digits. The rate spline stays positive and monotone; its value is up to 55% high only below $\mu_K\approx0.1$ MeV.
 
+## Not a local-equilibrium failure
+
+⚠ The tail length $1/\lambda_\infty$ is the chemical-relaxation length set by the slow linear weak rate, not a mean free path.
+With the manuscript's $\lambda^{\rm mfp}_Q=3D_K$ (full diffusion), the mean free path is $2\times10^{-4}$ nm at 10 MeV and 27 nm at 0.01 MeV.
+Over the whole 35-state map, $\lambda^{\rm mfp}_Q$ is at most $7.7\times10^{-4}$ of the conversion-layer half-width, and $\le2\times10^{-5}$ above 1 MeV.
+Because $\lambda^{\rm mfp}_Q\propto T^{-5/3}$ while the layer width scales as $T^{-5/6}$, the ratio reaches unity only near eV temperatures.
+Isothermal $D_K$ changes by only 0.2–12% across the layer, so Eq. (LTE_condition) is also satisfied.
+The cold failure is purely numerical. Script: `mfp_vs_layer.py` in the same folder.
+
 ## Implication
 
 A fix needs a change in `_solve_front_slow`: an initial mesh built in physical $x$ and clustered at the layer scale, plus the advection-free first-integral guess above.
