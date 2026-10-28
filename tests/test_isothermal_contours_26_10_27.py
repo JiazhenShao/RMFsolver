@@ -72,5 +72,35 @@ class BoundaryTests(unittest.TestCase):
             self.assertTrue(np.all(np.diff(x) < 0), name)
 
 
+class PolarMeshTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        import polar_mesh
+        cls.mesh = polar_mesh.build_mesh(workers=4)
+
+    def test_mesh_is_strictly_inside_ring(self):
+        mesh = self.mesh
+        inner = np.array([b["rho_inner"] for b in mesh["boundaries"]])[:, None]
+        outer = np.array([b["rho_outer"] for b in mesh["boundaries"]])[:, None]
+        pending = mesh["point_status"] == "pending"
+        self.assertTrue(np.all((mesh["rho"] > inner)[pending]))
+        self.assertTrue(np.all((mesh["rho"] < outer)[pending]))
+
+    def test_mesh_panel_mask(self):
+        mesh = self.mesh
+        pending = mesh["point_status"] == "pending"
+        self.assertTrue(np.all((mesh["T"][pending] >= 8.0) & (mesh["T"][pending] <= 100.0)))
+        outside = mesh["point_status"] == "outside_panel"
+        self.assertTrue(np.all((mesh["T"][outside] < 8.0) | (mesh["T"][outside] > 100.0)))
+
+    def test_mesh_counts(self):
+        self.assertEqual(self.mesh["rho"].shape, (41, 29))
+        self.assertGreaterEqual(np.sum(self.mesh["point_status"] == "pending"), 900)
+
+    def test_ninety_degree_ray_is_n0_edge(self):
+        self.assertEqual(self.mesh["theta"][-1], np.pi / 2)
+        np.testing.assert_array_equal(self.mesh["x"][-1], 1.0)
+
+
 if __name__ == "__main__":
     unittest.main()
