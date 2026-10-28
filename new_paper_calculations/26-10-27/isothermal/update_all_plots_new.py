@@ -130,14 +130,20 @@ Numerical solid, analytical dashed, same levels and labels as above.
 The analytical speed is rescaled exactly from the saved intermediates at `ISO_CMP_XI`; the manuscript value is $\xi=-0.85$, and the contour fit in `wiki/methods/isothermal-xi-fit.md` gives $\xi=-0.57$ for this panel."""
 
 
-def log_cell(prefix, stem, latex_note, numerical_only):
+FIT_MARKDOWN = r"""# Isothermal contour: analytical at the fitted $\xi$ versus numerical
+
+As above, with `ISO_FIT_XI` set to the contour fit for 0.01–10 MeV (`xi_fit/xi_fit.json`), where the analytical contours nearly sit on the numerical ones."""
+
+
+def log_cell(prefix, stem, latex_note, numerical_only,
+             xi_line="-0.85   # manuscript value; the contour fit for 0.01-10 MeV gives -0.57"):
     """Log-T figure cell: numerical only, or analytical (dashed) versus numerical (solid)."""
     style = dict(_iso_plot.LOG_REFERENCE_STYLE)
     extra = [f"{prefix}UPSAMPLE = 8    # display-only PCHIP refinement along rows in logit(f)"]
     if numerical_only:
         style.update(title=_iso_plot.LINEAR_REFERENCE_STYLE["title"], show_method_legend=False)
     else:
-        extra.insert(0, f"{prefix}XI = -0.85   # manuscript value; the contour fit for 0.01-10 MeV gives -0.57")
+        extra.insert(0, f"{prefix}XI = {xi_line}")
     extra += [f'{prefix}OUTPUT_PNG = "local_analysis_results/All_Plots_new/{stem}.png"',
               f'{prefix}OUTPUT_PDF = "local_analysis_results/All_Plots_new/{stem}.pdf"',
               f'{prefix}OUTPUT_LATEX_PDF = "{LATEX_PLOTS}/{stem}.pdf"   # {latex_note}']
@@ -174,6 +180,8 @@ LOG_NUMERICAL_FIGURE = log_cell("ISO_LOGN_", "isothermal-numerical-contour-logT"
                                 "numerical-only log-T panel", numerical_only=True)
 COMPARISON_FIGURE = log_cell("ISO_CMP_", "isothermal-analytic-numerical-logT",
                              "Fig. speed-isothermal-log", numerical_only=False)
+FIT_FIGURE = log_cell("ISO_FIT_", "isothermal-analytical-numerical-comparison", "fitted-xi comparison",
+                      numerical_only=False, xi_line="-0.57   # contour fit for 0.01-10 MeV (xi_fit/xi_fit.json)")
 
 
 def section_bounds(cells):
@@ -213,7 +221,8 @@ def main():
     new = [nbformat.v4.new_markdown_cell(MARKDOWN), nbformat.v4.new_code_cell(LOAD),
            nbformat.v4.new_code_cell(LINEAR_FIGURE), nbformat.v4.new_markdown_cell(LOG_NUMERICAL_MARKDOWN),
            nbformat.v4.new_code_cell(LOG_NUMERICAL_FIGURE), nbformat.v4.new_markdown_cell(COMPARISON_MARKDOWN),
-           nbformat.v4.new_code_cell(COMPARISON_FIGURE)]
+           nbformat.v4.new_code_cell(COMPARISON_FIGURE), nbformat.v4.new_markdown_cell(FIT_MARKDOWN),
+           nbformat.v4.new_code_cell(FIT_FIGURE)]
     for cell in new:
         cell.metadata["tags"] = [TAG]
     execute(new)

@@ -573,6 +573,26 @@ class PlotTests(unittest.TestCase):
         numerical_log = next(c.source for c in cells if "ISO_LOGN_TITLE" in c.source)
         self.assertNotIn("retune", numerical_log)   # numerical only
 
+    def test_all_plots_new_writes_the_fitted_xi_comparison(self):
+        import ast
+        import json
+        import nbformat
+        cells = [c for c in nbformat.read(ROOT / "All_Plots_new.ipynb", as_version=4).cells
+                 if "isothermal-contours-26-10-27" in c.metadata.get("tags", [])]
+        source = next(c.source for c in cells if c.cell_type == "code" and "ISO_FIT_XI" in c.source)
+        constants = {}
+        for node in ast.parse(source).body:
+            if isinstance(node, ast.Assign) and isinstance(node.targets[0], ast.Name):
+                try:
+                    constants[node.targets[0].id] = ast.literal_eval(node.value)
+                except ValueError:
+                    pass
+        self.assertEqual(constants["ISO_FIT_OUTPUT_LATEX_PDF"], "Latex_writting/Hydrodynamical combustion/Plots/"
+                                                                 "isothermal-analytical-numerical-comparison.pdf")
+        fit = json.loads((WORKFLOW / "xi_fit/xi_fit.json").read_text())["fits"]["lowT"]["contour"]["xi"]
+        self.assertEqual(constants["ISO_FIT_XI"], round(fit, 2))
+        self.assertTrue(constants["ISO_FIT_SHOW_METHOD_LEGEND"])
+
     def test_no_contour_title_in_all_plots_new_uses_u_0minus(self):
         import ast
         import nbformat

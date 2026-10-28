@@ -1105,3 +1105,7 @@ Contour titles now say "speed" instead of $u(0^-)$. The `All_Plots_new` log-$T$ 
 ## [2026-10-28] repair | Connected the low-$T$ $10^6$ and $3\times10^5$ m/s isothermal contours
 
 Four low-$T$ points that broke plotted contours were failing by a hair: next to the udd boundary the backward-shot flux is reproducible only to about $10^{-6}$ with `path_rtol=1e-6`, the size of the fallback's own self-check. A new repair variant, `path_rtol=1e-7`, passes them under unchanged acceptance, with speeds stable to 7 digits. Low-$T$ numerical coverage is now 1314/1400 and every plotted contour is connected; the low-$T$ contour-fit $\xi$ rounds to $-0.57$. See [[isothermal-contours-polar-and-row-meshes]] and [[isothermal-xi-fit]].
+
+## [2026-10-28] figure | Fitted-$\xi$ isothermal comparison in the manuscript folder
+
+`All_Plots_new` gains a cell (`ISO_FIT_XI` $=-0.57$, the low-$T$ contour fit) that writes the log-$T$ analytic-versus-numerical figure to `Latex_writting/Hydrodynamical combustion/Plots/isothermal-analytical-numerical-comparison.pdf`; `Main.tex` does not include it yet. See [[isothermal-contours-polar-and-row-meshes]].

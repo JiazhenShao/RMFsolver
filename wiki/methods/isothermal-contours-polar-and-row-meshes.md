@@ -98,7 +98,7 @@ Numerical records keep $I_1$, $I_2$ (`I1_num`, `I2_num`) and `xi_profile`, `xi_p
 All text is at least 16 pt.
 
 The manuscript figures come from the `All_Plots_new.ipynb` cells tagged `isothermal-contours-26-10-27` (rebuilt by `update_all_plots_new.py`); titles say "speed", not $u(0^-)$.
-They write `Latex_writting/Hydrodynamical combustion/Plots/isothermal-numerical-contour.pdf` (linear numerical, Fig. `speed-isothermal-linear`), `isothermal-numerical-contour-logT.pdf` (log-$T$ numerical only, not yet included by `Main.tex`) and `isothermal-analytic-numerical-logT.pdf` (log-$T$ analytic versus numerical at `ISO_CMP_XI`, default $-0.85$; Fig. `speed-isothermal-log`).
+They write `Latex_writting/Hydrodynamical combustion/Plots/isothermal-numerical-contour.pdf` (linear numerical, Fig. `speed-isothermal-linear`), `isothermal-numerical-contour-logT.pdf` (log-$T$ numerical only, not yet included by `Main.tex`), `isothermal-analytic-numerical-logT.pdf` (log-$T$ analytic versus numerical at `ISO_CMP_XI`, default $-0.85$; Fig. `speed-isothermal-log`) and `isothermal-analytical-numerical-comparison.pdf` (the same at the fitted `ISO_FIT_XI` $=-0.57$, not yet included by `Main.tex`).
 Rerunning a cell and recompiling updates the manuscript.
 ⚠ The `speed-isothermal-log` caption still mentions numerical dots; the figures have none.
 
