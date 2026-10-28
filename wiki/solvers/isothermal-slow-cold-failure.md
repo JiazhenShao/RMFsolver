@@ -64,8 +64,8 @@ The cold failure is purely numerical. Script: `mfp_vs_layer.py` in the same fold
 
 ## Implication
 
-A fix needs a change in `_solve_front_slow`: an initial mesh built in physical $x$ and clustered at the layer scale, plus the advection-free first-integral guess above.
-An exact one-line equilibrium slope, $\mathcal C_K(\mu_B/3)^5\,4\pi^2T^2/(D_K\,\partial n_K/\partial\mu_K)$, is cosmetic for the speed.
-Even resolved cold solves need $\sim3\times10^4$–$2\times10^5$ nodes, so 50,000 is too small as a cold `max_nodes`.
+The fix needs a change in `_solve_front_slow`; the prototype-backed plan is [[isothermal-slow-cold-fix-plan]].
+⚠ A layer-clustered mesh with the advection-free first-integral guess fixes only states up to about 4000 m/s; it fails above about 7000 m/s, where advection matters inside the layer.
+An exact equilibrium slope, $\mathcal C_K(\mu_B/3)^5\,4\pi^2T^2/(D_K\,\partial n_K/\partial\mu_K)$, is cosmetic for the speed.
 The old physical-$n_K$ solver failed the same way and was partly rescued by a layer-resolved logarithmic mesh; see [[isothermal-cold-numerical-probes]].
 See [[slow-front-solvers]] for the coordinate and boundary conditions and [[known-issues]] for other solver traps.

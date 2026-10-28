@@ -1071,3 +1071,9 @@ No solver source changed. See [[isothermal-slow-cold-failure]].
 ## [2026-10-27] verify | Cold isothermal layers remain in local equilibrium
 
 The quark mean free path $3D_K$ is at most $7.7\times10^{-4}$ of the conversion-layer half-width over the same 35 states (27 nm against 36 um to 0.26 mm at 0.01 MeV); the km-scale $1/\lambda_\infty$ is chemical relaxation, not a mean free path. See [[isothermal-slow-cold-failure]].
+
+## [2026-10-27] plan | Cold slow isothermal fix, prototype-backed
+
+Without editing the solver, a layer-clustered mesh plus advection-free guess converged at 3.05 n0/0.01 MeV and 4.8 n0/3 MeV but failed above about 7000 m/s.
+Backward shooting from the decaying equilibrium eigenvector found the flux at all six tested cold states in about 2 s and matched polished collocation to six digits at three; collocation remains singular at 0.01 MeV for 3.5-4.8 n0.
+Recorded the implementation and verification plan in [[isothermal-slow-cold-fix-plan]].

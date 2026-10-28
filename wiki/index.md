@@ -51,6 +51,7 @@ The nuclear→quark combustion front project. **This is the only page loaded by 
 | [[phase-velocity-overview]] | Solver APIs, separate isobaric and moving-flux BVPs, units and editing restriction; revised rate metadata preserves legacy compatibility |
 | [[slow-front-solvers]] | Isobaric isothermal/adiabatic BVPs with a precomputed neutral EOS path and finite diffusion-density integral; 16 test methods verified across targeted runs, with massive-EOS and runtime limits |
 | [[isothermal-slow-cold-failure]] | Cold slow isothermal BVP fails because the tail-scaled coordinate puts the conversion layer inside the first mesh interval, so the default guess diverges; the tail-derivative error is harmless |
+| [[isothermal-slow-cold-fix-plan]] | Planned cold fix: backward shooting from the equilibrium tail (2 s, matches the BVP to 6 digits) seeds a layer-clustered mesh; shooting is the fallback where collocation stays singular |
 | [[analytic-slow-front-solvers]] | Three static analytical APIs; corrected second-order adiabatic heat matching removes the leading-density sqrt(3) ceiling error, with unchanged closed integral and verified benchmarks |
 | [[adiabatic-analytic-error-budget]] | Corrected full-analytical adiabatic speed matches the manuscript; its 10–47% excess over semi splits into Landau-only D_K, cubic rate, ellipse and quadratic-ceiling factors; effective contour-fit xi = -0.46 |
 | [[analytic-slow-front-audit]] | Historical moving-flux analytical audit and the decisions implemented by the separate slow analytical APIs |
