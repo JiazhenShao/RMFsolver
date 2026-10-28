@@ -19,7 +19,7 @@ OUTPUT = HERE / "boundary-curves.npz"
 
 
 def main(workers=4):
-    key = repr(sorted(polar_mesh._boundary_key(np.array([])).items()))
+    key = polar_mesh._boundary_key()
     if OUTPUT.is_file() and str(np.load(OUTPUT)["key"]) == key:
         print(f"up to date: {OUTPUT}")
         return
@@ -31,9 +31,18 @@ def main(workers=4):
     print(f"wrote {OUTPUT}: inner {len(curves['inner'][0])} and outer {len(curves['outer'][0])} points")
 
 
-def load():
+def load(extra_rays=()):
+    """Saved curves, merged with exact boundary points of extra rays (e.g. a payload's mesh)."""
     data = np.load(OUTPUT)
-    return dict(inner=(data["inner_x"], data["inner_T"]), outer=(data["outer_x"], data["outer_T"]))
+    curves = {}
+    for name in ("inner", "outer"):
+        points = np.column_stack([data[name + "_x"], data[name + "_T"]])
+        extra = np.array([(r["x_" + name], r["T_" + name]) for r in extra_rays if r["T_" + name] > 10.0])
+        if len(extra):
+            points = np.unique(np.vstack([points, extra]), axis=0)
+        points = points[np.argsort(points[:, 1], kind="stable")]
+        curves[name] = (points[:, 0], points[:, 1])
+    return curves
 
 
 if __name__ == "__main__":

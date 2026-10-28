@@ -57,8 +57,12 @@ def sha256(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+RESULT_SOURCES = ("_iso_common.py", "_iso_boundaries.py", "_iso_evaluate.py")   # engine/plot/xi excluded
+
+
 def source_hashes():
-    files = [ROOT / "RMFsolver/phase_velocity.py"] + sorted(HERE.glob("_iso_*.py"))
+    """Hashes of every file that can change a computed point (solver + physics modules)."""
+    files = [ROOT / "RMFsolver/phase_velocity.py"] + [HERE / name for name in RESULT_SOURCES]
     return {str(Path(f).relative_to(ROOT)): sha256(f) for f in files}
 
 

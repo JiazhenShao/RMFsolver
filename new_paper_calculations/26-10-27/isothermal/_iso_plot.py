@@ -12,6 +12,9 @@ import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 from matplotlib.patches import Rectangle
 import numpy as np
+from scipy.interpolate import PchipInterpolator
+
+import _iso_common as common
 
 LINEAR_REFERENCE_STYLE = dict(
     velocity_contour_levels_m_s=(50.0, 100.0, 200.0, 500.0, 1000.0, 2000.0, 5000.0),
@@ -66,13 +69,38 @@ LINEAR_REFERENCE_STYLE = dict(
 FONT_RULE_KEYS = ("contour_label_font_size",)   # 11 pt in the reference, >= 16 pt here
 
 
-def contour_arrays(payload):
-    """(x, T, log10 v) on the mesh; v masked wherever the point is not accepted."""
+def contour_arrays(payload, radial_upsample=1):
+    """(x, T, log10 v) on the mesh; v masked wherever the point is not accepted.
+
+    radial_upsample > 1 refines each ray for display: log10 v is interpolated
+    monotonically (PCHIP) in u = -ln(1 - f), in which it is nearly linear next
+    to the udd boundary (v ~ (1-A)^(-1/2)), only within runs of consecutive
+    accepted points, so failures stay holes and nothing is extrapolated.
+    """
     mesh = payload["mesh"]
     speed = np.asarray(payload["speed_m_s"], dtype=float)
     accepted = (np.asarray(payload["status"]).astype(str) == "accepted") & np.isfinite(speed) & (speed > 0)
-    logv = np.ma.masked_array(np.log10(np.where(accepted, speed, 1.0)), mask=~accepted)
-    return np.asarray(mesh["x"], dtype=float), np.asarray(mesh["T"], dtype=float), logv
+    logv = np.where(accepted, np.log10(np.where(accepted, speed, 1.0)), np.nan)
+    if radial_upsample <= 1:
+        return (np.asarray(mesh["x"], dtype=float), np.asarray(mesh["T"], dtype=float),
+                np.ma.masked_invalid(logv))
+    u = -np.log1p(-np.asarray(mesh["fractions"], dtype=float))
+    fine_u = np.concatenate([np.linspace(u[k], u[k + 1], radial_upsample + 1)[:-1]
+                             for k in range(len(u) - 1)] + [u[-1:]])
+    fine_f = -np.expm1(-fine_u)
+    inner = np.array([b["rho_inner"] for b in mesh["boundaries"]])[:, None]
+    outer = np.array([b["rho_outer"] for b in mesh["boundaries"]])[:, None]
+    rho = inner + fine_f[None, :] * (outer - inner)
+    x, T = common.to_physical(rho, np.broadcast_to(np.asarray(mesh["theta"])[:, None], rho.shape))
+    fine = np.full(rho.shape, np.nan)
+    for i, row in enumerate(logv):
+        good = np.flatnonzero(np.isfinite(row))
+        for run in np.split(good, np.flatnonzero(np.diff(good) > 1) + 1):
+            if len(run) < 2:
+                continue
+            inside = (fine_u >= u[run[0]]) & (fine_u <= u[run[-1]])
+            fine[i, inside] = PchipInterpolator(u[run], row[run])(fine_u[inside])
+    return np.asarray(x), np.asarray(T), np.ma.masked_invalid(fine)
 
 
 def coverage(payload, levels):
@@ -131,16 +159,18 @@ def draw_background(axis, curves, style=LINEAR_REFERENCE_STYLE):
 
 
 def draw_contours(axis, payload, T_range=(-np.inf, np.inf), style=LINEAR_REFERENCE_STYLE,
-                  line_style=None, label=True, zorder=None):
+                  line_style=None, label=True, zorder=None, radial_upsample=1):
     """Contours of one payload, clipped to T_range; inline labels at the style temperatures."""
     levels = np.asarray(style["velocity_contour_levels_m_s"], dtype=float)
-    x, T, logv = contour_arrays(payload)
+    x, T, logv = contour_arrays(payload, radial_upsample)
     contours = axis.contour(x, T, logv, levels=np.log10(levels), colors=style["velocity_contour_colors"],
                             linestyles=line_style or style["velocity_contour_line_style"],
                             linewidths=style["velocity_contour_line_width"],
                             zorder=style["contour_zorder"] if zorder is None else zorder)
-    low, high = max(T_range[0], -1e9), min(T_range[1], 1e9)
-    contours.set_clip_path(Rectangle((-1e3, low), 2e3, high - low, transform=axis.transData))
+    # Finite clip box inside the axes: tight-bbox layout measures it.
+    (x0, x1), (y0, y1) = style["x_limits"], style["y_limits_mev"]
+    low, high = max(T_range[0], y0), min(T_range[1], y1)
+    contours.set_clip_path(Rectangle((x0, low), x1 - x0, high - low, transform=axis.transData))
     if label:
         positions = []
         for level, segments in zip(levels, contours.allsegs):

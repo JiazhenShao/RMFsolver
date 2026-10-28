@@ -53,7 +53,7 @@ numerical_highT = iso_common.load(WORKFLOW / "highT/isothermal-highT-numerical.n
 analytic_highT = iso_common.load(WORKFLOW / "highT/isothermal-highT-analytic.npy")
 assert numerical_highT["mesh"]["fingerprint"] == analytic_highT["mesh"]["fingerprint"]
 assert numerical_highT["identity"]["sources"] == analytic_highT["identity"]["sources"]
-boundary_curves = build_boundary_curves.load()
+boundary_curves = build_boundary_curves.load(numerical_highT["mesh"]["boundaries"])
 xi_cache_highT = iso_xi.build_cache(analytic_highT)
 for name, payload in (("numerical", numerical_highT), ("analytic", analytic_highT)):
     statuses = payload["status"].astype(str)
@@ -80,13 +80,15 @@ STYLE_FROM_GLOBALS = ("style = dict(iso_plot.LINEAR_REFERENCE_STYLE)\n"
 
 NUMERICAL_FIGURE = style_block([
     "HIGH_T_CLIP_MEV = 10.0",
+    "RADIAL_UPSAMPLE = 8   # display-only PCHIP refinement along rays in -ln(1-f)",
     'OUTPUT_STEM = "local_analysis_results/26-10-27/isothermal-highT-numerical"',
 ]) + "\n\n" + STYLE_FROM_GLOBALS + r'''
 
 figure, axis, rc = iso_plot.new_axes(style)
 with mpl.rc_context(rc):
     iso_plot.draw_background(axis, boundary_curves, style)
-    iso_plot.draw_contours(axis, numerical_highT, T_range=(HIGH_T_CLIP_MEV, np.inf), style=style)
+    iso_plot.draw_contours(axis, numerical_highT, T_range=(HIGH_T_CLIP_MEV, np.inf), style=style,
+                           radial_upsample=RADIAL_UPSAMPLE)
     iso_plot.finish_axes(axis, style)
     iso_plot.export(figure, ROOT / OUTPUT_STEM, style)
     plt.show()'''
@@ -94,10 +96,11 @@ with mpl.rc_context(rc):
 COMPARISON_FIGURE = style_block([
     "XI = -0.85",
     "HIGH_T_CLIP_MEV = 10.0",
+    "RADIAL_UPSAMPLE = 8   # display-only PCHIP refinement along rays in -ln(1-f)",
     "TITLE = 'Isothermal $u(0^-)$ [$\\\\mathrm{m\\\\,s^{-1}}$]'",
     "ANALYTICAL_LINE_STYLE = '--'",
     "NUMERICAL_LINE_STYLE = '-'",
-    "LEGEND_LOCATION = 'lower left'",
+    "LEGEND_LOCATION = 'upper left'",   # empty udd-favored strip above ~95 MeV
     "LEGEND_FONT_SIZE = 16",
     "LEGEND_HANDLE_COLOR = '0.15'",
     'OUTPUT_STEM = "local_analysis_results/26-10-27/isothermal-highT-comparison"',
@@ -108,9 +111,10 @@ figure, axis, rc = iso_plot.new_axes(style)
 with mpl.rc_context(rc):
     iso_plot.draw_background(axis, boundary_curves, style)
     iso_plot.draw_contours(axis, numerical_highT, T_range=(HIGH_T_CLIP_MEV, np.inf), style=style,
-                           line_style=NUMERICAL_LINE_STYLE)
+                           line_style=NUMERICAL_LINE_STYLE, radial_upsample=RADIAL_UPSAMPLE)
     iso_plot.draw_contours(axis, analytic_retuned, T_range=(HIGH_T_CLIP_MEV, np.inf), style=style,
-                           line_style=ANALYTICAL_LINE_STYLE, label=False)
+                           line_style=ANALYTICAL_LINE_STYLE, label=False,
+                           radial_upsample=RADIAL_UPSAMPLE)
     iso_plot.method_legend(axis, [("Numerical", NUMERICAL_LINE_STYLE),
                                   (rf"Analytical, $\xi={XI:g}$", ANALYTICAL_LINE_STYLE)],
                            font_size=LEGEND_FONT_SIZE, location=LEGEND_LOCATION, color=LEGEND_HANDLE_COLOR,
@@ -121,11 +125,12 @@ with mpl.rc_context(rc):
 
 OLD_VS_NEW_FIGURE = style_block([
     "HIGH_T_CLIP_MEV = 10.0",
-    "TITLE = 'Isothermal numerical $u(0^-)$: previous vs current'",
+    "RADIAL_UPSAMPLE = 8   # display-only PCHIP refinement along rays in -ln(1-f)",
+    "TITLE = 'Previous vs current $u(0^-)$ [$\\\\mathrm{m\\\\,s^{-1}}$]'",
     "PREVIOUS_LINE_STYLE = ':'",
     "PREVIOUS_LINE_WIDTH = 2.2",
     'PREVIOUS_ARCHIVE = "local_analysis_results/All_Plots_new/isothermal_contour_data/isothermal-numerical-contour.npz"',
-    "LEGEND_LOCATION = 'lower left'",
+    "LEGEND_LOCATION = 'upper left'",   # empty udd-favored strip above ~95 MeV
     "LEGEND_FONT_SIZE = 16",
     "LEGEND_HANDLE_COLOR = '0.15'",
     'OUTPUT_STEM = "local_analysis_results/26-10-27/isothermal-highT-old-vs-new"',
@@ -141,9 +146,10 @@ with mpl.rc_context(rc):
         curve = curve[curve[:, 1] >= HIGH_T_CLIP_MEV]
         axis.plot(curve[:, 0], curve[:, 1], PREVIOUS_LINE_STYLE, color=color,
                   linewidth=PREVIOUS_LINE_WIDTH, zorder=CONTOUR_ZORDER)
-    iso_plot.draw_contours(axis, numerical_highT, T_range=(HIGH_T_CLIP_MEV, np.inf), style=style)
-    iso_plot.method_legend(axis, [("Current: non-relativistic, $\\alpha_s=0.4$", "-"),
-                                  ("Previous: relativistic, $\\alpha_s=0.3$", PREVIOUS_LINE_STYLE)],
+    iso_plot.draw_contours(axis, numerical_highT, T_range=(HIGH_T_CLIP_MEV, np.inf), style=style,
+                           radial_upsample=RADIAL_UPSAMPLE)
+    iso_plot.method_legend(axis, [("Current: nonrel., $\\alpha_s=0.4$", "-"),
+                                  ("Previous: rel., $\\alpha_s=0.3$", PREVIOUS_LINE_STYLE)],
                            font_size=LEGEND_FONT_SIZE, location=LEGEND_LOCATION, color=LEGEND_HANDLE_COLOR)
     iso_plot.finish_axes(axis, style, title=TITLE)
     iso_plot.export(figure, ROOT / OUTPUT_STEM, style)

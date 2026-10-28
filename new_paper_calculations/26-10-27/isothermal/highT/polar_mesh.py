@@ -21,20 +21,24 @@ FRACTIONS = (0.005, 0.02, 0.06, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 
 CACHE = Path(__file__).with_name("ray-boundaries.npy")
 
 
-def _boundary_key(theta):
+def _boundary_key():
+    """Boundary radii depend only on the solver, the boundary code and these constants."""
     sources = {k: v for k, v in common.source_hashes().items()
-               if k.endswith(("phase_velocity.py", "_iso_common.py", "_iso_boundaries.py"))}
-    return dict(sources=sources, theta=np.asarray(theta, dtype=float).tobytes().hex())
+               if k.endswith(("phase_velocity.py", "_iso_boundaries.py"))}
+    return repr((sorted(sources.items()), common.PHYSICS, common.A_CEILING, common.POLAR, common.N0_MEV3))
 
 
 def ray_boundaries_cached(theta, workers):
-    """Solve (or reuse) both boundary radii on every ray; keyed by sources and angles."""
-    key = repr(sorted(_boundary_key(theta).items()))
+    """Solve (or reuse) both boundary radii per ray angle; only new angles are solved."""
+    key = _boundary_key()
     cache = common.load(CACHE) if CACHE.is_file() else {}
-    if key not in cache:
-        cache[key] = common.map_parallel(boundaries.ray_boundaries, theta, workers)
-        common.atomic_save(CACHE, cache)
-    return cache[key]
+    rays = cache.get(key, {})
+    missing = [float(t) for t in theta if round(float(t), 14) not in rays]
+    if missing:
+        for t, ray in zip(missing, common.map_parallel(boundaries.ray_boundaries, missing, workers)):
+            rays[round(t, 14)] = ray
+        common.atomic_save(CACHE, {key: rays})   # entries for other sources are stale
+    return [rays[round(float(t), 14)] for t in theta]
 
 
 def lowest_angle(T_min):
@@ -43,7 +47,7 @@ def lowest_angle(T_min):
     return float(common.to_polar(window["outer_root"], T_min)[1])
 
 
-def build_mesh(n_rays=41, fractions=FRACTIONS, T_min=8.0, T_max=100.0, workers=4, theta=None):
+def build_mesh(n_rays=81, fractions=FRACTIONS, T_min=8.0, T_max=100.0, workers=4, theta=None):
     if theta is None:
         theta = np.linspace(lowest_angle(T_min), np.pi / 2, n_rays)
         theta[-1] = np.pi / 2

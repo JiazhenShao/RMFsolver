@@ -73,8 +73,38 @@ def _restart_path(path):
     raise RuntimeError("No free restart path")
 
 
+def _seed(payload, seed_path, identity):
+    """Copy finished points whose (x, T) match a compatible earlier payload exactly."""
+    seed = common.load(seed_path)
+    # Same solver bytes, physics, settings and method: accepted points are identical
+    # results; workflow-module edits (engine, acceptance retries) do not change them.
+    keys = ("physics", "xi", "numerical", "a_ceiling", "polar", "method", "evaluator")
+    solver = "RMFsolver/phase_velocity.py"
+    if (any(seed["identity"].get(k) != identity.get(k) for k in keys)
+            or seed["identity"]["sources"][solver] != identity["sources"][solver]):
+        raise RuntimeError(f"{seed_path} is not compatible apart from its mesh")
+    key = lambda x, T: (round(float(x), 10), round(float(T), 8))
+    finished = {key(seed["mesh"]["x"][i, j], seed["mesh"]["T"][i, j]): (i, j)
+                for i, j in np.argwhere(np.isin(seed["status"].astype(str), ("accepted", "boundary_roundoff")))}
+    source_profiles, target_profiles = Path(seed["profiles_dir"]), Path(payload["profiles_dir"])
+    count = 0
+    for i, j in np.argwhere(payload["status"] == "pending"):
+        match = finished.get(key(payload["mesh"]["x"][i, j], payload["mesh"]["T"][i, j]))
+        if match is None:
+            continue
+        payload["records"][i, j] = dict(seed["records"][match], seeded_from=str(seed_path))
+        payload["status"][i, j] = seed["status"][match]
+        payload["speed_m_s"][i, j] = seed["speed_m_s"][match]
+        profile = source_profiles / f"{match[0]}_{match[1]}.npz"
+        if profile.is_file():
+            target_profiles.mkdir(parents=True, exist_ok=True)
+            (target_profiles / f"{i}_{j}.npz").write_bytes(profile.read_bytes())
+        count += 1
+    return count
+
+
 def run(mesh, out_path, method, workers, evaluator="_iso_evaluate:evaluate", timeout_s=120.0,
-        restart=False, progress=False):
+        restart=False, progress=False, seed_from=None):
     path = Path(out_path)
     identity = common.identity(method=method, mesh=mesh["fingerprint"], evaluator=evaluator)
     if path.is_file():
@@ -88,6 +118,7 @@ def run(mesh, out_path, method, workers, evaluator="_iso_evaluate:evaluate", tim
         payload = _fresh_payload(mesh, identity, method)
     payload.update(path=str(path), profiles_dir=str(path.with_name(path.stem + "-profiles")),
                    new_evaluations=0)
+    payload["seeded"] = _seed(payload, seed_from, identity) if seed_from else 0
     return _schedule(payload, path, _tasks(payload, ("pending",)), evaluator, workers, timeout_s, progress)
 
 

@@ -95,8 +95,8 @@ class PolarMeshTests(unittest.TestCase):
         self.assertTrue(np.all((mesh["T"][outside] < 8.0) | (mesh["T"][outside] > 100.0)))
 
     def test_mesh_counts(self):
-        self.assertEqual(self.mesh["rho"].shape, (41, 29))
-        self.assertGreaterEqual(np.sum(self.mesh["point_status"] == "pending"), 900)
+        self.assertEqual(self.mesh["rho"].shape, (81, 29))
+        self.assertGreaterEqual(np.sum(self.mesh["point_status"] == "pending"), 2000)
 
     def test_ninety_degree_ray_is_n0_edge(self):
         self.assertEqual(self.mesh["theta"][-1], np.pi / 2)
@@ -263,6 +263,19 @@ class EngineTests(unittest.TestCase):
         self.assertEqual(payload["repairs"][-1]["points"], [(0, 1)])
         self.assertEqual(payload["new_evaluations"], 1)
 
+    def test_seed_from_previous_payload_reuses_matching_points(self):
+        first = self.run_engine()
+        mesh = synthetic_mesh()
+        finer = dict(mesh, fingerprint="finer", theta=np.array([0.1, 0.45, 0.8, 1.2, np.pi / 2]))
+        for key in ("x", "T", "rho"):
+            finer[key] = np.insert(mesh[key], [1, 2], mesh[key][[0, 1]] + 0.123, axis=0)
+        finer["point_status"] = np.where(finer["T"] >= 8.0, "pending", "outside_panel").astype(object)
+        payload = self.run_engine(mesh=finer, out_path=self.directory / "finer.npy", seed_from=first["path"])
+        reused = int(np.sum(first["status"] == "accepted"))
+        self.assertEqual(payload["seeded"], reused)
+        self.assertEqual(payload["new_evaluations"], int(np.sum(finer["point_status"] == "pending")) - reused)
+        np.testing.assert_array_equal(payload["speed_m_s"][[0, 2, 4]], first["speed_m_s"])
+
     def test_profiles_sidecar_matches_accepted_points(self):
         payload = self.run_engine()
         files = sorted(p.name for p in Path(payload["profiles_dir"]).glob("*.npz"))
@@ -361,6 +374,39 @@ class PlotTests(unittest.TestCase):
         outside = synthetic_mesh()["point_status"] == "outside_panel"
         self.assertTrue(np.all(logv.mask[outside]))
         self.assertFalse(np.any(logv.mask[~outside]))
+
+    def ring_payload(self, unresolved=None):
+        import _iso_common as common
+        theta = np.array([0.4, 0.8, 1.2])
+        fractions = np.array([0.005, 0.1, 0.5, 0.9, 0.99, 0.999])
+        inner, outer = np.array([0.4, 0.42, 0.45]), np.array([0.9, 0.85, 0.8])
+        rho = inner[:, None] + fractions[None, :] * (outer - inner)[:, None]
+        x, T = common.to_physical(rho, np.broadcast_to(theta[:, None], rho.shape))
+        u = -np.log1p(-fractions)
+        speed = np.broadcast_to(10 ** (2 + 0.5 * u), rho.shape).copy()
+        status = np.full(rho.shape, "accepted", dtype=object)
+        if unresolved:
+            status[unresolved], speed[unresolved] = "unresolved", np.nan
+        boundaries = [dict(rho_inner=a, rho_outer=b) for a, b in zip(inner, outer)]
+        mesh = dict(theta=theta, fractions=fractions, rho=rho, x=np.asarray(x), T=np.asarray(T),
+                    point_status=status.copy(), boundaries=boundaries, fingerprint="ring")
+        return dict(mesh=mesh, status=status, speed_m_s=speed)
+
+    def test_radial_upsampling_is_exact_for_linear_logv_in_u(self):
+        import _iso_common as common
+        import _iso_plot as plot
+        x, T, logv = plot.contour_arrays(self.ring_payload(), radial_upsample=4)
+        self.assertEqual(logv.shape, (3, 21))
+        rho, theta = common.to_polar(x, T)
+        fraction = (rho - np.array([0.4, 0.42, 0.45])[:, None]) / np.array([0.5, 0.43, 0.35])[:, None]
+        np.testing.assert_allclose(logv, 2 + 0.5 * -np.log1p(-fraction), atol=1e-10)
+
+    def test_radial_upsampling_keeps_failures_as_holes(self):
+        import _iso_plot as plot
+        x, T, logv = plot.contour_arrays(self.ring_payload(unresolved=(1, 3)), radial_upsample=4)
+        self.assertTrue(np.all(logv.mask[1, 9:16]))     # between coarse columns 2 and 4
+        self.assertFalse(np.any(logv.mask[1, :9]))
+        self.assertFalse(np.any(logv.mask[[0, 2]]))
 
     def test_coverage_reports_rays_missing_top_level(self):
         import _iso_plot as plot

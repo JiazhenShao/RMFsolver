@@ -34,6 +34,9 @@ def parser():
     p.add_argument("--restart", action="store_true", help="new suffixed payload if the identity changed")
     p.add_argument("--repair", action="store_true",
                    help="re-evaluate only unresolved/timeout points in place with the current code")
+    p.add_argument("--seed-from", metavar="PATTERN",
+                   help="copy finished points with identical (x, T) from earlier payloads, e.g. "
+                        "'highT/isothermal-highT-{method}-41rays.npy' (relative to this folder)")
     return p
 
 
@@ -54,8 +57,9 @@ def main(argv=None):
         if args.repair:
             payload = engine.repair(path, args.workers, timeout_s=TIMEOUT_S[method], progress=True)
         else:
+            seed = HERE.parent / args.seed_from.format(method=method) if args.seed_from else None
             payload = engine.run(mesh, path, method, args.workers, timeout_s=TIMEOUT_S[method],
-                                 restart=args.restart, progress=True)
+                                 restart=args.restart, progress=True, seed_from=seed)
         statuses = payload["status"].astype(str)
         counts = {s: int(np.sum(statuses == s)) for s in np.unique(statuses)}
         print(f"{method}: {counts}; {payload['new_evaluations']} new evaluations, "
