@@ -134,12 +134,13 @@ def run(mesh, out_path, method, workers, evaluator="_iso_evaluate:evaluate", tim
 
 
 def repair(out_path, workers, evaluator=None, timeout_s=120.0, statuses=("unresolved", "timeout"),
-           progress=False, force=False):
+           progress=False, force=False, points=None):
     """Re-evaluate only non-accepted points in place with the current code.
 
     The payload identity is kept; each repaired record is marked and the pass is
     logged with the source hashes it ran with, so provenance stays explicit.
     A payload from another solver, library or physics is refused unless force=True.
+    points, if given, restricts the pass to those (i, j) among the selected statuses.
     """
     path = Path(out_path)
     payload = common.load(path)
@@ -148,6 +149,9 @@ def repair(out_path, workers, evaluator=None, timeout_s=120.0, statuses=("unreso
                            "repair would mix versions (force=True overrides)")
     evaluator = evaluator or payload["identity"]["evaluator"]
     tasks = _tasks(payload, statuses)
+    if points is not None:
+        wanted = {(int(i), int(j)) for i, j in points}
+        tasks = [task for task in tasks if (task[0], task[1]) in wanted]
     payload.update(path=str(path), profiles_dir=str(path.with_name(path.stem + "-profiles")),
                    new_evaluations=0)
     payload.setdefault("repairs", []).append(dict(time=time.time(), evaluator=evaluator,

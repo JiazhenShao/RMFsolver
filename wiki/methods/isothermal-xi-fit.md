@@ -1,5 +1,5 @@
 ---
-summary: Best single isothermal xi is -0.56 below 10 MeV (contours nearly coincide, RMS offset 0.03 n0) and +0.74 at 8-100 MeV (RMS 0.08 n0, still visibly off at 100-1000 m/s); the xi each contour level needs falls with speed and is the same in both panels above ~1000 m/s.
+summary: Best single isothermal xi is -0.57 below 10 MeV (contours nearly coincide, RMS offset 0.03 n0) and +0.74 at 8-100 MeV (RMS 0.08 n0, still visibly off at 100-1000 m/s); the xi each contour level needs falls with speed and is the same in both panels above ~1000 m/s.
 status: current
 updated: 2026-10-28
 tags: [method, isothermal, analytic, xi, contour]
@@ -14,12 +14,13 @@ At every point $u(0^-;\xi)=\sqrt{2I_2}/\big(\lambda_n\sqrt{[1-a(0^+)][1+\xi a(0^
 
 | Fit | High $T$ (8–100 MeV, 50–5000 m/s) | Low $T$ (0.01–10 MeV, 100–$10^6$ m/s) |
 |---|---|---|
-| Contour displacement (plotted levels) | $\xi=+0.74$ | $\xi=-0.56$ |
-| Log speed (all points) | $\xi=+0.94$ | $\xi=-0.69$ |
+| Contour displacement (plotted levels) | $\xi=+0.74$ | $\xi=-0.57$ |
+| Log speed (all points) | $\xi=+0.94$ | $\xi=-0.70$ |
 | RMS / max contour offset at the contour fit | $0.078$ / $0.34\,n_0$ | $0.031$ / $0.13\,n_0$ |
 | RMS / max contour offset at $\xi=-0.85$ | $0.29$ / $0.64\,n_0$ | $0.092$ / $0.27\,n_0$ |
 
 The contour fit minimizes the RMS displacement of the plotted contours along rays or rows in $(n_B/n_0-1)/4.5$, as in [[reusable-adiabatic-xi-cache]]; it is the visual criterion and the recommended one.
+These values include the four low-$T$ points recovered on 2026-10-28 (the low-$T$ fit moved from $-0.564$ to $-0.566$).
 One $\xi$ for both panels ($+0.20$) fits neither: RMS $0.10\,n_0$ at high $T$ and $0.12\,n_0$ at low $T$.
 
 ## The required $\xi$ depends on the speed level, not the panel
@@ -40,5 +41,5 @@ Slow contours lie near coexistence, where $a(0^+)\to0$ and $\xi$ has little leve
 
 `new_paper_calculations/26-10-27/isothermal/xi_fit/fit_xi.py` writes `xi_fit.json` (fits, per-level anchors, offsets and speed ratios at each candidate).
 `26-10-27-isothermal.ipynb` ("Tuning $\xi$" section) draws `local_analysis_results/26-10-27/isothermal-comparison-linear-xi-fit`, `isothermal-lowT-logT-xi-fit` and `isothermal-xi-anchors`.
-The linear figure uses $+0.74$ above and $-0.56$ below 10 MeV, so dashed contours jump at the seam.
+The linear figure uses $+0.74$ above and $-0.57$ below 10 MeV, so dashed contours jump at the seam.
 `_iso_xi` contour offsets now work on the row mesh, never interpolate across failed points, and refuse numerical data from another mesh.

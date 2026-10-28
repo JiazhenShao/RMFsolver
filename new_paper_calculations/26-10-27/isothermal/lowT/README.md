@@ -25,9 +25,10 @@ export PYTHONPATH=local_analysis_results/26-10-02/runtime/scipy-1.18.1-cpython-3
 | | Accepted | Not accepted | Wall time, 8 workers |
 |---|---|---|---|
 | Analytical | 1400/1400 | — | 247 s |
-| Numerical | 1310/1400 | 54 unresolved, 36 timeouts | 1505 s production + 1224 s repair |
+| Numerical | 1314/1400 | 50 unresolved, 36 timeouts | 1505 s production + 1224 s repair + 120 s targeted |
 
-- **Failures:** 88 of 90 are at $f\ge0.99$, where the analytical speed is at least $2.3\times10^5$ m/s. The other 2 are at $f=0.9$, $T=0.024$ and 0.029 MeV: the shooting fallback fails its monotone-path check. They may break the $5\times10^5$ and $10^6$ m/s numerical contours on a few rows.
+- **Failures:** all 86 remaining are at $f\ge0.99$, where the analytical speed is at least $2.3\times10^5$ m/s; every plotted contour is connected.
+- **Targeted repairs (2026-10-28):** (8,28) and (10,29), which broke the $10^6$ m/s contour, and (5,26) and (6,26), which broke the $3\times10^5$ m/s contour, pass with the `path_rtol=1e-7` variant (`--repair --points 8,28 10,29` and `5,26 6,26`). Next to the udd boundary the default tables leave the shot flux reproducible only to about $10^{-6}$, the size of the self-check. Records, profiles and evidence: `local_analysis_results/26-10-27/isothermal-1M-gap-repair/`.
 - **Verification** (`verify_lowT.json`): drawn contours match direct roots within $3.8\times10^{-4}\,n_0$; tighter tolerances change speeds by at most $2.4\times10^{-6}$; the 10 MeV seam with the polar mesh agrees within $1.9\times10^{-3}\,n_0$.
 - **Figure:** `local_analysis_results/26-10-27/isothermal-lowT-logT.{png,pdf}`.
 

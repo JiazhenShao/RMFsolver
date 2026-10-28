@@ -127,7 +127,7 @@ Row mesh only (0.01–10 MeV), full numerical speeds, half-decade levels labelle
 COMPARISON_MARKDOWN = r"""# Isothermal contour: analytical versus numerical, logarithmic temperature
 
 Numerical solid, analytical dashed, same levels and labels as above.
-The analytical speed is rescaled exactly from the saved intermediates at `ISO_CMP_XI`; the manuscript value is $\xi=-0.85$, and the contour fit in `wiki/methods/isothermal-xi-fit.md` gives $\xi=-0.56$ for this panel."""
+The analytical speed is rescaled exactly from the saved intermediates at `ISO_CMP_XI`; the manuscript value is $\xi=-0.85$, and the contour fit in `wiki/methods/isothermal-xi-fit.md` gives $\xi=-0.57$ for this panel."""
 
 
 def log_cell(prefix, stem, latex_note, numerical_only):
@@ -137,7 +137,7 @@ def log_cell(prefix, stem, latex_note, numerical_only):
     if numerical_only:
         style.update(title=_iso_plot.LINEAR_REFERENCE_STYLE["title"], show_method_legend=False)
     else:
-        extra.insert(0, f"{prefix}XI = -0.85   # manuscript value; the contour fit for 0.01-10 MeV gives -0.56")
+        extra.insert(0, f"{prefix}XI = -0.85   # manuscript value; the contour fit for 0.01-10 MeV gives -0.57")
     extra += [f'{prefix}OUTPUT_PNG = "local_analysis_results/All_Plots_new/{stem}.png"',
               f'{prefix}OUTPUT_PDF = "local_analysis_results/All_Plots_new/{stem}.pdf"',
               f'{prefix}OUTPUT_LATEX_PDF = "{LATEX_PLOTS}/{stem}.pdf"   # {latex_note}']

@@ -1101,3 +1101,7 @@ Fitted the analytical isothermal $\xi$ to the numerical contours without solver 
 ## [2026-10-28] update | Isothermal figures: speed titles, numerical-only log panel, separate comparison
 
 Contour titles now say "speed" instead of $u(0^-)$. The `All_Plots_new` log-$T$ panel is numerical only (`isothermal-numerical-contour-logT.pdf`). A separate cell draws the analytic-versus-numerical comparison into the manuscript's `isothermal-analytic-numerical-logT.pdf`; see [[isothermal-contours-polar-and-row-meshes]].
+
+## [2026-10-28] repair | Connected the low-$T$ $10^6$ and $3\times10^5$ m/s isothermal contours
+
+Four low-$T$ points that broke plotted contours were failing by a hair: next to the udd boundary the backward-shot flux is reproducible only to about $10^{-6}$ with `path_rtol=1e-6`, the size of the fallback's own self-check. A new repair variant, `path_rtol=1e-7`, passes them under unchanged acceptance, with speeds stable to 7 digits. Low-$T$ numerical coverage is now 1314/1400 and every plotted contour is connected; the low-$T$ contour-fit $\xi$ rounds to $-0.57$. See [[isothermal-contours-polar-and-row-meshes]] and [[isothermal-xi-fit]].

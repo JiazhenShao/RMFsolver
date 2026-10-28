@@ -146,7 +146,10 @@ def _numerical(x, T, overrides=None):
     return record, _resampled_profile(result)
 
 
-REPAIR_VARIANTS = (dict(initial_guess_mode="shooting", path_rtol=2e-7), dict(tol_bvp=2e-5), dict(n_mesh=1200))
+# path_rtol=1e-7: next to the udd boundary the backward-shot flux is reproducible only to
+# ~1e-6 with the default tables, the size of its own self-check; tighter tables lower that floor.
+REPAIR_VARIANTS = (dict(initial_guess_mode="shooting", path_rtol=2e-7), dict(tol_bvp=2e-5), dict(n_mesh=1200),
+                   dict(path_rtol=1e-7))
 
 
 def evaluate_repair(method, x, T):

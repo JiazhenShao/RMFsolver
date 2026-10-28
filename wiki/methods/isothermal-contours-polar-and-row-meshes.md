@@ -1,5 +1,5 @@
 ---
-summary: Nonrelativistic isothermal contours were recomputed on 2026-10-27/28 on a polar mesh (8-100 MeV) and a log-T row mesh (0.01-10 MeV); numerical coverage is 99.6% and 94%, all verifications pass, and analytic xi=-0.85 overestimates numerical speeds by 1.2-6.7x at high T but only 1.0-1.6x at low T.
+summary: Nonrelativistic isothermal contours were recomputed on 2026-10-27/28 on a polar mesh (8-100 MeV) and a log-T row mesh (0.01-10 MeV); numerical coverage is 99.6% and 94% with every plotted contour connected, all verifications pass, and analytic xi=-0.85 overestimates numerical speeds by 1.2-6.7x at high T but only 1.0-1.6x at low T.
 status: current
 updated: 2026-10-28
 tags: [method, isothermal, numerical, analytic, contour, xi]
@@ -31,14 +31,17 @@ The plots add display-only PCHIP refinement of $\log_{10}v$ along each ray (in $
 | Panel | Analytical | Numerical |
 |---|---|---|
 | High $T$ | 2291/2291 | 2282/2291; 9 unresolved, all at $f\ge0.9999$ where the analytic speed exceeds $1.1\times10^5$ m/s, above the top 5000 m/s level |
-| Low $T$ | 1400/1400 | 1310/1400 after one repair pass (17 recovered); 54 unresolved and 36 timeouts |
+| Low $T$ | 1400/1400 | 1314/1400 after repairs (17 in the first pass, 4 targeted on 2026-10-28); 50 unresolved and 36 timeouts |
 
-All but 2 low-$T$ failures sit at $f\ge0.99$, where the analytic speed is at least $2.3\times10^5$ m/s.
-The exceptions are $f=0.9$ at $T=0.024$ and 0.029 MeV, $5.07\,n_0$ (analytic $5$–$6\times10^5$ m/s): the shooting fallback reaches flux change $\sim10^{-7}$ but fails its monotone-path check.
-Holes can therefore interrupt the $5\times10^5$ and $10^6$ m/s numerical contours on up to 18 rows.
+All remaining low-$T$ failures sit at $f\ge0.99$, where the analytic speed is at least $2.3\times10^5$ m/s, and every plotted level (100 to $10^6$ m/s) now has a crossing on every row it reaches.
 At high $T$ all accepted points are collocation; at low $T$, 156 used the validated shooting fallback.
 
-The repair pass tries, in order, `initial_guess_mode="shooting"` with `path_rtol=2e-7`, then `tol_bvp=2e-5`, then `n_mesh=1200`, with unchanged acceptance; each recovered record names its variant.
+⚠ Next to the udd boundary the backward-shot flux is reproducible only to about $10^{-6}$ with the default tables (`path_rtol=1e-6`): integration tolerances $10^{-10}$ to $10^{-13}$ scatter it by $2\times10^{-7}$ to $1.4\times10^{-6}$, also at accepted points, with no trend.
+That is the size of the fallback's own self-check ($10^{-6}$), and the interface boundary residual is the shot mismatch times $jB\,[a(0^-)-a(\infty)]/J_{\rm scale}\approx28$ against an absolute $10^{-7}$, so points fail by a hair.
+Tighter tables (`path_rtol=1e-7`) lower the floor: the 1M-gap points (8,28) and (10,29) and the interior points (5,26) and (6,26) then pass unchanged acceptance, with speeds identical to 7 digits for `path_rtol` $10^{-7}$ to $10^{-8}$.
+Evidence: `local_analysis_results/26-10-27/isothermal-1M-gap-repair/repair.json`.
+
+The repair pass tries, in order, `initial_guess_mode="shooting"` with `path_rtol=2e-7`, then `tol_bvp=2e-5`, then `n_mesh=1200`, then `path_rtol=1e-7`, with unchanged acceptance; each recovered record names its variant, and `run_lowT.py --repair --points I,J ...` targets single points.
 Before that, every evaluation walks a `path_rtol` ladder ×0.5/0.2/0.1 on table non-convergence, or takes one 600-node retry otherwise.
 
 ## Verification

@@ -34,6 +34,8 @@ def parser():
     p.add_argument("--restart", action="store_true", help="new suffixed payload if the identity changed")
     p.add_argument("--repair", action="store_true",
                    help="re-evaluate unresolved/timeout points in place (standard attempts + documented variants)")
+    p.add_argument("--points", nargs="+", metavar="I,J",
+                   help="with --repair: only these mesh points, e.g. --points 8,28 10,29")
     return p
 
 
@@ -52,8 +54,9 @@ def main(argv=None):
         started = time.perf_counter()
         path = out / f"isothermal-lowT-{method}.npy"
         if args.repair:
+            points = [tuple(int(k) for k in point.split(",")) for point in args.points] if args.points else None
             payload = engine.repair(path, args.workers, evaluator="_iso_evaluate:evaluate_repair",
-                                   timeout_s=TIMEOUT_S[method], progress=True)
+                                   timeout_s=TIMEOUT_S[method], progress=True, points=points)
         else:
             payload = engine.run(mesh, path, method, args.workers, timeout_s=TIMEOUT_S[method],
                                  restart=args.restart, progress=True)

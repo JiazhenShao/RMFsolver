@@ -203,6 +203,20 @@ class EvaluationTests(unittest.TestCase):
         self.assertEqual(record["repair_variant"], dict(initial_guess_mode="shooting", path_rtol=2e-7))
         self.assertEqual(len(calls), 3)   # standard attempt, 600-node retry, first variant
 
+    def test_repair_tries_tighter_tables_last(self):
+        good = self.numerical_once()
+        calls = []
+        def tables(*args, **kwargs):
+            calls.append(kwargs)
+            if kwargs["path_rtol"] == 1e-7 and kwargs["initial_guess_mode"] == "auto":
+                return good
+            return dict(success=False, status="profile_rejected", message="Backward-shooting flux is not converged in its tolerances")
+        with patch.object(pv, "solve_front_isothermal_slow", side_effect=tables):
+            record, _ = self.evaluation.evaluate_repair("numerical", 3.5, 10.0)
+        self.assertEqual(record["status"], "accepted")
+        self.assertEqual(record["repair_variant"], dict(path_rtol=1e-7))
+        self.assertEqual(calls[-1]["path_rtol"], 1e-7)
+
     def test_two_attempt_cap(self):
         calls = []
         def failing(*args, **kwargs):
@@ -295,6 +309,17 @@ class EngineTests(unittest.TestCase):
         self.assertIn("worker", payload["records"][0, 1]["message"])
         self.assertEqual(payload["records"][0, 1]["x"], 2.0)
         self.assertEqual(int(np.sum(payload["status"] == "accepted")), 10)
+
+    def test_repair_can_target_named_points(self):
+        self.run_engine(evaluator="tests._iso_fake_evaluator:slow", timeout_s=3.0)
+        payload = self.engine.common.load(self.path)
+        payload["status"][1, 2] = "unresolved"   # a second unresolved point that must stay untouched
+        self.engine.common.atomic_save(self.path, payload)
+        repaired = self.engine.repair(self.path, workers=2, evaluator="tests._iso_fake_evaluator:evaluate",
+                                      points=[(0, 1)])
+        self.assertEqual(repaired["status"][0, 1], "accepted")
+        self.assertEqual(repaired["status"][1, 2], "unresolved")
+        self.assertEqual(repaired["repairs"][-1]["points"], [(0, 1)])
 
     def test_repair_refuses_a_payload_from_another_solver(self):
         self.run_engine(evaluator="tests._iso_fake_evaluator:slow", timeout_s=3.0)
