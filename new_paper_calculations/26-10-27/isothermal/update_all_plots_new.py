@@ -141,7 +141,9 @@ def log_cell(prefix, stem, latex_note, numerical_only,
     style = dict(_iso_plot.LOG_REFERENCE_STYLE)
     extra = [f"{prefix}UPSAMPLE = 8    # display-only PCHIP refinement along rows in logit(f)"]
     if numerical_only:
-        style.update(title=_iso_plot.LINEAR_REFERENCE_STYLE["title"], show_method_legend=False)
+        # landscape, as requested for the manuscript panel
+        style.update(title=_iso_plot.LINEAR_REFERENCE_STYLE["title"], show_method_legend=False,
+                     figure_size=(8.0, 5.4), box_aspect=0.62)
     else:
         extra.insert(0, f"{prefix}XI = {xi_line}")
     extra += [f'{prefix}OUTPUT_PNG = "local_analysis_results/All_Plots_new/{stem}.png"',

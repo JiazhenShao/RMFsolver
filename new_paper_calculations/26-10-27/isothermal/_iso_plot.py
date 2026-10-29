@@ -200,7 +200,7 @@ def _label_log_contours(axis, numerical_lines, analytic_lines, colors, style):
         order = np.argsort(segment[:, 1])
         x_at = lambda logT: np.interp(logT, np.log10(segment[order, 1]), segment[order, 0])
         slope = (x_at(target + 0.02) - x_at(target - 0.02)) / 0.04          # dx / dlog10 T
-        angle = np.degrees(np.arctan2(1 / (y1 - y0), slope / (x1 - x0)))     # axes fractions, box aspect 1
+        angle = np.degrees(np.arctan2(style["box_aspect"] / (y1 - y0), slope / (x1 - x0)))   # display units
         axis.text(float(x_at(target)), 10 ** target, label, rotation=angle - 180 if angle > 90 else angle,
                   rotation_mode="anchor", ha="center", va="center", color=colors[level],
                   fontsize=style["contour_label_font_size"], zorder=style["contour_label_zorder"],

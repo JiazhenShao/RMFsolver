@@ -570,6 +570,10 @@ class PlotTests(unittest.TestCase):
         self.assertEqual(constants["ISO_LOGN_OUTPUT_LATEX_PDF"], latex + "isothermal-numerical-contour-logT.pdf")
         self.assertEqual(constants["ISO_CMP_OUTPUT_LATEX_PDF"], latex + "isothermal-analytic-numerical-logT.pdf")
         self.assertFalse(constants["ISO_LOGN_SHOW_METHOD_LEGEND"])
+        width, height = constants["ISO_LOGN_FIGURE_SIZE"]
+        self.assertLess(height, width)   # requested landscape panel
+        self.assertLess(constants["ISO_LOGN_BOX_ASPECT"], 1.0)   # the axes box, not only the canvas
+        self.assertLessEqual(width, 8.0)   # 16/18 pt font floor applies up to 8 in
         numerical_log = next(c.source for c in cells if "ISO_LOGN_TITLE" in c.source)
         self.assertNotIn("retune", numerical_log)   # numerical only
 
