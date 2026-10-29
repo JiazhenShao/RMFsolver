@@ -143,7 +143,10 @@ def log_cell(prefix, stem, latex_note, numerical_only,
     if numerical_only:
         # landscape, as requested for the manuscript panel
         style.update(title=_iso_plot.LINEAR_REFERENCE_STYLE["title"], show_method_legend=False,
-                     figure_size=(8.0, 5.4), box_aspect=0.62)
+                     figure_size=(8.0, 6.6), box_aspect=0.82, x_limits=(2.2, 6.0), x_ticks=(3., 4., 5., 6.),
+                     inner_region_text="Quark matter not favored", inner_region_position=(2.55, 0.316),
+                     inner_region_rotation=90, inner_region_alignment="center",
+                     inner_region_vertical_alignment="center", outer_region_position=(5.65, 0.316))
     else:
         extra.insert(0, f"{prefix}XI = {xi_line}")
     extra += [f'{prefix}OUTPUT_PNG = "local_analysis_results/All_Plots_new/{stem}.png"',

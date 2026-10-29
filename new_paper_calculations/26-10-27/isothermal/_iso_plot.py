@@ -93,6 +93,7 @@ LOG_REFERENCE_STYLE = dict(
                         1e6: .016},
     excluded_region_color='0.72', excluded_region_alpha=1., excluded_region_zorder=0,
     inner_region_text='Quark matter\nnot favored', inner_region_position=(1.12, 0.3),
+    inner_region_rotation=0, inner_region_alignment='left', inner_region_vertical_alignment='baseline',
     outer_region_text='$udd$ quark matter favored', outer_region_position=(5.55, 0.316),
     outer_region_rotation=90, outer_region_alignment='center', outer_region_vertical_alignment='center',
     region_text_color='0.12', region_text_font_size=18, region_text_zorder=6,
@@ -139,7 +140,9 @@ def draw_log_reference(axis, curves, numerical_lines, analytic_lines, xi, style=
     axis.set_yticks(style["y_ticks"], labels=style["y_tick_labels"])
     axis.set_box_aspect(style["box_aspect"])
     axis.text(*style["inner_region_position"], style["inner_region_text"], color=style["region_text_color"],
-              fontsize=style["region_text_font_size"], zorder=style["region_text_zorder"])
+              fontsize=style["region_text_font_size"], zorder=style["region_text_zorder"],
+              rotation=style.get("inner_region_rotation", 0), ha=style.get("inner_region_alignment", "left"),
+              va=style.get("inner_region_vertical_alignment", "baseline"))
     axis.text(*style["outer_region_position"], style["outer_region_text"], color=style["region_text_color"],
               fontsize=style["region_text_font_size"], zorder=style["region_text_zorder"],
               rotation=style["outer_region_rotation"], va=style.get("outer_region_vertical_alignment", "bottom"),
