@@ -35,16 +35,20 @@ import _iso_plot  # noqa: E402
 
 LATEX_PLOTS = "Latex_writting/Hydrodynamical combustion/Plots"
 # Main.tex (revtex4-1, 10pt, twocolumn) includes every figure at \linewidth = 246 pt, so a font prints
-# at size * 246 / (72 * figure width in inches); the user wants none below the 10 pt body text.
-MANUSCRIPT_FONTS = dict(tick_label_font_size=22, contour_label_font_size=22, region_text_font_size=22,
+# at size * 246 / (72 * figure width in inches); the user wants none below the 10 pt body text, except
+# the contour labels, which follow the adiabatic contour cell (11 pt at 7.2 in, user 2026-10-29).
+MANUSCRIPT_FONTS = dict(tick_label_font_size=22, contour_label_font_size=11, region_text_font_size=22,
                         legend_font_size=22, speed_legend_font_size=22, axis_label_font_size=24,
                         title_font_size=24)
-FONT_NOTE = "# fonts print at size * 246 / (72 * figure width) pt in the manuscript; keep them >= 10 pt"
+FONT_NOTE = ("# fonts print at size * 246 / (72 * figure width) pt in the manuscript; keep them >= 10 pt,\n"
+             "# except the contour labels, sized as in the adiabatic contour cell (11 pt at 7.2 in)")
 
 
-# Layout that keeps the larger text clear of the data: the udd label inside the axes, white boxes
-# under the crowded linear labels, and a two-line legend entry that fits the left gray region.
+# Layout that keeps the larger text clear of the data: the udd label inside the axes, contour labels
+# boxed as in the adiabatic contour cell, and a two-line legend entry that fits the left gray region.
 MANUSCRIPT_LAYOUT = dict(outer_region_text_position=(3.5, 96.0), contour_label_background_color="white",
+                         contour_label_background_style="square", contour_label_background_pad=0.08,
+                         contour_label_background_alpha=1.0,
                          analytical_legend_label="Analytical\n$\\xi={xi:g}$")
 
 

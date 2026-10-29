@@ -599,11 +599,40 @@ class PlotTests(unittest.TestCase):
                 continue
             width_in = constants[sizes[0]][0]
             for name, value in constants.items():
-                if name.endswith("FONT_SIZE"):
+                if name.endswith("FONT_SIZE") and not name.endswith("CONTOUR_LABEL_FONT_SIZE"):
                     checked += 1
                     with self.subTest(font=name):
                         self.assertGreaterEqual(value * column_pt / (72.0 * width_in), body_pt)
         self.assertGreaterEqual(checked, 20)
+
+    def test_all_plots_new_isothermal_contour_labels_follow_the_adiabatic_cell(self):
+        import ast
+        import nbformat
+        cells = nbformat.read(ROOT / "All_Plots_new.ipynb", as_version=4).cells
+        def constants(source):
+            found = {}
+            for node in ast.parse(source).body:
+                if isinstance(node, ast.Assign) and isinstance(node.targets[0], ast.Name):
+                    try:
+                        found[node.targets[0].id] = ast.literal_eval(node.value)
+                    except ValueError:
+                        pass
+            return found
+        adiabatic = constants(next(c.source for c in cells if c.cell_type == "code"
+                                   and "Adiabatic numerical speed" in c.source))
+        per_inch = adiabatic["CONTOUR_LABEL_FONT_SIZE"] / adiabatic["FIGURE_SIZE"][0]
+        checked = 0
+        for cell in cells:
+            if cell.cell_type != "code" or "isothermal-contours-26-10-27" not in cell.metadata.get("tags", []):
+                continue
+            found = constants(cell.source)
+            for name, value in found.items():
+                if name.endswith("CONTOUR_LABEL_FONT_SIZE"):
+                    checked += 1
+                    width = found[name.replace("CONTOUR_LABEL_FONT_SIZE", "FIGURE_SIZE")][0]
+                    with self.subTest(font=name):
+                        self.assertAlmostEqual(value / width, per_inch, delta=0.05 * per_inch)
+        self.assertEqual(checked, 4)
 
     def test_all_plots_new_writes_the_fitted_xi_comparison(self):
         import ast
@@ -741,9 +770,10 @@ class LowTTests(unittest.TestCase):
         curves = dict(inner=(np.full(50, 2.95), 10 ** logT), outer=(np.full(50, 5.3), 10 ** logT))
         figure, axis = plt.subplots()
         plot.draw_log_reference(axis, curves, lines, {}, None, style)
-        self.assertEqual({line.get_linestyle() for line in axis.get_lines()}, {"-"})
+        sets = [c for c in axis.get_children() if isinstance(c, matplotlib.contour.ContourSet)]
+        self.assertEqual(len(sets), 1)   # numerical only, no dashed analytical set
         self.assertEqual([c for c in axis.get_children() if isinstance(c, matplotlib.legend.Legend)], [])
-        self.assertTrue(set(style["speed_labels"]) <= {t.get_text() for t in axis.texts})
+        self.assertTrue(set(style["speed_labels"]) <= {t.get_text() for t in sets[0].labelTexts})
         plt.close(figure)
 
     def test_log_figure_labels_contours_without_speed_legend(self):
@@ -765,13 +795,15 @@ class LowTTests(unittest.TestCase):
         curves = dict(inner=(np.full(50, 2.95), 10 ** logT), outer=(np.full(50, 5.3), 10 ** logT))
         figure, axis = plt.subplots()
         plot.draw_log_reference(axis, curves, lines, lines, -0.85, style)
-        texts = {t.get_text(): t for t in axis.texts}
+        sets = [c for c in axis.get_children() if isinstance(c, matplotlib.contour.ContourSet)]
+        texts = {t.get_text(): t for s in sets for t in s.labelTexts}   # matplotlib clabel, not hand text
         for level, label in zip(style["contour_levels"], style["speed_labels"]):
             with self.subTest(level=level):
                 self.assertIn(label, texts)
                 x, T = texts[label].get_position()
-                self.assertAlmostEqual(T, style["label_temperatures"][level])
-                self.assertAlmostEqual(x, 3.0 + 0.5 * style["contour_levels"].index(level) - 0.1 * np.log10(T))
+                self.assertAlmostEqual(np.log10(T), np.log10(style["label_temperatures"][level]), delta=0.02)
+                self.assertAlmostEqual(x, 3.0 + 0.5 * style["contour_levels"].index(level) - 0.1 * np.log10(T),
+                                       delta=0.01)
                 self.assertLess(abs(texts[label].get_rotation() - 90) % 180, 30)   # along a near-vertical line
         legends = [child for child in axis.get_children() if isinstance(child, matplotlib.legend.Legend)]
         self.assertEqual(len(legends), 1)   # the method legend only

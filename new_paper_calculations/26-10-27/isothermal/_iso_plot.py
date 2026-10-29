@@ -10,6 +10,7 @@ from pathlib import Path
 import contourpy
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+from matplotlib.contour import ContourSet
 from matplotlib.lines import Line2D
 from matplotlib.patches import Rectangle
 import numpy as np
@@ -28,6 +29,8 @@ LINEAR_REFERENCE_STYLE = dict(
     contour_label_inline_spacing=4,
     contour_label_background_color=None,   # e.g. 'white' to hide neighbouring lines under a label
     contour_label_background_pad=0.12,
+    contour_label_background_style="round",
+    contour_label_background_alpha=1.0,
     contour_label_temperatures_mev={50.0: 50.0, 100.0: 55.0, 200.0: 60.0, 500.0: 55.0,
                                     1000.0: 45.0, 2000.0: 30.0, 5000.0: 15.0},
     contour_zorder=3,
@@ -135,9 +138,10 @@ def draw_log_reference(axis, curves, numerical_lines, analytic_lines, xi, style=
         axis.fill(polygon[:, 0], polygon[:, 1], color=style["excluded_region_color"],
                   alpha=style["excluded_region_alpha"], zorder=style["excluded_region_zorder"])
     colors = dict(zip(style["contour_levels"], style["contour_colors"]))
-    for lines, line_style, zorder in ((analytic_lines, style["analytical_line_style"], style["analytical_zorder"]),
-                                      (numerical_lines, style["numerical_line_style"], style["numerical_zorder"])):
-        draw_lines(axis, lines, [colors[level] for level in lines], line_style, style["line_width"], zorder)
+    analytic_set = _line_set(axis, analytic_lines, colors, style["analytical_line_style"], style["line_width"],
+                             style["analytical_zorder"])
+    numerical_set = _line_set(axis, numerical_lines, colors, style["numerical_line_style"], style["line_width"],
+                              style["numerical_zorder"])
     axis.set(xlim=style["x_limits"], ylim=style["y_limits"], xscale=style["x_scale"], yscale=style["y_scale"])
     axis.set_xticks(style["x_ticks"])
     axis.set_yticks(style["y_ticks"], labels=style["y_tick_labels"])
@@ -160,7 +164,7 @@ def draw_log_reference(axis, curves, numerical_lines, analytic_lines, xi, style=
         spine.set_linewidth(style["spine_line_width"])
     axis.grid(style["show_grid"])
     if style["label_curves"]:
-        _label_log_contours(axis, numerical_lines, analytic_lines, colors, style)
+        _label_log_contours(axis, numerical_set, analytic_set, style)
     method = None
     if style.get("show_method_legend", True):
         method = axis.legend(handles=[
@@ -190,32 +194,46 @@ def draw_log_reference(axis, curves, numerical_lines, analytic_lines, xi, style=
                     edgecolor=style["legend_edge_color"])
 
 
-def _label_log_contours(axis, numerical_lines, analytic_lines, colors, style):
-    """One label per level at its label temperature, on the numerical line (the analytic one if
-    no numerical segment reaches it), rotated along the line; the white box hides the line beneath."""
-    (x0, x1), (y0, y1) = style["x_limits"], np.log10(style["y_limits"])
-    for level, label in zip(style["contour_levels"], style["speed_labels"]):
-        target = np.log10(style["label_temperatures"][level])
-        for lines in (numerical_lines, analytic_lines):
-            covering = [s for s in lines.get(float(level), [])
-                        if np.log10(s[:, 1].min()) <= target - 0.02 and target + 0.02 <= np.log10(s[:, 1].max())]
-            if covering:
-                break
-        else:
+def _line_set(axis, lines, colors, line_style, line_width, zorder):
+    """ContourSet from contour_lines output, so matplotlib's clabel can label and break the lines."""
+    levels = [level for level, segments in lines.items() if segments]
+    if not levels:
+        return None
+    return ContourSet(axis, levels, [lines[level] for level in levels], colors=[colors[level] for level in levels],
+                      linestyles=line_style, linewidths=line_width, zorder=zorder)
+
+
+def _label_log_contours(axis, numerical_set, analytic_set, style):
+    """matplotlib inline clabel labels at the label temperatures, on the numerical lines (the
+    analytic ones for a level no numerical segment reaches), boxed as in the adiabatic contour."""
+    formats = dict(zip(map(float, style["contour_levels"]), style["speed_labels"]))
+    labelled = set()
+    for contour_set in (numerical_set, analytic_set):
+        if contour_set is None:
             continue
-        segment = max(covering, key=len)
-        order = np.argsort(segment[:, 1])
-        x_at = lambda logT: np.interp(logT, np.log10(segment[order, 1]), segment[order, 0])
-        slope = (x_at(target + 0.02) - x_at(target - 0.02)) / 0.04          # dx / dlog10 T
-        angle = np.degrees(np.arctan2(style["box_aspect"] / (y1 - y0), slope / (x1 - x0)))   # display units
-        axis.text(float(x_at(target)), 10 ** target, label, rotation=angle - 180 if angle > 90 else angle,
-                  rotation_mode="anchor", ha="center", va="center", color=colors[level],
-                  fontsize=style["contour_label_font_size"], zorder=style["contour_label_zorder"],
-                  bbox=dict(boxstyle=f"{style['contour_label_background_style']},"
-                                     f"pad={style['contour_label_background_pad']}",
-                            facecolor=style["contour_label_background_color"],
-                            alpha=style["contour_label_background_alpha"],
-                            edgecolor=style["contour_label_edge_color"]))
+        levels, positions = [], []
+        for level, segments in zip(contour_set.levels, contour_set.allsegs):
+            target = np.log10(style["label_temperatures"][float(level)])
+            covering = [s for s in segments
+                        if np.log10(s[:, 1].min()) <= target - 0.02 and target + 0.02 <= np.log10(s[:, 1].max())]
+            if float(level) in labelled or not covering:
+                continue
+            segment = max(covering, key=len)
+            order = np.argsort(segment[:, 1])
+            positions.append((float(np.interp(target, np.log10(segment[order, 1]), segment[order, 0])), 10 ** target))
+            levels.append(level)
+            labelled.add(float(level))
+        if not levels:
+            continue
+        for text in axis.clabel(contour_set, levels, inline=style["contour_label_inline"], fmt=formats,
+                                fontsize=style["contour_label_font_size"],
+                                inline_spacing=style["contour_label_inline_spacing"], manual=positions):
+            text.set_bbox(dict(boxstyle=f"{style['contour_label_background_style']},"
+                                        f"pad={style['contour_label_background_pad']}",
+                               facecolor=style["contour_label_background_color"],
+                               alpha=style["contour_label_background_alpha"],
+                               edgecolor=style["contour_label_edge_color"]))
+            text.set_zorder(style["contour_label_zorder"])
 
 
 RADIAL_VARIABLES = {   # u(f) and its inverse for display refinement along a ray or row
@@ -381,8 +399,10 @@ def draw_contours(axis, payload, T_range=(-np.inf, np.inf), style=LINEAR_REFEREN
                              inline_spacing=style["contour_label_inline_spacing"], manual=positions)
         if style.get("contour_label_background_color"):
             for text in labels:
-                text.set_bbox(dict(boxstyle=f"round,pad={style['contour_label_background_pad']}",
-                                   facecolor=style["contour_label_background_color"], edgecolor="none"))
+                text.set_bbox(dict(boxstyle=f"{style['contour_label_background_style']},"
+                                            f"pad={style['contour_label_background_pad']}",
+                                   facecolor=style["contour_label_background_color"], edgecolor="none",
+                                   alpha=style["contour_label_background_alpha"]))
                 text.set_zorder(style["region_text_zorder"])
     return contours
 
