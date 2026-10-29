@@ -26,6 +26,8 @@ LINEAR_REFERENCE_STYLE = dict(
     contour_label_format="%g",
     contour_label_inline=True,
     contour_label_inline_spacing=4,
+    contour_label_background_color=None,   # e.g. 'white' to hide neighbouring lines under a label
+    contour_label_background_pad=0.12,
     contour_label_temperatures_mev={50.0: 50.0, 100.0: 55.0, 200.0: 60.0, 500.0: 55.0,
                                     1000.0: 45.0, 2000.0: 30.0, 5000.0: 15.0},
     contour_zorder=3,
@@ -100,6 +102,7 @@ LOG_REFERENCE_STYLE = dict(
     legend_location='upper left', legend_font_size=16, legend_handle_length=1.0,
     legend_border_axes_pad=0.25, legend_frame_alpha=.94, legend_face_color='white',
     legend_edge_color='0.8', legend_handle_color='0.15', legend_marker_size=5., show_method_legend=True,
+    analytical_legend_label='Analytical, $\\xi={xi:g}$',
     show_speed_legend=False, speed_legend_location='lower left', speed_legend_title=r'$u(0^-)$ [m s$^{-1}$]',
     speed_legend_font_size=16, speed_legend_columns=2, speed_legend_anchor=(.005, .005),
     speed_legend_handle_length=1.3, speed_legend_column_spacing=0.7, speed_legend_handle_text_pad=0.4,
@@ -162,7 +165,8 @@ def draw_log_reference(axis, curves, numerical_lines, analytic_lines, xi, style=
     if style.get("show_method_legend", True):
         method = axis.legend(handles=[
             Line2D([], [], color=style["legend_handle_color"], linestyle=style["analytical_line_style"],
-                   linewidth=style["line_width"], label=rf"Analytical, $\xi={xi:g}$"),
+                   linewidth=style["line_width"],
+                   label=style.get("analytical_legend_label", "Analytical, $\\xi={xi:g}$").format(xi=xi)),
             Line2D([], [], color=style["legend_handle_color"], linestyle=style["numerical_line_style"],
                    linewidth=style["line_width"], label="Numerical")],
             loc=style["legend_location"], fontsize=style["legend_font_size"],
@@ -372,9 +376,14 @@ def draw_contours(axis, payload, T_range=(-np.inf, np.inf), style=LINEAR_REFEREN
                 order = np.argsort(segment[:, 1])
                 positions.append((float(np.interp(target, segment[order, 1], segment[order, 0])), target))
         formats = {np.log10(level): style["contour_label_format"] % level for level in levels}
-        axis.clabel(contours, contours.levels, inline=style["contour_label_inline"], fmt=formats,
-                    fontsize=style["contour_label_font_size"],
-                    inline_spacing=style["contour_label_inline_spacing"], manual=positions)
+        labels = axis.clabel(contours, contours.levels, inline=style["contour_label_inline"], fmt=formats,
+                             fontsize=style["contour_label_font_size"],
+                             inline_spacing=style["contour_label_inline_spacing"], manual=positions)
+        if style.get("contour_label_background_color"):
+            for text in labels:
+                text.set_bbox(dict(boxstyle=f"round,pad={style['contour_label_background_pad']}",
+                                   facecolor=style["contour_label_background_color"], edgecolor="none"))
+                text.set_zorder(style["region_text_zorder"])
     return contours
 
 

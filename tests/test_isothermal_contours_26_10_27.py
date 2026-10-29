@@ -561,7 +561,9 @@ class PlotTests(unittest.TestCase):
                             constants[node.targets[0].id] = ast.literal_eval(node.value)
                         except ValueError:
                             pass
-        for key, value in plot.LINEAR_REFERENCE_STYLE.items():
+        import update_all_plots_new as generator
+        expected = generator.manuscript_style(plot.LINEAR_REFERENCE_STYLE)   # reference plus manuscript fonts
+        for key, value in expected.items():
             with self.subTest(key=key):
                 self.assertEqual(constants["ISO_LIN_" + key.upper()], value)
         self.assertGreaterEqual(plot.LINEAR_REFERENCE_STYLE["contour_label_font_size"], 16)
@@ -576,6 +578,32 @@ class PlotTests(unittest.TestCase):
         self.assertLessEqual(width, 8.0)   # 16/18 pt font floor applies up to 8 in
         numerical_log = next(c.source for c in cells if "ISO_LOGN_TITLE" in c.source)
         self.assertNotIn("retune", numerical_log)   # numerical only
+
+    def test_all_plots_new_isothermal_fonts_print_at_least_at_body_text_size(self):
+        import ast
+        import nbformat
+        cells = [c for c in nbformat.read(ROOT / "All_Plots_new.ipynb", as_version=4).cells
+                 if c.cell_type == "code" and "isothermal-contours-26-10-27" in c.metadata.get("tags", [])]
+        column_pt, body_pt = 246.0, 10.0   # revtex4-1 10pt twocolumn \linewidth and body text
+        checked = 0
+        for cell in cells:
+            constants = {}
+            for node in ast.parse(cell.source).body:
+                if isinstance(node, ast.Assign) and isinstance(node.targets[0], ast.Name):
+                    try:
+                        constants[node.targets[0].id] = ast.literal_eval(node.value)
+                    except ValueError:
+                        pass
+            sizes = [k for k in constants if k.endswith("FIGURE_SIZE")]
+            if not sizes:
+                continue
+            width_in = constants[sizes[0]][0]
+            for name, value in constants.items():
+                if name.endswith("FONT_SIZE"):
+                    checked += 1
+                    with self.subTest(font=name):
+                        self.assertGreaterEqual(value * column_pt / (72.0 * width_in), body_pt)
+        self.assertGreaterEqual(checked, 20)
 
     def test_all_plots_new_writes_the_fitted_xi_comparison(self):
         import ast

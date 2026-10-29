@@ -34,6 +34,23 @@ sys.path[:0] = [str(HERE)]
 import _iso_plot  # noqa: E402
 
 LATEX_PLOTS = "Latex_writting/Hydrodynamical combustion/Plots"
+# Main.tex (revtex4-1, 10pt, twocolumn) includes every figure at \linewidth = 246 pt, so a font prints
+# at size * 246 / (72 * figure width in inches); the user wants none below the 10 pt body text.
+MANUSCRIPT_FONTS = dict(tick_label_font_size=22, contour_label_font_size=22, region_text_font_size=22,
+                        legend_font_size=22, speed_legend_font_size=22, axis_label_font_size=24,
+                        title_font_size=24)
+FONT_NOTE = "# fonts print at size * 246 / (72 * figure width) pt in the manuscript; keep them >= 10 pt"
+
+
+# Layout that keeps the larger text clear of the data: the udd label inside the axes, white boxes
+# under the crowded linear labels, and a two-line legend entry that fits the left gray region.
+MANUSCRIPT_LAYOUT = dict(outer_region_text_position=(3.5, 96.0), contour_label_background_color="white",
+                         analytical_legend_label="Analytical\n$\\xi={xi:g}$")
+
+
+def manuscript_style(style):
+    return dict(style, **{key: value for key, value in {**MANUSCRIPT_FONTS, **MANUSCRIPT_LAYOUT}.items()
+                          if key in style})
 
 MARKDOWN = r"""# Isothermal contours (2026-10-27 production)
 
@@ -74,7 +91,7 @@ iso_xi_cache_lowT = iso_xi.build_cache(iso_payloads["analytic_lowT"])'''
 
 
 def tuning_block(prefix, style, keys, extra):
-    lines = ["# Tunable plotting parameters"]
+    lines = ["# Tunable plotting parameters", FONT_NOTE]
     lines += [f"{prefix}{key.upper()} = {style[key]!r}" for key in keys]
     return "\n".join(lines + extra)
 
@@ -88,7 +105,8 @@ def used_log_keys():
     return [key for key in _iso_plot.LOG_REFERENCE_STYLE if key in keys]
 
 
-LINEAR_FIGURE = tuning_block("ISO_LIN_", _iso_plot.LINEAR_REFERENCE_STYLE, _iso_plot.LINEAR_REFERENCE_STYLE, [
+LINEAR_FIGURE = tuning_block("ISO_LIN_", manuscript_style(_iso_plot.LINEAR_REFERENCE_STYLE),
+                             _iso_plot.LINEAR_REFERENCE_STYLE, [
     "ISO_LIN_HIGH_T_CLIP_MEV = 10.0   # polar mesh above, row mesh below",
     "ISO_LIN_RADIAL_UPSAMPLE = 8   # display-only PCHIP refinement along rays in -ln(1-f)",
     "ISO_LIN_LOW_T_UPSAMPLE = 8    # display-only PCHIP refinement along rows in logit(f)",
@@ -138,12 +156,12 @@ As above, with `ISO_FIT_XI` set to the contour fit for 0.01–10 MeV (`xi_fit/xi
 def log_cell(prefix, stem, latex_note, numerical_only,
              xi_line="-0.85   # manuscript value; the contour fit for 0.01-10 MeV gives -0.57"):
     """Log-T figure cell: numerical only, or analytical (dashed) versus numerical (solid)."""
-    style = dict(_iso_plot.LOG_REFERENCE_STYLE)
+    style = manuscript_style(_iso_plot.LOG_REFERENCE_STYLE)
     extra = [f"{prefix}UPSAMPLE = 8    # display-only PCHIP refinement along rows in logit(f)"]
     if numerical_only:
         # landscape, as requested for the manuscript panel
         style.update(title=_iso_plot.LINEAR_REFERENCE_STYLE["title"], show_method_legend=False,
-                     figure_size=(8.0, 6.6), box_aspect=0.82, x_limits=(2.2, 6.0), x_ticks=(3., 4., 5., 6.),
+                     figure_size=(7.2, 6.2), box_aspect=0.82, x_limits=(2.2, 6.0), x_ticks=(3., 4., 5., 6.),
                      inner_region_text="Quark matter not favored", inner_region_position=(2.55, 0.316),
                      inner_region_rotation=90, inner_region_alignment="center",
                      inner_region_vertical_alignment="center", outer_region_position=(5.65, 0.316))
