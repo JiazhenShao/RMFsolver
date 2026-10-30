@@ -1117,3 +1117,7 @@ All eight `All_Plots_new` figures in `Main.tex` now print 10.4 pt text, 11.4 pt 
 ## [2026-10-30] figure | Isothermal log-$T$ comparison reshaped, at the low-$T$ fitted $\xi$
 
 Fig. `isothermal-contour-compare` (`isothermal-analytic-numerical-logT.pdf`) now has the numerical log-$T$ panel's axes box ($5.91\times4.85$ in, $x$ from $2.2\,n_0$, region names vertical on gray) and draws the analytical contours at $\xi=-0.57$, the 0.01–10 MeV contour fit, instead of $-0.85$. The method legend moved to one row between title and axes. See [[manuscript-figure-standard]] and [[isothermal-xi-fit]].
+
+## [2026-10-30] figure | $(a,T)$ trajectory: $A_{\rm adb}$ at its marker, the star labelled $a(0^+)$
+
+In `T_a_constant_pressure.pdf` (Fig. `isobar_a_T`) the $A_{\rm adb}$ label moved to the upper right of the open $T=0$ marker, and the red star is now labelled $a(0^+)$; before, $A_{\rm adb}$ stood beside the star's projection and read as its $a$. See [[notebook-trajectory-figures]].

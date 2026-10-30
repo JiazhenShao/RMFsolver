@@ -9,6 +9,7 @@ tags: [methods, notebooks, figures, manuscript]
 
 `All_Plots_new.ipynb` uses solid red numerical profiles, dashed black reference curves, and matching fonts and endpoint markers for its two manuscript trajectories.
 The adiabatic plot labels the reference curve "Analytic approximation", the red curve "Numerical solution", and the cold intercept `A_adb`.
+Since 2026-10-30 (user) $A_{\rm adb}$ sits at the upper right of the open $T=0$ marker and the red star is labelled $a(0^+)$ instead of $x=0^+$: the old $A_{\rm adb}$ label stood beside the star's dotted projection and read as the star's $a$, although the star is at $a(0^+)=0.538$ and the intercept at $A_{\rm adb}=0.571$.
 The isothermal reference is the full neutral constant-pressure isobar, not the quadratic approximation; its legend says "Quark-matter isobar".
 
 The original isothermal plotting cell is retained.
