@@ -654,6 +654,26 @@ class PlotTests(unittest.TestCase):
         self.assertEqual(constants["ISO_FIT_XI"], round(fit, 2))
         self.assertTrue(constants["ISO_FIT_SHOW_METHOD_LEGEND"])
 
+    def test_all_plots_new_manuscript_comparison_uses_the_low_T_xi_fit(self):
+        # Fig. isothermal-contour-compare draws the analytical contours at the 0.01-10 MeV contour fit
+        # (user, 2026-10-30), not at the adiabatic appendix value -0.85.
+        import ast
+        import json
+        import nbformat
+        cells = [c for c in nbformat.read(ROOT / "All_Plots_new.ipynb", as_version=4).cells
+                 if "isothermal-contours-26-10-27" in c.metadata.get("tags", [])]
+        source = next(c.source for c in cells if c.cell_type == "code" and "ISO_CMP_XI" in c.source)
+        constants = {}
+        for node in ast.parse(source).body:
+            if isinstance(node, ast.Assign) and isinstance(node.targets[0], ast.Name):
+                try:
+                    constants[node.targets[0].id] = ast.literal_eval(node.value)
+                except ValueError:
+                    pass
+        fit = json.loads((WORKFLOW / "xi_fit/xi_fit.json").read_text())["fits"]["lowT"]["contour"]["xi"]
+        self.assertEqual(constants["ISO_CMP_XI"], round(fit, 2))
+        self.assertTrue(constants["ISO_CMP_SHOW_METHOD_LEGEND"])
+
     def test_no_contour_title_in_all_plots_new_uses_u_0minus(self):
         import ast
         import nbformat

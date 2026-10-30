@@ -56,6 +56,21 @@ MANUSCRIPT_LAYOUT = dict(outer_region_text_position=(3.62, 98.0), inner_region_t
                          analytical_legend_label="Analytical\n$\\xi={xi:g}$")
 
 
+# Shape shared by the three log-T panels (user, 2026-10-30: Fig. isothermal-contour-compare like the numerical
+# panel): a landscape axes box from 2.2 n0, so the two gray regions are balanced and named vertically.
+LOG_PANEL_SHAPE = dict(figure_size=(7.2, 6.2), box_aspect=0.82, x_limits=(2.2, 6.0), x_ticks=(3., 4., 5., 6.),
+                       inner_region_text="Quark matter not favored", inner_region_position=(2.55, 0.316),
+                       inner_region_rotation=90, inner_region_alignment="center",
+                       inner_region_vertical_alignment="center", outer_region_position=(5.65, 0.316))
+# The method legend does not fit the narrow left gray region at 22 pt, so the comparison panels put it in one
+# row between the title and the axes; the canvas is taller by that row, so the axes box stays 5.91 x 4.85 in.
+# The row must stay narrower than the axes: any overhang widens constrained layout's margins and shrinks the box.
+LOG_COMPARISON_LEGEND = dict(figure_size=(7.2, 6.85), title_pad=54, legend_location="lower center",
+                             legend_anchor=(0.5, 1.0), legend_columns=2, legend_frame=False,
+                             legend_border_axes_pad=0.15, legend_handle_length=1.0, legend_column_spacing=0.6,
+                             legend_handle_text_pad=0.4, analytical_legend_label="Analytical, $\\xi={xi:g}$")
+
+
 def manuscript_style(style):
     return dict(style, **{key: value for key, value in {**MANUSCRIPT_FONTS, **MANUSCRIPT_LAYOUT}.items()
                           if key in style})
@@ -153,7 +168,8 @@ Row mesh only (0.01–10 MeV), full numerical speeds, half-decade levels labelle
 COMPARISON_MARKDOWN = r"""# Isothermal contour: analytical versus numerical, logarithmic temperature
 
 Numerical solid, analytical dashed, same levels and labels as above.
-The analytical speed is rescaled exactly from the saved intermediates at `ISO_CMP_XI`; the manuscript value is $\xi=-0.85$, and the contour fit in `wiki/methods/isothermal-xi-fit.md` gives $\xi=-0.57$ for this panel."""
+The analytical speed is rescaled exactly from the saved intermediates at `ISO_CMP_XI`, the contour fit for 0.01–10 MeV ($\xi=-0.57$, `wiki/methods/isothermal-xi-fit.md`); the adiabatic appendix value $\xi=-0.85$ leaves three times the contour offset here.
+Same axes box and x range as the numerical panel above, with the method legend between the title and the axes."""
 
 
 FIT_MARKDOWN = r"""# Isothermal contour: analytical at the fitted $\xi$ versus numerical
@@ -162,23 +178,19 @@ As above, with `ISO_FIT_XI` set to the contour fit for 0.01–10 MeV (`xi_fit/xi
 
 
 def log_cell(prefix, stem, latex_note, numerical_only,
-             xi_line="-0.85   # manuscript value; the contour fit for 0.01-10 MeV gives -0.57"):
+             xi_line="-0.57   # contour fit for 0.01-10 MeV (xi_fit/xi_fit.json)"):
     """Log-T figure cell: numerical only, or analytical (dashed) versus numerical (solid)."""
-    style = manuscript_style(_iso_plot.LOG_REFERENCE_STYLE)
+    style = dict(manuscript_style(_iso_plot.LOG_REFERENCE_STYLE), **LOG_PANEL_SHAPE)
     extra = [f"{prefix}UPSAMPLE = 8    # display-only PCHIP refinement along rows in logit(f)"]
     if numerical_only:
-        # landscape, as requested for the manuscript panel
-        style.update(title=_iso_plot.LINEAR_REFERENCE_STYLE["title"], show_method_legend=False,
-                     figure_size=(7.2, 6.2), box_aspect=0.82, x_limits=(2.2, 6.0), x_ticks=(3., 4., 5., 6.),
-                     inner_region_text="Quark matter not favored", inner_region_position=(2.55, 0.316),
-                     inner_region_rotation=90, inner_region_alignment="center",
-                     inner_region_vertical_alignment="center", outer_region_position=(5.65, 0.316))
+        style.update(title=_iso_plot.LINEAR_REFERENCE_STYLE["title"], show_method_legend=False)
     else:
+        style.update(LOG_COMPARISON_LEGEND)
         extra.insert(0, f"{prefix}XI = {xi_line}")
     extra += [f'{prefix}OUTPUT_PNG = "local_analysis_results/All_Plots_new/{stem}.png"',
               f'{prefix}OUTPUT_PDF = "local_analysis_results/All_Plots_new/{stem}.pdf"',
               f'{prefix}OUTPUT_LATEX_PDF = "{LATEX_PLOTS}/{stem}.pdf"   # {latex_note}']
-    keys = used_log_keys() + ["show_method_legend"]
+    keys = list(dict.fromkeys(used_log_keys() + ["show_method_legend"]))
     body = r"""
 
 import matplotlib.pyplot as plt
@@ -208,11 +220,11 @@ with plt.rc_context({"font.family": PFX_FONT_FAMILY, "mathtext.fontset": PFX_MAT
 
 
 LOG_NUMERICAL_FIGURE = log_cell("ISO_LOGN_", "isothermal-numerical-contour-logT",
-                                "numerical-only log-T panel", numerical_only=True)
+                                "Fig. speed-isothermal-log", numerical_only=True)
 COMPARISON_FIGURE = log_cell("ISO_CMP_", "isothermal-analytic-numerical-logT",
-                             "Fig. speed-isothermal-log", numerical_only=False)
+                             "Fig. isothermal-contour-compare", numerical_only=False)
 FIT_FIGURE = log_cell("ISO_FIT_", "isothermal-analytical-numerical-comparison", "fitted-xi comparison",
-                      numerical_only=False, xi_line="-0.57   # contour fit for 0.01-10 MeV (xi_fit/xi_fit.json)")
+                      numerical_only=False)
 
 
 def section_bounds(cells):

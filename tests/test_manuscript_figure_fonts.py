@@ -76,6 +76,61 @@ def printed_sizes(pdf):
     return sizes
 
 
+def prepare_rendering():
+    import matplotlib
+    matplotlib.use("Agg")
+    if str(SCIPY_RUNTIME) not in sys.path and SCIPY_RUNTIME.is_dir():
+        sys.path.insert(0, str(SCIPY_RUNTIME))
+
+
+def render(*sources):
+    """Run notebook cells in one namespace with savefig and show disabled; the current figure after each."""
+    import matplotlib.pyplot as plt
+    from matplotlib.figure import Figure
+    figures = []
+    cwd = os.getcwd()
+    os.chdir(ROOT)
+    try:
+        with patch.object(Figure, "savefig"), patch.object(plt, "show"):
+            scope = {"__name__": "__figure_test__"}
+            for source in sources:
+                exec(compile(source, "<cell>", "exec"), scope)
+                figures.append(plt.gcf())
+    finally:
+        os.chdir(cwd)
+    return figures
+
+
+def region_gray_fractions(figure):
+    """Fraction of each gray-region name's box that lies on gray background, drawn with all texts hidden."""
+    axis = figure.axes[0]
+    figure.canvas.draw()
+    renderer = figure.canvas.get_renderer()
+    regions = {t.get_text(): t.get_window_extent(renderer) for t in axis.texts if "favored" in t.get_text()}
+    visible = [t for t in axis.texts if t.get_visible()]
+    for text in visible:
+        text.set_visible(False)
+    figure.canvas.draw()
+    pixels = np.asarray(figure.canvas.buffer_rgba())[..., :3].astype(int)
+    for text in visible:
+        text.set_visible(True)
+    fractions = {}
+    for name, box in regions.items():
+        patch_ = pixels[int(pixels.shape[0] - box.y1):int(pixels.shape[0] - box.y0) + 1,
+                        int(box.x0):int(box.x1) + 1]
+        gray = (np.ptp(patch_, axis=-1) < 4) & (patch_[..., 0] > 150) & (patch_[..., 0] < 215)
+        fractions[name] = gray.mean()
+    return fractions
+
+
+def isothermal_cells():
+    return [c for c in cells() if c.cell_type == "code" and ISOTHERMAL_TAG in c.metadata.get("tags", [])]
+
+
+def isothermal_load_source(tagged):
+    return next(c.source for c in tagged if "iso_payloads" in c.source and "FIGURE_SIZE" not in c.source)
+
+
 def allowed_printed_sizes():
     scale = COLUMN_PT / (72.0 * REFERENCE_WIDTH_IN)
     base = [TEXT_PT * scale, LABEL_PT * scale]
@@ -135,45 +190,15 @@ class RegionLabelTests(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        import matplotlib
-        matplotlib.use("Agg")
-        if str(SCIPY_RUNTIME) not in sys.path and SCIPY_RUNTIME.is_dir():
-            sys.path.insert(0, str(SCIPY_RUNTIME))
+        prepare_rendering()
         cls.cells = cells()
 
-    def gray_fraction(self, *sources):
-        import matplotlib.pyplot as plt
-        from matplotlib.figure import Figure
-        cwd = os.getcwd()
-        os.chdir(ROOT)
-        try:
-            with patch.object(Figure, "savefig"), patch.object(plt, "show"):
-                scope = {"__name__": "__figure_test__"}
-                for source in sources:
-                    exec(compile(source, "<cell>", "exec"), scope)
-        finally:
-            os.chdir(cwd)
-        figure = plt.gcf()
-        axis = figure.axes[0]
-        figure.canvas.draw()
-        renderer = figure.canvas.get_renderer()
-        regions = {t.get_text(): t.get_window_extent(renderer) for t in axis.texts if "favored" in t.get_text()}
-        for text in axis.texts:
-            text.set_visible(False)
-        figure.canvas.draw()
-        pixels = np.asarray(figure.canvas.buffer_rgba())[..., :3].astype(int)
-        plt.close("all")
-        fractions = {}
-        for name, box in regions.items():
-            patch_ = pixels[int(pixels.shape[0] - box.y1):int(pixels.shape[0] - box.y0) + 1,
-                            int(box.x0):int(box.x1) + 1]
-            gray = (np.ptp(patch_, axis=-1) < 4) & (patch_[..., 0] > 150) & (patch_[..., 0] < 215)
-            fractions[name] = gray.mean()
-        self.assertEqual(len(fractions), 2)
-        return fractions
-
     def assert_on_gray(self, *sources):
-        for name, fraction in self.gray_fraction(*sources).items():
+        import matplotlib.pyplot as plt
+        fractions = region_gray_fractions(render(*sources)[-1])
+        plt.close("all")
+        self.assertEqual(len(fractions), 2)
+        for name, fraction in fractions.items():
             with self.subTest(text=name):
                 self.assertEqual(fraction, 1.0)
 
@@ -184,10 +209,58 @@ class RegionLabelTests(unittest.TestCase):
         self.assert_on_gray(next(c.source for c in self.cells if c.get("id") == ADIABATIC_CONTOUR_IDS[1]))
 
     def test_isothermal_linear_region_labels(self):
-        tagged = [c for c in self.cells if c.cell_type == "code" and ISOTHERMAL_TAG in c.metadata.get("tags", [])]
-        load = next(c.source for c in tagged if "iso_payloads" in c.source and "FIGURE_SIZE" not in c.source)
+        tagged = isothermal_cells()
         linear = next(c.source for c in tagged if "ISO_LIN_FIGURE_SIZE" in c.source)
-        self.assert_on_gray(load, linear)
+        self.assert_on_gray(isothermal_load_source(tagged), linear)
+
+
+class IsothermalLogPanelTests(unittest.TestCase):
+    """Fig. isothermal-contour-compare takes the shape of the numerical log-T panel (user, 2026-10-30)."""
+
+    @classmethod
+    def setUpClass(cls):
+        prepare_rendering()
+        tagged = isothermal_cells()
+        panels = [next(c.source for c in tagged if f"{prefix}FIGURE_SIZE" in c.source)
+                  for prefix in ("ISO_LOGN_", "ISO_CMP_")]
+        cls.numerical, cls.comparison = render(isothermal_load_source(tagged), *panels)[1:]
+        for figure in (cls.numerical, cls.comparison):
+            figure.canvas.draw()
+
+    @classmethod
+    def tearDownClass(cls):
+        import matplotlib.pyplot as plt
+        plt.close("all")
+
+    @staticmethod
+    def inches(figure, artist):
+        box = artist.get_window_extent(figure.canvas.get_renderer())
+        return box.transformed(figure.dpi_scale_trans.inverted())
+
+    def test_comparison_axes_box_matches_the_numerical_panel(self):
+        numerical, comparison = self.numerical.axes[0], self.comparison.axes[0]
+        expected, actual = self.inches(self.numerical, numerical), self.inches(self.comparison, comparison)
+        self.assertEqual(self.comparison.get_size_inches()[0], self.numerical.get_size_inches()[0])
+        self.assertAlmostEqual(actual.width, expected.width, delta=0.01)
+        self.assertAlmostEqual(actual.height, expected.height, delta=0.01)
+        self.assertEqual(comparison.get_xlim(), numerical.get_xlim())
+        self.assertEqual(list(comparison.get_xticks()), list(numerical.get_xticks()))
+
+    def test_comparison_legend_sits_between_the_axes_and_the_title(self):
+        axis = self.comparison.axes[0]
+        legend, box = self.inches(self.comparison, axis.get_legend()), self.inches(self.comparison, axis)
+        self.assertGreaterEqual(legend.y0, box.y1)
+        self.assertLessEqual(legend.y1, self.inches(self.comparison, axis.title).y0)
+        self.assertGreaterEqual(legend.x0, 0.0)
+        self.assertLessEqual(legend.x1, self.comparison.get_size_inches()[0])
+
+    def test_log_panel_region_labels_on_gray(self):
+        for name, figure in (("numerical", self.numerical), ("comparison", self.comparison)):
+            fractions = region_gray_fractions(figure)
+            self.assertEqual(len(fractions), 2, name)
+            for text, fraction in fractions.items():
+                with self.subTest(figure=name, text=text):
+                    self.assertEqual(fraction, 1.0)
 
 
 if __name__ == "__main__":

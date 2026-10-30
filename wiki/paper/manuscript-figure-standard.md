@@ -23,10 +23,13 @@ The contour-label size is the adiabatic contour cell's former 11 pt plus 2, as t
 
 ## Contour figures
 
-All six contour cells (Fig. `speed-adiabatic`, `adiabatic-contour-compare`, both isothermal linear/log panels, the $\xi=-0.85$ comparison and the fitted-$\xi$ comparison) use the x label "Nuclear baryon number density [$n_0$]" and the y label "Nuclear phase temperature [MeV]".
+All six contour cells (Fig. `speed-adiabatic`, `adiabatic-contour-compare`, both isothermal linear/log panels, the log-$T$ comparison of Fig. `isothermal-contour-compare` and the fitted-$\xi$ comparison) use the x label "Nuclear baryon number density [$n_0$]" and the y label "Nuclear phase temperature [MeV]".
 On the linear panels both region names sit wholly on gray, at $(1.08, 3)$ and $(3.62, 98)$ in $(n_B/n_0, T/\mathrm{MeV})$, the same places in all three; a pixel test renders the cells and checks this.
 ⚠ The isothermal inner gray region is narrow above $T\approx15$ MeV: at the old $(1.18, 20)$ the 22 pt "Quark matter not favored" ran into the white region.
 The adiabatic comparison canvas grew to $7.2\times8.8$ in so the title and the outside legend fit; its unbanded labels now carry the white box, because the dashed analytical 50 and 200 m/s curves ran through them.
+The three isothermal log-$T$ panels share one shape (`LOG_PANEL_SHAPE`, user 2026-10-30): a $5.91\times4.85$ in axes box, $x$ from 2.2 to $6\,n_0$, both region names vertical on gray.
+The method legend of the comparison panels does not fit the narrow left gray region at 22 pt, so it sits in one row between the title and the axes on a $7.2\times6.85$ in canvas (`LOG_COMPARISON_LEGEND`).
+⚠ That row must stay narrower than the axes: any overhang widens constrained layout's side margins and shrinks the box (a 6.02 in row cost 0.02 in of axes width); a render test checks the axes box against the numerical panel and the legend against the title.
 The isothermal cells take these values from `MANUSCRIPT_FONTS` / `MANUSCRIPT_LAYOUT` in `new_paper_calculations/26-10-27/isothermal/update_all_plots_new.py`; see [[isothermal-contours-polar-and-row-meshes]].
 
 ## Other figures

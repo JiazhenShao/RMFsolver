@@ -1113,3 +1113,7 @@ Four low-$T$ points that broke plotted contours were failing by a hair: next to 
 ## [2026-10-30] figure | One font standard for the manuscript figures
 
 All eight `All_Plots_new` figures in `Main.tex` now print 10.4 pt text, 11.4 pt axis labels and titles, and 6.2 pt contour labels (13 pt at 7.2 in, the adiabatic cell's 11 pt plus 2). The contour axes read "Nuclear baryon number density [$n_0$]" and "Nuclear phase temperature [MeV]", and the isothermal linear panel's "Quark matter not favored" now sits wholly on gray. The comparison's labels are boxed, and the $(a,T)$ legend moved into new headroom. See [[manuscript-figure-standard]].
+
+## [2026-10-30] figure | Isothermal log-$T$ comparison reshaped, at the low-$T$ fitted $\xi$
+
+Fig. `isothermal-contour-compare` (`isothermal-analytic-numerical-logT.pdf`) now has the numerical log-$T$ panel's axes box ($5.91\times4.85$ in, $x$ from $2.2\,n_0$, region names vertical on gray) and draws the analytical contours at $\xi=-0.57$, the 0.01–10 MeV contour fit, instead of $-0.85$. The method legend moved to one row between title and axes. See [[manuscript-figure-standard]] and [[isothermal-xi-fit]].
