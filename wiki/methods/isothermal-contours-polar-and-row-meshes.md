@@ -1,7 +1,7 @@
 ---
 summary: Nonrelativistic isothermal contours were recomputed on 2026-10-27/28 on a polar mesh (8-100 MeV) and a log-T row mesh (0.01-10 MeV); numerical coverage is 99.6% and 94% with every plotted contour connected, all verifications pass, and analytic xi=-0.85 overestimates numerical speeds by 1.2-6.7x at high T but only 1.0-1.6x at low T.
 status: current
-updated: 2026-10-28
+updated: 2026-10-30
 tags: [method, isothermal, numerical, analytic, contour, xi]
 ---
 
@@ -101,7 +101,8 @@ The manuscript figures come from the `All_Plots_new.ipynb` cells tagged `isother
 They write `Latex_writting/Hydrodynamical combustion/Plots/isothermal-numerical-contour.pdf` (linear numerical, Fig. `speed-isothermal-linear`), `isothermal-numerical-contour-logT.pdf` (log-$T$ numerical only, not yet included by `Main.tex`), `isothermal-analytic-numerical-logT.pdf` (log-$T$ analytic versus numerical at `ISO_CMP_XI`, default $-0.85$; Fig. `speed-isothermal-log`) and `isothermal-analytical-numerical-comparison.pdf` (the same at the fitted `ISO_FIT_XI` $=-0.57$, not yet included by `Main.tex`).
 Rerunning a cell and recompiling updates the manuscript.
 Fonts are sized for the manuscript, which includes every figure at `\linewidth` $=246$ pt (revtex4-1, 10 pt two-column): a font prints at size $\times\,246/(72\times$ width in inches$)$, so at the 7.2 in width the 22/24 pt settings (`MANUSCRIPT_FONTS` in `update_all_plots_new.py`) print at 10.4/11.4 pt, above the 10 pt body text; only super- and subscripts print smaller (8 pt).
-Per the user (2026-10-29) the contour speed labels are the exception: they follow the adiabatic contour cell, 11 pt at 7.2 in (5.2 pt printed), placed by matplotlib `clabel` at the label temperatures with a white square box; hand-placed `axis.text` labels are a last resort.
+Per the user (2026-10-29) the contour speed labels are the exception: they follow the adiabatic contour cell, placed by matplotlib `clabel` at the label temperatures with a white square box; hand-placed `axis.text` labels are a last resort.
+Superseded 2026-10-30: the label size went from 11 to 13 pt at 7.2 in (6.2 pt printed) in every contour figure, the axes now read "Nuclear baryon number density [$n_0$]" and "Nuclear phase temperature [MeV]", and the linear panel's inner region name moved to $(1.08, 3)$ to stay on gray; see [[manuscript-figure-standard]].
 ⚠ The `speed-isothermal-log` caption still mentions numerical dots; the figures have none.
 
 ## Open

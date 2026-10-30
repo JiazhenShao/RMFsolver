@@ -1109,3 +1109,7 @@ Four low-$T$ points that broke plotted contours were failing by a hair: next to 
 ## [2026-10-28] figure | Fitted-$\xi$ isothermal comparison in the manuscript folder
 
 `All_Plots_new` gains a cell (`ISO_FIT_XI` $=-0.57$, the low-$T$ contour fit) that writes the log-$T$ analytic-versus-numerical figure to `Latex_writting/Hydrodynamical combustion/Plots/isothermal-analytical-numerical-comparison.pdf`; `Main.tex` does not include it yet. See [[isothermal-contours-polar-and-row-meshes]].
+
+## [2026-10-30] figure | One font standard for the manuscript figures
+
+All eight `All_Plots_new` figures in `Main.tex` now print 10.4 pt text, 11.4 pt axis labels and titles, and 6.2 pt contour labels (13 pt at 7.2 in, the adiabatic cell's 11 pt plus 2). The contour axes read "Nuclear baryon number density [$n_0$]" and "Nuclear phase temperature [MeV]", and the isothermal linear panel's "Quark matter not favored" now sits wholly on gray. The comparison's labels are boxed, and the $(a,T)$ legend moved into new headroom. See [[manuscript-figure-standard]].
