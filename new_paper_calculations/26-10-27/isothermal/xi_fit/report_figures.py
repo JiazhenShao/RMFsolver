@@ -52,7 +52,7 @@ PANEL_FIT_LINE_STYLE = "--"
 PANEL_FIT_LINE_WIDTH = 2.4
 REFERENCE_XI_COLOR = "0.45"
 REFERENCE_XI_LINE_STYLE = ":"
-SHAPE_LIMIT_FILL_COLOR = "0.90"    # xi > 1: beyond what a profile shape g(a) allows
+SHAPE_LIMIT_FILL_COLOR = "0.90"    # xi > 1: needs the flux g = -D_K a' to exceed its interface value G
 SHAPE_LIMIT_EDGE_COLOR = "0.55"    # legend patch only, so it shows on the band
 SEAM_LINE_COLOR = "0.70"
 LEVEL_COLOR_MAP = LinearSegmentedColormap.from_list("level_blues", plt.get_cmap("Blues")(np.linspace(0.35, 1.0, 256)))
@@ -139,7 +139,7 @@ def strip_figure(strips):
                     linewidth=PANEL_FIT_LINE_WIDTH, zorder=2, label=f"$\\xi={common.XI:g}$")
         handles, labels = top.get_legend_handles_labels()
         handles.append(Patch(facecolor=SHAPE_LIMIT_FILL_COLOR, edgecolor=SHAPE_LIMIT_EDGE_COLOR))
-        labels.append(r"$\xi>1$: no profile shape")
+        labels.append(r"$\xi>1$: needs $g>G$")
         top.legend(handles, labels, loc="upper left", fontsize=FONTS["text"], frameon=False, handlelength=1.6,
                    borderaxespad=0.3)
         top.set_ylabel(r"Best-fit $\xi$, all levels", fontsize=FONTS["label"])
