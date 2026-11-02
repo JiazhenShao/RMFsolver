@@ -1124,4 +1124,4 @@ In `T_a_constant_pressure.pdf` (Fig. `isobar_a_T`) the $A_{\rm adb}$ label moved
 
 ## [2026-11-01] analysis | Isothermal $\xi$ in temperature strips
 
-Strip-by-strip contour fits show the isothermal $\xi$ rising monotonically with $T$, from $-0.63$ at 0.01 MeV to $+1.66$ at 70–80 MeV, continuous across the 10 MeV mesh seam. Below 10 MeV the front speed sets $\xi$; above it $\xi$ rises with $T$ at every speed and leaves the profile-shape range $-1<\xi<1$ beyond 60 MeV. Report with the high-$T$ linear and low-$T$ log contours at their fitted $\xi$: `local_analysis_results/26-11-01/isothermal-xi-report/REPORT.md`. See [[isothermal-xi-temperature-strips]].
+Strip-by-strip contour fits show the isothermal $\xi$ rising monotonically with $T$, from $-0.63$ at 0.01 MeV to $+1.66$ at 70–80 MeV, continuous across the 10 MeV mesh seam. Below 10 MeV the front speed sets $\xi$; above it $\xi$ rises with $T$ at every speed and leaves the profile-shape range $-1<\xi<1$ beyond 60 MeV. Report with the high-$T$ linear and low-$T$ log contours at their fitted $\xi$: `26-11-01.md`. See [[isothermal-xi-temperature-strips]].

@@ -36,4 +36,4 @@ This refines the whole-panel per-level anchors of [[isothermal-xi-fit]]: there, 
 - `new_paper_calculations/26-10-27/isothermal/xi_fit/fit_xi_strips.py` writes `xi_strips.json` in 25 s. It tabulates the contour offsets once per panel on a $\xi$ grid (step 0.01) and refines the grid minimum with a parabola.
 - `report_figures.py` draws the report figures.
 - `tests/test_isothermal_xi_strips.py` checks that a whole-panel strip reproduces `fit_xi.py` and that a strip fit matches direct minimization.
-- The report is `local_analysis_results/26-11-01/isothermal-xi-report/REPORT.md`.
+- The report is `26-11-01.md` (workspace root; figures in `local_analysis_results/26-11-01/isothermal-xi-report/`).
