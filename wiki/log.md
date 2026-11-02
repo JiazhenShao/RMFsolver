@@ -1129,3 +1129,7 @@ Strip-by-strip contour fits show the isothermal $\xi$ rising monotonically with 
 ## [2026-11-01] analysis | Why the fitted isothermal $\xi$ exceeds 1
 
 The strip-fitted $\xi>1$ at high $T$ is mostly not a profile shape: where the speed-matching $\xi$ exceeds 1 the numerical profiles are near-linear ramps, and the analytical $I_2$ is a median 1.65 times the numerical one. Only for $T>72$ MeV with $a(0^+)\ge0.993$ does the profile's own $\xi$ exceed 1 (up to $+1.59$), because $-D_Ka'$ peaks at 1.6–2.1 times its interface value; this contradicts the `Main.tex` appendix bound. See [[isothermal-xi-temperature-strips]].
+
+## [2026-11-01] correction | Profile $\xi$ above 1 was mostly a flux-definition effect
+
+Recomputed with the manuscript definitions taken literally ($g=-D_Ka'$, $G=g(0^+)$), the high-$T$ profiles give $\xi_{\rm profile}\le1.09$ (59 points above 90 MeV exceed 1), not up to $+1.59$. The record field `xi_profile` uses the solver flux $-D_Kn_K'/n_B$ with the jump-condition $G$, which differ from $-D_Ka'$ where $n_B$ varies (up to 13%). $-D_Ka'$ is still non-monotone in 831 of 2282 profiles, and the fitted $\xi>1$ still comes from the analytical $I_2$ (median 1.6 times too large). See [[isothermal-xi-temperature-strips]].

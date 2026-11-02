@@ -1,5 +1,5 @@
 ---
-summary: Fitted per temperature strip, the isothermal xi rises monotonically from -0.63 at 0.01 MeV to -0.43 at 3-10 MeV, -0.18 at 10-20 MeV and above +1 beyond 60 MeV; below 10 MeV the front speed sets xi, above 10 MeV xi rises with T at every speed; fitted xi > 1 mostly corrects the analytical I2, and only near a(0+) -> 1 is the profile's own xi > 1 (non-monotone flux).
+summary: Fitted per temperature strip, the isothermal xi rises monotonically from -0.63 at 0.01 MeV to -0.43 at 3-10 MeV, -0.18 at 10-20 MeV and above +1 beyond 60 MeV; below 10 MeV speed sets xi, above it T does; fitted xi > 1 corrects the analytical I2 (1.6x too large), while the profiles' own xi stays <= 1.09 although -D_K a' is non-monotone in a third of them.
 status: current
 updated: 2026-11-01
 tags: [method, isothermal, analytic, xi, contour, temperature]
@@ -33,20 +33,25 @@ This refines the whole-panel per-level anchors of [[isothermal-xi-fit]]: there, 
 
 ## Why the fitted $\xi$ exceeds 1
 
-Compare $\xi_{\rm speed}$, the value at which the analytical formula gives the numerical speed, with $\xi_{\rm profile}=2I_1/(G\,a(0^+))-1$ from each numerical profile (record field `xi_profile`, $G=\lambda u(0^-)[1-a(0^+)]$ with $\lambda=n_B(0^-)/n_B(0^+)$).
-Of 2282 high-$T$ points, 1408 have $\xi_{\rm speed}>1$, but only 343 have $\xi_{\rm profile}>1$.
+The bound $-1<\xi<1$ belongs to the $I_1$ parameterization and assumes $g=-D_Ka'\le G$. The fitted $\xi_{\rm speed}$, at which the analytical formula gives the numerical speed, also absorbs the formula's other approximations.
 
-**$I_2$, not shape.** At 48–69 MeV, profiles with $\xi_{\rm speed}=1.6$–$2.1$ are straight ramps ($\xi_{\rm profile}\approx0$, $g\le G$).
-- Where $\xi_{\rm speed}>1$, the analytical $I_2$ (cubic manuscript rate, transport frozen at $\mu_B(0^+)$) exceeds the numerical $I_2$ (full local rate along the profile) by a median 1.65.
-- $\lambda_n$ taken at $n_B(\infty)$ adds a factor of 1.10 to $\lambda_n^2$.
-- Because $u^2\propto I_2/(1+\xi a)$, the excess $I_2$ pushes $\xi$ above 1, most strongly where $a(0^+)$ is small (slow fronts near coexistence).
+Compare it with $\xi_{\rm profile}=2I_1/(G\,a(0^+))-1$, computed literally on each saved profile: $g=-D_Ka'$ by finite differences, $I_1=\int D_Ka'^2dx$, $G=g(0^+)$.
+- Of 2282 high-$T$ points, 1408 have $\xi_{\rm speed}>1$; only 59 have $\xi_{\rm profile}>1$, all above 90 MeV, with a maximum of $+1.09$.
 
-**Non-monotone flux.** For $T>72$ MeV and $a(0^+)\ge0.993$, $a(x)$ stays monotone, but $g$ peaks at 1.6–2.1 $G$ inside the layer, so $\xi_{\rm profile}$ reaches $+1.59$.
-- The jump condition ties $G$ to $1-a(0^+)\to0$, while the diffusive flux inside the layer does not vanish with it.
-- 40% of high-$T$ profiles have a non-monotone $g$, but only those near $a(0^+)\to1$ exceed $\xi_{\rm profile}=1$.
-- ⚠ This contradicts the `Main.tex` appendix statement that every exact solution gives $-1<\xi<1$.
+**$I_2$, not shape.** At 48–71 MeV, profiles with $\xi_{\rm speed}=1.5$–$2.1$ are straight ramps ($\xi_{\rm profile}\approx0$).
+- Where $\xi_{\rm speed}>1$, the analytical $I_2$ (cubic manuscript rate, transport frozen at $\mu_B(0^+)$) exceeds the numerical $\int D_K\Gamma_K\,da/n_B(0^+)$ by a median 1.6 (1.8 at 50–70 MeV).
+- $\lambda_n$ taken at $n_B(\infty)$ adds about 1.1 to $\lambda_n^2$.
+- Because $u^2\propto I_2/(1+\xi a)$, the excess pushes $\xi$ above 1, most strongly where $a(0^+)$ is small.
 
-`xi_fit/xi_gt1_profiles.py` draws $\xi_{\rm speed}$ and $\xi_{\rm profile}$ versus $T$, and $g/G$ versus $a/a(0^+)$ for both cases.
+**Non-monotone flux.** $a(x)$ is monotone in every profile, but $g$ peaks inside the layer in 831 of them, by up to 1.47 $G$ near $a(0^+)\to1$. The area stays close to the rectangle, so the appendix bound is only marginally violated, but its premise (monotone $g$) fails.
+
+⚠ **Definition trap.** Above 72 MeV, $n_B$ varies by up to 13% across the layer.
+- $-D_Ka'$ then differs from the solver's diffusive current per baryon, $-D_Kn_K'/n_B$ (the solver uses $J_K=u\,n_K-D_Kn_K'$).
+- The jump-condition $G=\lambda u(0^-)[1-a(0^+)]$, with $\lambda=n_B(0^-)/n_B(0^+)$, fixes the solver's flux; $-D_Ka'(0^+)$ is 1.15–1.56 times larger when $a(0^+)\ge0.99$.
+- The record field `xi_profile` uses the solver flux with the jump $G$ and gives $\xi>1$ at 343 points, up to $+1.59$.
+- Superseded 2026-11-01: an earlier version of this page reported those record values as the profile's own $\xi$ and called the appendix bound contradicted.
+
+`xi_fit/xi_gt1_profiles.py` draws $\xi_{\rm speed}$ and the literal $\xi_{\rm profile}$ versus $T$, and the parametric curves $(a(x), g(x))/G$ of the saved profiles.
 
 ## Files
 
