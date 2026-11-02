@@ -1,0 +1,93 @@
+# Isothermal front speed: numerical results and the temperature dependence of $\xi$
+
+*2026-11-01.*
+
+- **Numerical speeds:** `solve_front_isothermal_slow(initial_guess_mode="auto")`.
+- **Analytical speeds:** `analytic_velocity_isothermal_slow`, from `RMFsolver` [v4.9.6].
+- **Physics inputs:** massless quarks, QMC-RMF3 pure neutron matter, $\alpha_s=0.4$, the revised Madsen rate and the non-relativistic equations.
+- **Meshes:**
+  - high $T$ (8–100 MeV): a polar mesh, with 99.6% of points converged;
+  - low $T$ (0.01–10 MeV): 40 logarithmic rows, with 94% of points converged.
+
+No solver was rerun for this report.
+
+The analytical speed depends on $\xi$ only through
+
+$$
+u(0^-;\xi)=\frac{\sqrt{2I_2}}{\lambda_n\sqrt{\big[1-a(0^+)\big]\big[1+\xi\,a(0^+)\big]}} ,
+$$
+
+where $I_2$, $\lambda_n$ and $a(0^+)$ do not depend on $\xi$. Every $\xi$ below is therefore an exact rescaling of the saved analytical grid.
+
+$\xi$ is fitted by minimizing the RMS displacement of the plotted contours along the mesh rays or rows; offsets are quoted in $n_0$. If $\xi$ describes only the shape of the conversion profile $g(a)$, it lies in $-1<\xi<1$.
+
+## 1. High temperature, linear $T$
+
+![High-temperature contours](isothermal-highT-linear-xi.png)
+
+At the high-$T$ contour fit, $\xi=+0.74$, the RMS contour offset is $0.078\,n_0$ (maximum $0.34\,n_0$). At $\xi=-0.85$ it is $0.29\,n_0$. The 100–1000 m/s contours remain visibly off, with per-level RMS offsets up to $0.11\,n_0$.
+
+Below 10 MeV the dashed curves use the low-$T$ fit, which is why they jump at the seam.
+
+## 2. Low temperature, logarithmic $T$
+
+![Low-temperature contours](isothermal-lowT-logT-xi.png)
+
+At the low-$T$ contour fit, $\xi=-0.57$, the analytical contours nearly sit on the numerical ones: the RMS offset is $0.031\,n_0$ (maximum $0.13\,n_0$), against $0.092\,n_0$ at $\xi=-0.85$. The residual misfit is spread evenly over the levels, with per-level RMS offsets of $0.02$–$0.04\,n_0$.
+
+## 3. $\xi$ in temperature strips
+
+![Best-fit xi per temperature strip](isothermal-xi-strips.png)
+
+**Top panel.** One $\xi$ per strip, fitted to every plotted-contour crossing whose temperature lies in the strip. The strips are half-decades below 10 MeV and 10 MeV wide above, with 80–95 MeV merged. Horizontal bars mark the strip; vertical bars give the 16–84% range over 400 bootstrap resamples of the rays or rows.
+
+**Bottom panel.** The same fit for each speed level on its own. The gray band is $\xi>1$.
+
+| $T$ strip [MeV] | $\xi$ | 16–84% | crossings | RMS at strip $\xi$ [$n_0$] | at panel $\xi$ | at $\xi=-0.85$ |
+|---|---|---|---|---|---|---|
+| 0.01–0.032 | $-0.63$ | $-0.63$ to $-0.63$ | 63 | 0.018 | 0.024 | 0.070 |
+| 0.032–0.1 | $-0.62$ | $-0.63$ to $-0.62$ | 63 | 0.021 | 0.024 | 0.074 |
+| 0.1–0.32 | $-0.60$ | $-0.60$ to $-0.59$ | 62 | 0.022 | 0.023 | 0.079 |
+| 0.32–1 | $-0.57$ | $-0.58$ to $-0.56$ | 56 | 0.026 | 0.026 | 0.091 |
+| 1–3.2 | $-0.52$ | $-0.53$ to $-0.51$ | 55 | 0.031 | 0.032 | 0.102 |
+| 3.2–10 | $-0.43$ | $-0.45$ to $-0.42$ | 49 | 0.041 | 0.053 | 0.132 |
+| 10–20 | $-0.18$ | $-0.23$ to $-0.10$ | 43 | 0.068 | 0.153 | 0.215 |
+| 20–30 | $+0.13$ | $+0.03$ to $+0.26$ | 44 | 0.070 | 0.106 | 0.255 |
+| 30–40 | $+0.44$ | $+0.33$ to $+0.54$ | 50 | 0.066 | 0.074 | 0.288 |
+| 40–50 | $+0.73$ | $+0.67$ to $+0.82$ | 54 | 0.055 | 0.055 | 0.308 |
+| 50–60 | $+0.96$ | $+0.89$ to $+1.04$ | 63 | 0.047 | 0.053 | 0.310 |
+| 60–70 | $+1.21$ | $+1.14$ to $+1.26$ | 74 | 0.038 | 0.059 | 0.315 |
+| 70–80 | $+1.66$ | $+1.62$ to $+1.71$ | 86 | 0.023 | 0.087 | 0.322 |
+| 80–95 | $+2.79$ | $+2.38$ to $+2.91$ | 129 | 0.004 | 0.033 | 0.261 |
+
+The "panel $\xi$" column uses $-0.57$ below 10 MeV and $+0.74$ above.
+
+## Physics
+
+**One trend, not two regimes.** $\xi$ rises steadily with $T$ over four decades, from $-0.63$ at 0.01 MeV to $+1.66$ at 70–80 MeV.
+- The two panel fits are averages over different parts of this one trend.
+- The trend crosses the 10 MeV seam between the two meshes without a jump: $-0.43$ at 3–10 MeV, then $-0.18$ at 10–20 MeV.
+- Per speed level, the two meshes agree at the seam to within $0.16$.
+
+**Below 10 MeV, the front speed sets $\xi$.** At fixed $T$, $\xi$ falls with speed. In the coldest strip it goes from $+0.96$ at 100 m/s to $-0.74$ at $10^6$ m/s; read as a profile shape, a faster front builds its diffusive flux later in the conversion layer.
+- At fixed speed, $\xi$ even decreases slightly as $T$ rises.
+- The strip value still drifts upward because the fastest contours, which want the most negative $\xi$, stop crossing the rows: $10^6$ m/s above 0.24 MeV and $3\times10^5$ m/s above 2.9 MeV.
+
+**Above 10 MeV, $\xi$ leaves the shape range.** Here $\xi$ rises with $T$ at every speed level.
+- Above about 60 MeV it exceeds $+1$, which no profile shape allows. There $\xi$ no longer describes $g(a)$; it absorbs the error of the rest of the analytical approximation, which at $\xi=-0.85$ overestimates the numerical speed in the high-$T$ panel by a median factor of 2.2 (5.6 at the 95th percentile).
+- The 80–95 MeV value is weakly constrained. The contours crowd against the upper boundary, so the offsets are small for any $\xi$: $0.004\,n_0$ at its own fit and $0.033\,n_0$ at $+0.74$.
+
+**Consequence.**
+- For the 0.01–10 MeV comparison, a single $\xi=-0.57$ is adequate.
+- Above 10 MeV no constant $\xi$ follows the trend, and above 60 MeV the analytical formula needs more than a profile-shape correction.
+
+## Reproduce
+
+```bash
+PYTHONPATH=local_analysis_results/26-10-02/runtime/scipy-1.18.1-cpython-312-darwin-arm64:. \
+./bin/python3 -B new_paper_calculations/26-10-27/isothermal/xi_fit/fit_xi_strips.py    # 25 s -> xi_strips.json
+PYTHONPATH=local_analysis_results/26-10-02/runtime/scipy-1.18.1-cpython-312-darwin-arm64:. \
+./bin/python3 -B new_paper_calculations/26-10-27/isothermal/xi_fit/report_figures.py   # the three figures
+```
+
+The panel fits come from `xi_fit/fit_xi.py` (`xi_fit.json`).
