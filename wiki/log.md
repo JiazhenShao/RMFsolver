@@ -1133,3 +1133,7 @@ The strip-fitted $\xi>1$ at high $T$ is mostly not a profile shape: where the sp
 ## [2026-11-01] correction | Profile $\xi$ above 1 was mostly a flux-definition effect
 
 Recomputed with the manuscript definitions taken literally ($g=-D_Ka'$, $G=g(0^+)$), the high-$T$ profiles give $\xi_{\rm profile}\le1.09$ (59 points above 90 MeV exceed 1), not up to $+1.59$. The record field `xi_profile` uses the solver flux $-D_Kn_K'/n_B$ with the jump-condition $G$, which differ from $-D_Ka'$ where $n_B$ varies (up to 13%). $-D_Ka'$ is still non-monotone in 831 of 2282 profiles, and the fitted $\xi>1$ still comes from the analytical $I_2$ (median 1.6 times too large). See [[isothermal-xi-temperature-strips]].
+
+## [2026-11-02] update | Peaked isothermal profiles: the fields, and why the K current grows inward
+
+`xi_gt1_profiles.py` now also draws $a$, $a'$, $n_B$, $\mu_B$ and $\mu_K$ against $x/x_{1/2}$ for the three peaked high-$T$ profiles (77–92 MeV, $a(0^+)\ge0.996$). $|a'|$ alone peaks inside the layer in 595 of 2282 profiles. The exact K balance $(-D_Kn_K')'=j_B|a'|-\Gamma_K$ shows that the diffusive current grows where advection beats conversion. The peaked profiles are balanced at $0^+$, while the slow ramps are conversion-dominated. See [[isothermal-xi-temperature-strips]].

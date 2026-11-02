@@ -6,10 +6,11 @@ definitions taken literally on the saved profile: g = -D_K a' (a and D_K as save
 I1 = int D_K a'^2 dx and G = g(0+). A monotone g(a) rising from 0 to G gives -1 < xi_profile < 1.
 The solver's diffusive current is D_K nK' (J_K = u nK - D_K nK'), so g differs from (J_K - jB a)/nB, the flux
 behind the record field xi_profile, wherever nB varies; near a(0+) -> 1 that changes xi_profile by up to 0.6.
-Two figures:
+Three figures:
 1. xi_speed and xi_profile versus T;
 2. g/G versus a/a(0+), the parametric curve (a(x), g(x)) for 0+ <= x < inf, at points with xi_speed > 1:
-   (a) xi_profile near 0, (b) a(0+) -> 1, where g peaks inside the layer.
+   (a) xi_profile near 0, (b) a(0+) -> 1, where g peaks inside the layer;
+3. a, a', n_B, mu_B and mu_K versus x for the points of 2(b), with x in units of x_half, where a = a(0+)/2.
 
     PYTHONPATH=local_analysis_results/26-10-02/runtime/scipy-1.18.1-cpython-312-darwin-arm64:. \
     ./bin/python3 -B new_paper_calculations/26-10-27/isothermal/xi_fit/xi_gt1_profiles.py
@@ -28,6 +29,7 @@ import numpy as np  # noqa: E402
 
 import _iso_common as common  # noqa: E402
 import _iso_xi as iso_xi  # noqa: E402
+from RMFsolver.constants import MeV_fm  # noqa: E402
 
 PANEL = HERE.parent / "highT"
 OUT = common.ROOT / "local_analysis_results/26-11-01/isothermal-xi-report"
@@ -51,6 +53,10 @@ TARGET_T_IN_RANGE = (50.0, 60.0, 70.0)      # panel (a): xi_speed > 1, |xi_profi
 TARGET_T_PEAKED = (76.0, 84.0, 92.0)        # panel (b): xi_speed > 1, a(0+) >= PEAKED_A0, g peaks inside
 PEAKED_A0 = 0.99
 TARGET_WINDOW_MEV = 3.0
+FIELDS_FIGURE_SIZE = (7.2, 17.0)
+FIELDS_X_LIMITS = (0.0, 6.0)                # x / x_half; a has fallen to ~a(0+)/100 at 6
+FIELDS_LEGEND_FONT_SIZE = TEXT_FONT_SIZE - 2
+STEEPEST_MARKER_SIZE = 9
 EXPORT_DPI = 220
 
 
@@ -131,6 +137,32 @@ def profile_figure(all_points):
     return figure, groups
 
 
+def fields_figure(group):
+    """a, x_half a', n_B/n_0, mu_B, mu_K versus x/x_half; a dot marks the steepest point of a."""
+    labels = (r"$a$", r"$x_{1/2}\,a'$", r"$n_B/n_0$", r"$\mu_B$ [MeV]", r"$\mu_K$ [MeV]")
+    with plt.rc_context({"mathtext.fontset": "cm"}):
+        figure, axes = plt.subplots(5, 1, sharex=True, figsize=FIELDS_FIGURE_SIZE, dpi=160, constrained_layout=True)
+        for point, color in zip(group, PROFILE_COLORS):
+            profile = np.load(PANEL / "isothermal-highT-numerical-profiles" / "{}_{}.npz".format(*point["index"]))
+            x, a = profile["x"], profile["a"]
+            x_half = np.interp(0.5 * a[0], a[::-1], x[::-1])      # a falls monotonically
+            slope = np.gradient(a, x) * x_half
+            steepest = np.argmin(slope)
+            fields = (a, slope, profile["nB"] / common.N0_MEV3, profile["muB"], profile["muK"])
+            for axis, field in zip(axes, fields):
+                axis.plot(x / x_half, field, color=color, linewidth=PROFILE_LINE_WIDTH,
+                          label=f"{point['T']:.0f} MeV, $x_{{1/2}}={x_half * MeV_fm * 1e-9:.2f}\\,\\mu$m")
+            axes[1].plot(x[steepest] / x_half, slope[steepest], "o", color=color, markersize=STEEPEST_MARKER_SIZE)
+        for axis, label in zip(axes, labels):
+            axis.set_ylabel(label, fontsize=LABEL_FONT_SIZE)
+            axis.tick_params(direction="in", top=True, right=True, labelsize=TEXT_FONT_SIZE)
+        axes[0].legend(loc="upper right", fontsize=FIELDS_LEGEND_FONT_SIZE, frameon=False, handlelength=1.2,
+                       borderaxespad=0.2)
+        axes[-1].set_xlim(*FIELDS_X_LIMITS)
+        axes[-1].set_xlabel(r"$x/x_{1/2}$", fontsize=LABEL_FONT_SIZE)
+    return figure
+
+
 def main():
     all_points = points()
     above = [p for p in all_points if p["xi_profile"] > 1]
@@ -145,6 +177,9 @@ def main():
     figure, groups = profile_figure(all_points)
     figure.savefig(OUT / "isothermal-xi-gt1-profiles.png", dpi=EXPORT_DPI, facecolor="white")
     figure.savefig(OUT / "isothermal-xi-gt1-profiles.pdf", facecolor="white")
+    figure = fields_figure(groups[1])
+    figure.savefig(OUT / "isothermal-xi-gt1-profile-fields.png", dpi=EXPORT_DPI, facecolor="white")
+    figure.savefig(OUT / "isothermal-xi-gt1-profile-fields.pdf", facecolor="white")
     for name, group in zip(("xi_profile near 0", "a(0+) -> 1"), groups):
         for p in group:
             print(f"{name}: point {p['index']} T {p['T']:.1f} MeV a0 {p['a0']:.4f} u {p['speed']:.4g} m/s "

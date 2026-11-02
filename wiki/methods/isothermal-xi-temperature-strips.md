@@ -44,6 +44,12 @@ Compare it with $\xi_{\rm profile}=2I_1/(G\,a(0^+))-1$, computed literally on ea
 - Because $u^2\propto I_2/(1+\xi a)$, the excess pushes $\xi$ above 1, most strongly where $a(0^+)$ is small.
 
 **Non-monotone flux.** $a(x)$ is monotone in every profile, but $g$ peaks inside the layer in 831 of them, by up to 1.47 $G$ near $a(0^+)\to1$. The area stays close to the rectangle, so the appendix bound is only marginally violated, but its premise (monotone $g$) fails.
+- $|a'|$ alone peaks inside in 595 profiles, so $a(x)$ has an inflection point there. In the three peaked profiles of `isothermal-xi-gt1-profile-fields.png`, $D_K$ also rises by 27% across the layer, lifting the peak of $g$ from 1.11–1.25 to 1.24–1.44 $G$.
+- Mechanism (exact, from $a=n_K/n_B$, $J_K=j_Ba-D_Kn_K'$, $J_K'=-\Gamma_K$): $(-D_Kn_K')'=j_B|a'|-\Gamma_K$. The current grows wherever advective supply beats conversion.
+  - The peaked profiles at 77–92 MeV balance at $0^+$ (ratio 1.00–1.03); the current then peaks at about 2 times its $0^+$ value.
+  - The slow ramps at 48–71 MeV have conversion winning at $0^+$ (ratio 0.40–0.84).
+  - This was checked at six points.
+- $\xi_{\rm profile}$ never falls below $-0.40$.
 
 ⚠ **Definition trap.** Above 72 MeV, $n_B$ varies by up to 13% across the layer.
 - $-D_Ka'$ then differs from the solver's diffusive current per baryon, $-D_Kn_K'/n_B$ (the solver uses $J_K=u\,n_K-D_Kn_K'$).
