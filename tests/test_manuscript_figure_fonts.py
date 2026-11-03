@@ -3,9 +3,9 @@
 Main.tex (revtex4-1, 10pt, twocolumn) includes each figure at \\linewidth = 246 pt, so a font prints at
 size * 246 / (72 * exported width in inches). The standard, stated at the 7.2 in width of the contour
 figures: 22 pt text (ticks, legends, region text, annotations) and 13 pt contour labels (the adiabatic
-contour cell's 11 pt plus 2); other widths scale in proportion. Axis labels, titles, the gray-region
-names and the contour figures' legends print at the 10 pt body size in the body font, Computer Modern Roman
-(cmr10 text, mathtext cm math):
+contour cell's 11 pt plus 2); other widths scale in proportion. Axis labels, tick labels, titles, the
+gray-region names and the contour figures' legends print at the 10 pt body size in the body font, Computer
+Modern Roman (cmr10 text, mathtext cm math):
 21.0732 pt at 7.2 in, and on bbox-tight figures whatever the exported page width requires. Every
 analytical-versus-numerical comparison uses xi = 0 (user, 2026-11-03).
 """
@@ -61,7 +61,8 @@ def contour_cells():
 
 
 def is_body_font(name):
-    return name.endswith(("AXIS_LABEL_FONT_SIZE", "TITLE_FONT_SIZE", "REGION_TEXT_FONT_SIZE", "LEGEND_FONT_SIZE"))
+    return name.endswith(("AXIS_LABEL_FONT_SIZE", "TITLE_FONT_SIZE", "REGION_TEXT_FONT_SIZE", "LEGEND_FONT_SIZE",
+                          "TICK_LABEL_FONT_SIZE"))
 
 
 def font_role(name):
@@ -174,10 +175,11 @@ class ContourCellTests(unittest.TestCase):
     def test_contour_cells_set_labels_and_region_names_in_the_body_font(self):
         for cell in contour_cells():
             found = constants(cell.source)
-            suffixes = ("LABEL_FONT_FAMILY", "REGION_TEXT_FONT_FAMILY") + (
+            suffixes = ("LABEL_FONT_FAMILY", "TICK_LABEL_FONT_FAMILY", "REGION_TEXT_FONT_FAMILY") + (
                 ("LEGEND_FONT_FAMILY",) if any(k.endswith("LEGEND_FONT_SIZE") for k in found) else ())
             for suffix in suffixes:
-                names = [k for k in found if k.endswith(suffix) and not k.endswith("SPEED_" + suffix)]
+                names = [k for k in found if k.endswith(suffix)
+                         and not k.endswith(tuple(p + suffix for p in ("SPEED_", "TICK_", "CONTOUR_")))]
                 with self.subTest(suffix=suffix):
                     self.assertEqual(len(names), 1, names)
                     self.assertEqual(found[names[0]], LABEL_FONT_FAMILY)
@@ -226,6 +228,18 @@ class ManuscriptPdfTests(unittest.TestCase):
 
     LABELLED = STANDARD + ("boundary_schematic_real.pdf", "boundary_schematic_isothermal_real.pdf",
                            "T_muK_constant_pressure.pdf")
+
+    CONTOUR_PDFS = STANDARD[:6]
+
+    def test_contour_figures_keep_only_the_contour_labels_outside_computer_modern(self):
+        # Ticks joined the body font (user, 2026-11-03): the speed labels on the contours are the only
+        # DejaVu Sans text left, at 6.2 pt.
+        contour_pt = CONTOUR_PT * COLUMN_PT / (72.0 * REFERENCE_WIDTH_IN)
+        for name in self.CONTOUR_PDFS:
+            for font, size in printed_runs(PLOTS / name):
+                if font not in COMPUTER_MODERN:
+                    with self.subTest(figure=name, font=font, printed=size):
+                        self.assertAlmostEqual(size, contour_pt, delta=0.05)
 
     def test_labels_and_titles_print_at_the_body_size_in_computer_modern(self):
         # Labels, titles, region names and contour legends are the only text near 10 pt (ticks: 10.4 pt).

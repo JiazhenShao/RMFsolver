@@ -36,17 +36,17 @@ import _iso_plot  # noqa: E402
 LATEX_PLOTS = "Latex_writting/Hydrodynamical combustion/Plots"
 # Main.tex (revtex4-1, 10pt, twocolumn) includes every figure at \linewidth = 246 pt, so a font prints
 # at size * 246 / (72 * figure width in inches). One standard for every manuscript contour figure (user,
-# 2026-10-29/30): at 7.2 in, 22 pt text (10.4 pt printed) and 13 pt contour labels (the adiabatic contour
-# cell's 11 pt plus 2). Axis labels, titles, the gray-region names and the legends (user, 2026-11-03) print at
-# the 10 pt body size in the body font, Computer Modern Roman: 10 * 72 * 7.2 / 246 = 21.0732 pt in cmr10, math
-# in mathtext cm.
+# 2026-10-29/30): 13 pt contour labels at 7.2 in (the adiabatic contour cell's 11 pt plus 2). All other text,
+# axis and tick labels, titles, the gray-region names and the legends (user, 2026-11-03), prints at the 10 pt
+# body size in the body font, Computer Modern Roman: 10 * 72 * 7.2 / 246 = 21.0732 pt in cmr10, math in
+# mathtext cm.
 BODY_LABEL_FONT_SIZE = round(10.0 * 72 * 7.2 / 246.0, 4)   # 21.0732 pt prints at 10.00001 pt
-MANUSCRIPT_FONTS = dict(tick_label_font_size=22, contour_label_font_size=13, region_text_font_size=BODY_LABEL_FONT_SIZE,
+MANUSCRIPT_FONTS = dict(tick_label_font_size=BODY_LABEL_FONT_SIZE, contour_label_font_size=13, region_text_font_size=BODY_LABEL_FONT_SIZE,
                         legend_font_size=BODY_LABEL_FONT_SIZE, speed_legend_font_size=BODY_LABEL_FONT_SIZE,
                         axis_label_font_size=BODY_LABEL_FONT_SIZE,
                         title_font_size=BODY_LABEL_FONT_SIZE)
-FONT_NOTE = ("# manuscript font standard, shared by every contour figure: at 7.2 in, 22 pt text, 13 pt contour labels;\n"
-             "# axis labels, title, region names and legend print at the 10 pt body size in cmr10 (21.0732 pt);\n"
+FONT_NOTE = ("# manuscript font standard, shared by every contour figure: at 7.2 in, 13 pt contour labels; all other\n"
+             "# text (axis and tick labels, title, region names, legend) prints at the 10 pt body size in cmr10 (21.0732 pt);\n"
              "# a font prints at size * 246 / (72 * figure width) pt")
 
 
@@ -58,7 +58,8 @@ FONT_NOTE = ("# manuscript font standard, shared by every contour figure: at 7.2
 MANUSCRIPT_LAYOUT = dict(outer_region_text_position=(4.17, 93.3), inner_region_text_position=(1.94, 12.8),
                          region_text_alignment="center", region_text_vertical_alignment="center",
                          x_label="Nuclear baryon number density [$n_0$]", y_label="Nuclear phase temperature [MeV]",
-                         label_font_family="cmr10", region_text_font_family="cmr10", legend_font_family="cmr10",
+                         label_font_family="cmr10", tick_label_font_family="cmr10", region_text_font_family="cmr10",
+                         legend_font_family="cmr10",
                          contour_label_background_color="white",
                          contour_label_background_style="square", contour_label_background_pad=0.08,
                          contour_label_background_alpha=1.0,

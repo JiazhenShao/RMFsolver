@@ -69,6 +69,7 @@ LINEAR_REFERENCE_STYLE = dict(
     axis_label_font_size=18,
     label_font_family=None,   # axis labels and title; None keeps the figure font
     tick_label_font_size=18,
+    tick_label_font_family=None,   # None keeps the figure font
     tick_direction="in",
     ticks_top=True,
     ticks_right=True,
@@ -89,7 +90,7 @@ LOG_REFERENCE_STYLE = dict(
     x_ticks=(1., 2., 3., 4., 5.), y_ticks=(.01, .1, 1., 10.), y_tick_labels=('0.01', '0.1', '1', '10'),
     title=r'Isothermal speed [$\mathrm{m\,s^{-1}}$]', title_font_size=20, title_pad=8,
     x_label=r'$n_B(0^-)/n_0$', y_label=r'$T(0^-)$ [MeV]', axis_label_font_size=18, label_font_family=None,
-    tick_label_font_size=18,
+    tick_label_font_size=18, tick_label_font_family=None,
     tick_direction='in', ticks_top=True, ticks_right=True, tick_length=4, tick_width=.9,
     spine_line_width=.8, analytical_line_style='--', numerical_line_style='-', line_width=1.8,
     analytical_zorder=4, numerical_zorder=3, numerical_split_temperature=20., numerical_marker='o',
@@ -168,7 +169,8 @@ def draw_log_reference(axis, curves, numerical_lines, analytic_lines, xi, style=
     _set_label_font_family(axis, style)
     axis.tick_params(direction=style["tick_direction"], top=style["ticks_top"], right=style["ticks_right"],
                      length=style["tick_length"], width=style["tick_width"],
-                     labelsize=style["tick_label_font_size"])
+                     labelsize=style["tick_label_font_size"],
+                     **_tick_font(style.get("tick_label_font_family")))
     for spine in axis.spines.values():
         spine.set_linewidth(style["spine_line_width"])
     axis.grid(style["show_grid"])
@@ -210,6 +212,11 @@ def draw_log_reference(axis, curves, numerical_lines, analytic_lines, xi, style=
 def _font_family(family):
     """Text keyword for a font family; None keeps the figure font."""
     return {"fontfamily": family} if family else {}
+
+
+def _tick_font(family):
+    """tick_params keyword for the tick-label font family; None keeps the figure font."""
+    return {"labelfontfamily": family} if family else {}
 
 
 def _legend_font(size, family=None):
@@ -450,7 +457,8 @@ def finish_axes(axis, style=LINEAR_REFERENCE_STYLE, title=None):
     _set_label_font_family(axis, style)
     axis.tick_params(direction=style["tick_direction"], top=style["ticks_top"], right=style["ticks_right"],
                      length=style["tick_length"], width=style["tick_width"],
-                     labelsize=style["tick_label_font_size"])
+                     labelsize=style["tick_label_font_size"],
+                     **_tick_font(style.get("tick_label_font_family")))
     for spine in axis.spines.values():
         spine.set_linewidth(style["spine_line_width"])
 

@@ -1,5 +1,5 @@
 ---
-summary: Every Main.tex figure from All_Plots_new prints axis labels, titles, gray-region names and contour-figure legends at the 10 pt body size in Computer Modern (cmr10, 21.07 pt at 7.2 in), other text at 10.4 pt (22 pt) and contour labels at 6.2 pt (13 pt); every analytical-numerical comparison uses xi = 0; two sourceless schematics are not resized.
+summary: Every Main.tex figure from All_Plots_new prints axis and tick labels, titles, gray-region names and contour-figure legends at the 10 pt body size in Computer Modern (cmr10, 21.07 pt at 7.2 in), other text at 10.4 pt (22 pt) and contour labels at 6.2 pt (13 pt); every analytical-numerical comparison uses xi = 0; two sourceless schematics are not resized.
 status: current
 updated: 2026-11-03
 tags: [paper, figures, fonts, contour]
@@ -12,12 +12,13 @@ Per the user (2026-10-29/30, revised 2026-11-03), all figures share one standard
 
 | Text | Source size at 7.2 in | Printed |
 |---|---|---|
-| Axis labels, titles, gray-region names, contour-figure legends | 21.0732 pt, cmr10 | 10.0 pt, the body size and font |
-| Ticks, legends, annotations | 22 pt, DejaVu Sans | 10.4 pt |
+| Axis and tick labels, titles, gray-region names, contour-figure legends | 21.0732 pt, cmr10 | 10.0 pt, the body size and font |
+| Trajectory legends and annotations | 22 pt, DejaVu Sans | 10.4 pt |
 | Contour speed labels | 13 pt, DejaVu Sans | 6.2 pt |
 
 The body text of `Main.tex` is Computer Modern Roman at 10 pt (revtex4-1 default), so the body-size text uses matplotlib's bundled `cmr10` with mathtext `cm` math (cmmi10); the user does not require the size to be exact to the last digit.
-Superseded 2026-11-03: axis labels and titles were 24 pt DejaVu Sans (11.4 pt printed), and region names 22 pt.
+Superseded 2026-11-03: axis labels and titles were 24 pt DejaVu Sans (11.4 pt printed); region names, legends and ticks 22 pt DejaVu Sans.
+⚠ `cmr10` has no Unicode minus: the boundary-profile cells, whose $x$ ticks are negative, set `axes.formatter.use_mathtext` so the minus comes from cmsy10.
 
 Mathtext sub- and superscripts print at $0.7\times$ (7.3 and 8.0 pt).
 At other widths the sizes scale in proportion: the $(a,T)$ and $(\mu_B,\mu_K)$ trajectories export at about 6.1 in (bbox tight) and use 18.6 pt text.

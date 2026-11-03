@@ -1145,3 +1145,7 @@ Axis labels, titles and the gray-region names of every `All_Plots_new` manuscrip
 ## [2026-11-03] update | Manuscript figures: legends in the body font, centred region names, linear isothermal comparison
 
 The contour-figure legends now print at the 10 pt body size in `cmr10`. The gray-region names are centred where the text box has the largest clearance from the white region and the frame (isothermal $(1.94,12.8)$/$(4.17,93.3)$, adiabatic $(1.97,13.5)$/$(4.55,103.3)$). `All_Plots_new` gains the linear-$T$ isothermal comparison at $\xi=0$ (`isothermal-analytic-numerical-linear.pdf`), included in `Main.tex` as Fig. `isothermal-contour-compare-linear`. See [[manuscript-figure-standard]].
+
+## [2026-11-03] update | Manuscript figures: tick labels in the body font
+
+Tick labels of every `All_Plots_new` manuscript figure now print at the 10 pt body size in `cmr10` (contour figures 21.0732 pt; bbox-tight figures sized from the exported page with the axis labels). The boundary-profile cells draw tick labels through mathtext, because `cmr10` lacks the Unicode minus. Only the contour speed labels and the trajectory legends/annotations remain DejaVu Sans. See [[manuscript-figure-standard]].
