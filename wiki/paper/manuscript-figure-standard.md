@@ -1,5 +1,5 @@
 ---
-summary: Every Main.tex figure from All_Plots_new prints axis labels, titles and gray-region names at the 10 pt body size in Computer Modern (cmr10, 21.07 pt at 7.2 in), other text at 10.4 pt (22 pt) and contour labels at 6.2 pt (13 pt); every analytical-numerical comparison uses xi = 0; two sourceless schematics are not resized.
+summary: Every Main.tex figure from All_Plots_new prints axis labels, titles, gray-region names and contour-figure legends at the 10 pt body size in Computer Modern (cmr10, 21.07 pt at 7.2 in), other text at 10.4 pt (22 pt) and contour labels at 6.2 pt (13 pt); every analytical-numerical comparison uses xi = 0; two sourceless schematics are not resized.
 status: current
 updated: 2026-11-03
 tags: [paper, figures, fonts, contour]
@@ -12,7 +12,7 @@ Per the user (2026-10-29/30, revised 2026-11-03), all figures share one standard
 
 | Text | Source size at 7.2 in | Printed |
 |---|---|---|
-| Axis labels, titles, gray-region names | 21.0732 pt, cmr10 | 10.0 pt, the body size and font |
+| Axis labels, titles, gray-region names, contour-figure legends | 21.0732 pt, cmr10 | 10.0 pt, the body size and font |
 | Ticks, legends, annotations | 22 pt, DejaVu Sans | 10.4 pt |
 | Contour speed labels | 13 pt, DejaVu Sans | 6.2 pt |
 
@@ -27,8 +27,9 @@ The contour-label size is the adiabatic contour cell's former 11 pt plus 2, as t
 
 ## Contour figures
 
-All five contour cells (Fig. `speed-adiabatic`, `adiabatic-contour-compare`, both isothermal linear/log panels and the log-$T$ comparison of Fig. `isothermal-contour-compare`) use the x label "Nuclear baryon number density [$n_0$]" and the y label "Nuclear phase temperature [MeV]".
-On the linear panels both region names sit wholly on gray, at $(1.08, 3)$ and $(3.62, 98)$ in $(n_B/n_0, T/\mathrm{MeV})$, the same places in all three; a pixel test renders the cells and checks this.
+All six contour cells (Fig. `speed-adiabatic`, `adiabatic-contour-compare`, both isothermal linear/log panels, the log-$T$ comparison of Fig. `isothermal-contour-compare` and the linear comparison of Fig. `isothermal-contour-compare-linear`, added 2026-11-03) use the x label "Nuclear baryon number density [$n_0$]" and the y label "Nuclear phase temperature [MeV]".
+On the linear panels both region names are drawn centred on the point where the text box has the largest clearance from everything that is not its gray region (frame, ticks, white region), found on a render without text (user, 2026-11-03: balanced, never touching white): isothermal $(1.94, 12.8)$ and $(4.17, 93.3)$, adiabatic $(1.97, 13.5)$ and $(4.55, 103.3)$ in $(n_B/n_0, T/\mathrm{MeV})$, with clearances 24/56 and 26/19 pt; each comparison reuses its numerical panel's places.
+Superseded 2026-11-03: both names sat at the lower-left corner $(1.08, 3)$ and at $(3.62, 98)$. A pixel test renders the cells and checks the names stay on gray.
 ⚠ The isothermal inner gray region is narrow above $T\approx15$ MeV: at the old $(1.18, 20)$ the 22 pt "Quark matter not favored" ran into the white region.
 The adiabatic comparison canvas grew to $7.2\times8.8$ in so the title and the outside legend fit; its unbanded labels now carry the white box, because the dashed analytical 50 and 200 m/s curves ran through them.
 The three isothermal log-$T$ panels share one shape (`LOG_PANEL_SHAPE`, user 2026-10-30): a $5.91\times4.85$ in axes box, $x$ from 2.2 to $6\,n_0$, both region names vertical on gray.

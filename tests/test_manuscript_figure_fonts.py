@@ -3,8 +3,9 @@
 Main.tex (revtex4-1, 10pt, twocolumn) includes each figure at \\linewidth = 246 pt, so a font prints at
 size * 246 / (72 * exported width in inches). The standard, stated at the 7.2 in width of the contour
 figures: 22 pt text (ticks, legends, region text, annotations) and 13 pt contour labels (the adiabatic
-contour cell's 11 pt plus 2); other widths scale in proportion. Axis labels, titles and the gray-region
-names print at the 10 pt body size in the body font, Computer Modern Roman (cmr10 text, mathtext cm math):
+contour cell's 11 pt plus 2); other widths scale in proportion. Axis labels, titles, the gray-region
+names and the contour figures' legends print at the 10 pt body size in the body font, Computer Modern Roman
+(cmr10 text, mathtext cm math):
 21.0732 pt at 7.2 in, and on bbox-tight figures whatever the exported page width requires. Every
 analytical-versus-numerical comparison uses xi = 0 (user, 2026-11-03).
 """
@@ -55,12 +56,12 @@ def contour_cells():
     """Every contour figure cell: the two adiabatic ones and the tagged isothermal figure cells."""
     chosen = [c for c in cells() if c.cell_type == "code" and (c.get("id") in ADIABATIC_CONTOUR_IDS or (
         ISOTHERMAL_TAG in c.metadata.get("tags", []) and "FIGURE_SIZE" in c.source))]
-    assert len(chosen) == 5, len(chosen)
+    assert len(chosen) == 6, len(chosen)
     return chosen
 
 
 def is_body_font(name):
-    return name.endswith(("AXIS_LABEL_FONT_SIZE", "TITLE_FONT_SIZE", "REGION_TEXT_FONT_SIZE"))
+    return name.endswith(("AXIS_LABEL_FONT_SIZE", "TITLE_FONT_SIZE", "REGION_TEXT_FONT_SIZE", "LEGEND_FONT_SIZE"))
 
 
 def font_role(name):
@@ -173,8 +174,10 @@ class ContourCellTests(unittest.TestCase):
     def test_contour_cells_set_labels_and_region_names_in_the_body_font(self):
         for cell in contour_cells():
             found = constants(cell.source)
-            for suffix in ("LABEL_FONT_FAMILY", "REGION_TEXT_FONT_FAMILY"):
-                names = [k for k in found if k.endswith(suffix)]
+            suffixes = ("LABEL_FONT_FAMILY", "REGION_TEXT_FONT_FAMILY") + (
+                ("LEGEND_FONT_FAMILY",) if any(k.endswith("LEGEND_FONT_SIZE") for k in found) else ())
+            for suffix in suffixes:
+                names = [k for k in found if k.endswith(suffix) and not k.endswith("SPEED_" + suffix)]
                 with self.subTest(suffix=suffix):
                     self.assertEqual(len(names), 1, names)
                     self.assertEqual(found[names[0]], LABEL_FONT_FAMILY)
@@ -182,7 +185,7 @@ class ContourCellTests(unittest.TestCase):
     def test_comparisons_use_xi_zero(self):
         values = {k: v for cell in contour_cells() for k, v in constants(cell.source).items()
                   if k == "XI" or k.endswith("_XI")}
-        self.assertEqual(len(values), 2, values)   # the adiabatic and the isothermal comparison
+        self.assertEqual(len(values), 3, values)   # adiabatic, isothermal linear and isothermal log-T
         for name, value in values.items():
             with self.subTest(name=name):
                 self.assertEqual(value, 0.0)
@@ -200,7 +203,7 @@ class ContourCellTests(unittest.TestCase):
 class ManuscriptPdfTests(unittest.TestCase):
     STANDARD = ("Numerical-contour.pdf", "Contour-diff-meth-0.1-band.pdf", "isothermal-numerical-contour.pdf",
                 "isothermal-numerical-contour-logT.pdf", "isothermal-analytic-numerical-logT.pdf",
-                "T_a_constant_pressure.pdf",
+                "isothermal-analytic-numerical-linear.pdf", "T_a_constant_pressure.pdf",
                 "isothermal_muB_muK_plane.pdf")
 
     def assert_standard(self, name):
@@ -225,7 +228,7 @@ class ManuscriptPdfTests(unittest.TestCase):
                            "T_muK_constant_pressure.pdf")
 
     def test_labels_and_titles_print_at_the_body_size_in_computer_modern(self):
-        # Axis labels, titles and region names are the only text near 10 pt (ticks and legends: 10.4 pt).
+        # Labels, titles, region names and contour legends are the only text near 10 pt (ticks: 10.4 pt).
         for name in self.LABELLED:
             runs = {(font, size) for font, size in printed_runs(PLOTS / name) if abs(size - BODY_PT) < 0.2}
             with self.subTest(figure=name):

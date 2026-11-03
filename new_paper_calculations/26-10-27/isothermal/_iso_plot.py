@@ -44,6 +44,8 @@ LINEAR_REFERENCE_STYLE = dict(
     region_text_color="0.10",
     region_text_font_size=18,
     region_text_font_family=None,   # None keeps the figure font
+    region_text_alignment="left",
+    region_text_vertical_alignment="baseline",
     region_text_zorder=5,
     figure_size=(7.2, 7.2),
     figure_dpi=160,
@@ -109,7 +111,7 @@ LOG_REFERENCE_STYLE = dict(
     legend_border_axes_pad=0.25, legend_frame_alpha=.94, legend_face_color='white',
     legend_edge_color='0.8', legend_handle_color='0.15', legend_marker_size=5., show_method_legend=True,
     legend_anchor=None, legend_columns=1, legend_frame=True, legend_column_spacing=2.0,
-    legend_handle_text_pad=0.8,
+    legend_handle_text_pad=0.8, legend_font_family=None,
     analytical_legend_label='Analytical, $\\xi={xi:g}$',
     show_speed_legend=False, speed_legend_location='lower left', speed_legend_title=r'$u(0^-)$ [m s$^{-1}$]',
     speed_legend_font_size=16, speed_legend_columns=2, speed_legend_anchor=(.005, .005),
@@ -183,7 +185,8 @@ def draw_log_reference(axis, curves, numerical_lines, analytic_lines, xi, style=
             loc=style["legend_location"], bbox_to_anchor=style.get("legend_anchor"),
             ncols=style.get("legend_columns", 1), frameon=style.get("legend_frame", True),
             columnspacing=style.get("legend_column_spacing", 2.0),
-            handletextpad=style.get("legend_handle_text_pad", 0.8), fontsize=style["legend_font_size"],
+            handletextpad=style.get("legend_handle_text_pad", 0.8),
+            **_legend_font(style["legend_font_size"], style.get("legend_font_family")),
             framealpha=style["legend_frame_alpha"], handlelength=style["legend_handle_length"],
             borderaxespad=style["legend_border_axes_pad"], facecolor=style["legend_face_color"],
             edgecolor=style["legend_edge_color"])
@@ -207,6 +210,11 @@ def draw_log_reference(axis, curves, numerical_lines, analytic_lines, xi, style=
 def _font_family(family):
     """Text keyword for a font family; None keeps the figure font."""
     return {"fontfamily": family} if family else {}
+
+
+def _legend_font(size, family=None):
+    """Legend keyword for the text font: a family needs prop, which overrides fontsize."""
+    return {"prop": {"family": family, "size": size}} if family else {"fontsize": size}
 
 
 def _set_label_font_family(axis, style):
@@ -390,6 +398,8 @@ def draw_background(axis, curves, style=LINEAR_REFERENCE_STYLE):
                            (style["inner_region_text"], style["inner_region_text_position"])):
         axis.text(*position, text, color=style["region_text_color"],
                   fontsize=style["region_text_font_size"], zorder=style["region_text_zorder"],
+                  ha=style.get("region_text_alignment", "left"),
+                  va=style.get("region_text_vertical_alignment", "baseline"),
                   **_font_family(style.get("region_text_font_family")))
 
 
@@ -445,11 +455,14 @@ def finish_axes(axis, style=LINEAR_REFERENCE_STYLE, title=None):
         spine.set_linewidth(style["spine_line_width"])
 
 
-def method_legend(axis, entries, font_size=16, location="lower right", color="0.15", line_width=1.8):
+def method_legend(axis, entries, font_size=16, location="lower right", color="0.15", line_width=1.8,
+                  font_family=None, **legend_options):
+    """Line-style legend; legend_options (bbox_to_anchor, ncols, frameon, ...) override the boxed default."""
     handles = [Line2D([], [], color=color, linestyle=style, linewidth=line_width, label=label)
                for label, style in entries]
-    return axis.legend(handles=handles, loc=location, fontsize=font_size, framealpha=0.94,
-                       facecolor="white", edgecolor="0.8")
+    options = dict(loc=location, framealpha=0.94, facecolor="white", edgecolor="0.8")
+    options.update(legend_options)
+    return axis.legend(handles=handles, **_legend_font(font_size, font_family), **options)
 
 
 def export(figure, stem, style=LINEAR_REFERENCE_STYLE, formats=("png", "pdf")):

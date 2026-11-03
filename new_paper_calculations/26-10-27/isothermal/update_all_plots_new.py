@@ -37,24 +37,28 @@ LATEX_PLOTS = "Latex_writting/Hydrodynamical combustion/Plots"
 # Main.tex (revtex4-1, 10pt, twocolumn) includes every figure at \linewidth = 246 pt, so a font prints
 # at size * 246 / (72 * figure width in inches). One standard for every manuscript contour figure (user,
 # 2026-10-29/30): at 7.2 in, 22 pt text (10.4 pt printed) and 13 pt contour labels (the adiabatic contour
-# cell's 11 pt plus 2). Axis labels, titles and the gray-region names (user, 2026-11-03) print at the 10 pt
-# body size in the body font, Computer Modern Roman: 10 * 72 * 7.2 / 246 = 21.0732 pt in cmr10, math in
-# mathtext cm.
+# cell's 11 pt plus 2). Axis labels, titles, the gray-region names and the legends (user, 2026-11-03) print at
+# the 10 pt body size in the body font, Computer Modern Roman: 10 * 72 * 7.2 / 246 = 21.0732 pt in cmr10, math
+# in mathtext cm.
 BODY_LABEL_FONT_SIZE = round(10.0 * 72 * 7.2 / 246.0, 4)   # 21.0732 pt prints at 10.00001 pt
 MANUSCRIPT_FONTS = dict(tick_label_font_size=22, contour_label_font_size=13, region_text_font_size=BODY_LABEL_FONT_SIZE,
-                        legend_font_size=22, speed_legend_font_size=22, axis_label_font_size=BODY_LABEL_FONT_SIZE,
+                        legend_font_size=BODY_LABEL_FONT_SIZE, speed_legend_font_size=BODY_LABEL_FONT_SIZE,
+                        axis_label_font_size=BODY_LABEL_FONT_SIZE,
                         title_font_size=BODY_LABEL_FONT_SIZE)
 FONT_NOTE = ("# manuscript font standard, shared by every contour figure: at 7.2 in, 22 pt text, 13 pt contour labels;\n"
-             "# axis labels, title and region names print at the 10 pt body size in cmr10 (21.0732 pt);\n"
+             "# axis labels, title, region names and legend print at the 10 pt body size in cmr10 (21.0732 pt);\n"
              "# a font prints at size * 246 / (72 * figure width) pt")
 
 
-# Layout that keeps the larger text clear of the data: both region names wholly inside their gray regions,
-# at the same places as in the adiabatic contour figures, contour labels boxed as in the adiabatic contour
-# cell, a two-line legend entry that fits the left gray region, and the manuscript's axis names.
-MANUSCRIPT_LAYOUT = dict(outer_region_text_position=(3.62, 98.0), inner_region_text_position=(1.08, 3.0),
+# Layout that keeps the text clear of the data: both region names centred in their gray regions (user,
+# 2026-11-03: balanced, never touching the white region), contour labels boxed as in the adiabatic contour
+# cell, and the manuscript's axis names. The centres maximize the clearance of the centred text box from
+# everything that is not that gray region (frame, ticks, white region): 24 pt for the inner name, 56 pt for
+# the outer one, as rendered on the linear numerical panel.
+MANUSCRIPT_LAYOUT = dict(outer_region_text_position=(4.17, 93.3), inner_region_text_position=(1.94, 12.8),
+                         region_text_alignment="center", region_text_vertical_alignment="center",
                          x_label="Nuclear baryon number density [$n_0$]", y_label="Nuclear phase temperature [MeV]",
-                         label_font_family="cmr10", region_text_font_family="cmr10",
+                         label_font_family="cmr10", region_text_font_family="cmr10", legend_font_family="cmr10",
                          contour_label_background_color="white",
                          contour_label_background_style="square", contour_label_background_pad=0.08,
                          contour_label_background_alpha=1.0,
@@ -115,7 +119,8 @@ for panel in ("highT", "lowT"):
         statuses = payload["status"].astype(str)
         print(f"{panel} {name}: { {s: int(np.sum(statuses == s)) for s in np.unique(statuses)} }")
 iso_boundaries = iso_boundary_curves.load(iso_payloads["numerical_highT"]["mesh"]["boundaries"])
-iso_xi_cache_lowT = iso_xi.build_cache(iso_payloads["analytic_lowT"])'''
+iso_xi_caches = {panel: iso_xi.build_cache(iso_payloads[f"analytic_{panel}"]) for panel in ("highT", "lowT")}
+iso_xi_cache_lowT = iso_xi_caches["lowT"]'''
 
 
 def tuning_block(prefix, style, keys, extra):
@@ -164,6 +169,74 @@ with mpl.rc_context(iso_lin_rc):
                                 (ISO_LIN_OUTPUT_LATEX_PDF, None)):
         (ISO_ROOT / iso_output).parent.mkdir(parents=True, exist_ok=True)
         iso_lin_figure.savefig(ISO_ROOT / iso_output, dpi=iso_dpi or "figure", facecolor=ISO_LIN_BACKGROUND_COLOR)
+        print(f"Saved {iso_output}")
+    plt.show()'''
+
+LINEAR_COMPARISON_MARKDOWN = r"""# Isothermal contour: analytical versus numerical, linear temperature
+
+The full 0–115 MeV range of the linear numerical panel above: numerical solid, analytical dashed at `ISO_LCMP_XI` $=0$ on both meshes (polar above 10 MeV, rows below), rescaled exactly from the saved intermediates.
+Same axes box as the numerical panel, with the method legend in one row between the title and the axes, as in the log-$T$ comparison."""
+
+LINEAR_COMPARISON_FIGURE = tuning_block("ISO_LCMP_", dict(manuscript_style(_iso_plot.LINEAR_REFERENCE_STYLE),
+                                                          figure_size=(7.2, 7.85), title_pad=54,
+                                                          title=_iso_plot.LOG_REFERENCE_STYLE["title"]),
+                                        _iso_plot.LINEAR_REFERENCE_STYLE, [
+    "ISO_LCMP_XI = 0.0   # every manuscript comparison uses xi = 0 (user, 2026-11-03)",
+    "ISO_LCMP_ANALYTICAL_LINE_STYLE = '--'",
+    "ISO_LCMP_NUMERICAL_LINE_STYLE = '-'",
+    "ISO_LCMP_ANALYTICAL_LEGEND_LABEL = " + repr("Analytical, $\\xi={xi:g}$"),
+    f"ISO_LCMP_LEGEND_FONT_SIZE = {BODY_LABEL_FONT_SIZE!r}",
+    "ISO_LCMP_LEGEND_FONT_FAMILY = 'cmr10'",
+    "ISO_LCMP_LEGEND_HANDLE_COLOR = '0.15'",
+    "ISO_LCMP_LEGEND_LOCATION = 'lower center'",
+    "ISO_LCMP_LEGEND_ANCHOR = (0.5, 1.0)",
+    "ISO_LCMP_LEGEND_COLUMNS = 2",
+    "ISO_LCMP_LEGEND_FRAME = False",
+    "ISO_LCMP_LEGEND_BORDER_AXES_PAD = 0.15",
+    "ISO_LCMP_LEGEND_HANDLE_LENGTH = 1.0",
+    "ISO_LCMP_LEGEND_COLUMN_SPACING = 0.6",
+    "ISO_LCMP_LEGEND_HANDLE_TEXT_PAD = 0.4",
+    "ISO_LCMP_HIGH_T_CLIP_MEV = 10.0   # polar mesh above, row mesh below",
+    "ISO_LCMP_RADIAL_UPSAMPLE = 8   # display-only PCHIP refinement along rays in -ln(1-f)",
+    "ISO_LCMP_LOW_T_UPSAMPLE = 8    # display-only PCHIP refinement along rows in logit(f)",
+    'ISO_LCMP_OUTPUT_PNG = "local_analysis_results/All_Plots_new/isothermal-analytic-numerical-linear.png"',
+    'ISO_LCMP_OUTPUT_PDF = "local_analysis_results/All_Plots_new/isothermal-analytic-numerical-linear.pdf"',
+    f'ISO_LCMP_OUTPUT_LATEX_PDF = "{LATEX_PLOTS}/isothermal-analytic-numerical-linear.pdf"   # Fig. isothermal-contour-compare-linear',
+]) + r'''
+
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+
+iso_lcmp_style = {name[len("ISO_LCMP_"):].lower(): value for name, value in list(globals().items())
+                  if name.startswith("ISO_LCMP_")}
+iso_lcmp_analytic = {panel: dict(iso_payloads[f"analytic_{panel}"], speed_m_s=iso_xi.retune(iso_xi_caches[panel], ISO_LCMP_XI))
+                     for panel in ("highT", "lowT")}
+iso_lcmp_figure, iso_lcmp_axis, iso_lcmp_rc = iso_plot.new_axes(iso_lcmp_style)
+with mpl.rc_context(iso_lcmp_rc):
+    iso_plot.draw_background(iso_lcmp_axis, iso_boundaries, iso_lcmp_style)
+    for iso_payload, iso_line_style, iso_label in ((iso_payloads["numerical_highT"], ISO_LCMP_NUMERICAL_LINE_STYLE, True),
+                                                   (iso_lcmp_analytic["highT"], ISO_LCMP_ANALYTICAL_LINE_STYLE, False)):
+        iso_plot.draw_contours(iso_lcmp_axis, iso_payload, T_range=(ISO_LCMP_HIGH_T_CLIP_MEV, np.inf), style=iso_lcmp_style,
+                               line_style=iso_line_style, label=iso_label, radial_upsample=ISO_LCMP_RADIAL_UPSAMPLE)
+    for iso_payload, iso_line_style in ((iso_payloads["numerical_lowT"], ISO_LCMP_NUMERICAL_LINE_STYLE),
+                                        (iso_lcmp_analytic["lowT"], ISO_LCMP_ANALYTICAL_LINE_STYLE)):
+        iso_plot.draw_row_contours(iso_lcmp_axis, iso_payload, ISO_LCMP_VELOCITY_CONTOUR_LEVELS_M_S,
+                                   ISO_LCMP_VELOCITY_CONTOUR_COLORS, iso_line_style, ISO_LCMP_VELOCITY_CONTOUR_LINE_WIDTH,
+                                   ISO_LCMP_CONTOUR_ZORDER, T_range=(ISO_LCMP_Y_LIMITS_MEV[0], ISO_LCMP_HIGH_T_CLIP_MEV),
+                                   x_limits=ISO_LCMP_X_LIMITS, radial_upsample=ISO_LCMP_LOW_T_UPSAMPLE)
+    iso_plot.finish_axes(iso_lcmp_axis, iso_lcmp_style)
+    iso_plot.method_legend(iso_lcmp_axis, [(ISO_LCMP_ANALYTICAL_LEGEND_LABEL.format(xi=ISO_LCMP_XI), ISO_LCMP_ANALYTICAL_LINE_STYLE),
+                                           ("Numerical", ISO_LCMP_NUMERICAL_LINE_STYLE)],
+                           font_size=ISO_LCMP_LEGEND_FONT_SIZE, font_family=ISO_LCMP_LEGEND_FONT_FAMILY,
+                           location=ISO_LCMP_LEGEND_LOCATION, color=ISO_LCMP_LEGEND_HANDLE_COLOR,
+                           line_width=ISO_LCMP_VELOCITY_CONTOUR_LINE_WIDTH, bbox_to_anchor=ISO_LCMP_LEGEND_ANCHOR,
+                           ncols=ISO_LCMP_LEGEND_COLUMNS, frameon=ISO_LCMP_LEGEND_FRAME,
+                           borderaxespad=ISO_LCMP_LEGEND_BORDER_AXES_PAD, handlelength=ISO_LCMP_LEGEND_HANDLE_LENGTH,
+                           columnspacing=ISO_LCMP_LEGEND_COLUMN_SPACING, handletextpad=ISO_LCMP_LEGEND_HANDLE_TEXT_PAD)
+    for iso_output, iso_dpi in ((ISO_LCMP_OUTPUT_PNG, ISO_LCMP_EXPORT_DPI), (ISO_LCMP_OUTPUT_PDF, None),
+                                (ISO_LCMP_OUTPUT_LATEX_PDF, None)):
+        (ISO_ROOT / iso_output).parent.mkdir(parents=True, exist_ok=True)
+        iso_lcmp_figure.savefig(ISO_ROOT / iso_output, dpi=iso_dpi or "figure", facecolor=ISO_LCMP_BACKGROUND_COLOR)
         print(f"Saved {iso_output}")
     plt.show()'''
 
@@ -264,7 +337,8 @@ def main():
     new = [nbformat.v4.new_markdown_cell(MARKDOWN), nbformat.v4.new_code_cell(LOAD),
            nbformat.v4.new_code_cell(LINEAR_FIGURE), nbformat.v4.new_markdown_cell(LOG_NUMERICAL_MARKDOWN),
            nbformat.v4.new_code_cell(LOG_NUMERICAL_FIGURE), nbformat.v4.new_markdown_cell(COMPARISON_MARKDOWN),
-           nbformat.v4.new_code_cell(COMPARISON_FIGURE)]
+           nbformat.v4.new_code_cell(COMPARISON_FIGURE), nbformat.v4.new_markdown_cell(LINEAR_COMPARISON_MARKDOWN),
+           nbformat.v4.new_code_cell(LINEAR_COMPARISON_FIGURE)]
     for cell in new:
         cell.metadata["tags"] = [TAG]
     execute(new)
