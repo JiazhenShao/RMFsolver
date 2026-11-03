@@ -43,6 +43,7 @@ LINEAR_REFERENCE_STYLE = dict(
     inner_region_text_position=(1.18, 20.0),
     region_text_color="0.10",
     region_text_font_size=18,
+    region_text_font_family=None,   # None keeps the figure font
     region_text_zorder=5,
     figure_size=(7.2, 7.2),
     figure_dpi=160,
@@ -64,6 +65,7 @@ LINEAR_REFERENCE_STYLE = dict(
     x_label=r"$n_B(0^-)/n_0$",
     y_label=r"$T(0^-)$ [MeV]",
     axis_label_font_size=18,
+    label_font_family=None,   # axis labels and title; None keeps the figure font
     tick_label_font_size=18,
     tick_direction="in",
     ticks_top=True,
@@ -84,7 +86,8 @@ LOG_REFERENCE_STYLE = dict(
     box_aspect=1., x_limits=(1., 5.8), y_limits=(.01, 10.), x_scale='linear', y_scale='log',
     x_ticks=(1., 2., 3., 4., 5.), y_ticks=(.01, .1, 1., 10.), y_tick_labels=('0.01', '0.1', '1', '10'),
     title=r'Isothermal speed [$\mathrm{m\,s^{-1}}$]', title_font_size=20, title_pad=8,
-    x_label=r'$n_B(0^-)/n_0$', y_label=r'$T(0^-)$ [MeV]', axis_label_font_size=18, tick_label_font_size=18,
+    x_label=r'$n_B(0^-)/n_0$', y_label=r'$T(0^-)$ [MeV]', axis_label_font_size=18, label_font_family=None,
+    tick_label_font_size=18,
     tick_direction='in', ticks_top=True, ticks_right=True, tick_length=4, tick_width=.9,
     spine_line_width=.8, analytical_line_style='--', numerical_line_style='-', line_width=1.8,
     analytical_zorder=4, numerical_zorder=3, numerical_split_temperature=20., numerical_marker='o',
@@ -101,7 +104,7 @@ LOG_REFERENCE_STYLE = dict(
     inner_region_rotation=0, inner_region_alignment='left', inner_region_vertical_alignment='baseline',
     outer_region_text='$udd$ quark matter favored', outer_region_position=(5.55, 0.316),
     outer_region_rotation=90, outer_region_alignment='center', outer_region_vertical_alignment='center',
-    region_text_color='0.12', region_text_font_size=18, region_text_zorder=6,
+    region_text_color='0.12', region_text_font_size=18, region_text_font_family=None, region_text_zorder=6,
     legend_location='upper left', legend_font_size=16, legend_handle_length=1.0,
     legend_border_axes_pad=0.25, legend_frame_alpha=.94, legend_face_color='white',
     legend_edge_color='0.8', legend_handle_color='0.15', legend_marker_size=5., show_method_legend=True,
@@ -148,17 +151,19 @@ def draw_log_reference(axis, curves, numerical_lines, analytic_lines, xi, style=
     axis.set_xticks(style["x_ticks"])
     axis.set_yticks(style["y_ticks"], labels=style["y_tick_labels"])
     axis.set_box_aspect(style["box_aspect"])
+    region_font = _font_family(style.get("region_text_font_family"))
     axis.text(*style["inner_region_position"], style["inner_region_text"], color=style["region_text_color"],
               fontsize=style["region_text_font_size"], zorder=style["region_text_zorder"],
               rotation=style.get("inner_region_rotation", 0), ha=style.get("inner_region_alignment", "left"),
-              va=style.get("inner_region_vertical_alignment", "baseline"))
+              va=style.get("inner_region_vertical_alignment", "baseline"), **region_font)
     axis.text(*style["outer_region_position"], style["outer_region_text"], color=style["region_text_color"],
               fontsize=style["region_text_font_size"], zorder=style["region_text_zorder"],
               rotation=style["outer_region_rotation"], va=style.get("outer_region_vertical_alignment", "bottom"),
-              ha=style.get("outer_region_alignment", "left"))
+              ha=style.get("outer_region_alignment", "left"), **region_font)
     axis.set_xlabel(style["x_label"], fontsize=style["axis_label_font_size"])
     axis.set_ylabel(style["y_label"], fontsize=style["axis_label_font_size"])
     axis.set_title(style["title"], fontsize=style["title_font_size"], pad=style["title_pad"])
+    _set_label_font_family(axis, style)
     axis.tick_params(direction=style["tick_direction"], top=style["ticks_top"], right=style["ticks_right"],
                      length=style["tick_length"], width=style["tick_width"],
                      labelsize=style["tick_label_font_size"])
@@ -197,6 +202,18 @@ def draw_log_reference(axis, curves, numerical_lines, analytic_lines, xi, style=
                     labelspacing=style["speed_legend_label_spacing"],
                     framealpha=style["legend_frame_alpha"], facecolor=style["legend_face_color"],
                     edgecolor=style["legend_edge_color"])
+
+
+def _font_family(family):
+    """Text keyword for a font family; None keeps the figure font."""
+    return {"fontfamily": family} if family else {}
+
+
+def _set_label_font_family(axis, style):
+    """Axis labels and title in style['label_font_family'] (e.g. 'cmr10', the manuscript body font)."""
+    if style.get("label_font_family"):
+        for text in (axis.xaxis.label, axis.yaxis.label, axis.title):
+            text.set_fontfamily(style["label_font_family"])
 
 
 def _line_set(axis, lines, colors, line_style, line_width, zorder):
@@ -372,7 +389,8 @@ def draw_background(axis, curves, style=LINEAR_REFERENCE_STYLE):
     for text, position in ((style["outer_region_text"], style["outer_region_text_position"]),
                            (style["inner_region_text"], style["inner_region_text_position"])):
         axis.text(*position, text, color=style["region_text_color"],
-                  fontsize=style["region_text_font_size"], zorder=style["region_text_zorder"])
+                  fontsize=style["region_text_font_size"], zorder=style["region_text_zorder"],
+                  **_font_family(style.get("region_text_font_family")))
 
 
 def draw_contours(axis, payload, T_range=(-np.inf, np.inf), style=LINEAR_REFERENCE_STYLE,
@@ -419,6 +437,7 @@ def finish_axes(axis, style=LINEAR_REFERENCE_STYLE, title=None):
     axis.set_title(title or style["title"], fontsize=style["title_font_size"], pad=style["title_pad"])
     axis.set_xlabel(style["x_label"], fontsize=style["axis_label_font_size"])
     axis.set_ylabel(style["y_label"], fontsize=style["axis_label_font_size"])
+    _set_label_font_family(axis, style)
     axis.tick_params(direction=style["tick_direction"], top=style["ticks_top"], right=style["ticks_right"],
                      length=style["tick_length"], width=style["tick_width"],
                      labelsize=style["tick_label_font_size"])

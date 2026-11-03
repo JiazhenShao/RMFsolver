@@ -64,7 +64,7 @@ The nuclear→quark combustion front project. **This is the only page loaded by 
 
 ## Methods
 
-- [[isothermal-xi-fit]] — Best single isothermal $\xi$: $-0.57$ below 10 MeV (contours nearly coincide), $+0.74$ at 8–100 MeV (still off at 100–1000 m/s); the $\xi$ each contour needs falls with speed and is panel-independent above ~1000 m/s.
+- [[isothermal-xi-fit]] — Best single isothermal $\xi$: $-0.57$ below 10 MeV (contours nearly coincide), $+0.74$ at 8–100 MeV (still off at 100–1000 m/s); the $\xi$ each contour needs falls with speed and is panel-independent above ~1000 m/s; the manuscript draws $\xi=0$ since 2026-11-03.
 - [[isothermal-xi-temperature-strips]] — Strip-fitted isothermal $\xi$ rises monotonically with $T$: $-0.63$ at 0.01 MeV, $-0.43$ at 3–10 MeV, $-0.18$ at 10–20 MeV, above $+1$ beyond 60 MeV; speed sets $\xi$ below 10 MeV, temperature above.
 - [[isothermal-contours-polar-and-row-meshes]] — Isothermal contours recomputed at [v4.9.6]: polar mesh 8–100 MeV (numerical 2282/2291) and log-T row mesh 0.01–10 MeV (1310/1400); verified placement/seam/tolerance, xi cache for retuning, analytic/numerical 1.2–6.7x at high T but 1.0–1.6x at low T; analytic-recipe choice pending.
 - [[nonrelativistic-isothermal-contours]] — Superseded target-search plan; replaced by the polar and row meshes, keeping its method-aware acceptance rules.
@@ -89,7 +89,7 @@ The nuclear→quark combustion front project. **This is the only page loaded by 
 
 - [[group-meeting-2026-10-16]] — `26-10-14.md` follows the eight October 8 checklist items and adds the exact-baseline Eq. (35) ceiling comparison, with embedded figures and speaking notes.
 - [[combustion-paper]] — active `Latex_writting/Main.tex` build, October 19 figure/reference repairs, and historical manuscript notes.
-- [[manuscript-figure-standard]] — one font standard for all Main.tex figures (22/24/13 pt at 7.2 in, 10.4/11.4/6.2 pt printed), nuclear-phase axis names on the contour plots, region names kept on gray; two schematics and the boundary-profile pair not yet resized.
+- [[manuscript-figure-standard]] — Main.tex figure standard: axis labels, titles and region names at the 10 pt body size in Computer Modern (21.07 pt cmr10 at 7.2 in), other text 10.4 pt, contour labels 6.2 pt; nuclear-phase axis names; every analytical-numerical comparison at $\xi=0$; two sourceless schematics not resized.
 - [[gw-observables-section]] — settled notation, taiji geometry, the six calibrated cases, recurring citation error.
 - [[supernova-quark-oscillations]] — Mathews/Rupp/Boccioli DNP 2026 supernova core oscillations need rapid conversion; laminar fronts move only ~m per ms oscillation.
 

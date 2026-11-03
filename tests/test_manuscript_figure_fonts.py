@@ -1,9 +1,12 @@
-"""One font standard for every manuscript figure made by All_Plots_new.ipynb (user, 2026-10-30).
+"""One font standard for every manuscript figure made by All_Plots_new.ipynb (user, 2026-10-30, 2026-11-03).
 
 Main.tex (revtex4-1, 10pt, twocolumn) includes each figure at \\linewidth = 246 pt, so a font prints at
 size * 246 / (72 * exported width in inches). The standard, stated at the 7.2 in width of the contour
-figures: 22 pt text (ticks, legends, region text, annotations), 24 pt axis labels and titles, and 13 pt
-contour labels (the adiabatic contour cell's 11 pt plus 2). Other widths scale in proportion.
+figures: 22 pt text (ticks, legends, region text, annotations) and 13 pt contour labels (the adiabatic
+contour cell's 11 pt plus 2); other widths scale in proportion. Axis labels, titles and the gray-region
+names print at the 10 pt body size in the body font, Computer Modern Roman (cmr10 text, mathtext cm math):
+21.0732 pt at 7.2 in, and on bbox-tight figures whatever the exported page width requires. Every
+analytical-versus-numerical comparison uses xi = 0 (user, 2026-11-03).
 """
 import ast
 import os
@@ -22,7 +25,10 @@ PLOTS = ROOT / "Latex_writting/Hydrodynamical combustion/Plots"
 SCIPY_RUNTIME = ROOT / "local_analysis_results/26-10-02/runtime/scipy-1.18.1-cpython-312-darwin-arm64"
 COLUMN_PT = 246.0
 REFERENCE_WIDTH_IN = 7.2
-TEXT_PT, LABEL_PT, CONTOUR_PT = 22, 24, 13   # at REFERENCE_WIDTH_IN
+TEXT_PT, CONTOUR_PT = 22, 13   # at REFERENCE_WIDTH_IN
+BODY_PT = 10.0   # Main.tex body text; axis labels and titles print at this size
+LABEL_FONT_FAMILY = "cmr10"   # the body font, Computer Modern Roman
+COMPUTER_MODERN = ("Cmr10", "Cmmi10", "Cmsy10", "Cmex10")
 X_LABEL = "Nuclear baryon number density [$n_0$]"
 Y_LABEL = "Nuclear phase temperature [MeV]"
 ISOTHERMAL_TAG = "isothermal-contours-26-10-27"
@@ -49,31 +55,42 @@ def contour_cells():
     """Every contour figure cell: the two adiabatic ones and the tagged isothermal figure cells."""
     chosen = [c for c in cells() if c.cell_type == "code" and (c.get("id") in ADIABATIC_CONTOUR_IDS or (
         ISOTHERMAL_TAG in c.metadata.get("tags", []) and "FIGURE_SIZE" in c.source))]
-    assert len(chosen) == 6, len(chosen)
+    assert len(chosen) == 5, len(chosen)
     return chosen
 
 
+def is_body_font(name):
+    return name.endswith(("AXIS_LABEL_FONT_SIZE", "TITLE_FONT_SIZE", "REGION_TEXT_FONT_SIZE"))
+
+
 def font_role(name):
-    if name.endswith("CONTOUR_LABEL_FONT_SIZE"):
-        return CONTOUR_PT
-    if name.endswith(("AXIS_LABEL_FONT_SIZE", "TITLE_FONT_SIZE")):
-        return LABEL_PT
-    return TEXT_PT
+    return CONTOUR_PT if name.endswith("CONTOUR_LABEL_FONT_SIZE") else TEXT_PT
 
 
-def printed_sizes(pdf):
-    """Printed font sizes (pt) of a figure PDF placed at the manuscript column width."""
+def printed_runs(pdf):
+    """(font, printed size in pt) of every text run of a figure PDF placed at the manuscript column width."""
     data = pdf.read_bytes()
     box = [float(v) for v in re.search(rb"/MediaBox\s*\[\s*([\d.\s-]+)\]", data).group(1).split()]
     scale = COLUMN_PT / (box[2] - box[0])
-    sizes = set()
+    objects = {int(number): body for number, body in re.findall(rb"(\d+) 0 obj(.*?)endobj", data, re.S)}
+    fonts = {}
+    for name, number in re.findall(rb"/(F\d+) (\d+) 0 R", data):
+        base = re.search(rb"/BaseFont\s*/(?:[A-Z]{6}\+)?([\w-]+)", objects.get(int(number), b""))
+        if base:
+            fonts[name] = base.group(1).decode()
+    runs = set()
     for match in re.finditer(rb"stream\r?\n(.*?)\r?\nendstream", data, re.S):
         try:
             text = zlib.decompress(match.group(1))
         except zlib.error:
             continue
-        sizes |= {round(float(size) * scale, 2) for size in re.findall(rb"/\w+\s+([\d.]+)\s+Tf", text)}
-    return sizes
+        runs |= {(fonts.get(name), round(float(size) * scale, 3))
+                 for name, size in re.findall(rb"/(F\d+)\s+([\d.]+)\s+Tf", text)}
+    return runs
+
+
+def printed_sizes(pdf):
+    return {round(size, 2) for _, size in printed_runs(pdf)}
 
 
 def prepare_rendering():
@@ -133,7 +150,7 @@ def isothermal_load_source(tagged):
 
 def allowed_printed_sizes():
     scale = COLUMN_PT / (72.0 * REFERENCE_WIDTH_IN)
-    base = [TEXT_PT * scale, LABEL_PT * scale]
+    base = [TEXT_PT * scale, BODY_PT]
     return base + [CONTOUR_PT * scale] + [0.7 * size for size in base]   # 0.7: mathtext scripts
 
 
@@ -147,8 +164,28 @@ class ContourCellTests(unittest.TestCase):
                 if name.endswith("FONT_SIZE"):
                     checked += 1
                     with self.subTest(font=name):
-                        self.assertAlmostEqual(value * REFERENCE_WIDTH_IN / width, font_role(name), places=6)
+                        if is_body_font(name):
+                            self.assertAlmostEqual(value * COLUMN_PT / (72.0 * width), BODY_PT, delta=0.005)
+                        else:
+                            self.assertAlmostEqual(value * REFERENCE_WIDTH_IN / width, font_role(name), places=6)
         self.assertGreaterEqual(checked, 30)
+
+    def test_contour_cells_set_labels_and_region_names_in_the_body_font(self):
+        for cell in contour_cells():
+            found = constants(cell.source)
+            for suffix in ("LABEL_FONT_FAMILY", "REGION_TEXT_FONT_FAMILY"):
+                names = [k for k in found if k.endswith(suffix)]
+                with self.subTest(suffix=suffix):
+                    self.assertEqual(len(names), 1, names)
+                    self.assertEqual(found[names[0]], LABEL_FONT_FAMILY)
+
+    def test_comparisons_use_xi_zero(self):
+        values = {k: v for cell in contour_cells() for k, v in constants(cell.source).items()
+                  if k == "XI" or k.endswith("_XI")}
+        self.assertEqual(len(values), 2, values)   # the adiabatic and the isothermal comparison
+        for name, value in values.items():
+            with self.subTest(name=name):
+                self.assertEqual(value, 0.0)
 
     def test_contour_cells_use_nuclear_phase_axis_labels(self):
         for cell in contour_cells():
@@ -163,7 +200,7 @@ class ContourCellTests(unittest.TestCase):
 class ManuscriptPdfTests(unittest.TestCase):
     STANDARD = ("Numerical-contour.pdf", "Contour-diff-meth-0.1-band.pdf", "isothermal-numerical-contour.pdf",
                 "isothermal-numerical-contour-logT.pdf", "isothermal-analytic-numerical-logT.pdf",
-                "isothermal-analytical-numerical-comparison.pdf", "T_a_constant_pressure.pdf",
+                "T_a_constant_pressure.pdf",
                 "isothermal_muB_muK_plane.pdf")
 
     def assert_standard(self, name):
@@ -180,9 +217,22 @@ class ManuscriptPdfTests(unittest.TestCase):
 
     @unittest.expectedFailure
     def test_boundary_profile_pdf_prints_at_the_standard_sizes(self):
-        # Prints 11.1 pt throughout: its cell refuses to run until the matched-profile solver cell is
-        # rerun with the current RMFsolver (provenance guard), so it has not been resized yet.
+        # Its ticks, panel names and phase names still print at about 11 pt; only the axis labels follow
+        # the standard (test_labels_and_titles_print_at_the_body_size).
         self.assert_standard("boundary_schematic_real.pdf")
+
+    LABELLED = STANDARD + ("boundary_schematic_real.pdf", "boundary_schematic_isothermal_real.pdf",
+                           "T_muK_constant_pressure.pdf")
+
+    def test_labels_and_titles_print_at_the_body_size_in_computer_modern(self):
+        # Axis labels, titles and region names are the only text near 10 pt (ticks and legends: 10.4 pt).
+        for name in self.LABELLED:
+            runs = {(font, size) for font, size in printed_runs(PLOTS / name) if abs(size - BODY_PT) < 0.2}
+            with self.subTest(figure=name):
+                self.assertTrue(runs)
+                for font, size in runs:
+                    self.assertAlmostEqual(size, BODY_PT, delta=0.02, msg=(font, size))
+                    self.assertIn(font, COMPUTER_MODERN)
 
 
 class RegionLabelTests(unittest.TestCase):

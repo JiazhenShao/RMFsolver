@@ -1,7 +1,7 @@
 ---
 summary: Best single isothermal xi is -0.57 below 10 MeV (contours nearly coincide, RMS offset 0.03 n0) and +0.74 at 8-100 MeV (RMS 0.08 n0, still visibly off at 100-1000 m/s); the xi each contour level needs falls with speed and is the same in both panels above ~1000 m/s.
 status: current
-updated: 2026-11-01
+updated: 2026-11-03
 tags: [method, isothermal, analytic, xi, contour]
 ---
 
@@ -23,7 +23,8 @@ The contour fit minimizes the RMS displacement of the plotted contours along ray
 These values include the four low-$T$ points recovered on 2026-10-28 (the low-$T$ fit moved from $-0.564$ to $-0.566$).
 One $\xi$ for both panels ($+0.20$) fits neither: RMS $0.10\,n_0$ at high $T$ and $0.12\,n_0$ at low $T$.
 
-Since 2026-10-30 (user) the manuscript comparison, Fig. `isothermal-contour-compare`, draws the analytical contours at the low-$T$ contour fit $-0.57$ instead of the adiabatic appendix value $-0.85$.
+~~Since 2026-10-30 (user) the manuscript comparison, Fig. `isothermal-contour-compare`, draws the analytical contours at the low-$T$ contour fit $-0.57$ instead of the adiabatic appendix value $-0.85$.~~
+Superseded 2026-11-03 (user): every manuscript comparison uses $\xi=0$, the linear ramp, see [[manuscript-figure-standard]]; the fits on this page are no longer drawn in the paper.
 
 ## The required $\xi$ depends on the speed level, not the panel
 

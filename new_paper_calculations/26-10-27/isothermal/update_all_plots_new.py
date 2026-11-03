@@ -36,13 +36,17 @@ import _iso_plot  # noqa: E402
 LATEX_PLOTS = "Latex_writting/Hydrodynamical combustion/Plots"
 # Main.tex (revtex4-1, 10pt, twocolumn) includes every figure at \linewidth = 246 pt, so a font prints
 # at size * 246 / (72 * figure width in inches). One standard for every manuscript contour figure (user,
-# 2026-10-29/30): at 7.2 in, 22 pt text, 24 pt axis labels and titles (10.4/11.4 pt printed, above the
-# 10 pt body text) and 13 pt contour labels (the adiabatic contour cell's 11 pt plus 2).
-MANUSCRIPT_FONTS = dict(tick_label_font_size=22, contour_label_font_size=13, region_text_font_size=22,
-                        legend_font_size=22, speed_legend_font_size=22, axis_label_font_size=24,
-                        title_font_size=24)
-FONT_NOTE = ("# manuscript font standard, shared by every contour figure: at 7.2 in, 22 pt text, 24 pt axis labels\n"
-             "# and titles, 13 pt contour labels; a font prints at size * 246 / (72 * figure width) pt")
+# 2026-10-29/30): at 7.2 in, 22 pt text (10.4 pt printed) and 13 pt contour labels (the adiabatic contour
+# cell's 11 pt plus 2). Axis labels, titles and the gray-region names (user, 2026-11-03) print at the 10 pt
+# body size in the body font, Computer Modern Roman: 10 * 72 * 7.2 / 246 = 21.0732 pt in cmr10, math in
+# mathtext cm.
+BODY_LABEL_FONT_SIZE = round(10.0 * 72 * 7.2 / 246.0, 4)   # 21.0732 pt prints at 10.00001 pt
+MANUSCRIPT_FONTS = dict(tick_label_font_size=22, contour_label_font_size=13, region_text_font_size=BODY_LABEL_FONT_SIZE,
+                        legend_font_size=22, speed_legend_font_size=22, axis_label_font_size=BODY_LABEL_FONT_SIZE,
+                        title_font_size=BODY_LABEL_FONT_SIZE)
+FONT_NOTE = ("# manuscript font standard, shared by every contour figure: at 7.2 in, 22 pt text, 13 pt contour labels;\n"
+             "# axis labels, title and region names print at the 10 pt body size in cmr10 (21.0732 pt);\n"
+             "# a font prints at size * 246 / (72 * figure width) pt")
 
 
 # Layout that keeps the larger text clear of the data: both region names wholly inside their gray regions,
@@ -50,6 +54,7 @@ FONT_NOTE = ("# manuscript font standard, shared by every contour figure: at 7.2
 # cell, a two-line legend entry that fits the left gray region, and the manuscript's axis names.
 MANUSCRIPT_LAYOUT = dict(outer_region_text_position=(3.62, 98.0), inner_region_text_position=(1.08, 3.0),
                          x_label="Nuclear baryon number density [$n_0$]", y_label="Nuclear phase temperature [MeV]",
+                         label_font_family="cmr10", region_text_font_family="cmr10",
                          contour_label_background_color="white",
                          contour_label_background_style="square", contour_label_background_pad=0.08,
                          contour_label_background_alpha=1.0,
@@ -121,7 +126,8 @@ def tuning_block(prefix, style, keys, extra):
 
 def used_log_keys():
     """Style keys read by the log-figure drawing code, plus the figure-level ones."""
-    source = inspect.getsource(_iso_plot.draw_log_reference) + inspect.getsource(_iso_plot._label_log_contours)
+    source = "".join(inspect.getsource(function) for function in (
+        _iso_plot.draw_log_reference, _iso_plot._label_log_contours, _iso_plot._set_label_font_family))
     keys = set(re.findall(r"""style(?:\[|\.get\()["'](\w+)["']""", source))
     keys |= {"figure_size", "figure_dpi", "export_dpi", "constrained_layout", "background_color",
              "font_family", "math_font_set", "use_tex"}
@@ -168,17 +174,13 @@ Row mesh only (0.01–10 MeV), full numerical speeds, half-decade levels labelle
 COMPARISON_MARKDOWN = r"""# Isothermal contour: analytical versus numerical, logarithmic temperature
 
 Numerical solid, analytical dashed, same levels and labels as above.
-The analytical speed is rescaled exactly from the saved intermediates at `ISO_CMP_XI`, the contour fit for 0.01–10 MeV ($\xi=-0.57$, `wiki/methods/isothermal-xi-fit.md`); the adiabatic appendix value $\xi=-0.85$ leaves three times the contour offset here.
+The analytical speed is rescaled exactly from the saved intermediates at `ISO_CMP_XI` $=0$, the linear ramp, as in every comparison of the manuscript (user, 2026-11-03); the contour fit for 0.01–10 MeV would be $\xi=-0.57$ (`wiki/methods/isothermal-xi-fit.md`).
 Same axes box and x range as the numerical panel above, with the method legend between the title and the axes."""
 
 
-FIT_MARKDOWN = r"""# Isothermal contour: analytical at the fitted $\xi$ versus numerical
-
-As above, with `ISO_FIT_XI` set to the contour fit for 0.01–10 MeV (`xi_fit/xi_fit.json`), where the analytical contours nearly sit on the numerical ones."""
-
 
 def log_cell(prefix, stem, latex_note, numerical_only,
-             xi_line="-0.57   # contour fit for 0.01-10 MeV (xi_fit/xi_fit.json)"):
+             xi_line="0.0   # every manuscript comparison uses xi = 0 (user, 2026-11-03)"):
     """Log-T figure cell: numerical only, or analytical (dashed) versus numerical (solid)."""
     style = dict(manuscript_style(_iso_plot.LOG_REFERENCE_STYLE), **LOG_PANEL_SHAPE)
     extra = [f"{prefix}UPSAMPLE = 8    # display-only PCHIP refinement along rows in logit(f)"]
@@ -223,8 +225,6 @@ LOG_NUMERICAL_FIGURE = log_cell("ISO_LOGN_", "isothermal-numerical-contour-logT"
                                 "Fig. speed-isothermal-log", numerical_only=True)
 COMPARISON_FIGURE = log_cell("ISO_CMP_", "isothermal-analytic-numerical-logT",
                              "Fig. isothermal-contour-compare", numerical_only=False)
-FIT_FIGURE = log_cell("ISO_FIT_", "isothermal-analytical-numerical-comparison", "fitted-xi comparison",
-                      numerical_only=False)
 
 
 def section_bounds(cells):
@@ -264,8 +264,7 @@ def main():
     new = [nbformat.v4.new_markdown_cell(MARKDOWN), nbformat.v4.new_code_cell(LOAD),
            nbformat.v4.new_code_cell(LINEAR_FIGURE), nbformat.v4.new_markdown_cell(LOG_NUMERICAL_MARKDOWN),
            nbformat.v4.new_code_cell(LOG_NUMERICAL_FIGURE), nbformat.v4.new_markdown_cell(COMPARISON_MARKDOWN),
-           nbformat.v4.new_code_cell(COMPARISON_FIGURE), nbformat.v4.new_markdown_cell(FIT_MARKDOWN),
-           nbformat.v4.new_code_cell(FIT_FIGURE)]
+           nbformat.v4.new_code_cell(COMPARISON_FIGURE)]
     for cell in new:
         cell.metadata["tags"] = [TAG]
     execute(new)
