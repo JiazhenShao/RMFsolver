@@ -30,6 +30,22 @@ Scripts and `failure_map.json`: `new_paper_calculations/26-10-27/isothermal_cold
 
 The half-widths come from the advection-free first integral on the solver's own EOS path, $r_x=-\sqrt{2\,r_{\rm scale}\int_0^z\Gamma_K\,dz'}$; $\lambda_\infty$ uses the solver's tail formula.
 
+### Tail exponent in physical variables (2026-11-02)
+
+The solver's tail root (`_slow_tail_decay`, $\lambda^2+A\lambda-B=0$) is, in physical variables,
+$$
+D_K\lambda_\infty^2+u(\infty)\,\lambda_\infty-\frac{d\Gamma_K}{dn_K}=0,\qquad u(\infty)=j_B/n_B(\infty),
+$$
+with all coefficients taken at equilibrium. For massless quarks $n_K(\infty)=0$, so $j_B\,da/dn_K=u(\infty)$ exactly; this was checked to all printed digits at 1 and 0.1 MeV.
+- $d\Gamma_K/dn_K\propto T^2$ (100 times per decade) and $D_K\propto T^{-5/3}$ (51 times per decade), so the diffusive root scales as $T^{11/6}$.
+- Converged solves at $3.5n_0$ give $u(\infty)/\sqrt{D_K\,d\Gamma_K/dn_K}=1.5$, 12, 120 and 1200 at 10, 1, 0.1 and 0.01 MeV.
+- The cold tail is therefore advective: $1/\lambda_\infty\simeq u(\infty)/(d\Gamma_K/dn_K)$, which grows by a factor of 450–720 per decade.
+- The same solves (converged $j_B$, unlike the advection-free table above) give:
+  - half-widths of 211 nm, 2.1 μm, 15 μm and 0.10 mm;
+  - tails of 649 nm, 0.29 mm, 0.21 m and 145 m;
+  - $s_{1/2}/s_1=816$, 21, 0.21 and 0.002.
+- Write-up: `26-11-01.md` (workspace root), section "Low-$T$ solver fix".
+
 ## How the solver sees it
 
 The coordinate is $x=-(\kappa/\lambda_\infty)\ln(1-s)$, with mesh `_thermal_compact_mesh(300, 1e-8)`, first interval $s_1=3.39\times10^{-4}$.
