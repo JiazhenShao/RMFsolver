@@ -8,9 +8,9 @@ The solver's diffusive current is D_K nK' (J_K = u nK - D_K nK'), so g differs f
 behind the record field xi_profile (legacy name), wherever nB varies; near a(0+) -> 1 the two differ by up to 0.6.
 Three figures:
 1. xi_fitted and xi_actual versus T;
-2. g/G versus a/a(0+), the parametric curve (a(x), g(x)) for 0+ <= x < inf, at points with xi_fitted > 1:
-   (a) xi_actual near 0, (b) a(0+) -> 1, where g peaks inside the layer;
-3. a, a', n_B, mu_B and mu_K versus x [nm] for the hottest point of 2(b).
+2. g/G versus a/a(0+), the parametric curve (a(x), g(x)) for 0+ <= x < inf, for one example point with
+   xi_fitted > 1 and a(0+) -> 1, where g peaks inside the layer;
+3. a, a', n_B, mu_B and mu_K versus x [nm] for the same point.
 
     PYTHONPATH=local_analysis_results/26-10-02/runtime/scipy-1.18.1-cpython-312-darwin-arm64:. \
     ./bin/python3 -B new_paper_calculations/26-10-27/isothermal/xi_fit/xi_gt1_profiles.py
@@ -38,24 +38,22 @@ OUT = common.ROOT / "local_analysis_results/26-11-01/isothermal-xi-report"
 TEXT_FONT_SIZE = 22            # manuscript standard at 7.2 in
 LABEL_FONT_SIZE = 24
 SCATTER_FIGURE_SIZE = (7.2, 5.6)
-PROFILE_FIGURE_SIZE = (7.2, 11.0)
+PROFILE_FIGURE_SIZE = (7.2, 6.0)
 SCATTER_MARKER_SIZE = 10
 SCATTER_ALPHA = 0.55
 FITTED_COLOR = "#c62828"
 ACTUAL_COLOR = "#1f4e79"
 SCATTER_Y_LIMITS = (-1.0, 4.5)
-PROFILE_Y_LIMITS = ((0.0, 1.25), (-0.1, 2.3))   # bottom: legend above the peaks, 0 tick clear of the corner
+PROFILE_Y_LIMITS = (-0.1, 1.8)                  # 0 tick clear of the corner, xi values above the peak
 SHAPE_LIMIT_FILL_COLOR = "0.90"
 REFERENCE_COLOR = "0.35"
 PROFILE_LINE_WIDTH = 2.6
-PROFILE_COLORS = ("#1f77b4", "#2ca02c", "#d62728")
-TARGET_T_IN_RANGE = (50.0, 60.0, 70.0)      # panel (a): xi_fitted > 1, |xi_actual| < 0.5
-TARGET_T_PEAKED = (76.0, 84.0, 92.0)        # panel (b): xi_fitted > 1, a(0+) >= PEAKED_A0, g peaks inside
+EXAMPLE_COLOR = "#d62728"
+EXAMPLE_T = 92.0                            # xi_fitted > 1, a(0+) >= PEAKED_A0, g peaks inside the layer
 PEAKED_A0 = 0.99
 TARGET_WINDOW_MEV = 3.0
 FIELDS_FIGURE_SIZE = (7.2, 17.0)
 FIELDS_X_LIMITS_NM = (0.0, 3000.0)          # a has fallen to ~a(0+)/100 at 3000 nm (91 MeV)
-FIELDS_COLOR = PROFILE_COLORS[-1]           # the hottest curve's color in the flux figure
 STEEPEST_MARKER_SIZE = 9
 EXPORT_DPI = 220
 
@@ -82,14 +80,12 @@ def points():
     return out
 
 
-def pick(candidates, targets):
-    chosen = []
-    for target in targets:
-        near = [p for p in candidates if abs(p["T"] - target) <= TARGET_WINDOW_MEV]
-        if near:
-            middle = np.median([p["xi_fitted"] for p in near])
-            chosen.append(min(near, key=lambda p: abs(p["xi_fitted"] - middle)))
-    return chosen
+def example(all_points):
+    """The peaked point near EXAMPLE_T whose xi_fitted is the median of its neighbours."""
+    near = [p for p in all_points if p["xi_fitted"] > 1 and p["a0"] >= PEAKED_A0 and p["peak"] > 1.001
+            and abs(p["T"] - EXAMPLE_T) <= TARGET_WINDOW_MEV]
+    middle = np.median([p["xi_fitted"] for p in near])
+    return min(near, key=lambda p: abs(p["xi_fitted"] - middle))
 
 
 def scatter_figure(all_points):
@@ -110,31 +106,23 @@ def scatter_figure(all_points):
     return figure
 
 
-def profile_figure(all_points):
-    groups = (pick([p for p in all_points if p["xi_fitted"] > 1 and abs(p["xi_actual"]) < 0.5], TARGET_T_IN_RANGE),
-              pick([p for p in all_points if p["xi_fitted"] > 1 and p["a0"] >= PEAKED_A0 and p["peak"] > 1.001],
-                   TARGET_T_PEAKED))
+def profile_figure(point):
+    """g/G versus a/a(0+) for one point, with the xi_fitted > 1 region shaded."""
+    a, g, _ = flux(point["index"])
     with plt.rc_context({"mathtext.fontset": "cm"}):
-        figure, axes = plt.subplots(2, 1, sharex=True, figsize=PROFILE_FIGURE_SIZE, dpi=160, constrained_layout=True)
-        for axis, group, limits, peaked in zip(axes, groups, PROFILE_Y_LIMITS, (False, True)):
-            axis.axhspan(1.0, limits[1], color=SHAPE_LIMIT_FILL_COLOR, zorder=0, linewidth=0)
-            axis.plot([0, 1], [0, 1], color=REFERENCE_COLOR, linestyle="--", linewidth=1.4, zorder=1)
-            for point, color in zip(group, PROFILE_COLORS):
-                a, g, _ = flux(point["index"])
-                # the peaked panel shares a(0+) ~ 1, so one line per curve keeps the legend above the peaks
-                head = f"{point['T']:.0f} MeV: " if peaked else f"{point['T']:.0f} MeV, $a(0^+)={point['a0']:.3f}$\n"
-                axis.plot(a / point["a0"], g, color=color, linewidth=PROFILE_LINE_WIDTH, zorder=3,
-                          label=(head + f"$\\xi_{{\\rm fitted}}={point['xi_fitted']:+.2f}$, "
-                                 f"$\\xi_{{\\rm actual}}={point['xi_actual']:+.2f}$"))
-            axis.set_ylim(*limits)
-            axis.set_ylabel(r"$-D_K a'\,/\,G$", fontsize=LABEL_FONT_SIZE)
-            title = f"$a(0^+)\\geq{min(p['a0'] for p in group):.3f}$" if peaked else None
-            axis.legend(loc="upper left", fontsize=TEXT_FONT_SIZE - 4, title=title, title_fontsize=TEXT_FONT_SIZE - 4,
-                        alignment="left", frameon=False, handlelength=1.2, labelspacing=0.5, borderaxespad=0.2)
-            axis.tick_params(direction="in", top=True, right=True, labelsize=TEXT_FONT_SIZE)
-        axes[1].set_xlim(0.0, 1.0)
-        axes[1].set_xlabel(r"$a/a(0^+)$", fontsize=LABEL_FONT_SIZE)
-    return figure, groups
+        figure, axis = plt.subplots(figsize=PROFILE_FIGURE_SIZE, dpi=160, constrained_layout=True)
+        axis.axhspan(1.0, PROFILE_Y_LIMITS[1], color=SHAPE_LIMIT_FILL_COLOR, zorder=0, linewidth=0)
+        axis.plot([0, 1], [0, 1], color=REFERENCE_COLOR, linestyle="--", linewidth=1.4, zorder=1)
+        axis.plot(a / point["a0"], g, color=EXAMPLE_COLOR, linewidth=PROFILE_LINE_WIDTH, zorder=3)
+        axis.text(0.03, 0.96, f"$\\xi_{{\\rm fitted}}={point['xi_fitted']:+.2f}$, "
+                  f"$\\xi_{{\\rm actual}}={point['xi_actual']:+.2f}$", transform=axis.transAxes, va="top",
+                  fontsize=TEXT_FONT_SIZE)
+        axis.set(xlim=(0.0, 1.0), ylim=PROFILE_Y_LIMITS)
+        axis.set_title(f"$T={point['T']:.0f}$ MeV, $a(0^+)={point['a0']:.4f}$", fontsize=LABEL_FONT_SIZE)
+        axis.set_xlabel(r"$a/a(0^+)$", fontsize=LABEL_FONT_SIZE)
+        axis.set_ylabel(r"$-D_K a'\,/\,G$", fontsize=LABEL_FONT_SIZE)
+        axis.tick_params(direction="in", top=True, right=True, labelsize=TEXT_FONT_SIZE)
+    return figure
 
 
 def fields_figure(point):
@@ -148,10 +136,10 @@ def fields_figure(point):
     with plt.rc_context({"mathtext.fontset": "cm"}):
         figure, axes = plt.subplots(5, 1, sharex=True, figsize=FIELDS_FIGURE_SIZE, dpi=160, constrained_layout=True)
         for axis, field, label in zip(axes, fields, labels):
-            axis.plot(x, field, color=FIELDS_COLOR, linewidth=PROFILE_LINE_WIDTH)
+            axis.plot(x, field, color=EXAMPLE_COLOR, linewidth=PROFILE_LINE_WIDTH)
             axis.set_ylabel(label, fontsize=LABEL_FONT_SIZE)
             axis.tick_params(direction="in", top=True, right=True, labelsize=TEXT_FONT_SIZE)
-        axes[1].plot(x[steepest], slope[steepest], "o", color=FIELDS_COLOR, markersize=STEEPEST_MARKER_SIZE)
+        axes[1].plot(x[steepest], slope[steepest], "o", color=EXAMPLE_COLOR, markersize=STEEPEST_MARKER_SIZE)
         axes[0].set_title(f"$T={point['T']:.0f}$ MeV, $a(0^+)={point['a0']:.4f}$", fontsize=LABEL_FONT_SIZE)
         axes[-1].set_xlim(*FIELDS_X_LIMITS_NM)
         axes[-1].set_xlabel(r"$x$ [nm]", fontsize=LABEL_FONT_SIZE)
@@ -172,16 +160,15 @@ def main():
     figure = scatter_figure(all_points)
     figure.savefig(OUT / "isothermal-xi-fitted-vs-actual.png", dpi=EXPORT_DPI, facecolor="white")
     figure.savefig(OUT / "isothermal-xi-fitted-vs-actual.pdf", facecolor="white")
-    figure, groups = profile_figure(all_points)
+    point = example(all_points)
+    figure = profile_figure(point)
     figure.savefig(OUT / "isothermal-xi-gt1-profiles.png", dpi=EXPORT_DPI, facecolor="white")
     figure.savefig(OUT / "isothermal-xi-gt1-profiles.pdf", facecolor="white")
-    figure = fields_figure(groups[1][-1])
+    figure = fields_figure(point)
     figure.savefig(OUT / "isothermal-xi-gt1-profile-fields.png", dpi=EXPORT_DPI, facecolor="white")
     figure.savefig(OUT / "isothermal-xi-gt1-profile-fields.pdf", facecolor="white")
-    for name, group in zip(("xi_actual near 0", "a(0+) -> 1"), groups):
-        for p in group:
-            print(f"{name}: point {p['index']} T {p['T']:.1f} MeV a0 {p['a0']:.4f} u {p['speed']:.4g} m/s "
-                  f"xi_fitted {p['xi_fitted']:+.2f} xi_actual {p['xi_actual']:+.2f} max g/G {p['peak']:.2f}")
+    print(f"example: point {point['index']} T {point['T']:.1f} MeV a0 {point['a0']:.4f} u {point['speed']:.4g} m/s "
+          f"xi_fitted {point['xi_fitted']:+.2f} xi_actual {point['xi_actual']:+.2f} max g/G {point['peak']:.2f}")
     return 0
 
 

@@ -57,7 +57,7 @@ Compare it with $\xi_{\rm actual}=2I_1/(G\,a(0^+))-1$, computed literally on eac
 - The record field `xi_profile` uses the solver flux with the jump $G$ and gives $\xi>1$ at 343 points, up to $+1.59$.
 - Superseded 2026-11-01: an earlier version of this page reported those record values as the profile's own $\xi$ and called the appendix bound contradicted.
 
-`xi_fit/xi_gt1_profiles.py` draws $\xi_{\rm fitted}$ and the literal $\xi_{\rm actual}$ versus $T$, and the parametric curves $(a(x), g(x))/G$ of the saved profiles.
+`xi_fit/xi_gt1_profiles.py` draws $\xi_{\rm fitted}$ and the literal $\xi_{\rm actual}$ versus $T$, and, for one example (91 MeV, $a(0^+)=0.9999$), the parametric curve $(a(x), g(x))/G$ and the fields $a$, $a'$, $n_B$, $\mu_B$, $\mu_K$ against $x$.
 
 ## Files
 
