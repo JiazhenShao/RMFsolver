@@ -33,13 +33,13 @@ This refines the whole-panel per-level anchors of [[isothermal-xi-fit]]: there, 
 
 ## Why the fitted $\xi$ exceeds 1
 
-The bound $-1<\xi<1$ belongs to the $I_1$ parameterization and assumes $g=-D_Ka'\le G$. The fitted $\xi_{\rm speed}$, at which the analytical formula gives the numerical speed, also absorbs the formula's other approximations.
+The bound $-1<\xi<1$ belongs to the $I_1$ parameterization and assumes $g=-D_Ka'\le G$. The fitted $\xi_{\rm fitted}$, at which the analytical formula gives the numerical speed, also absorbs the formula's other approximations.
 
-Compare it with $\xi_{\rm profile}=2I_1/(G\,a(0^+))-1$, computed literally on each saved profile: $g=-D_Ka'$ by finite differences, $I_1=\int D_Ka'^2dx$, $G=g(0^+)$.
-- Of 2282 high-$T$ points, 1408 have $\xi_{\rm speed}>1$; only 59 have $\xi_{\rm profile}>1$, all above 90 MeV, with a maximum of $+1.09$.
+Compare it with $\xi_{\rm actual}=2I_1/(G\,a(0^+))-1$, computed literally on each saved profile: $g=-D_Ka'$ by finite differences, $I_1=\int D_Ka'^2dx$, $G=g(0^+)$.
+- Of 2282 high-$T$ points, 1408 have $\xi_{\rm fitted}>1$; only 59 have $\xi_{\rm actual}>1$, all above 90 MeV, with a maximum of $+1.09$.
 
-**$I_2$, not shape.** At 48–71 MeV, profiles with $\xi_{\rm speed}=1.5$–$2.1$ are straight ramps ($\xi_{\rm profile}\approx0$).
-- Where $\xi_{\rm speed}>1$, the analytical $I_2$ (cubic manuscript rate, transport frozen at $\mu_B(0^+)$) exceeds the numerical $\int D_K\Gamma_K\,da/n_B(0^+)$ by a median 1.6 (1.8 at 50–70 MeV).
+**$I_2$, not shape.** At 48–71 MeV, profiles with $\xi_{\rm fitted}=1.5$–$2.1$ are straight ramps ($\xi_{\rm actual}\approx0$).
+- Where $\xi_{\rm fitted}>1$, the analytical $I_2$ (cubic manuscript rate, transport frozen at $\mu_B(0^+)$) exceeds the numerical $\int D_K\Gamma_K\,da/n_B(0^+)$ by a median 1.6 (1.8 at 50–70 MeV).
 - $\lambda_n$ taken at $n_B(\infty)$ adds about 1.1 to $\lambda_n^2$.
 - Because $u^2\propto I_2/(1+\xi a)$, the excess pushes $\xi$ above 1, most strongly where $a(0^+)$ is small.
 
@@ -49,7 +49,7 @@ Compare it with $\xi_{\rm profile}=2I_1/(G\,a(0^+))-1$, computed literally on ea
   - The peaked profiles at 77–92 MeV balance at $0^+$ (ratio 1.00–1.03); the current then peaks at about 2 times its $0^+$ value.
   - The slow ramps at 48–71 MeV have conversion winning at $0^+$ (ratio 0.40–0.84).
   - This was checked at six points.
-- $\xi_{\rm profile}$ never falls below $-0.40$.
+- $\xi_{\rm actual}$ never falls below $-0.40$.
 
 ⚠ **Definition trap.** Above 72 MeV, $n_B$ varies by up to 13% across the layer.
 - $-D_Ka'$ then differs from the solver's diffusive current per baryon, $-D_Kn_K'/n_B$ (the solver uses $J_K=u\,n_K-D_Kn_K'$).
@@ -57,7 +57,7 @@ Compare it with $\xi_{\rm profile}=2I_1/(G\,a(0^+))-1$, computed literally on ea
 - The record field `xi_profile` uses the solver flux with the jump $G$ and gives $\xi>1$ at 343 points, up to $+1.59$.
 - Superseded 2026-11-01: an earlier version of this page reported those record values as the profile's own $\xi$ and called the appendix bound contradicted.
 
-`xi_fit/xi_gt1_profiles.py` draws $\xi_{\rm speed}$ and the literal $\xi_{\rm profile}$ versus $T$, and the parametric curves $(a(x), g(x))/G$ of the saved profiles.
+`xi_fit/xi_gt1_profiles.py` draws $\xi_{\rm fitted}$ and the literal $\xi_{\rm actual}$ versus $T$, and the parametric curves $(a(x), g(x))/G$ of the saved profiles.
 
 ## Files
 
