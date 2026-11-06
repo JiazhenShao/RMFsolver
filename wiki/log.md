@@ -1149,3 +1149,7 @@ The contour-figure legends now print at the 10 pt body size in `cmr10`. The gray
 ## [2026-11-03] update | Manuscript figures: tick labels in the body font
 
 Tick labels of every `All_Plots_new` manuscript figure now print at the 10 pt body size in `cmr10` (contour figures 21.0732 pt; bbox-tight figures sized from the exported page with the axis labels). The boundary-profile cells draw tick labels through mathtext, because `cmr10` lacks the Unicode minus. Only the contour speed labels and the trajectory legends/annotations remain DejaVu Sans. See [[manuscript-figure-standard]].
+
+## [2026-11-06] debug | High-T isothermal contours crowding at the udd boundary
+Re-solved `solve_front_isothermal_slow` on rays 80, 70, 30 at $1-f=10^{-1}$ to $10^{-7}$: accepted speeds converge to $10^{-5}$ under tight tolerances and a longer domain, and $v\sqrt{1-a(0^+)}$ tends to a constant (26 m/s at 90 MeV vs 70 at 60 MeV), so the crowding is the physical $(1-a)^{-1/2}$ divergence with a small prefactor.
+The solver fails only at $1-f\le10^{-6}$ ($v\gtrsim3\times10^4$ m/s), beyond the shipped mesh. See [[isothermal-contours-polar-and-row-meshes]].

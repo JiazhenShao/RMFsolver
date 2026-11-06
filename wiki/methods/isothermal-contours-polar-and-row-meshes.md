@@ -1,7 +1,7 @@
 ---
 summary: Nonrelativistic isothermal contours were recomputed on 2026-10-27/28 on a polar mesh (8-100 MeV) and a log-T row mesh (0.01-10 MeV); numerical coverage is 99.6% and 94% with every plotted contour connected, all verifications pass, and analytic xi=-0.85 overestimates numerical speeds by 1.2-6.7x at high T but only 1.0-1.6x at low T.
 status: current
-updated: 2026-10-30
+updated: 2026-11-06
 tags: [method, isothermal, numerical, analytic, contour, xi]
 ---
 
@@ -54,6 +54,17 @@ Before that, every evaluation walks a `path_rtol` ladder ×0.5/0.2/0.1 on table 
 | Static boundaries vs the saved 26-09-16 domain | all 24 rays, $|\Delta\rho|\le2.5\times10^{-5}$ (criterion $10^{-3}$) | same boundary code |
 
 Evidence: `highT/verify_highT.json`, `lowT/verify_lowT.json` and `highT/verify_saved_domain.json`.
+
+**Crowding at the high-$T$ udd boundary is physical (checked 2026-11-06).**
+Above about 80 MeV the 200–5000 m/s contours sit within 1 MeV of the upper boundary.
+Direct re-solves on rays 80, 70 and 30 ($n_B=n_0$, $1.63\,n_0$, $4.1\,n_0$) at $1-f=10^{-1}$ to $10^{-7}$ show the following.
+- Every accepted speed is unchanged to $\le10^{-5}$ under tight tolerances (`tol_bvp` $10^{-6}$, 1200 nodes, `tail_eps` $10^{-10}$, `path_rtol` $10^{-7}$) and with a 3× longer domain.
+- $1-a(0^+)$ is linear in $1-f$, and $v\sqrt{1-a(0^+)}$ tends to a constant: 26.1 m/s on ray 80, 25.6 on ray 70 and 70.2 on ray 30. So $v\propto({\rm distance})^{-1/2}$, exactly the expected divergence.
+- The prefactor falls from about 240 m/s at 25 MeV to 26 m/s at 90 MeV. A level $v$ is reached at $1-a=(C/v)^2$, so at high $T$ the contours squeeze against the boundary: 1000 m/s lies 1.8 MeV from it at 25 MeV and 0.03 MeV from it at 90 MeV.
+- Genuine failures start only at $1-f\le10^{-6}$ ($v\gtrsim3\times10^4$ m/s, beyond the shipped mesh). There, collocation fails, and the shot is rejected on its constitutive residual ($5\times10^{-3}$ to 0.6), although its speed still follows the same $C$.
+- The default tail-shaped guess diverges from $1-f=10^{-2}$ on ($10^{-3}$ on ray 80) and is always rejected; auto mode shoots there.
+
+Evidence: `local_analysis_results/26-11-06/isothermal-udd-edge-probe/`.
 
 The final code review (2026-10-28) led to four workflow fixes; none changes a shipped point.
 - **Non-finite metrics:** acceptance now rejects any non-finite validation metric. Python's `max()` and `>` had let NaN through, but no shipped accepted point has a non-finite stored metric.
