@@ -1153,3 +1153,7 @@ Tick labels of every `All_Plots_new` manuscript figure now print at the 10 pt bo
 ## [2026-11-06] debug | High-T isothermal contours crowding at the udd boundary
 Re-solved `solve_front_isothermal_slow` on rays 80, 70, 30 at $1-f=10^{-1}$ to $10^{-7}$: accepted speeds converge to $10^{-5}$ under tight tolerances and a longer domain, and $v\sqrt{1-a(0^+)}$ tends to a constant (26 m/s at 90 MeV vs 70 at 60 MeV), so the crowding is the physical $(1-a)^{-1/2}$ divergence with a small prefactor.
 The solver fails only at $1-f\le10^{-6}$ ($v\gtrsim3\times10^4$ m/s), beyond the shipped mesh. See [[isothermal-contours-polar-and-row-meshes]].
+
+## [2026-11-06] update | Linear isothermal panels: T up to 100 MeV, label boxes kept off the gray
+Both linear isothermal figures (`speed-isothermal-linear`, `isothermal-contour-compare-linear`) now stop at 100 MeV, their region names are re-centred, the contour-label boxes are clipped to the white region, and the 2000/5000 m/s labels moved to 18/10.5 MeV so their digits stay on white.
+Changed in `update_all_plots_new.py`, regenerated in `All_Plots_new.ipynb` and exported to the manuscript plots. See [[manuscript-figure-standard]].

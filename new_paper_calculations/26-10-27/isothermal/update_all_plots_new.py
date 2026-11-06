@@ -53,9 +53,14 @@ FONT_NOTE = ("# manuscript font standard, shared by every contour figure: at 7.2
 # Layout that keeps the text clear of the data: both region names centred in their gray regions (user,
 # 2026-11-03: balanced, never touching the white region), contour labels boxed as in the adiabatic contour
 # cell, and the manuscript's axis names. The centres maximize the clearance of the centred text box from
-# everything that is not that gray region (frame, ticks, white region): 24 pt for the inner name, 56 pt for
-# the outer one, as rendered on the linear numerical panel.
-MANUSCRIPT_LAYOUT = dict(outer_region_text_position=(4.17, 93.3), inner_region_text_position=(1.94, 12.8),
+# everything that is not that gray region (frame, ticks, white region): 83 pt for the inner name, 89 pt for
+# the outer one, as rendered on the linear numerical panel with T up to 100 MeV. The label boxes are clipped
+# to the white region, and the 2000/5000 labels sit low enough that their digits stay off the gray
+# (user, 2026-11-06).
+MANUSCRIPT_LAYOUT = dict(outer_region_text_position=(4.54, 79.4), inner_region_text_position=(1.89, 19.9),
+                         y_limits_mev=(0.0, 100.0),   # the udd boundary peaks at 94.7 MeV (user, 2026-11-06)
+                         contour_label_temperatures_mev={50.0: 50.0, 100.0: 55.0, 200.0: 60.0, 500.0: 55.0,
+                                                         1000.0: 45.0, 2000.0: 18.0, 5000.0: 10.5},
                          region_text_alignment="center", region_text_vertical_alignment="center",
                          x_label="Nuclear baryon number density [$n_0$]", y_label="Nuclear phase temperature [MeV]",
                          label_font_family="cmr10", tick_label_font_family="cmr10", region_text_font_family="cmr10",
@@ -151,6 +156,7 @@ LINEAR_FIGURE = tuning_block("ISO_LIN_", manuscript_style(_iso_plot.LINEAR_REFER
 ]) + r'''
 
 import matplotlib as mpl
+import matplotlib.path as mpath
 import matplotlib.pyplot as plt
 
 iso_lin_style = {name[len("ISO_LIN_"):].lower(): value for name, value in list(globals().items())
@@ -165,6 +171,14 @@ with mpl.rc_context(iso_lin_rc):
                                ISO_LIN_VELOCITY_CONTOUR_LINE_WIDTH, ISO_LIN_CONTOUR_ZORDER,
                                T_range=(ISO_LIN_Y_LIMITS_MEV[0], ISO_LIN_HIGH_T_CLIP_MEV), x_limits=ISO_LIN_X_LIMITS,
                                radial_upsample=ISO_LIN_LOW_T_UPSAMPLE)
+    # Contour-label boxes hide neighbouring lines but stop at the gray regions (user, 2026-11-06).
+    iso_lin_white = mpath.Path(np.vstack([[(iso_boundaries["inner"][0][0], ISO_LIN_Y_LIMITS_MEV[0])],
+                                       np.column_stack(iso_boundaries["inner"]),
+                                       np.column_stack(iso_boundaries["outer"])[::-1],
+                                       [(iso_boundaries["outer"][0][0], ISO_LIN_Y_LIMITS_MEV[0])]]))
+    for iso_text in iso_lin_axis.texts:
+        if iso_text.get_bbox_patch() is not None:
+            iso_text.get_bbox_patch().set_clip_path(iso_lin_white, iso_lin_axis.transData)
     iso_plot.finish_axes(iso_lin_axis, iso_lin_style)
     for iso_output, iso_dpi in ((ISO_LIN_OUTPUT_PNG, ISO_LIN_EXPORT_DPI), (ISO_LIN_OUTPUT_PDF, None),
                                 (ISO_LIN_OUTPUT_LATEX_PDF, None)):
@@ -175,7 +189,7 @@ with mpl.rc_context(iso_lin_rc):
 
 LINEAR_COMPARISON_MARKDOWN = r"""# Isothermal contour: analytical versus numerical, linear temperature
 
-The full 0–115 MeV range of the linear numerical panel above: numerical solid, analytical dashed at `ISO_LCMP_XI` $=0$ on both meshes (polar above 10 MeV, rows below), rescaled exactly from the saved intermediates.
+The full 0–100 MeV range of the linear numerical panel above: numerical solid, analytical dashed at `ISO_LCMP_XI` $=0$ on both meshes (polar above 10 MeV, rows below), rescaled exactly from the saved intermediates.
 Same axes box as the numerical panel, with the method legend in one row between the title and the axes, as in the log-$T$ comparison."""
 
 LINEAR_COMPARISON_FIGURE = tuning_block("ISO_LCMP_", dict(manuscript_style(_iso_plot.LINEAR_REFERENCE_STYLE),
@@ -206,6 +220,7 @@ LINEAR_COMPARISON_FIGURE = tuning_block("ISO_LCMP_", dict(manuscript_style(_iso_
 ]) + r'''
 
 import matplotlib as mpl
+import matplotlib.path as mpath
 import matplotlib.pyplot as plt
 
 iso_lcmp_style = {name[len("ISO_LCMP_"):].lower(): value for name, value in list(globals().items())
@@ -225,6 +240,14 @@ with mpl.rc_context(iso_lcmp_rc):
                                    ISO_LCMP_VELOCITY_CONTOUR_COLORS, iso_line_style, ISO_LCMP_VELOCITY_CONTOUR_LINE_WIDTH,
                                    ISO_LCMP_CONTOUR_ZORDER, T_range=(ISO_LCMP_Y_LIMITS_MEV[0], ISO_LCMP_HIGH_T_CLIP_MEV),
                                    x_limits=ISO_LCMP_X_LIMITS, radial_upsample=ISO_LCMP_LOW_T_UPSAMPLE)
+    # Contour-label boxes hide neighbouring lines but stop at the gray regions (user, 2026-11-06).
+    iso_lcmp_white = mpath.Path(np.vstack([[(iso_boundaries["inner"][0][0], ISO_LCMP_Y_LIMITS_MEV[0])],
+                                       np.column_stack(iso_boundaries["inner"]),
+                                       np.column_stack(iso_boundaries["outer"])[::-1],
+                                       [(iso_boundaries["outer"][0][0], ISO_LCMP_Y_LIMITS_MEV[0])]]))
+    for iso_text in iso_lcmp_axis.texts:
+        if iso_text.get_bbox_patch() is not None:
+            iso_text.get_bbox_patch().set_clip_path(iso_lcmp_white, iso_lcmp_axis.transData)
     iso_plot.finish_axes(iso_lcmp_axis, iso_lcmp_style)
     iso_plot.method_legend(iso_lcmp_axis, [(ISO_LCMP_ANALYTICAL_LEGEND_LABEL.format(xi=ISO_LCMP_XI), ISO_LCMP_ANALYTICAL_LINE_STYLE),
                                            ("Numerical", ISO_LCMP_NUMERICAL_LINE_STYLE)],
