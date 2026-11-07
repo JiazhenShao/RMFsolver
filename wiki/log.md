@@ -1172,3 +1172,6 @@ The user found 19 pt slightly too big: all six contour panels now use 17 pt cont
 
 ## [2026-11-06] update | Contour labels no longer cover other speeds' lines
 The user saw the 2000 m/s label box break the 5000 line on the linear isothermal panel. A geometric check (each label's rotated box against every other contour path) found that and three more cases; labels moved to 500/1000/2000/5000 m/s at 50/25/8/4 MeV on the linear isothermal panels and 2000 m/s at 100 MeV on both adiabatic panels. Now no box covers another speed's line in any of the six panels. See [[manuscript-figure-standard]].
+
+## [2026-11-06] update | Contour labels in their contour's color
+All six contour panels draw each speed label in its contour's color instead of near-black (user); label size and positions unchanged. See [[manuscript-figure-standard]].
