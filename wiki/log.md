@@ -1166,3 +1166,6 @@ Changed in `update_all_plots_new.py` (isothermal cells), All_Plots_new cells 16 
 ## [2026-11-06] update | Contour speed labels at 19 pt
 The user found the 13 pt contour labels too small and asked for close to the axis-label size: all six contour panels now use 19 pt (9.0 pt printed against the 10 pt axis labels), boxes still clipped off the shading.
 On the linear isothermal panels 1000 m/s moved to 35 MeV and 5000 m/s to 4 MeV, on the row-mesh line below the 10 MeV join. See [[manuscript-figure-standard]].
+
+## [2026-11-06] update | Contour speed labels at 17 pt
+The user found 19 pt slightly too big: all six contour panels now use 17 pt contour labels (8.1 pt printed), boxes still clipped off the shading, digits at least 2.2 pt from it; label positions unchanged. See [[manuscript-figure-standard]].
