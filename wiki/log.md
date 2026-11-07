@@ -1157,3 +1157,8 @@ The solver fails only at $1-f\le10^{-6}$ ($v\gtrsim3\times10^4$ m/s), beyond the
 ## [2026-11-06] update | Linear isothermal panels: T up to 100 MeV, label boxes kept off the gray
 Both linear isothermal figures (`speed-isothermal-linear`, `isothermal-contour-compare-linear`) now stop at 100 MeV, their region names are re-centred, the contour-label boxes are clipped to the white region, and the 2000/5000 m/s labels moved to 18/10.5 MeV so their digits stay on white.
 Changed in `update_all_plots_new.py`, regenerated in `All_Plots_new.ipynb` and exported to the manuscript plots. See [[manuscript-figure-standard]].
+
+## [2026-11-06] update | Contour speed labels back to 13 pt, boxes clipped off the shading in all six panels
+Another session had raised the contour labels of all six manuscript contour figures to the 21.07 pt body size; the user found them oversized, their boxes covering too much and reaching the shaded regions.
+Labels are 13 pt again (6.2 pt printed), and every panel now clips its label boxes to the unshaded region; the closest digits clear the shading by 1.4 pt.
+Changed in `update_all_plots_new.py` (isothermal cells), All_Plots_new cells 16 and 18 (adiabatic), `26-11-06/update_contour_accessibility.py` and the font test; PDFs re-exported. See [[manuscript-figure-standard]].
