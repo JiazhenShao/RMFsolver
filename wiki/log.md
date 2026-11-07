@@ -1162,3 +1162,7 @@ Changed in `update_all_plots_new.py`, regenerated in `All_Plots_new.ipynb` and e
 Another session had raised the contour labels of all six manuscript contour figures to the 21.07 pt body size; the user found them oversized, their boxes covering too much and reaching the shaded regions.
 Labels are 13 pt again (6.2 pt printed), and every panel now clips its label boxes to the unshaded region; the closest digits clear the shading by 1.4 pt.
 Changed in `update_all_plots_new.py` (isothermal cells), All_Plots_new cells 16 and 18 (adiabatic), `26-11-06/update_contour_accessibility.py` and the font test; PDFs re-exported. See [[manuscript-figure-standard]].
+
+## [2026-11-06] update | Contour speed labels at 19 pt
+The user found the 13 pt contour labels too small and asked for close to the axis-label size: all six contour panels now use 19 pt (9.0 pt printed against the 10 pt axis labels), boxes still clipped off the shading.
+On the linear isothermal panels 1000 m/s moved to 35 MeV and 5000 m/s to 4 MeV, on the row-mesh line below the 10 MeV join. See [[manuscript-figure-standard]].
