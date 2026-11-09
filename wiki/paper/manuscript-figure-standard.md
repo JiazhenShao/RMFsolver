@@ -1,7 +1,7 @@
 ---
 summary: Every Main.tex figure from All_Plots_new prints axis and tick labels, titles, gray-region names and contour-figure legends at the 10 pt body size in Computer Modern (cmr10, 21.07 pt at 7.2 in), other text at 10.4 pt (22 pt) and contour labels at 6.2 pt (13 pt); every analytical-numerical comparison uses xi = 0; two sourceless schematics are not resized.
 status: current
-updated: 2026-11-06
+updated: 2026-11-08
 tags: [paper, figures, fonts, contour]
 ---
 
@@ -34,7 +34,12 @@ Since 2026-11-06 (user) the two linear isothermal panels stop at 100 MeV (the ud
 Their contour-label boxes are clipped to the white region, so a box next to the udd boundary no longer paints over gray, and the 2000/5000 m/s labels moved from 30/15 to 18/10.5 MeV, where their digits clear the gray by at least 0.9 pt.
 ⚠ Contour speed labels are 17 pt (8.1 pt printed; user, 2026-11-06): 21.07 pt (10 pt printed) was oversized, its boxes covering too much and reaching the shaded regions, 13 pt too small and 19 pt slightly too big.
 All six panels clip their label boxes to the unshaded region; the closest digits clear the shading by 2.2 pt.
-No label box may cover a line of another speed (user, 2026-11-06: the 2000 box broke the 5000 line); covering its own level's dashed analytical line is accepted. On the linear isothermal panels the labels sit at 500/1000/2000/5000 m/s $\to$ 50/25/8/4 MeV; 2000 and 5000 sit below the 10 MeV join, labelled by `clabel` on an invisible copy of the row-mesh line, because above 10 MeV those contours hug the udd boundary and each other. On both adiabatic panels the 2000 label sits at 100 MeV, since elsewhere its box covers the dashed analytical 1000 line of the comparison. Each contour label is drawn in its contour's color (user, 2026-11-06); the lightest, 5000 m/s and 1M, sit at about 2:1 contrast on white.
+No label box may cover a line of another speed (user, 2026-11-06: the 2000 box broke the 5000 line); covering its own level's dashed analytical line is accepted. On the linear isothermal panels the labels sit at 500/1000/2000/5000 m/s $\to$ 50/25/8/4 MeV; 2000 and 5000 sit below the 10 MeV join, labelled by `clabel` on an invisible copy of the row-mesh line, because above 10 MeV those contours hug the udd boundary and each other. On both adiabatic panels the 2000 label sits at 100 MeV, since elsewhere its box covers the dashed analytical 1000 line of the comparison. Each contour label is drawn in its contour's color (user, 2026-11-06); with the 2026-11-08 palette every label has at least 3.7:1 contrast on white.
+⚠ **Contour palette, 2026-11-08 (MGA):** the sampled `cividis` colors were "too similar" and "rather pale" at the faster speeds, so all six panels now use one dark cool-to-hot sequence, slow to fast navy, blue, teal, green, olive, orange, red, crimson, maroon (`CONTOUR_PALETTES` in `update_all_plots_new.py`: 7 colors for the linear and adiabatic levels, 9 for the log-$T$ levels).
+Neighbouring lines are 11-14 OKLab units apart, against 6-8 for cividis, and every color has at least 3.7:1 contrast on white, against 2.0.
+Under simulated red-green color blindness the olive/orange neighbours nearly merge, a trade accepted because every line carries its value label.
+The same day MGA asked to drop "numerical" from the title: the isothermal numerical panels and, for consistency, the adiabatic numerical panel now read "Isothermal speed" and "Adiabatic speed" [$\mathrm{m\,s^{-1}}$].
+Every contour cell keeps its output directory and PDF name in its own tuning block and writes straight into `Latex_writting/Hydrodynamical combustion/Plots/`, so rerunning a tuned cell updates the manuscript figure (user, 2026-11-08).
 Superseded 2026-11-03: both names sat at the lower-left corner $(1.08, 3)$ and at $(3.62, 98)$. A pixel test renders the cells and checks the names stay on gray.
 ⚠ The isothermal inner gray region is narrow above $T\approx15$ MeV: at the old $(1.18, 20)$ the 22 pt "Quark matter not favored" ran into the white region.
 The adiabatic comparison canvas grew to $7.2\times8.8$ in so the title and the outside legend fit; its unbanded labels now carry the white box, because the dashed analytical 50 and 200 m/s curves ran through them.
