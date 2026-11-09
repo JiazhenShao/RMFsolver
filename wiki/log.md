@@ -1178,3 +1178,6 @@ All six contour panels draw each speed label in its contour's color instead of n
 
 ## [2026-11-08] update | Contour palette and titles after MGA's comments
 MGA found the cividis contour colors too similar and pale at fast speeds, and asked to drop "numerical" from the Fig. 6 title. All six contour panels now use a dark cool-to-hot palette (neighbours 11-14 OKLab units apart, all at least 3.7:1 on white); the numerical panels read "Isothermal speed" / "Adiabatic speed". See [[manuscript-figure-standard]].
+
+## [2026-11-09] update | Example profile at T(0+) = 0.1 MeV after MGA/LB comments
+Figs. 4-5 now use the adiabatic example at $T(0^+)=0.1$ MeV, as in the speed plots (MGA): $u(0^-)=189.39$ m/s, $a(0^+)=0.5152$. The $A_{\rm adb}$ label clears the tick mark (LB), and both trajectory captions say "Isobaric trajectory". See [[notebook-trajectory-figures]].

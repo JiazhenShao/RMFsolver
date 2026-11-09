@@ -1,7 +1,7 @@
 ---
-summary: All_Plots_new exports matched trajectory figures and a four-panel numerical adiabatic boundary profile from saved data.
+summary: Figures 4-5 use the 3.5n0 adiabatic example at T(0+)=0.1 MeV as in the speed plots (MGA, 2026-11-09), giving a(0+)=0.51515 and 189.39 m/s; the cold nuclear 3n0 bag calibration and isothermal example are unchanged.
 status: current
-updated: 2026-10-26
+updated: 2026-11-09
 tags: [methods, notebooks, figures, manuscript]
 ---
 
@@ -29,6 +29,17 @@ Only the two matching captions in `Latex_writting/Main.tex` were updated: they u
 The completed adiabatic-label comment was removed; the manuscript body was not changed.
 The manuscript rebuild succeeds with its pre-existing undefined-citation/reference and float-placement warnings.
 See [[quark-matter-eos]] and [[steady-front-bvp]].
+
+## Current Adiabatic Example: $T(0^+)=0.1$ MeV (2026-11-09)
+
+MGA asked for the example at $T(0^+)=0.1$ MeV, the value used in every speed plot, instead of 5 MeV.
+Cell `matched-boundary-profile-solves` of `All_Plots_new.ipynb` now sets `T_0PLUS_MEV = 0.1`; $n_B(0^-)=3.5\,n_0$, $T(0^-)=10$ MeV and $U_{\rm bag}^{1/4}=189.1566$ MeV are unchanged.
+`solve_front_adiabatic_slow` gives $a(0^+)=0.5151525$, $u(0^-)=189.388542$ m/s and $T(\infty)=32.084773$ MeV; doubling the mesh and tightening `tol_bvp`, `tail_eps` and `path_rtol` changes none of these digits.
+The profile is `local_analysis_results/All_Plots_new/adiabatic_slow_T10_nB3p5n0_cold3n0_T0plus0p1.csv` (decimal points in the tag are now written as `p`); the isothermal example reproduced exactly, $u(0^-)=16.993265$ m/s.
+Fig. 4 (`T_a_constant_pressure.pdf`, cell 11): the star now sits on the $a$ axis beside the open $A_{\rm adb}$ circle (analytic intercept 0.5317), so the dotted projections are off, the edge markers are drawn unclipped with the star above the circle, and the $A_{\rm adb}$ label is raised to offset (6, 12) pt, clear of the $a=0.6$ tick (LB).
+Fig. 5 (`boundary_schematic_real.pdf`, cell 3): the speed panel runs to 240 m/s with ticks 0/100/200, because $u(0^-)$ exceeded the old 160 m/s limit.
+In `Main.tex` both trajectory captions now open "Isobaric trajectory" (LB), and the text and both adiabatic captions quote $T(0^+)=0.1$ MeV, $u(0^-)=189.4$ m/s and $a(0^+)\simeq0.52$; the comment macros were left for the authors to remove.
+This supersedes the $T(0^+)=5$ MeV example ($a(0^+)=0.50919$, $u(0^-)=127.50$ m/s).
 
 ## Numerical Boundary Overview (2026-10-19)
 
