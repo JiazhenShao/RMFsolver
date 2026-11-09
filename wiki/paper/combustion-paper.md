@@ -1,7 +1,7 @@
 ---
 summary: The front-speed paper — where the files live, house conventions, and what still blocks submission.
 status: current
-updated: 2026-10-19
+updated: 2026-11-09
 tags: [paper, writing, hub]
 ---
 
@@ -52,7 +52,9 @@ The nuclear→quark deflagration front, its speed, and what closes the interface
 
 `Notes.tex` is working derivation history. Its top “State of the art” section is useful for the June formulation, but its entropy-flux variants and coefficient-3 LTE derivation are superseded by the active manuscript and the corrected wiki pages. Where a newer wiki conclusion conflicts with either TeX file, follow the wiki and preserve the disagreement as history.
 
-The active manuscript is still a collaborative draft: its abstract is `Place holder`, its conclusion is unfinished, and it contains author comments, hidden diagnostics and formal inconsistencies documented on [[diffusion-limited-front]], [[analytic-front-speed]], [[quark-matter-eos]] and [[steady-front-bvp]]. Author comments, `\hide{...}` / `\iffalse` bodies and the ignored duplicate are evidence of work in progress, not current manuscript claims.
+The active manuscript is still a collaborative draft: its abstract is `Place holder`, and it contains author comments, hidden diagnostics and formal inconsistencies documented on [[diffusion-limited-front]], [[analytic-front-speed]], [[quark-matter-eos]] and [[steady-front-bvp]]. Author comments, `\hide{...}` / `\iffalse` bodies and the ignored duplicate are evidence of work in progress, not current manuscript claims.
+
+The Conclusions section was rewritten on 2026-11-09 (JS, Alford-style recipe, marked `\JS{}`): recap of the weak-interaction-limited mechanism, speeds of order 100 to 1000 m/s at most for $T\gtrsim1$ MeV in both limits, the isothermal low-$T$ rise and adiabatic $T$-independence, the take-home that instantaneous conversion in merger simulations is unjustified, and five caveats as next steps (beta-equilibrated nuclear matter with Urca, pairing at low $T$, breakdown of local thermal equilibrium, finite thermal conductivity, reverse conversion and phase-conversion dissipation). Dropped from the old bullet list: neutrinos, upstream disturbances, the steady-state assumption, ideal-fluid dissipation, surface tension and the collapse speculation; the old draft stays in an `\iffalse` block. MGA's earlier line that inspiral speeds "may be slow enough to allow interface modes" was not carried over, because Sec. V D argues the speeds overlap the resonant range instead.
 
 In particular, the long postmerger-GW block in `Main.tex` is inside `\hide{...}` and does not compile. The newer standalone state recorded in [[gw-observables-section]] is authoritative. Likewise, the manuscript's $T(0^+)=0$ maximization/floor discussion is superseded by [[unmax-degeneracy]], [[lte-composition-bound]] and [[thermal-conducting]].
 

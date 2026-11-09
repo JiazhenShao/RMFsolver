@@ -1181,3 +1181,6 @@ MGA found the cividis contour colors too similar and pale at fast speeds, and as
 
 ## [2026-11-09] update | Example profile at T(0+) = 0.1 MeV after MGA/LB comments
 Figs. 4-5 now use the adiabatic example at $T(0^+)=0.1$ MeV, as in the speed plots (MGA): $u(0^-)=189.39$ m/s, $a(0^+)=0.5152$. The $A_{\rm adb}$ label clears the tick mark (LB), and both trajectory captions say "Isobaric trajectory". See [[notebook-trajectory-figures]].
+
+## [2026-11-09] update | Main.tex Conclusions rewritten
+Conclusions now recap the mechanism, give the 100-1000 m/s upper estimates and the merger take-home, and keep five of the old caveat bullets as next steps. See [[combustion-paper]].
