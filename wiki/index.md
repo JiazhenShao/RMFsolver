@@ -90,7 +90,7 @@ The nuclear→quark combustion front project. **This is the only page loaded by 
 
 - [[group-meeting-2026-10-16]] — `26-10-14.md` follows the eight October 8 checklist items and adds the exact-baseline Eq. (35) ceiling comparison, with embedded figures and speaking notes.
 - [[combustion-paper]] — active `Latex_writting/Main.tex` build, October 19 figure/reference repairs, and historical manuscript notes.
-- [[manuscript-figure-standard]] — Main.tex figure standard: axis labels, titles and region names at the 10 pt body size in Computer Modern (21.07 pt cmr10 at 7.2 in), other text 10.4 pt, contour labels 6.2 pt; nuclear-phase axis names; every analytical-numerical comparison at $\xi=0$; two sourceless schematics not resized.
+- [[manuscript-figure-standard]] — Main.tex figure standard: axis labels, titles and region names at the 10 pt body size in Computer Modern (21.07 pt cmr10 at 7.2 in), other text 10.4 pt, contour labels 6.2 pt; neutron-matter axis names and the "Direct conversion to $udd$ quark matter" region (2026-11-10); every analytical-numerical comparison at $\xi=0$; two sourceless schematics not resized.
 - [[gw-observables-section]] — settled notation, taiji geometry, the six calibrated cases, recurring citation error.
 - [[supernova-quark-oscillations]] — Mathews/Rupp/Boccioli DNP 2026 supernova core oscillations need rapid conversion; laminar fronts move only ~m per ms oscillation.
 

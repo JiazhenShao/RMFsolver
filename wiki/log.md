@@ -1187,3 +1187,6 @@ Conclusions now recap the mechanism, give the 100-1000 m/s upper estimates and t
 
 ## [2026-11-10] update | Conclusions text filed in the wiki
 The 2026-11-09 Conclusions of Main.tex are now kept verbatim, with the caveat selection and the open author decisions, in [[conclusions-section]], so the text survives independently of the uncommitted Main.tex working copy.
+
+## [2026-11-10] update | Contour axis and region names; example star; a-panel axis
+Contour axes now read "Neutron matter $n_B$" and "Neutron matter temperature", and the upper region "Direct conversion to $udd$ quark matter"; the adiabatic maps run to 125 MeV to fit it. Fig. `speed-adiabatic` stars the Fig. 5 example, and Fig. 5's $a$ axis sits on $a=0$. See [[manuscript-figure-standard]] and [[notebook-trajectory-figures]].

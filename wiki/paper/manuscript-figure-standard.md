@@ -1,7 +1,7 @@
 ---
 summary: Every Main.tex figure from All_Plots_new prints axis and tick labels, titles, gray-region names and contour-figure legends at the 10 pt body size in Computer Modern (cmr10, 21.07 pt at 7.2 in), other text at 10.4 pt (22 pt) and contour labels at 6.2 pt (13 pt); every analytical-numerical comparison uses xi = 0; two sourceless schematics are not resized.
 status: current
-updated: 2026-11-08
+updated: 2026-11-10
 tags: [paper, figures, fonts, contour]
 ---
 
@@ -28,8 +28,9 @@ The contour-label size is the adiabatic contour cell's former 11 pt plus 2, as t
 
 ## Contour figures
 
-All six contour cells (Fig. `speed-adiabatic`, `adiabatic-contour-compare`, both isothermal linear/log panels, the log-$T$ comparison of Fig. `isothermal-contour-compare` and the linear comparison of Fig. `isothermal-contour-compare-linear`, added 2026-11-03) use the x label "Nuclear baryon number density [$n_0$]" and the y label "Nuclear phase temperature [MeV]".
+All six contour cells (Fig. `speed-adiabatic`, `adiabatic-contour-compare`, both isothermal linear/log panels, the log-$T$ comparison of Fig. `isothermal-contour-compare` and the linear comparison of Fig. `isothermal-contour-compare-linear`, added 2026-11-03) use the x label "Neutron matter $n_B$ [$n_0$]" and the y label "Neutron matter temperature [MeV]" (user, 2026-11-10; before that "Nuclear baryon number density" and "Nuclear phase temperature").
 On the linear panels both region names are drawn centred on the point where the text box has the largest clearance from everything that is not its gray region (frame, ticks, white region), found on a render without text (user, 2026-11-03: balanced, never touching white): isothermal $(1.89, 19.9)$ and $(4.54, 79.4)$, adiabatic $(1.97, 13.5)$ and $(4.55, 103.3)$ in $(n_B/n_0, T/\mathrm{MeV})$, with clearances 83/89 and 26/19 pt; each comparison reuses its numerical panel's places.
+Since 2026-11-10 (user) the upper region is named "Direct conversion to $udd$ quark matter" (was "$udd$ quark matter favored"). The longer name is centred at $(4.18, 87.0)$ on both linear isothermal panels (15 pt printed clearance) and at $(4.34, 112.3)$ / $(4.35, 112.2)$ on the two adiabatic panels, whose $T$ axis now runs to 125 MeV with a 120 tick: at the old 115 MeV limit the best centre kept only 3.5 pt, now 9–10 pt. On the log-$T$ panels it is one vertical line at $(5.63, 1.6)$, 8.5 pt clear. Fig. `speed-adiabatic` also marks the Fig. 5 example's upstream state with a black star; see [[notebook-trajectory-figures]].
 Since 2026-11-06 (user) the two linear isothermal panels stop at 100 MeV (the udd boundary peaks at 94.7 MeV), which moved their names from $(1.94, 12.8)$ and $(4.17, 93.3)$.
 Their contour-label boxes are clipped to the white region, so a box next to the udd boundary no longer paints over gray, and the 2000/5000 m/s labels moved from 30/15 to 18/10.5 MeV, where their digits clear the gray by at least 0.9 pt.
 ⚠ Contour speed labels are 17 pt (8.1 pt printed; user, 2026-11-06): 21.07 pt (10 pt printed) was oversized, its boxes covering too much and reaching the shaded regions, 13 pt too small and 19 pt slightly too big.
