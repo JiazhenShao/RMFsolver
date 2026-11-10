@@ -9,6 +9,8 @@ tags: [paper, manuscript, conclusions, combustion]
 
 The Conclusions of `Latex_writting/Main.tex` (`\section{Conclusions}`, `\label{sec:conclusion}`) were rewritten by JS on 2026-11-09 with the paper-writing skill's Alford conclusions recipe. The new text is wrapped in `\JS{...}`; the previous MGA/LB/AH draft, with its caveat bullets and comments, sits directly below it in an `\iffalse ... \fi` block. Context for the rest of the manuscript is in [[combustion-paper]].
 
+⚠ 2026-11-10, 12:05: `Main.tex` on disk was replaced by a version without this rewrite (the old `\section{Conclusion}` with the MGA/LB/AH bullets is back, as are pre-2026-11-09 captions, since re-corrected). Until the authors re-insert it, the text below exists only here.
+
 ⚠ `Main.tex` itself is not committed together with this page; its working copy carries many other uncommitted edits. This page is the durable copy of the 2026-11-09 text. If the live `Main.tex` differs, the live file is the current text, and this page records the version and the selection decisions behind it.
 
 ## Structure
