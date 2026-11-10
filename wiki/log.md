@@ -1184,3 +1184,6 @@ Figs. 4-5 now use the adiabatic example at $T(0^+)=0.1$ MeV, as in the speed plo
 
 ## [2026-11-09] update | Main.tex Conclusions rewritten
 Conclusions now recap the mechanism, give the 100-1000 m/s upper estimates and the merger take-home, and keep five of the old caveat bullets as next steps. See [[combustion-paper]].
+
+## [2026-11-10] update | Conclusions text filed in the wiki
+The 2026-11-09 Conclusions of Main.tex are now kept verbatim, with the caveat selection and the open author decisions, in [[conclusions-section]], so the text survives independently of the uncommitted Main.tex working copy.

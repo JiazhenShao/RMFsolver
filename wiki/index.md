@@ -1,7 +1,7 @@
 ---
 summary: Catalog of every wiki page. Read this first; drill down from here.
 status: current
-updated: 2026-10-28
+updated: 2026-11-10
 tags: [meta, index]
 ---
 
@@ -14,6 +14,7 @@ The nuclear→quark combustion front project. **This is the only page loaded by 
 - [[diffusion-limited-front]] — the baseline physical model: a slow planar front selected by quark-side reaction and diffusion. **Read first for project physics.**
 - [[interface-closure]] — the central problem: four unknowns, three conservation laws, and the closure hierarchy. **Read first.**
 - [[combustion-paper]] — the paper, its files, house conventions, and what still blocks submission.
+- [[conclusions-section]] — Main.tex Conclusions rewritten 2026-11-09: mechanism, at most 100–1000 m/s for $T\gtrsim1$ MeV, instantaneous merger conversion unjustified, caveats (a)–(e); verbatim LaTeX, kept/dropped bullets and open author decisions.
 - [[notebook-renames]] — season-named notebooks became date-named on 2026-10-02; read it to decode old names in [[log]] and `docs/`.
 
 ## Physics
