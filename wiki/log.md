@@ -1190,3 +1190,6 @@ The 2026-11-09 Conclusions of Main.tex are now kept verbatim, with the caveat se
 
 ## [2026-11-10] update | Contour axis and region names; example star; a-panel axis
 Contour axes now read "Neutron matter $n_B$" and "Neutron matter temperature", and the upper region "Direct conversion to $udd$ quark matter"; the adiabatic maps run to 125 MeV to fit it. Fig. `speed-adiabatic` stars the Fig. 5 example, and Fig. 5's $a$ axis sits on $a=0$. See [[manuscript-figure-standard]] and [[notebook-trajectory-figures]].
+
+## [2026-11-12] update | K fraction typeset as $Y_K$ via `\Kfr`
+Main.tex now writes the K fraction through `\Kfr` (= $Y_K$): 114 math-mode $a$ replaced, Brodie's comment removed. Figure axis labels and $A_{\rm iso}$, $A_{\rm adb}$ unchanged. See [[combustion-paper]].

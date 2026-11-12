@@ -1,7 +1,7 @@
 ---
 summary: The front-speed paper — where the files live, house conventions, and what still blocks submission.
 status: current
-updated: 2026-11-09
+updated: 2026-11-12
 tags: [paper, writing, hub]
 ---
 
@@ -76,6 +76,7 @@ In particular, the long postmerger-GW block in `Main.tex` is inside `\hide{...}`
 ## Conventions that have caused rework
 
 - $\gamma$ was used for three different meanings in an early GW draft. Check before adding notation.
+- **The K fraction is typeset by the macro `\Kfr`** (currently $Y_K$, adopted 2026-11-12 on Brodie's "change $a$ to $Y_K$ throughout?" comment). Write `\Kfr`, never a bare `a`, in new Main.tex math; relabel the whole paper by editing that one `\newcommand`. `\azp` is `\Kfr(0^+)`. The wiki and code keep $a$. Still unchanged: $A_{\rm iso}$, $A_{\rm adb}$, and the $a$ axis labels inside the figure PDFs.
 - Oversized displays break the two-column layout; equations that overflow need `aligned` splitting.
 - One sentence per source line in `.tex` prose (project-wide rule).
 - **This directory is not a git repository.** There is no diffing, no stash, no commit. Every edit is additive and surgical, and a stale `.py.old` may be the only backup of something.
