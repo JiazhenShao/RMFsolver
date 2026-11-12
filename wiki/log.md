@@ -1196,3 +1196,6 @@ Main.tex now writes the K fraction through `\Kfr` (= $Y_K$): 114 math-mode $a$ r
 
 ## [2026-11-12] update | Bounds typeset as $y_K^{\rm iso}$, $y_K^{\rm adb}$
 `\Kfr` is now $y_K$; 54 occurrences of $A_{\rm iso}$, $A_{\rm adb}$ in Main.tex now use `\Kfriso`, `\Kfradb`, with powers parenthesized. See [[combustion-paper]].
+
+## [2026-11-12] update | Figure labels use $y_K$
+All_Plots_new cells 3, 5 (profile panels) and 11 ($(y_K,T)$ trajectory: axis, $y_K(0^+)$ star, $y_K^{\rm adb}$ endpoint) relabeled and re-exported to their Latex_writting PDFs from the saved profiles, no solver rerun. The xfig `boundary_schematic.pdf` still prints $a$. See [[combustion-paper]].
