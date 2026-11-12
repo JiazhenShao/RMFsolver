@@ -1193,3 +1193,6 @@ Contour axes now read "Neutron matter $n_B$" and "Neutron matter temperature", a
 
 ## [2026-11-12] update | K fraction typeset as $Y_K$ via `\Kfr`
 Main.tex now writes the K fraction through `\Kfr` (= $Y_K$): 114 math-mode $a$ replaced, Brodie's comment removed. Figure axis labels and $A_{\rm iso}$, $A_{\rm adb}$ unchanged. See [[combustion-paper]].
+
+## [2026-11-12] update | Bounds typeset as $y_K^{\rm iso}$, $y_K^{\rm adb}$
+`\Kfr` is now $y_K$; 54 occurrences of $A_{\rm iso}$, $A_{\rm adb}$ in Main.tex now use `\Kfriso`, `\Kfradb`, with powers parenthesized. See [[combustion-paper]].
